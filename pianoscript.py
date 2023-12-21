@@ -9,10 +9,8 @@ class PianoScript:
         
         # setup
         self.app = QApplication(sys.argv)
-        
         self.root = QMainWindow()
         self.root.setStyleSheet(stylesheet)
-
         self.gui = Gui(self.root)
         self.gui.show()
 
@@ -23,6 +21,7 @@ class PianoScript:
             'gui':self.gui
         }
         
+        # run
         sys.exit(self.app.exec())
 
 if __name__ == '__main__':
