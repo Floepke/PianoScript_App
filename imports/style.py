@@ -34,4 +34,8 @@ QDockWidget {
     background-color: #555555;  /* Set the overall background color, including title bar */
     color: #FFFFFF;  /* Set the text color */
 }
+QMenuBar {
+    background-color: #555555;
+    color: #FFFFFF;
+}
 """
