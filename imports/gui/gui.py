@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QScreen, QGuiApplication, QAction
 from PySide6.QtGui import QKeyEvent, QColor
 
-BACKGROUND_COLOR = QColor('#777777')
+BACKGROUND_COLOR = QColor('#eeeeee')
 
 class Gui():
     def __init__(self, main):
@@ -43,6 +43,7 @@ class Gui():
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(BACKGROUND_COLOR)
+        self.editor_scene.setSceneRect(0, 0, 400, 400)
         self.editor_view = QGraphicsView(self.editor_scene, self.main)
         self.editor_scene.addItem(QGraphicsRectItem(0, 0, 200, 1500))
 

@@ -1,36 +1,32 @@
-class PianorollEditor:
-    def __init__(self):
-        # Initialize the editor
+from imports.editor.draweditor import DrawEditor
+
+class Editor:
+    '''The editor class handles all the editor functions'''
+
+    def __init__(self, io):
+        self.io = io
+        
+        self.redraw(self.io)
+
+    def redraw(self, io):
+        '''I want to check the performance if I draw the entire editor every time the score changes. I don't know if it will be fine, but I want to see.'''
+
+        # clear the editor scene
+        io['editor'].delete_all()
+
+        # draw the staff
+        DrawEditor.draw_staff(io)
+
+        # draw barines
         ...
 
-    def load_pianoroll(self, filepath):
-        # Load a pianoroll from a file
+        # draw gridlines
         ...
 
-    def save_pianoroll(self, filepath):
-        # Save the current pianoroll to a file
+        # draw notes
         ...
 
-    def add_note(self, note):
-        # Add a note to the pianoroll
+        # draw titles
         ...
 
-    def remove_note(self, note):
-        # Remove a note from the pianoroll
-        ...
-
-    def resize_pianoroll(self, width, height):
-        # Resize the pianoroll
-        ...
-
-    def draw_pianoroll(self):
-        # Draw the pianoroll on the screen
-        ...
-
-    def play_pianoroll(self):
-        # Play the pianoroll
-        ...
-
-    def stop_pianoroll(self):
-        # Stop playing the pianoroll
-        ...
+    

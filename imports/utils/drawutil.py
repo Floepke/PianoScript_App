@@ -9,15 +9,62 @@ from PySide6.QtGui import QFontDatabase
 class DrawUtil:
     '''
         This class has methods for basic drawing operations on a QGraphicsScene.
+        The class is based on tkinter's Canvas class drawing methods.
+
         The following methods are available:
-        - new_line()
-        - new_rectangle()
-        - new_oval()
+        - new_line(); add a line to the scene
+            * x1: x-coordinate of the start point
+            * y1: y-coordinate of the start point
+            * x2: x-coordinate of the end point
+            * y2: y-coordinate of the end point
+            * dash: list of dash lengths (e.g. [2, 4] for a dash of length 2 and a gap of length 4)
+            * width: width of the line
+            * capstyle: cap style of the line (Qt.RoundCap, Qt.FlatCap, Qt.SquareCap) default: Qt.RoundCap
+            * joinstyle: join style of the line (Qt.RoundJoin, Qt.MiterJoin, Qt.BevelJoin) default: Qt.RoundJoin
+            * color: color of the line (e.g. '#FF0000' for red)
+            * tag: tag of the line (e.g. 'line1')
+        - new_rectangle(); add a rectangle to the scene
+            * x1: x-coordinate of the top left corner
+            * y1: y-coordinate of the top left corner
+            * x2: x-coordinate of the bottom right corner
+            * y2: y-coordinate of the bottom right corner
+            * dash: list of dash lengths (e.g. [2, 4] for a dash of length 2 and a gap of length 4)
+            * width: width of the outline
+            * capstyle: cap style of the outline (Qt.RoundCap, Qt.FlatCap, Qt.SquareCap) default: Qt.RoundCap
+            * outline_color: color of the outline (e.g. '#FF0000' for red)
+            * fill_color: color of the fill (e.g. '#FF0000' for red)
+            * tag: tag of the rectangle (e.g. 'rectangle1')
+        - new_oval(); add an oval to the scene
+            * x1: x-coordinate of the top left corner
+            * y1: y-coordinate of the top left corner
+            * x2: x-coordinate of the bottom right corner
+            * y2: y-coordinate of the bottom right corner
+            * dash: list of dash lengths (e.g. [2, 4] for a dash of length 2 and a gap of length 4)
+            * outline_width: width of the outline
+            * outline_color: color of the outline (e.g. '#FF0000' for red)
+            * fill_color: color of the fill (e.g. '#FF0000' for red)
+            * tag: tag of the oval (e.g. 'oval1')
         - new_polygon()
-        - new_text()
-        - delete_with_tag()
-        - delete_all()
-        - find_with_tag() (not yet implemented)
+            * points: list of xy points (e.g. [(50, 200), (150, 200), (150, 300), (40, 400)])
+            * dash: list of dash lengths (e.g. [2, 4] for a dash of length 2 and a gap of length 4)
+            * width: width of the outline
+            * outline_color: color of the outline (e.g. '#FF0000' for red)
+            * fill_color: color of the fill (e.g. '#FF0000' for red)
+            * tag: tag of the polygon (e.g. 'polygon1')
+        - new_text(); add text to the scene
+            * x: x-coordinate of the text
+            * y: y-coordinate of the text
+            * text: text to be displayed
+            * font: font of the text (e.g. 'Arial') or path to a ttf or otf font (e.g. '/home/user/fonts/arial.ttf')
+            * size: size of the text (e.g. 12.0)
+            * color: color of the text (e.g. '#FF0000' for red)
+            * tag: tag of the text (e.g. 'text1')
+            * anchor: anchor of the text (options: 'c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw')
+        - delete_with_tag(); delete all items with the given tag or tags
+            * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
+        - delete_all(); delete all items
+        - find_with_tag() (not yet implemented); find all items with the given tag or tags and return a list of items
+            * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
     '''
     def __init__(self, canvas: QGraphicsScene):
         self.canvas = canvas
@@ -27,6 +74,7 @@ class DrawUtil:
                   dash: list = None,
                   width: float = 1.0, 
                   capstyle: Qt.PenCapStyle = Qt.RoundCap,
+                  joinstyle: Qt.PenJoinStyle = Qt.RoundJoin,
                   color: str = '#000000',
                   tag: str = 'undefined'):
         '''Add a line to the scene.'''
@@ -39,6 +87,7 @@ class DrawUtil:
         pen = QPen()
         pen.setWidthF(width)
         pen.setCapStyle(capstyle)
+        pen.setJoinStyle(joinstyle)
         pen.setColor(QColor(color))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
@@ -204,6 +253,14 @@ class DrawUtil:
     def delete_all(self):
         '''Delete all items.'''
         self.canvas.clear()
+
+    def find_with_tag(self, tag: Union[str, Tuple[str, ...]]):
+        '''Find all items with the given tag or tags and return a list of items.'''
+        scene_items = self.canvas.items()
+        if isinstance(tag, tuple):
+            return [item for item in scene_items if item.data(0) in tag]
+        else:
+            return [item for item in scene_items if item.data(0) == tag]
     
 
 
