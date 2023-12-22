@@ -3,6 +3,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui import Gui
 from imports.style import stylesheet
 from PySide6.QtGui import QKeyEvent, Qt
+from imports.utils.drawutil import DrawUtil
+from imports.editor.score import Score
+import time
 
 class PianoScript:
 
@@ -11,26 +14,26 @@ class PianoScript:
         # setup
         self.app = QApplication(sys.argv)
         self.root = QMainWindow()
-        self.root.setStyleSheet(stylesheet)
         self.gui = Gui(self.root)
         self.gui.show()
 
         # io == all objects in the application in one organized dict
         self.io = {
-            'app':self.app,
-            'root':self.root,
-            'gui':self.gui
+            # the gui class
+            'gui':self.gui,
+            # the editor drawutil class
+            'editor':DrawUtil(self.gui.editor_scene),
+            # the printview drawutil class
+            'view':DrawUtil(self.gui.print_scene),
+            # score object
+            'score':{}
         }
-        
-        # run
-        sys.exit(self.app.exec())
+        self.io['score'] = Score(self.io)
+        self.io['score'].new()
+        print(self.io['score'])
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key_F11:
-            if self.root.isFullScreen():
-                self.root.showNormal()
-            else:
-                self.root.showFullScreen()
+        # run the application
+        sys.exit(self.app.exec())
 
 if __name__ == '__main__':
     PianoScript()
