@@ -6,6 +6,13 @@ from PySide6.QtGui import QPolygonF, QFont
 from typing import Union, Tuple
 from PySide6.QtGui import QFontDatabase
 
+import sys
+import time
+from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
+from typing import Tuple
+
 class DrawUtil:
     '''
         This class has methods for basic drawing operations on a QGraphicsScene.
@@ -258,10 +265,25 @@ class DrawUtil:
         '''Find all items with the given tag or tags and return a list of items.'''
         scene_items = self.canvas.items()
         if isinstance(tag, tuple):
-            return [item for item in scene_items if item.data(0) in tag]
+            items = [item for item in scene_items if item.data(0) in tag]
+            items.sort(key=lambda item: tag.index(item.data(0)))
+            return items
         else:
             return [item for item in scene_items if item.data(0) == tag]
+
+    def tag_raise(self, tag: Union[str, Tuple[str, ...]]):
+        '''Raise items with the given tag or tags to the top of the scene.'''
+        items = self.find_with_tag(tag)
+        highest_z = max(item.zValue() for item in self.canvas.items()) if self.canvas.items() else 0
+        for item in items:
+            item.setZValue(highest_z + 1.0)
     
+    def tag_lower(self, tag: Union[str, Tuple[str, ...]]):
+        '''Lower items with the given tag or tags to the bottom of the scene.'''
+        items = self.find_with_tag(tag)
+        lowest_z = min(item.zValue() for item in self.canvas.items()) if self.canvas.items() else 0
+        for item in items:
+            item.setZValue(lowest_z - 1.0)
 
 
 
@@ -275,71 +297,51 @@ class DrawUtil:
 
 
 
+class TestApplication(QApplication):
+    def __init__(self, sys_argv):
+        super().__init__(sys_argv)
+        
+        # Create the graphics view and scene
+        self.view = QGraphicsView()
+        self.scene = QGraphicsScene()
+        self.view.setScene(self.scene)
+        
+        # Set the size of the graphics view
+        self.view.setFixedSize(800, 600)
 
+        # use the drawutil class
+        self.drawutil = DrawUtil(self.scene)
+        
+        # Add rectangles to the scene
+        self.add_rectangles()
+        
+        # Show the graphics view
+        self.view.show()
 
-# Test the DrawBasicShapes class
-if __name__ == "__main__":
-    # Create the application
-    app = QApplication([])
+        self.raise_rectangles()
 
-    # Create a QGraphicsScene and set its size
-    scene = QGraphicsScene()
-    scene.setSceneRect(0, 0, 400, 400)
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.raise_rectangles()
+        else:
+            super().keyPressEvent(event)
+        
+    def add_rectangles(self):
+        colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#8000FF', '#0080FF', '#FF0080']
+        for i, color in enumerate(colors):
+            x = i * 50
+            y = i * 50
+            width = 200
+            height = 200
+            self.drawutil.new_rectangle(x, y, x + width, y + height, fill_color=color, tag=f'rectangle{i}')
+        
+    def raise_rectangles(self):
+        # for i in reversed(range(10)):
+        #     tag = f'rectangle{i}'
+        #     self.drawutil.tag_raise(tag)
+        #     time.sleep(0.1)
+        self.drawutil.tag_raise(('rectangle0', 'rectangle4', 'rectangle2', 'rectangle3', 'rectangle1', 'rectangle5', 'rectangle9', 'rectangle7', 'rectangle8', 'rectangle6'))
 
-    # Create a QGraphicsView to display the scene
-    view = QGraphicsView(scene)
-    view.setWindowTitle("Test Application")
-    view.show()
-
-    # Create an instance of DrawBasicShapes
-    draw_tools = DrawUtil(scene)
-
-    # Create a rectangle without dash
-    draw_tools.new_rectangle(50, 50, 150, 100, 
-                             outline_color='#FF0000', 
-                             fill_color='#FFFF00', 
-                             tag='rectangle')
-
-    # Create a rectangle with dash
-    draw_tools.new_rectangle(200, 50, 300, 100, 
-                             dash=[2, 4], 
-                             outline_color='#FF0000', 
-                             fill_color='#FFFF00', 
-                             tag='rectangle')
-
-    # Create a line without dash
-    draw_tools.new_line(350, 75, 450, 75, 
-                        width=2.0, 
-                        color='#00FF00', 
-                        tag='line')
-
-    # Create a line with dash
-    draw_tools.new_line(500, 75, 600, 75, 
-                        width=2.0, 
-                        color='#00FF00', 
-                        dash=[2, 4], 
-                        tag='line')
-
-    # Create an oval without dash
-    draw_tools.new_oval(650, 50, 750, 150, 
-                        outline_color='#0000FF', 
-                        fill_color='#00FFFF', 
-                        tag='oval')
-
-    # Create an oval with dash
-    draw_tools.new_oval(800, 50, 900, 150, 
-                        outline_color='#0000FF', 
-                        fill_color='#00FFFF', 
-                        dash=[2, 4], 
-                        tag='oval')
-
-    # Create a polygon without dash
-    draw_tools.new_polygon([(50, 200), (150, 200), (150, 300), (40, 400)], 
-                           outline_color='#0000FF', 
-                           fill_color='#FF00FF', 
-                           tag='polygon', 
-                           dash=[2, 4], 
-                           width=2.0)
-
-    # Run the application event loop
-    app.exec()
+if __name__ == '__main__':
+    app = TestApplication(sys.argv)
+    sys.exit(app.exec())

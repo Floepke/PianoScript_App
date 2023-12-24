@@ -1,13 +1,12 @@
-import sys
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsRectItem
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget
 from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
-from PySide6.QtGui import QScreen, QGuiApplication, QAction
-from PySide6.QtGui import QKeyEvent, QColor
+from PySide6.QtGui import QAction
+from PySide6.QtGui import QColor
+from imports.gui.canvas import GraphicsView
 
 BACKGROUND_COLOR = QColor('#eeeeee')
 
@@ -20,8 +19,8 @@ class Gui():
         self.main.setGeometry(100, 100, 800, 600)
 
         # Create the status bar
-        statusbar = self.main.statusBar()
-        statusbar.showMessage("Ready")
+        self.statusbar = self.main.statusBar()
+        self.statusbar.showMessage("Ready")
 
         # Create the file menu
         menubar = self.main.menuBar()
@@ -30,27 +29,34 @@ class Gui():
         file_menu.addAction(QAction("Save", triggered=self.save_file))
         file_menu.addAction(QAction("Exit", triggered=self.main.close))
 
-        # # Create a toolbar
-        # toolbar = QToolBar("Toolbar", self.main)
-        # self.main.addToolBar(toolbar)
+        # Create a toolbar
+        toolbar = QToolBar("Toolbar", self.main)
+        self.main.addToolBar(toolbar)
 
-        # # Create actions for the toolbar
-        # action1 = QAction("Cut", triggered=self.cut)
-        # action2 = QAction("Copy", triggered=self.copy)
-        # action3 = QAction("Paste", triggered=self.paste)
-        # toolbar.addActions([action1, action2, action3])
+        # Create actions for the toolbar
+        action1 = QAction("Cut", self.main)
+        action1.triggered.connect(self.cut)
+        toolbar.addAction(action1)
+
+        action2 = QAction("Copy", self.main)
+        action2.triggered.connect(self.copy)
+        toolbar.addAction(action2)
+
+        action3 = QAction("Paste", self.main)
+        action3.triggered.connect(self.paste)
+        toolbar.addAction(action3)
 
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        self.editor_scene.setSceneRect(0, 0, 400, 400)
-        self.editor_view = QGraphicsView(self.editor_scene, self.main)
+        # self.editor_scene.setSceneRect(0, 0, 400, 400)
+        self.editor_view = GraphicsView(self.editor_scene, self.main)
         self.editor_scene.addItem(QGraphicsRectItem(0, 0, 200, 1500))
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
         self.print_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        self.print_view = QGraphicsView(self.print_scene, self.main)
+        self.print_view = GraphicsView(self.print_scene, self.main)
 
         # Create a resizable splitter
         self.splitter = QSplitter(self.main)

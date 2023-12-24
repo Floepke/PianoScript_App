@@ -9,7 +9,9 @@
 QUARTER_PIANOTICK = 256.0
 
 # the 'blueprint' for a score; it's the fallback score if no score is loaded and a reference for the developer.
-# if we write a property in the blueprint that is not in the score, it will be added to the score by the FixScore() class.
+# if we write a property in the blueprint that is not in the score, it will be added to the score by the
+# FixScore() class based on this blueprint.
+import datetime
 SCORE_TEMPLATE = {
     "header":{
         "title":{
@@ -32,7 +34,7 @@ SCORE_TEMPLATE = {
         },
         "app-name":"pianoscript",
         "app-version":1.0,
-        "date":"30-09-2023",
+        "timestamp":datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S"),
         "genre":"",
         "comment":""
     },
@@ -50,9 +52,7 @@ SCORE_TEMPLATE = {
         "engraver":"pianoscript vertical",
         "color-right-hand-midinote":"#c8c8c8",
         "color-left-hand-midinote":"#c8c8c8",
-        "printview-width(procents-froms-creen)":33,
-        "editor-x-zoom":35,
-        "editor-y-zoom":80,
+        "editor-zoom":80, # size in pixels per quarter note
         "staffonoff":True,
         "stemonoff":True,
         "beamonoff":True,
@@ -101,10 +101,10 @@ SCORE_TEMPLATE = {
         "grid":[
             {
         "tag":"grid",
-        "amount":4,
+        "amount":16,
         "numerator":4,
         "denominator":4,
-        "grid":4,
+        "grid":4, # a list of ticks relative to the start of the measure. every tick is a gridline
         "visible":True
       }
     ],
@@ -137,3 +137,15 @@ SCORE_TEMPLATE = {
     "endhook":[]
   }
 }
+
+# the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88
+BLACK_KEYS = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46,
+         48, 50, 53, 55, 58, 60, 62, 65, 67, 70, 72, 74, 77, 79, 82, 84, 86]
+
+# the white keys of a piano keyboard as a list of integers starting from 1 and ending at 88
+WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
+         28, 30, 32, 33, 35, 37, 39, 40, 42, 44, 45, 47, 49,
+         51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69,
+         71, 73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
+
+EDITOR_MARGIN = 150 # pixels

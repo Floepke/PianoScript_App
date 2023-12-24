@@ -14,6 +14,12 @@ class Editor:
         # clear the editor scene
         io['editor'].delete_all()
 
+        # draw titles
+        DrawEditor.draw_title(io)
+
+        # draw the background
+        DrawEditor.draw_background(io)
+
         # draw the staff
         DrawEditor.draw_staff(io)
 
@@ -25,8 +31,11 @@ class Editor:
 
         # draw notes
         ...
-
-        # draw titles
-        ...
-
+        
+        # set drawing order on tags
+        
+        io['editor'].tag_raise('background')
+        io['editor'].tag_raise('titletext')
+        io['editor'].tag_raise('staffline')
+        
     
