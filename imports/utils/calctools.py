@@ -1,3 +1,5 @@
+from imports.utils.HARDCODE import *
+
 class CalcTools:
     '''
         The CalcTools class contains all the methods that calculate basic things about the score.
@@ -5,13 +7,15 @@ class CalcTools:
         It are little solutions to little problems.
         Included methods:
             - get_total_score_ticks(); returns the total number of ticks in the score
+            - get_measure_length(grid); returns the length of a measure in pianoticks based on the grid message from the score file
+
     '''
 
     def __init__(self, io):
         self.io = io
 
     def get_total_score_ticks(self):
-        '''Returns the total number of ticks from the score'''
+        '''returns the total number of ticks from the entire score'''
         
         total_ticks = 0
         
@@ -20,7 +24,7 @@ class CalcTools:
             # calculate the length of one measure based on the numerator and denominator.
             numerator = gr['numerator']
             denominator = gr['denominator']
-            measure_length = int(numerator * (1024 / denominator))
+            measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
             
             # assign to total_ticks of one grid message
@@ -31,38 +35,28 @@ class CalcTools:
     @staticmethod
     def get_measure_length(grid):
         '''
-            Returns the length of a measure in pianoticks. 
-            argument: grid message from the score file
+            returns the length of a measure in pianoticks 
+            based on the grid message from the score file
         '''
         return int(grid['numerator'] * (1024 / grid['denominator']))
     
     def time2y_editor(self, time):
-        '''
-            time2y converts pianoticks into pixels
-            based on the io preferences.
-        '''
-        return time * (self.io['score']['properties']['editor-zoom'] / self.io['QUARTER_PIANOTICK']) + self.io['EDITOR_MARGIN']
+        '''converts pianoticks into y position on the editor'''
+        return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
 
     def pitch2x_editor(self, pitch):
-        '''
-            pitch2x converts pitch into pixels
-            based on the io preferences.
-        '''
-        # check if the pitch is in the range of the editor
-        if pitch < 1:
-            pitch = 1
-            print('pitch out of range, set to 1')
-        elif pitch > 88:
-            pitch = 88
-            print('pitch out of range, set to 88')
+        '''converts pitch into x position on the editor'''
+        
+        # check if the pitch is in the range of the editor (1-88)
+        pitch = max(1, min(88, pitch))
         
         # calculate the x position
         notes = ['c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'a', 'A', 'b']
-        x = self.io['LEFT'] + self.io['EDITOR_MARGIN']
-        for n in range(21, 109): # 21 is A0, 109 is C8
-            x += (self.io['EDITOR_X_UNIT'] / 2) * (2 if notes[n % 12] in ['c', 'f'] else 1)
+        x = LEFT + EDITOR_MARGIN
+        for n in range(21, 109): # 21 is A0, 109 is C8; based on midi note numbers
+            x += (EDITOR_X_UNIT / 2) * (2 if notes[n % 12] in ['c', 'f'] else 1)
             if pitch == n-20: break
-        return x - self.io['EDITOR_X_UNIT']
+        return x - EDITOR_X_UNIT
     
 
         

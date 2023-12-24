@@ -15,7 +15,7 @@ class Editor:
         io['editor'].delete_all()
 
         # draw title, background, staff, barlines, barnumbers, grid and notes
-        DrawEditor.draw_title(io)
+        DrawEditor.draw_titles(io)
         DrawEditor.draw_background(io)
         DrawEditor.draw_staff(io)
         DrawEditor.draw_barlines_grid_and_numbers(io)

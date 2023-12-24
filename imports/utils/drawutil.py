@@ -286,62 +286,51 @@ class DrawUtil:
             item.setZValue(lowest_z - 1.0)
 
 
-
-
-
-
-
-
-
-
-
-
-
-class TestApplication(QApplication):
-    def __init__(self, sys_argv):
-        super().__init__(sys_argv)
+# class TestApplication(QApplication):
+#     def __init__(self, sys_argv):
+#         super().__init__(sys_argv)
         
-        # Create the graphics view and scene
-        self.view = QGraphicsView()
-        self.scene = QGraphicsScene()
-        self.view.setScene(self.scene)
+#         # Create the graphics view and scene
+#         self.view = QGraphicsView()
+#         self.scene = QGraphicsScene()
+#         self.view.setScene(self.scene)
         
-        # Set the size of the graphics view
-        self.view.setFixedSize(800, 600)
+#         # Set the size of the graphics view
+#         self.view.setFixedSize(800, 600)
 
-        # use the drawutil class
-        self.drawutil = DrawUtil(self.scene)
+#         # use the drawutil class
+#         self.drawutil = DrawUtil(self.scene)
         
-        # Add rectangles to the scene
-        self.add_rectangles()
+#         # Add rectangles to the scene
+#         self.add_rectangles()
         
-        # Show the graphics view
-        self.view.show()
+#         # Show the graphics view
+#         self.view.show()
 
-        self.raise_rectangles()
+#         self.raise_rectangles()
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.raise_rectangles()
-        else:
-            super().keyPressEvent(event)
+#     def keyPressEvent(self, event):
+#         if event.key() == Qt.Key_Escape:
+#             self.raise_rectangles()
+#         else:
+#             super().keyPressEvent(event)
         
-    def add_rectangles(self):
-        colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#8000FF', '#0080FF', '#FF0080']
-        for i, color in enumerate(colors):
-            x = i * 50
-            y = i * 50
-            width = 200
-            height = 200
-            self.drawutil.new_rectangle(x, y, x + width, y + height, fill_color=color, tag=f'rectangle{i}')
+#     def add_rectangles(self):
+#         colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#8000FF', '#0080FF', '#FF0080']
+#         for i, color in enumerate(colors):
+#             x = i * 50
+#             y = i * 50
+#             width = 200
+#             height = 200
+#             self.drawutil.new_rectangle(x, y, x + width, y + height, fill_color=color, tag=f'rectangle{i}')
         
-    def raise_rectangles(self):
-        # for i in reversed(range(10)):
-        #     tag = f'rectangle{i}'
-        #     self.drawutil.tag_raise(tag)
-        #     time.sleep(0.1)
-        self.drawutil.tag_raise(('rectangle0', 'rectangle4', 'rectangle2', 'rectangle3', 'rectangle1', 'rectangle5', 'rectangle9', 'rectangle7', 'rectangle8', 'rectangle6'))
+#     def raise_rectangles(self):
+#         # for i in reversed(range(10)):
+#         #     tag = f'rectangle{i}'
+#         #     self.drawutil.tag_raise(tag)
+#         #     time.sleep(0.1)
+#         self.drawutil.tag_raise(('rectangle0', 'rectangle4', 'rectangle2', 'rectangle3', 'rectangle1', 'rectangle5', 'rectangle9', 'rectangle7', 'rectangle8', 'rectangle6'))
 
-if __name__ == '__main__':
-    app = TestApplication(sys.argv)
-    sys.exit(app.exec())
+# if __name__ == '__main__':
+#     app = TestApplication(sys.argv)
+#     sys.exit(app.exec())
