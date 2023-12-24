@@ -104,7 +104,7 @@ SCORE_TEMPLATE = {
         "amount":16,
         "numerator":4,
         "denominator":4,
-        "grid":4, # a list of ticks relative to the start of the measure. every tick is a gridline
+        "grid":[256, 512, 768], # a list of ticks relative to the start of the measure. every tick is a gridline
         "visible":True
       }
     ],
@@ -148,4 +148,37 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
          51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69,
          71, 73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
 
-EDITOR_MARGIN = 150 # pixels
+
+# ----------editor and printview dimensions for easy calculations (all pixel values get's scaled by the QGraphicView)----------
+
+# the margin of the QGraphicView
+EDITOR_MARGIN = 150
+
+# the width of the QGraphicView
+WIDTH = 1024
+
+# the height of the QGraphicView (only used in the printview)
+import math
+HEIGHT = WIDTH * math.sqrt(2)
+
+# the right side position of the QGraphicView
+RIGHT = WIDTH / 2
+
+# the left side position of the QGraphicView
+LEFT = -RIGHT
+
+# the top side position of the QGraphicView
+TOP = 0
+
+# the bottom side position of the QGraphicView (only used in the printview)
+BOTTOM = HEIGHT
+
+# the x unit is the distance between (for example) the c# and d# stafflines.
+# 49 is the sum of units of a full piano keyboard if we count the units from key 2 to 87,
+# which are the outer sides of the staff in the editor.
+EDITOR_X_UNIT = (WIDTH - (EDITOR_MARGIN * 2)) / 49
+
+# ----------------------------------------------------------------------------------------------------------------------------
+
+
+

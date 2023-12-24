@@ -6,7 +6,7 @@ class Editor:
     def __init__(self, io):
         self.io = io
         
-        self.redraw(self.io)
+        # self.redraw(self.io)
 
     def redraw(self, io):
         '''I want to check the performance if I draw the entire editor every time the score changes. I don't know if it will be fine, but I want to see.'''
@@ -14,28 +14,18 @@ class Editor:
         # clear the editor scene
         io['editor'].delete_all()
 
-        # draw titles
+        # draw title, background, staff, barlines, barnumbers, grid and notes
         DrawEditor.draw_title(io)
-
-        # draw the background
         DrawEditor.draw_background(io)
-
-        # draw the staff
         DrawEditor.draw_staff(io)
-
-        # draw barines
-        ...
-
-        # draw gridlines
-        ...
-
-        # draw notes
-        ...
+        DrawEditor.draw_barlines_grid_and_numbers(io)
+        DrawEditor.draw_notes(io)
         
-        # set drawing order on tags
-        
-        io['editor'].tag_raise('background')
-        io['editor'].tag_raise('titletext')
-        io['editor'].tag_raise('staffline')
+        # set drawing order on tags. the tags are hardcoded in the draweditor class
+        # they are in order background, staffline, titletext, barline, etc...
+        drawing_order = ['background', 'staffline', 'titletext', 'barline', 'gridline', 
+                         'barnumbering', 'note', 'stem', 'leftdot', 'notecursor']
+        for t in drawing_order:
+            io['editor'].tag_raise(t)
         
     

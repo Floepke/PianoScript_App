@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGraphicsView
+from PySide6.QtWidgets import QMenu, QToolButton
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsRectItem
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget
 from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
 from imports.gui.canvas import GraphicsView
+from imports.utils.fileoprations import FileOperations
 
 BACKGROUND_COLOR = QColor('#eeeeee')
 
@@ -22,34 +23,47 @@ class Gui():
         self.statusbar = self.main.statusBar()
         self.statusbar.showMessage("Ready")
 
-        # Create the file menu
-        menubar = self.main.menuBar()
-        file_menu = menubar.addMenu("File")
-        file_menu.addAction(QAction("Open", triggered=self.open_file))
-        file_menu.addAction(QAction("Save", triggered=self.save_file))
-        file_menu.addAction(QAction("Exit", triggered=self.main.close))
+        #start menu--------------------------------------------------------------------
 
         # Create a toolbar
-        toolbar = QToolBar("Toolbar", self.main)
-        self.main.addToolBar(toolbar)
+        self.toolbar = QToolBar(self.main)
+        self.main.addToolBar(self.toolbar)
 
-        # Create actions for the toolbar
-        action1 = QAction("Cut", self.main)
-        action1.triggered.connect(self.cut)
-        toolbar.addAction(action1)
+        # Create a QMenu
+        self.file_menu = QMenu("File", self.main)
 
-        action2 = QAction("Copy", self.main)
-        action2.triggered.connect(self.copy)
-        toolbar.addAction(action2)
+        # Add actions to the QMenu
+        self.new_action = QAction("New", self.main)
+        self.file_menu.addAction(self.new_action)
 
-        action3 = QAction("Paste", self.main)
-        action3.triggered.connect(self.paste)
-        toolbar.addAction(action3)
+        self.load_action = QAction("Load", self.main)
+        self.file_menu.addAction(self.load_action)
+
+        self.save_action = QAction("Save", self.main)
+        self.file_menu.addAction(self.save_action)
+
+        self.saveas_action = QAction("Save As", self.main)
+        self.file_menu.addAction(self.saveas_action)
+
+        self.file_menu.addSeparator()
+
+        self.exit_action = QAction("Exit", self.main)
+        self.file_menu.addAction(self.exit_action)
+
+        # Create a QToolButton
+        self.file_button = QToolButton(self.main)
+        self.file_button.setText("File")
+        self.file_button.setMenu(self.file_menu)
+        self.file_button.setPopupMode(QToolButton.InstantPopup)
+
+        # Add the QToolButton to the QToolBar
+        self.toolbar.addWidget(self.file_button)
+
+        #end menu--------------------------------------------------------------------
 
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        # self.editor_scene.setSceneRect(0, 0, 400, 400)
         self.editor_view = GraphicsView(self.editor_scene, self.main)
         self.editor_scene.addItem(QGraphicsRectItem(0, 0, 200, 1500))
 
@@ -65,51 +79,32 @@ class Gui():
         self.splitter.setHandleWidth(20)
 
         # Set up the main layout
-        central_widget = QWidget(self.main)
-        self.main.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        layout.addWidget(self.splitter)
+        self.central_widget = QWidget(self.main)
+        self.main.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+        self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
         self.dock_widget = QDockWidget("Dockable Widget", self.main)
-        self.dock_widget.setStyleSheet("""
-        QDockWidget {
-            border: 1px solid black;
-        }
-        """)
+        self.dock_widget.setStyleSheet("""QDockWidget {border: 1px solid black;}""")
         self.dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.dock_widget)
         
 
         # Add widgets to the dockable widget
-        dock_layout = QVBoxLayout()
+        self.dock_layout = QVBoxLayout()
         self.entry_box = QLineEdit("Type something")
         self.entry_box.setToolTip("Type something here")
         self.spin_box = QSpinBox()
         self.spin_box.setToolTip("Adjust the spin box")
         self.label = QLabel("Label:")
         self.label.setToolTip("This is a label")
-        dock_layout.addWidget(self.entry_box)
-        dock_layout.addWidget(self.spin_box)
-        dock_layout.addWidget(self.label)
-        self.dock_widget.setLayout(dock_layout)
+        self.dock_layout.addWidget(self.entry_box)
+        self.dock_layout.addWidget(self.spin_box)
+        self.dock_layout.addWidget(self.label)
+        self.dock_widget.setLayout(self.dock_layout)
 
     def show(self):
         self.main.show()
-
-    def open_file(self):
-        pass  # Implement file opening logic here
-
-    def save_file(self):
-        pass  # Implement file saving logic here
-
-    def cut(self):
-        pass  # Implement cut logic here
-
-    def copy(self):
-        pass  # Implement copy logic here
-
-    def paste(self):
-        pass  # Implement paste logic here
 
     
