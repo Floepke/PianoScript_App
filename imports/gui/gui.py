@@ -1,3 +1,6 @@
+# in CONSTANT.py you can find all constants that are used in the application along with the description.
+from imports.utils.CONSTANT import *
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu, QToolButton
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsRectItem
@@ -6,7 +9,7 @@ from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
-from imports.gui.canvas import GraphicsView
+from imports.gui.graphicsview import GraphicsView
 from imports.utils.fileoprations import FileOperations
 
 BACKGROUND_COLOR = QColor('#eeeeee')
@@ -21,7 +24,7 @@ class Gui():
 
         # Create the status bar
         self.statusbar = self.main.statusBar()
-        self.statusbar.showMessage("Ready")
+        self.statusbar.showMessage(STATUSBAR_DEFAULT_TEXT)
 
         #start menu--------------------------------------------------------------------
 
@@ -65,7 +68,6 @@ class Gui():
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(BACKGROUND_COLOR)
         self.editor_view = GraphicsView(self.editor_scene, self.main)
-        self.editor_scene.addItem(QGraphicsRectItem(0, 0, 200, 1500))
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
@@ -78,6 +80,9 @@ class Gui():
         self.splitter.addWidget(self.print_view)
         self.splitter.setHandleWidth(20)
 
+        # Set the initial sizes of the widgets in the splitter
+        self.splitter.setSizes([1000, self.splitter.width()])
+
         # Set up the main layout
         self.central_widget = QWidget(self.main)
         self.main.setCentralWidget(self.central_widget)
@@ -85,7 +90,7 @@ class Gui():
         self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
-        self.dock_widget = QDockWidget("Dockable Widget", self.main)
+        self.dock_widget = QDockWidget("Tool box", self.main)
         self.dock_widget.setStyleSheet("""QDockWidget {border: 1px solid black;}""")
         self.dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.dock_widget)

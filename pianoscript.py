@@ -8,8 +8,8 @@ from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
-from imports.utils.HARDCODE import EDITOR_MARGIN, QUARTER_PIANOTICK, EDITOR_X_UNIT
-from imports.utils.HARDCODE import LEFT, RIGHT, TOP, WIDTH
+from imports.utils.CONSTANT import EDITOR_MARGIN, QUARTER_PIANOTICK, STAFF_X_UNIT
+from imports.utils.CONSTANT import LEFT, RIGHT, TOP, WIDTH
 
 class PianoScript():
 
@@ -30,23 +30,13 @@ class PianoScript():
             # the printview drawutil class
             'view':DrawUtil(self.gui.print_scene),
             # save file object
-            'score':{},
-            # constant quarter piano tick
-            'QUARTER_PIANOTICK':QUARTER_PIANOTICK,
-            # constants for editor: margin; left, right and top positions; width; x unit
-            'EDITOR_MARGIN':EDITOR_MARGIN,
-            'LEFT':LEFT,
-            'RIGHT':RIGHT,
-            'TOP':TOP,
-            'WIDTH':WIDTH,
-            'EDITOR_X_UNIT':EDITOR_X_UNIT
+            'score':{}
         }
         
         # add the score object to the io dict and load a new score from the template
         self.io['fileoperations'] = FileOperations(self.io)
 
-        # draw test line if I hit escape
-        self.gui.editor_view.keyPressEvent = self.keyPressEvent
+        self.gui.central_widget.keyPressEvent = self.keyPressEvent
         
         # add the calctools object to the io dict
         self.io['calctools'] = CalcTools(self.io)

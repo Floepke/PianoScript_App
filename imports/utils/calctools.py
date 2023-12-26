@@ -1,4 +1,4 @@
-from imports.utils.HARDCODE import *
+from imports.utils.CONSTANT import *
 
 class CalcTools:
     '''
@@ -40,23 +40,26 @@ class CalcTools:
         '''
         return int(grid['numerator'] * (1024 / grid['denominator']))
     
-    def time2y_editor(self, time):
+    def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
 
     def pitch2x_editor(self, pitch):
         '''converts pitch into x position on the editor'''
-        
-        # check if the pitch is in the range of the editor (1-88)
-        pitch = max(1, min(88, pitch))
-        
-        # calculate the x position
-        notes = ['c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'a', 'A', 'b']
-        x = LEFT + EDITOR_MARGIN
-        for n in range(21, 109): # 21 is A0, 109 is C8; based on midi note numbers
-            x += (EDITOR_X_UNIT / 2) * (2 if notes[n % 12] in ['c', 'f'] else 1)
+        pitch = max(1, min(88, pitch)) # evaluate pitch to be between 1 and 88
+        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT
+        for n in range(21, 109): # 21 is A0, 109 is C8 (based on midi note numbers)
+            x += STAFF_X_UNIT if n % 12 in [0, 5] else STAFF_X_UNIT / 2 # 12 is octave, 0 is C, 5 is F
             if pitch == n-20: break
-        return x - EDITOR_X_UNIT
+        return x
+    
+    # def mouse2pitch_editor(self, event):
+    #     '''converts mouse position into xy position on the editor'''
+    #     return self.x2pitch_editor(event.x())
+    
+    # def mouse2tick_editor(self, event):
+    #     '''converts mouse position into tick position on the editor'''
+    #     return self.y2tick_editor(event.y())
     
 
         

@@ -191,7 +191,8 @@ class DrawUtil:
                  size: float = 12.0, 
                  color: str = '#000000', 
                  tag: str = 'undefined',
-                 anchor: str = 'c'):
+                 anchor: str = 'c',
+                 angle: float = 0.0):
         '''Add text to the scene.'''
         
         # Create a font with the given properties
@@ -207,10 +208,11 @@ class DrawUtil:
             # Use Arial as default font:
             font = QFont('Courier New', size)
 
-        # Add the text to the scene and set its position, anchor and color
+        # Add the text to the scene and set its position, angle and color
         text_item = self.canvas.addText(text, font)
         text_item.setPos(x, y)
         text_item.setDefaultTextColor(QColor(color))
+        text_item.setRotation(angle)
 
         # Set the anchor of the text item (options: 'c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw')
         if anchor == 'c' or anchor not in ['c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
@@ -240,6 +242,8 @@ class DrawUtil:
         elif anchor == 'nw':
             bounding_rect = text_item.boundingRect()
             text_item.setPos(x, y)
+
+        text_item.setTransformOriginPoint(bounding_rect.width() / 2, bounding_rect.height() / 2)
 
         # Add a tag to the text item
         text_item.setData(0, tag)

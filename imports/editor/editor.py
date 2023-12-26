@@ -18,13 +18,13 @@ class Editor:
         DrawEditor.draw_titles(io)
         DrawEditor.draw_background(io)
         DrawEditor.draw_staff(io)
-        DrawEditor.draw_barlines_grid_and_numbers(io)
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(io)
         DrawEditor.draw_notes(io)
         
         # set drawing order on tags. the tags are hardcoded in the draweditor class
         # they are in order background, staffline, titletext, barline, etc...
         drawing_order = ['background', 'staffline', 'titletext', 'barline', 'gridline', 
-                         'barnumbering', 'note', 'stem', 'leftdot', 'notecursor']
+                         'barnumbering', 'note', 'stem', 'leftdot', 'notecursor', 'timesignature', 'measurenumber']
         for t in drawing_order:
             io['editor'].tag_raise(t)
         

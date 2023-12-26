@@ -3,6 +3,8 @@
     All values are capitalized and separated by underscores to indicate 
     that they are constants.
 '''
+# the default text of the statusbar.
+STATUSBAR_DEFAULT_TEXT = "Ready to write music :D"
 
 # a pianotick is a float representing the length of a note.
 # a quarter pianotick is 256 pianoticks so an eighth pianotick is 128 pianoticks and so on.
@@ -151,11 +153,11 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
 
 # ----------editor and printview dimensions for easy calculations (all pixel values get's scaled by the QGraphicView)----------
 
-# the margin of the QGraphicView
-EDITOR_MARGIN = 150
-
 # the width of the QGraphicView
 WIDTH = 1024
+
+# the margin of the QGraphicView
+EDITOR_MARGIN = WIDTH / 8
 
 # the height of the QGraphicView (only used in the printview)
 import math
@@ -176,7 +178,7 @@ BOTTOM = HEIGHT
 # the x unit is the distance between (for example) the c# and d# stafflines.
 # 49 is the sum of units of a full piano keyboard if we count the units from key 2 to 87,
 # which are the outer sides of the staff in the editor.
-EDITOR_X_UNIT = (WIDTH - (EDITOR_MARGIN * 2)) / 49
+STAFF_X_UNIT = (WIDTH - (EDITOR_MARGIN * 2)) / 49
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
