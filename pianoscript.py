@@ -9,8 +9,7 @@ from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
 from imports.editor.mouse import Mouse
-from imports.utils.constant import EDITOR_MARGIN, QUARTER_PIANOTICK, STAFF_X_UNIT_EDITOR
-from imports.utils.constant import LEFT, RIGHT, TOP, WIDTH
+from imports.utils.constant import *
 
 class PianoScript():
 
@@ -91,8 +90,6 @@ class PianoScript():
         
         # add the score object to the io dict and load a new score from the template
         self.io['fileoperations'] = FileOperations(self.io)
-
-        self.gui.central_widget.keyPressEvent = self.keyPressEvent
         
         # add the calctools object to the io dict
         self.io['calctools'] = CalcTools(self.io)
@@ -113,11 +110,6 @@ class PianoScript():
         # run the application
         self.io['fileoperations'].new()
         sys.exit(self.app.exec())
-
-    # handle all keypresses here
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.root.close()
 
 if __name__ == '__main__':
     PianoScript()

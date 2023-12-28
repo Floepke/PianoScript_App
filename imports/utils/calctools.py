@@ -16,9 +16,9 @@ class CalcTools:
 
     def get_total_score_ticks(self):
         '''returns the total number of ticks from the entire score'''
-        
+
         total_ticks = 0
-        
+
         for gr in self.io['score']['events']['grid']:
             
             # calculate the length of one measure based on the numerator and denominator.
