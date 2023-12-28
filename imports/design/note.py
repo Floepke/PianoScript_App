@@ -1,4 +1,4 @@
-from imports.utils.constant import *
+from imports.utils.constants import *
 
 class Note:
     

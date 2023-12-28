@@ -1,3 +1,7 @@
+# 
+from imports.utils.constants import *
+
+# pyside6 imports
 from PySide6.QtGui import QKeyEvent
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -9,7 +13,6 @@ from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
 from imports.editor.mouse import Mouse
-from imports.utils.constant import *
 
 class PianoScript():
 

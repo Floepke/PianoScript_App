@@ -1,5 +1,5 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from imports.utils.constant import *
+from imports.utils.constants import *
 
 # pyside6 imports
 from PySide6.QtWidgets import QGraphicsView
@@ -18,8 +18,8 @@ class GraphicsView(QGraphicsView):
         super().__init__(scene, parent)
         self.standard_width = WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scale_factor = self.width() / self.standard_width
         self.resetTransform()
+        scale_factor = self.width() / self.standard_width
         self.scale(scale_factor, scale_factor)
         self.resizeEvent(None)
         self.setScene(scene)

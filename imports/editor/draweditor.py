@@ -1,5 +1,5 @@
 # in HARDCODE.py you can find all constants that are used in the application along with the description.
-from imports.utils.constant import *
+from imports.utils.constants import *
 from imports.design.note import Note
 
 class DrawEditor:
@@ -176,6 +176,8 @@ class DrawEditor:
     @staticmethod
     def draw_cursor(io):
         '''Draws the cursor on the editor'''
+        # delete the old cursor
+        io['editor'].delete_with_tag('notecursor')
 
         # get the x and y position of the cursor
         x = io['calctools'].pitch2x_editor(io['mouse']['pitch'])
