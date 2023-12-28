@@ -1,5 +1,6 @@
 # in HARDCODE.py you can find all constants that are used in the application along with the description.
-from imports.utils.CONSTANT import *
+from imports.utils.constant import *
+from imports.design.note import Note
 
 class DrawEditor:
     '''The DrawEditor class handles all the drawing parts for the editor'''
@@ -50,7 +51,7 @@ class DrawEditor:
                               tag='staffline',
                               color='#000000')
         
-        x_curs += (STAFF_X_UNIT * 2)
+        x_curs += (STAFF_X_UNIT_EDITOR * 2)
 
         for octave in range(7): # 7 octaves
 
@@ -67,18 +68,18 @@ class DrawEditor:
                         width=1,
                         tag='staffline',
                         color='black')
-                x_curs += STAFF_X_UNIT
+                x_curs += STAFF_X_UNIT_EDITOR
 
-            x_curs += STAFF_X_UNIT
+            x_curs += STAFF_X_UNIT_EDITOR
 
             for _ in range(3): # draw group of 3 stafflines, traditionally they are is thicker
                 io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN + staff_length,
                         width=2,
                         tag='staffline',
                         color='black')
-                x_curs += STAFF_X_UNIT
+                x_curs += STAFF_X_UNIT_EDITOR
 
-            x_curs += STAFF_X_UNIT
+            x_curs += STAFF_X_UNIT_EDITOR
 
     @staticmethod
     def draw_barlines_grid_timesignature_and_measurenumbers(io:dict):
@@ -94,18 +95,22 @@ class DrawEditor:
         for gr in io['score']['events']['grid']:
 
             # draw the timesignature indicator
-            io['editor'].new_text(RIGHT - (EDITOR_MARGIN / 2), y_cursor,
+            io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), y_cursor,
                                   str(gr['numerator']), 
                                   tag='timesignature', 
                                   anchor='s', 
                                   size=40, 
                                   font='Courier New')
-            io['editor'].new_line(RIGHT - EDITOR_MARGIN, y_cursor, RIGHT - (EDITOR_MARGIN / 4), y_cursor, 
-                                  width=2, 
+            io['editor'].new_line(LEFT + EDITOR_MARGIN - (EDITOR_MARGIN / 3), y_cursor, LEFT + (EDITOR_MARGIN / 3), y_cursor, 
+                                  width=6, 
                                   tag='timesignature', 
+                                  color='black')
+            io['editor'].new_line(LEFT + EDITOR_MARGIN, y_cursor, LEFT + (EDITOR_MARGIN / 3), y_cursor,
+                                  width=2,
+                                  tag='timesignature',
                                   color='black',
-                                  dash=(2,2))
-            io['editor'].new_text(RIGHT - (EDITOR_MARGIN / 2), y_cursor, str(gr['denominator']),
+                                  dash=(2, 4))
+            io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), y_cursor, str(gr['denominator']),
                                   tag='timesignature', 
                                   anchor='n', 
                                   size=40, 
@@ -118,9 +123,9 @@ class DrawEditor:
             for _ in range(amount):
                 
                 # draw the barline
-                io['editor'].new_line(LEFT,
+                io['editor'].new_line(LEFT + EDITOR_MARGIN,
                                       y_cursor,
-                                      RIGHT,
+                                      RIGHT - EDITOR_MARGIN,
                                       y_cursor,
                                       width=2,
                                       tag='barline',
@@ -165,10 +170,22 @@ class DrawEditor:
     def draw_notes(io):
         '''Draws the notes of the score'''
 
-        # get the xy position of a note
-        x = io['calctools'].pitch2x_editor(86)
-        y = io['calctools'].tick2y_editor(128)
+        for note in io['score']['events']['note']:
+            Note.draw_editor(io, note)
 
-        # draw the note
-        radius = STAFF_X_UNIT / 2
-        io['editor'].new_oval(x-radius, y-radius, x+radius, y+radius, fill_color='black', tag='note')
+    @staticmethod
+    def draw_cursor(io):
+        '''Draws the cursor on the editor'''
+
+        # get the x and y position of the cursor
+        x = io['calctools'].pitch2x_editor(io['mouse']['pitch'])
+        y = io['calctools'].tick2y_editor(io['mouse']['time'])
+
+        # draw the cursor
+        io['editor'].new_rectangle(x - (STAFF_X_UNIT_EDITOR / 2),
+                                   y,
+                                   x + (STAFF_X_UNIT_EDITOR / 2),
+                                   y + (STAFF_X_UNIT_EDITOR * 2),
+                                   tag='notecursor',
+                                   fill_color='red',
+                                   outline_color='red')

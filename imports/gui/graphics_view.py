@@ -1,11 +1,19 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from imports.utils.CONSTANT import *
+from imports.utils.constant import *
 
+# pyside6 imports
 from PySide6.QtWidgets import QGraphicsView
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPainter, QShowEvent
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPainter
+from PySide6.QtGui import QCursor
 
 class GraphicsView(QGraphicsView):
+
+    # setup mouse tracking:
+    mouse_position = Signal(int, int)
+    mouse_pressed = Signal(int, int)
+    mouse_released = Signal(int, int)
+
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
         self.standard_width = WIDTH
@@ -40,3 +48,15 @@ class GraphicsView(QGraphicsView):
 
         # call the original resizeEvent
         super().resizeEvent(event)
+
+    def mouseMoveEvent(self, event):
+        self.mouse_position.emit(event.x(), event.y())
+        super().mouseMoveEvent(event)
+    
+    def mousePressEvent(self, event):
+        self.mouse_pressed.emit(event.x(), event.y())
+        super().mousePressEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        self.mouse_released.emit(event.x(), event.y())
+        super().mouseReleaseEvent(event)

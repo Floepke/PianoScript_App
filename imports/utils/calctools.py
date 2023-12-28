@@ -1,4 +1,4 @@
-from imports.utils.CONSTANT import *
+from imports.utils.constant import *
 
 class CalcTools:
     '''
@@ -46,20 +46,55 @@ class CalcTools:
 
     def pitch2x_editor(self, pitch):
         '''converts pitch into x position on the editor'''
-        pitch = max(1, min(88, pitch)) # evaluate pitch to be between 1 and 88
-        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT
-        for n in range(21, 109): # 21 is A0, 109 is C8 (based on midi note numbers)
-            x += STAFF_X_UNIT if n % 12 in [0, 5] else STAFF_X_UNIT / 2 # 12 is octave, 0 is C, 5 is F
-            if pitch == n-20: break
+        
+        # evaluate pitch (between 1 and 88) and create initial x position 
+        pitch = max(1, min(88, pitch))
+        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR 
+        
+        # 21 is A0, 109 is C8 (based on midi note numbers); 12 is octave, 0 is C, 5 is F
+        for n in range(21, 109):
+            x += STAFF_X_UNIT_EDITOR if n % 12 in [0, 5] else STAFF_X_UNIT_EDITOR / 2
+            if pitch == n-20: 
+                break
+        
         return x
     
-    # def mouse2pitch_editor(self, event):
-    #     '''converts mouse position into xy position on the editor'''
-    #     return self.x2pitch_editor(event.x())
-    
-    # def mouse2tick_editor(self, event):
-    #     '''converts mouse position into tick position on the editor'''
-    #     return self.y2tick_editor(event.y())
-    
+    def x2pitch_editor(self, x):
+        '''converts x position on the editor into pitch'''
+        
+        # make a list of all base x positions
+        x_positions = []
+        for n in range(88):
+            x_positions.append(self.pitch2x_editor(n+1))
 
+        # return the closest x_position to x
+        return x_positions.index(min(x_positions, key=lambda k: abs(k - x))) + 1
+    
+    def y2tick_editor(self, y):
+        '''converts y position on the editor into pianoticks'''
+        snap_grid = self.io['snap_grid']
+        return int((y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / self.io['score']['properties']['editor-zoom']) / snap_grid) * snap_grid
+
+    
+    def create_new_tag_number(self):
+        '''returns the tag of an element'''
+        tag = self.io['new_tag']
+        self.io['new_tag'] += 1
+        return tag
+    
+    def renumber_tags(self):
+        '''
+            This function takes the score and
+            renumbers the event tags starting
+            from zero again. It's needed if we
+            load a new or existing project.
+        '''
+        for k in self.io['score']['events'].keys(): # loop through all event types
+            for obj in self.io['score']['events'][k]: # loop through all objects of one event type
+                if not 'tag' in obj: continue # to skip any event that doesn't have a tag
+                if obj['tag'] == 'linebreak': continue # to ensure that only the first linebreak doesn't get a new tag
+                obj['tag'] = f"{k}{self.io['new_tag']}"
+                if k in self.io['selection']['copy_types']:
+                    obj['tag'] = '#'+obj['tag']
+                self.io['new_tag'] += 1
         

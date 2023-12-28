@@ -1,5 +1,5 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from imports.utils.CONSTANT import *
+from imports.utils.constant import *
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu, QToolButton
@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
-from imports.gui.graphicsview import GraphicsView
+from imports.gui.graphics_view import GraphicsView
 from imports.utils.fileoprations import FileOperations
 
 BACKGROUND_COLOR = QColor('#eeeeee')

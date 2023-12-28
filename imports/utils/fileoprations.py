@@ -1,6 +1,6 @@
 import json
 from PySide6.QtWidgets import QFileDialog
-from imports.utils.CONSTANT import SCORE_TEMPLATE
+from imports.utils.constant import SCORE_TEMPLATE
 
 class FileOperations:
     '''

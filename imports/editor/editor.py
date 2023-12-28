@@ -4,9 +4,8 @@ class Editor:
     '''The editor class handles all the editor functions'''
 
     def __init__(self, io):
+
         self.io = io
-        
-        # self.redraw(self.io)
 
     def redraw(self, io):
         '''I want to check the performance if I draw the entire editor every time the score changes. I don't know if it will be fine, but I want to see.'''
@@ -19,7 +18,7 @@ class Editor:
         DrawEditor.draw_background(io)
         DrawEditor.draw_staff(io)
         DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(io)
-        DrawEditor.draw_notes(io)
+        DrawEditor.draw_notes(io) # TODO in progress
         
         # set drawing order on tags. the tags are hardcoded in the draweditor class
         # they are in order background, staffline, titletext, barline, etc...
