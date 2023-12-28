@@ -12,7 +12,7 @@ from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
-from imports.editor.mouse_handler_editor import MouseHandler
+from imports.editor.mouse_handler_editor import MouseHandlerEditor
 
 class PianoScript():
 
@@ -82,7 +82,10 @@ class PianoScript():
             'tool':None,
 
             # current selected grid
-            'snap_grid':128
+            'snap_grid':128,
+
+            # current selected tool (note, ornament, beam, countline, slur, text, pedal, ...)
+            'tool':'note',
         }
 
         # setup
@@ -90,18 +93,11 @@ class PianoScript():
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
-
         self.io['gui'] = self.gui
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
-        
-        # add the score object to the io dict
         self.io['fileoperations'] = FileOperations(self.io)
-        
-        # add the calctools object to the io dict
         self.io['calctools'] = CalcTools(self.io)
-
-        # add the editor object to the io dict
         self.io['maineditor'] = Editor(self.io)
 
         # connect the file operations to the gui menu
@@ -111,8 +107,10 @@ class PianoScript():
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
         self.gui.exit_action.triggered.connect(self.root.close)
 
-        # run the application
+        # create initial new file
         self.io['fileoperations'].new()
+
+        # run the application
         sys.exit(self.app.exec())
 
 if __name__ == '__main__':

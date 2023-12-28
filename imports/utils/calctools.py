@@ -67,8 +67,10 @@ class CalcTools:
         for n in range(88):
             x_positions.append(self.pitch2x_editor(n+1))
 
-        # return the closest x_position to x
-        return x_positions.index(min(x_positions, key=lambda k: abs(k - x))) + 1
+        # find the closest base x position
+        closest_x = min(x_positions, key=lambda y:abs(y-x))
+        closest_x_index = x_positions.index(closest_x)
+        return closest_x_index + 1
     
     def y2tick_editor(self, y):
         '''converts y position on the editor into pianoticks'''

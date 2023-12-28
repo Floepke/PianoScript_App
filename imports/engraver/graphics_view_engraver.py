@@ -6,9 +6,9 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtGui import QCursor
-from imports.editor.mouse_handler_editor import MouseHandler
+from imports.editor.mouse_handler_editor import MouseHandlerEditor
 
-class GraphicsViewEditor(QGraphicsView):
+class GraphicsViewEngraver(QGraphicsView):
 
     def __init__(self, scene, io, parent=None):
         super().__init__(scene, parent)
@@ -57,7 +57,7 @@ class GraphicsViewEditor(QGraphicsView):
         print('Mouse position:', event.pos())
 
     def mouseMoveEvent(self, event):
-        print('Mouse position:', event.pos())
+        print('move', event.pos())
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:

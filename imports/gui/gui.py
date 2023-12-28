@@ -9,8 +9,9 @@ from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
-from imports.gui.graphics_view import GraphicsViewEditor
+from imports.editor.graphics_view_editor import GraphicsViewEditor
 from imports.utils.fileoprations import FileOperations
+from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 
 BACKGROUND_COLOR = QColor('#eeeeee')
 
@@ -73,7 +74,7 @@ class Gui():
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
         self.print_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        self.print_view = GraphicsViewEditor(self.print_scene, self.io, self.main)
+        self.print_view = GraphicsViewEngraver(self.print_scene, self.io, self.main)
 
         # Create a resizable splitter
         self.splitter = QSplitter(self.main)

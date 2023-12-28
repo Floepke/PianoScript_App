@@ -3,13 +3,13 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QGraphicsView
 
-class MouseHandlerEditor(QGraphicsView):
+class MouseHandlerPrinter(QGraphicsView):
     '''class that updates all mouse events in the io dict'''
 
     def __init__(self, io, parent=None):
         super().__init__(parent)
         self.io = io
-        self.graphics_view = self.io['gui'].editor_scene.graphics_view
+        self.graphics_view = self.io['gui'].print_scene.graphics_view
 
     def mouse_update(self, event):
         '''updates the relative mouse position on the graphicsview in the io dict'''
@@ -29,33 +29,11 @@ class MouseHandlerEditor(QGraphicsView):
     def mouse_move(self, event):
         '''updates the mouse position in the io dict and calls the mouse handler'''
         self.mouse_update(event)
-        print(self.io['calctools'].x2pitch_editor(event.x()))
         print('mouse move')
     
     def mouse_release(self, event):
         '''updates the mouse position in the io dict and calls the mouse handler'''
         self.mouse_update(event)
         print('mouse release')
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            print('Left button pressed')
-        elif event.button() == Qt.RightButton:
-            print('Right button pressed')
-        elif event.button() == Qt.MiddleButton:
-            print('Middle button pressed')
-        print('Mouse position:', event.pos())
-
-    def mouseMoveEvent(self, event):
-        print('Mouse position:', event.pos())
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            print('Left button released')
-        elif event.button() == Qt.RightButton:
-            print('Right button released')
-        elif event.button() == Qt.MiddleButton:
-            print('Middle button released')
-        print('Mouse position:', event.pos())
 
     
