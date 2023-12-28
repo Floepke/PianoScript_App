@@ -9,13 +9,14 @@ from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
-from imports.gui.graphics_view import GraphicsView
+from imports.gui.graphics_view import GraphicsViewEditor
 from imports.utils.fileoprations import FileOperations
 
 BACKGROUND_COLOR = QColor('#eeeeee')
 
 class Gui():
-    def __init__(self, main):
+    def __init__(self, main, io):
+        self.io = io
         self.main = main
         
         # Set window properties
@@ -67,12 +68,12 @@ class Gui():
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        self.editor_view = GraphicsView(self.editor_scene, self.main)
+        self.editor_view = GraphicsViewEditor(self.editor_scene, self.io, self.main)
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
         self.print_scene.setBackgroundBrush(BACKGROUND_COLOR)
-        self.print_view = GraphicsView(self.print_scene, self.main)
+        self.print_view = GraphicsViewEditor(self.print_scene, self.io, self.main)
 
         # Create a resizable splitter
         self.splitter = QSplitter(self.main)

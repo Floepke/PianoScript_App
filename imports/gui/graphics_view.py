@@ -6,15 +6,11 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtGui import QCursor
+from imports.editor.mouse_handler_editor import MouseHandler
 
-class GraphicsView(QGraphicsView):
+class GraphicsViewEditor(QGraphicsView):
 
-    # setup mouse tracking:
-    mouse_position = Signal(int, int)
-    mouse_pressed = Signal(int, int)
-    mouse_released = Signal(int, int)
-
-    def __init__(self, scene, parent=None):
+    def __init__(self, scene, io, parent=None):
         super().__init__(scene, parent)
         self.standard_width = WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -26,6 +22,8 @@ class GraphicsView(QGraphicsView):
 
         # Enable antialiasing
         self.setRenderHint(QPainter.Antialiasing)
+
+        self.io = io
 
     def resizeEvent(self, event):
         # get the old scroll position and maximum
@@ -49,14 +47,23 @@ class GraphicsView(QGraphicsView):
         # call the original resizeEvent
         super().resizeEvent(event)
 
-    def mouseMoveEvent(self, event):
-        self.mouse_position.emit(event.x(), event.y())
-        super().mouseMoveEvent(event)
-    
     def mousePressEvent(self, event):
-        self.mouse_pressed.emit(event.x(), event.y())
-        super().mousePressEvent(event)
-    
+        if event.button() == Qt.LeftButton:
+            print('Left button pressed')
+        elif event.button() == Qt.RightButton:
+            print('Right button pressed')
+        elif event.button() == Qt.MiddleButton:
+            print('Middle button pressed')
+        print('Mouse position:', event.pos())
+
+    def mouseMoveEvent(self, event):
+        print('Mouse position:', event.pos())
+
     def mouseReleaseEvent(self, event):
-        self.mouse_released.emit(event.x(), event.y())
-        super().mouseReleaseEvent(event)
+        if event.button() == Qt.LeftButton:
+            print('Left button released')
+        elif event.button() == Qt.RightButton:
+            print('Right button released')
+        elif event.button() == Qt.MiddleButton:
+            print('Middle button released')
+        print('Mouse position:', event.pos())

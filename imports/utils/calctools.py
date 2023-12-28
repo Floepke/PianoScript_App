@@ -49,12 +49,12 @@ class CalcTools:
         
         # evaluate pitch (between 1 and 88) and create initial x position 
         pitch = max(1, min(88, pitch))
-        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR 
+        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
         
         # 21 is A0, 109 is C8 (based on midi note numbers); 12 is octave, 0 is C, 5 is F
         for n in range(21, 109):
             x += STAFF_X_UNIT_EDITOR if n % 12 in [0, 5] else STAFF_X_UNIT_EDITOR / 2
-            if pitch == n-20: 
+            if pitch == n-20:
                 break
         
         return x

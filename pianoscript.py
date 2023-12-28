@@ -12,28 +12,22 @@ from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
-from imports.editor.mouse import Mouse
+from imports.editor.mouse_handler_editor import MouseHandler
 
 class PianoScript():
 
     def __init__(self):
-        
-        # setup
-        self.app = QApplication(sys.argv)
-        self.root = QMainWindow()
-        self.gui = Gui(self.root)
-        self.gui.show()
 
         # io == all objects in the application in one dict
         self.io = {
-            # the gui class
-            'gui':self.gui,
+            # # the gui class
+            # 'gui':self.gui,
             
-            # the editor drawutil class
-            'editor':DrawUtil(self.gui.editor_scene),
+            # # the editor drawutil class
+            # 'editor':DrawUtil(self.gui.editor_scene),
             
-            # the printview drawutil class
-            'view':DrawUtil(self.gui.print_scene),
+            # # the printview drawutil class
+            # 'view':DrawUtil(self.gui.print_scene),
             
             # save file object
             'score':{},
@@ -69,7 +63,7 @@ class PianoScript():
                 'y':0, # y position of the mouse in the editor view
                 'pitch':0, # event x note position of the mouse in the editor view
                 'time':0, # event y pianotick position of the mouse in the editor view
-                'button1':False, # True if the button is clicked and hold, False if not pressed
+                'button1':False, # True if the button is clicked, False if not pressed
                 'button2':False, # ...
                 'button3':False, # ...
                 # keep track wether an object on the editor is clicked; this variable is the
@@ -90,8 +84,18 @@ class PianoScript():
             # current selected grid
             'snap_grid':128
         }
+
+        # setup
+        self.app = QApplication(sys.argv)
+        self.root = QMainWindow()
+        self.gui = Gui(self.root, self.io)
+        self.gui.show()
+
+        self.io['gui'] = self.gui
+        self.io['editor'] = DrawUtil(self.gui.editor_scene)
+        self.io['view'] = DrawUtil(self.gui.print_scene)
         
-        # add the score object to the io dict and load a new score from the template
+        # add the score object to the io dict
         self.io['fileoperations'] = FileOperations(self.io)
         
         # add the calctools object to the io dict
@@ -106,9 +110,6 @@ class PianoScript():
         self.gui.save_action.triggered.connect(self.io['fileoperations'].save)
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
         self.gui.exit_action.triggered.connect(self.root.close)
-
-        # connect the editor mouse events to callback functions
-        self.io['mouse_editor'] = Mouse(self.io, self.gui.editor_view)
 
         # run the application
         self.io['fileoperations'].new()
