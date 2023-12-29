@@ -8,7 +8,7 @@ class Editor:
 
         self.io = io
 
-    def update_editor(self, event_type: str, x: int, y: int):
+    def update_editor(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
 
         # run the selected tool

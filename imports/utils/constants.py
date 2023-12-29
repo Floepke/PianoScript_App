@@ -112,7 +112,7 @@ SCORE_TEMPLATE = {
     ],
     "note":[
         {
-        "tag":"#note2",
+        "tag":"#note1",
         "time":0.0,
         "duration":256.0,
         "pitch":45,

@@ -39,6 +39,30 @@ class Note:
                                 fill_color='white',
                                 outline_width=thickness,
                                 outline_color=color)
+        
+        # draw the left dot
+        if note['hand'] == 'l' and note['pitch'] in BLACK_KEYS:
+            yy = y + unit
+            radius = (unit * .5) / 2
+            io['editor'].new_oval(x - radius,
+                                yy - radius,
+                                x + radius,
+                                yy + radius,
+                                tag=note['tag'],
+                                fill_color='white',
+                                outline_width=1,
+                                outline_color='white')
+        elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS:
+            yy = y + unit
+            radius = (unit * .5) / 2
+            io['editor'].new_oval(x - radius,
+                                yy - radius,
+                                x + radius,
+                                yy + radius,
+                                tag=note['tag'],
+                                fill_color=color,
+                                outline_width=1,
+                                outline_color=color)
             
         # draw the stem
         if note['hand'] == 'l':
@@ -51,6 +75,19 @@ class Note:
                                 tag=note['tag'],
                                 width=thickness,
                                 color=color)
+            
+        # draw the midi note
+        if note['tag'] != 'notecursor':
+            endy = io['calctools'].tick2y_editor(note['time'] + note['duration'])
+            io['editor'].new_rectangle(x - unit, 
+                                       y,
+                                       x + unit, 
+                                       endy, 
+                                       tag=note['tag'], 
+                                       fill_color='red', 
+                                       width=0,
+                                       outline_color='red')
+            
 
     @staticmethod
     def draw_engraver(io, note):

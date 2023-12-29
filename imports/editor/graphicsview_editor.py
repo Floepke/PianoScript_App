@@ -4,7 +4,7 @@ from imports.utils.constants import *
 # pyside6 imports
 from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QKeyEvent, QPainter
 from PySide6.QtGui import QCursor
 
 class GraphicsViewEditor(QGraphicsView):
@@ -99,3 +99,17 @@ class GraphicsViewEditor(QGraphicsView):
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = False
             self.io['maineditor'].update_editor('rightrelease', x, y)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # if the space key is pressed, switch the hand
+        if event.key() == Qt.Key_Space:
+            self.io['maineditor'].update_editor('space')
+        return super().keyPressEvent(event)
+    
+    # connect a action if mouse leaves the view
+    def leaveEvent(self, event):
+        self.io['maineditor'].update_editor('leave')
+
+    # connect a action if mouse enters the view
+    def enterEvent(self, event):
+        self.io['maineditor'].update_editor('enter')
