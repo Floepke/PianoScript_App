@@ -76,6 +76,9 @@ class PianoScript():
 
             # current selected tool (note, ornament, beam, countline, slur, text, pedal, ...)
             'tool':'note',
+
+            # current selected hand (l, r)
+            'hand':'l'
         }
 
         # setup

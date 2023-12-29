@@ -43,7 +43,7 @@ def tool_note(io, event_type: str, x: int, y: int):
             "time":io['calctools'].y2tick_editor(y, snap=True),
             "duration":0,
             "pitch":io['calctools'].x2pitch_editor(x),
-            "hand":"r",
+            "hand":"r" if io['hand'] == 'r' else 'l',
             "stem_visible":True,
             "accidental":0,
             "staff":None,
@@ -53,4 +53,6 @@ def tool_note(io, event_type: str, x: int, y: int):
         # draw the note cursor on the editor
         Note.draw_editor(io, cursor)
 
+    elif event_type == 'space':
+        io['hand'] = 'r' if io['hand'] == 'l' else 'l'
     

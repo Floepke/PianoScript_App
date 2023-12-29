@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QToolBar, QLineEdit, QSpinBox
 from PySide6.QtWidgets import QLabel, QDockWidget
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor
-from imports.editor.graphics_view_editor import GraphicsViewEditor
+from imports.editor.graphicsview_editor import GraphicsViewEditor
 from imports.utils.fileoprations import FileOperations
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 

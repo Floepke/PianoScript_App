@@ -14,9 +14,9 @@ class Note:
 
         # set colors
         if note['tag'] == 'notecursor':
-            color = 'blue'
+            color = 'blue' # TODO: set color depending on settings
         else:
-            color = 'black'
+            color = 'black' # TODO: set color depending on settings
 
         # draw the notehead
         unit = STAFF_X_UNIT_EDITOR / 2
