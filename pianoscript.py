@@ -12,7 +12,6 @@ from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
-from imports.editor.mouse_handler_editor import MouseHandlerEditor
 
 class PianoScript():
 
@@ -20,16 +19,7 @@ class PianoScript():
 
         # io == all objects in the application in one dict
         self.io = {
-            # # the gui class
-            # 'gui':self.gui,
-            
-            # # the editor drawutil class
-            # 'editor':DrawUtil(self.gui.editor_scene),
-            
-            # # the printview drawutil class
-            # 'view':DrawUtil(self.gui.print_scene),
-            
-            # save file object
+            # save file json structure loaded here
             'score':{},
             
             # new_tag; counter to keep track of new tags for notation elements

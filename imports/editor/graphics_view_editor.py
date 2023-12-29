@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtGui import QCursor
-from imports.editor.mouse_handler_editor import MouseHandlerEditor
 
 class GraphicsViewEditor(QGraphicsView):
 
@@ -24,6 +23,11 @@ class GraphicsViewEditor(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
 
         self.io = io
+
+        # mouse buttons
+        self.left_mouse_button = False
+        self.middle_mouse_button = False
+        self.right_mouse_button = False
 
     def resizeEvent(self, event):
         # get the old scroll position and maximum
@@ -48,33 +52,50 @@ class GraphicsViewEditor(QGraphicsView):
         super().resizeEvent(event)
 
     def mousePressEvent(self, event):
+
+        scene_point = self.mapToScene(event.pos())
+        x = scene_point.x()
+        y = scene_point.y()
+
         if event.button() == Qt.LeftButton:
-            print('Left button pressed')
-        elif event.button() == Qt.RightButton:
-            print('Right button pressed')
+            self.left_mouse_button = True
+            self.io['maineditor'].update_editor('leftclick', x, y)
         elif event.button() == Qt.MiddleButton:
-            print('Middle button pressed')
-        print('Mouse position:', event.pos())
+            self.middle_mouse_button = True
+            self.io['maineditor'].update_editor('middleclick', x, y)
+        elif event.button() == Qt.RightButton:
+            self.right_mouse_button = True
+            self.io['maineditor'].update_editor('rightclick', x, y)
+        
 
     def mouseMoveEvent(self, event):
-        self.update_mouse(event)
-        print(self.io['calctools'].x2pitch_editor(self.io['mouse']['x']))
+
+        scene_point = self.mapToScene(event.pos())
+        x = scene_point.x()
+        y = scene_point.y()
+        
+        if not any([self.left_mouse_button, self.middle_mouse_button, self.right_mouse_button]):
+            self.io['maineditor'].update_editor('move', x, y)
+        elif self.left_mouse_button:
+            self.io['maineditor'].update_editor('leftclick+hold', x, y)
+        elif self.middle_mouse_button:
+            self.io['maineditor'].update_editor('middleclick+hold', x, y)
+        elif self.right_mouse_button:
+            self.io['maineditor'].update_editor('rightclick+hold', x, y)
+        
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            print('Left button released')
-        elif event.button() == Qt.RightButton:
-            print('Right button released')
-        elif event.button() == Qt.MiddleButton:
-            print('Middle button released')
-        print('Mouse position:', event.pos())
 
-    def update_mouse(self, event):
-        '''updates the relative mouse position on the graphicsview in the io dict'''
-        scene_point = self.mapToScene(event.x(), event.y())
-        relative_x = scene_point.x()
-        relative_y = scene_point.y()
-        self.io['mouse']['x'] = relative_x
-        self.io['mouse']['y'] = relative_y
-        self.io['mouse']['pitch'] = self.io['calctools'].x2pitch_editor(relative_x)
-        self.io['mouse']['time'] = self.io['calctools'].y2tick_editor(relative_y)
+        scene_point = self.mapToScene(event.pos())
+        x = scene_point.x()
+        y = scene_point.y()
+        
+        if event.button() == Qt.LeftButton:
+            self.left_mouse_button = False
+            self.io['maineditor'].update_editor('leftrelease', x, y)
+        elif event.button() == Qt.MiddleButton:
+            self.middle_mouse_button = False
+            self.io['maineditor'].update_editor('middlerelease', x, y)
+        elif event.button() == Qt.RightButton:
+            self.right_mouse_button = False
+            self.io['maineditor'].update_editor('rightrelease', x, y)

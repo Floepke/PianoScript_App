@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtGui import QCursor
-from imports.editor.mouse_handler_editor import MouseHandlerEditor
 
 class GraphicsViewEngraver(QGraphicsView):
 

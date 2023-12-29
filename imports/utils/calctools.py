@@ -44,7 +44,8 @@ class CalcTools:
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
 
-    def pitch2x_editor(self, pitch):
+    @staticmethod
+    def pitch2x_editor(pitch):
         '''converts pitch into x position on the editor'''
         
         # evaluate pitch (between 1 and 88) and create initial x position 
@@ -52,34 +53,44 @@ class CalcTools:
         x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
         
         # 21 is A0, 109 is C8 (based on midi note numbers); 12 is octave, 0 is C, 5 is F
-        for n in range(21, 109):
-            x += STAFF_X_UNIT_EDITOR if n % 12 in [0, 5] else STAFF_X_UNIT_EDITOR / 2
-            if pitch == n-20:
+        for n in range(1, 89):
+            x += STAFF_X_UNIT_EDITOR if n % 12 in [4, 9] else STAFF_X_UNIT_EDITOR / 2
+            if pitch == n:
                 break
         
         return x
     
-    def x2pitch_editor(self, x):
+    @staticmethod
+    def x2pitch_editor(x):
         '''converts x position on the editor into pitch'''
-        
-        # make a list of all base x positions
-        x_positions = []
-        for n in range(88):
-            x_positions.append(self.pitch2x_editor(n+1))
 
-        # find the closest base x position
+        # make a list of all x key center positions
+        x_positions = []
+        x_pos = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
+        for n in range(1, 89):
+            x_pos += STAFF_X_UNIT_EDITOR if n % 12 in [4, 9] else STAFF_X_UNIT_EDITOR / 2
+            x_positions.append(x_pos)
+
+        # find the closest mouse x position based from the x_positions list
         closest_x = min(x_positions, key=lambda y:abs(y-x))
         closest_x_index = x_positions.index(closest_x)
         return closest_x_index + 1
     
-    def y2tick_editor(self, y):
+    def y2tick_editor(self, y, snap=False):
         '''converts y position on the editor into pianoticks'''
-        snap_grid = self.io['snap_grid']
-        return int((y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / self.io['score']['properties']['editor-zoom']) / snap_grid) * snap_grid
+        editor_zoom = self.io['score']['properties']['editor-zoom']
+        y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
+        if y < 0: y = 0
+        
+        if snap:
+            # Snap to grid
+            grid_size = self.io['snap_grid']
+            y = round(y / grid_size) * grid_size
 
+        return y
     
     def create_new_tag_number(self):
-        '''returns the tag of an element'''
+        '''creates a new tag number and returns it'''
         tag = self.io['new_tag']
         self.io['new_tag'] += 1
         return tag
