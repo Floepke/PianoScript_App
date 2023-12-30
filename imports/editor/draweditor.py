@@ -21,7 +21,7 @@ class DrawEditor:
         '''Draws the background'''
 
         # calculate the height of the background
-        total_ticks = io['calctools'].get_total_score_ticks()
+        total_ticks = io['calc'].get_total_score_ticks()
         editor_zoom = io['score']['properties']['editor-zoom'] # the size in pixels per quarter note
         background_height = total_ticks * (editor_zoom / QUARTER_PIANOTICK) + (EDITOR_MARGIN * 2)
         
@@ -36,7 +36,7 @@ class DrawEditor:
         '''Draws the staff'''
         
         # calculating staff length
-        total_ticks = io['calctools'].get_total_score_ticks()
+        total_ticks = io['calc'].get_total_score_ticks()
         editor_zoom = io['score']['properties']['editor-zoom']
         staff_length = total_ticks * (editor_zoom / QUARTER_PIANOTICK)
 
@@ -117,7 +117,7 @@ class DrawEditor:
                                   font='Courier New')
             
             # measure length in pianoticks
-            measure_length = io['calctools'].get_measure_length(gr)
+            measure_length = io['calc'].get_measure_length(gr)
             amount = gr['amount']
 
             for _ in range(amount):
@@ -177,11 +177,11 @@ class DrawEditor:
     def draw_cursor(io):
         '''Draws the cursor on the editor'''
         # delete the old cursor
-        io['editor'].delete_with_tag('notecursor')
+        io['editor'].delete_with_tag(['notecursor'])
 
         # get the x and y position of the cursor
-        x = io['calctools'].pitch2x_editor(io['mouse']['pitch'])
-        y = io['calctools'].tick2y_editor(io['mouse']['time'])
+        x = io['calc'].pitch2x_editor(io['mouse']['pitch'])
+        y = io['calc'].tick2y_editor(io['mouse']['time'])
 
         # draw the cursor
         io['editor'].new_rectangle(x - (STAFF_X_UNIT_EDITOR / 2),

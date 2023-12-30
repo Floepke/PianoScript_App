@@ -90,7 +90,7 @@ class PianoScript():
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['fileoperations'] = FileOperations(self.io)
-        self.io['calctools'] = CalcTools(self.io)
+        self.io['calc'] = CalcTools(self.io)
         self.io['maineditor'] = Editor(self.io)
 
         # connect the file operations to the gui menu

@@ -5,11 +5,11 @@ class Note:
     @staticmethod
     def draw_editor(io, note):
         # delete the old note
-        io['editor'].delete_with_tag(note['tag'])
+        io['editor'].delete_with_tag([note['tag']])
 
         # get the x and y position of the note
-        x = io['calctools'].pitch2x_editor(note['pitch'])
-        y = io['calctools'].tick2y_editor(note['time'])
+        x = io['calc'].pitch2x_editor(note['pitch'])
+        y = io['calc'].tick2y_editor(note['time'])
         print(x, y)
 
         # set colors
@@ -65,28 +65,27 @@ class Note:
                                 outline_color=color)
             
         # draw the stem
-        if note['hand'] == 'l':
+        if note['hand'] == 'l' and note['stem_visible']:
             io['editor'].new_line(x, y, x - (unit * 5), y,
                                 tag=note['tag'],
                                 width=thickness,
                                 color=color)
-        else:
+        elif note['hand'] == 'r' and note['stem_visible']:
             io['editor'].new_line(x, y, x + (unit * 5), y,
                                 tag=note['tag'],
                                 width=thickness,
                                 color=color)
             
         # draw the midi note
-        if note['tag'] != 'notecursor':
-            endy = io['calctools'].tick2y_editor(note['time'] + note['duration'])
-            io['editor'].new_rectangle(x - unit, 
-                                       y,
-                                       x + unit, 
-                                       endy, 
-                                       tag=note['tag'], 
-                                       fill_color='red', 
-                                       width=0,
-                                       outline_color='red')
+        endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
+        io['editor'].new_rectangle(x - unit, 
+                                    y,
+                                    x + unit, 
+                                    endy, 
+                                    tag=note['tag'], 
+                                    fill_color='red', 
+                                    width=0,
+                                    outline_color='red')
             
 
     @staticmethod

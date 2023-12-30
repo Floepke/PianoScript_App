@@ -37,7 +37,7 @@ class FileOperations:
         file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
             with open(file_path, 'w') as file:
-                json.dump(self.io['score'], file)
+                json.dump(self.io['score'], file, indent=4)
 
     def saveas(self):
         if self.savepath:
@@ -47,6 +47,6 @@ class FileOperations:
             file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
             with open(file_path, 'w') as file:
-                json.dump(self.io['score'], file)
+                json.dump(self.io['score'], file, indent=4)
 
 

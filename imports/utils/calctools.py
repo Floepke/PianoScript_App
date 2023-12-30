@@ -8,7 +8,12 @@ class CalcTools:
         Included methods:
             - get_total_score_ticks(); returns the total number of ticks in the score
             - get_measure_length(grid); returns the length of a measure in pianoticks based on the grid message from the score file
-
+            - tick2y_editor(time); converts pianoticks into y position on the editor
+            - pitch2x_editor(pitch); converts pitch into x position on the editor
+            - x2pitch_editor(x); converts x position on the editor into pitch
+            - y2tick_editor(y); converts y position on the editor into pianoticks
+            - add_and_return_tag(); creates a new tag number and returns it
+            - renumber_tags(); renumbers the event tags starting from zero again. It's needed if we load a new or existing project.
     '''
 
     def __init__(self, io):
@@ -89,13 +94,13 @@ class CalcTools:
 
         return y
     
-    def create_new_tag_number(self):
+    def add_and_return_tag(self):
         '''creates a new tag number and returns it'''
         tag = self.io['new_tag']
         self.io['new_tag'] += 1
         return tag
     
-    def renumber_tags(self):
+    def renumber_tags(self): # TODO: this function is not used yet and needs review
         '''
             This function takes the score and
             renumbers the event tags starting
@@ -105,7 +110,7 @@ class CalcTools:
         for k in self.io['score']['events'].keys(): # loop through all event types
             for obj in self.io['score']['events'][k]: # loop through all objects of one event type
                 if not 'tag' in obj: continue # to skip any event that doesn't have a tag
-                if obj['tag'] == 'linebreak': continue # to ensure that only the first linebreak doesn't get a new tag
+                if obj['tag'] == 'linebreak': continue # to prevent that only the first linebreak doesn't get deleted later in the program
                 obj['tag'] = f"{k}{self.io['new_tag']}"
                 if k in self.io['selection']['copy_types']:
                     obj['tag'] = '#'+obj['tag']

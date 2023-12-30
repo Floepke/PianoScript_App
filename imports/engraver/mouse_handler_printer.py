@@ -18,8 +18,8 @@ class MouseHandlerPrinter(QGraphicsView):
         relative_y = scene_point.y()
         self.io['mouse']['x'] = relative_x
         self.io['mouse']['y'] = relative_y
-        self.io['mouse']['pitch'] = self.io['calctools'].x2pitch_editor(relative_x)
-        self.io['mouse']['time'] = self.io['calctools'].y2tick_editor(relative_y)
+        self.io['mouse']['pitch'] = self.io['calc'].x2pitch_editor(relative_x)
+        self.io['mouse']['time'] = self.io['calc'].y2tick_editor(relative_y)
 
     def mouse_press(self, event):
         '''updates the mouse position in the io dict and calls the mouse handler'''

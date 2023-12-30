@@ -29,6 +29,8 @@ class GraphicsViewEditor(QGraphicsView):
         self.middle_mouse_button = False
         self.right_mouse_button = False
 
+        self.scene = scene
+
     def resizeEvent(self, event):
         # get the old scroll position and maximum
         vbar = self.verticalScrollBar()
@@ -67,6 +69,8 @@ class GraphicsViewEditor(QGraphicsView):
             self.right_mouse_button = True
             self.io['maineditor'].update_editor('rightclick', x, y)
         
+        self.scene.update()
+        
 
     def mouseMoveEvent(self, event):
 
@@ -77,11 +81,13 @@ class GraphicsViewEditor(QGraphicsView):
         if not any([self.left_mouse_button, self.middle_mouse_button, self.right_mouse_button]):
             self.io['maineditor'].update_editor('move', x, y)
         elif self.left_mouse_button:
-            self.io['maineditor'].update_editor('leftclick+hold', x, y)
+            self.io['maineditor'].update_editor('leftclick+move', x, y)
         elif self.middle_mouse_button:
-            self.io['maineditor'].update_editor('middleclick+hold', x, y)
+            self.io['maineditor'].update_editor('middleclick+move', x, y)
         elif self.right_mouse_button:
-            self.io['maineditor'].update_editor('rightclick+hold', x, y)
+            self.io['maineditor'].update_editor('rightclick+move', x, y)
+
+        self.scene.update()
         
 
     def mouseReleaseEvent(self, event):
@@ -99,6 +105,8 @@ class GraphicsViewEditor(QGraphicsView):
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = False
             self.io['maineditor'].update_editor('rightrelease', x, y)
+        
+        self.scene.update()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # if the space key is pressed, switch the hand
