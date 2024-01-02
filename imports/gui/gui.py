@@ -92,36 +92,29 @@ class Gui():
         self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
-        self.dock_widget = QDockWidget('Tool box', self.main)
-        self.dock_widget.setStyleSheet('''QDockWidget {border: 1px solid black;}''')
-        self.dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.dock_widget.setFixedWidth(200)
-        self.main.addDockWidget(Qt.LeftDockWidgetArea, self.dock_widget)
+        self.grid_selector_dock = QDockWidget('Grid Selector', self.main)
+        self.grid_selector_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.grid_selector_dock.setFixedWidth(200)
+        self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
 
         # create a layout in the dockable widget
         self.dock_layout = QVBoxLayout()
+        
+        # Create a QWidget, set the layout on it
+        self.dock_widget = QWidget()
         self.dock_widget.setLayout(self.dock_layout)
+        self.dock_widget.setMaximumHeight(300)
 
-        # Create a container widget and set the layout to it
-        container_widget = QWidget()
-        container_widget.setLayout(self.dock_layout)
-        container_widget.setMaximumHeight(250)
-
-        # Create a QScrollArea
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)  # Allow the scroll area to resize its contents
-        self.scroll.setWidget(container_widget)  # Set the container widget as the contents of the scroll area
-
-        # Set the scroll area as the widget for the dock widget
-        self.dock_widget.setWidget(self.scroll)
+        # Set the QWidget as the widget for the dock widget
+        self.grid_selector_dock.setWidget(self.dock_widget)
 
         # create a listbox in the dockable widget
         self.length_listbox = QListWidget()
         self.length_listbox.addItems(['1', '2', '4', '8', '16', '32', '64', '128'])
         item_height = self.length_listbox.sizeHintForRow(0)
         num_items = self.length_listbox.count()
-        self.length_listbox.setMaximumHeight(item_height * num_items)
-        # set default value
+        self.length_listbox.setMaximumHeight(item_height * num_items + 2)
+        # set the current default to 3 (8th note)
         self.length_listbox.setCurrentRow(3)
         # create a callback function for the listbox
         self.length_listbox.currentTextChanged.connect(lambda: self.io['calc'].process_grid())
@@ -155,9 +148,6 @@ class Gui():
         self.dock_layout.addWidget(self.divide_spin_box, 0)
         self.dock_layout.addWidget(self.Xlabel, 0)
         self.dock_layout.addWidget(self.multiply_spin_box, 0)
-
-        # Set the container widget to the dockable widget
-        self.dock_widget.setWidget(container_widget)
 
     def show(self):
         self.main.show()

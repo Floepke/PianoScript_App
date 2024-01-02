@@ -140,6 +140,16 @@ class PianoScript():
         # create initial new file
         self.io['fileoperations'].new()
 
+        # set stylesheet
+        self.root.setStyleSheet("""
+        background-color: #1d5242;
+        color: #eeeeee;
+        font-family: Courier;
+        font-size: 16px;
+        selection-background-color: #666666;
+        selection-color: #eeeeee;
+        """)
+
         # run the application
         sys.exit(self.app.exec())
 

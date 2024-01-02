@@ -103,7 +103,7 @@ SCORE_TEMPLATE = {
         'grid':[
             {
         'tag':'grid',
-        'amount':105,
+        'amount':16,
         'numerator':3,
         'denominator':8,
         'grid':[128, 256], # a list of ticks relative to the start of every measure. every tick is a gridline
