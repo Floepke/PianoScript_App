@@ -27,6 +27,7 @@ class PianoScript():
             
             # everything about the selection:
             'selection':{
+                # True if there is a selection rectangle drawn on the editor
                 'rectangle_on':False,
                 # True if there is a active selection
                 'active':False,
@@ -36,9 +37,36 @@ class PianoScript():
                 'x2':None,
                 'y2':None,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
-                'selection_buffer':{},
+                'selection_buffer':{
+                    'note':[],
+                    'ornament':[],
+                    'text':[],
+                    'beam':[],
+                    'slur':[],
+                    'pedal':[],
+                    'countline':[],
+                    'staffsizer':[],
+                    'startrepeat':[],
+                    'endrepeat':[],
+                    'starthook':[],
+                    'endhook':[],
+                    'countline':[]
+                },
                 # the buffer that holds any copied or cutted selection; same structure as above
-                'copycut_buffer':{},
+                'copycut_buffer':{
+                    'note':[],
+                    'ornament':[],
+                    'text':[],
+                    'beam':[],
+                    'slur':[],
+                    'pedal':[],
+                    'countline':[],
+                    'staffsizer':[],
+                    'startrepeat':[],
+                    'endrepeat':[],
+                    'starthook':[],
+                    'endhook':[]
+                },
                 # all event types that are alowed to copy, cut, paste
                 'copy_types':['note', 'ornament', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that are alowed to transpose
@@ -68,9 +96,6 @@ class PianoScript():
                 'alt':False
             },
 
-            # keep track of the current tool
-            'tool':None,
-
             # current selected grid
             'snap_grid':128,
 
@@ -78,7 +103,19 @@ class PianoScript():
             'tool':'note',
 
             # current selected hand (l, r)
-            'hand':'l'
+            'hand':'l',
+
+            # viewport
+            'viewport':{
+                'toptick':0,
+                'bottomtick':0
+            },
+
+            # total ticks
+            'total_ticks':0,
+
+            # drawn_objects
+            'drawn_obj':[],
         }
 
         # setup

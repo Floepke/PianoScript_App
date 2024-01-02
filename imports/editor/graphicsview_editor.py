@@ -11,6 +11,7 @@ class GraphicsViewEditor(QGraphicsView):
 
     def __init__(self, scene, io, parent=None):
         super().__init__(scene, parent)
+        self.io = io
         self.standard_width = WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resetTransform()
@@ -21,8 +22,6 @@ class GraphicsViewEditor(QGraphicsView):
 
         # Enable antialiasing
         self.setRenderHint(QPainter.Antialiasing)
-
-        self.io = io
 
         # mouse buttons
         self.left_mouse_button = False
@@ -50,6 +49,9 @@ class GraphicsViewEditor(QGraphicsView):
             new_scroll = old_scroll * new_max / old_max
         vbar.setValue(new_scroll)
 
+        try: self.io['maineditor'].update('refresh')
+        except KeyError: pass
+
         # call the original resizeEvent
         super().resizeEvent(event)
 
@@ -61,13 +63,13 @@ class GraphicsViewEditor(QGraphicsView):
 
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = True
-            self.io['maineditor'].update_editor('leftclick', x, y)
+            self.io['maineditor'].update('leftclick', x, y)
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = True
-            self.io['maineditor'].update_editor('middleclick', x, y)
+            self.io['maineditor'].update('middleclick', x, y)
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = True
-            self.io['maineditor'].update_editor('rightclick', x, y)
+            self.io['maineditor'].update('rightclick', x, y)
         
         self.scene.update()
         
@@ -79,13 +81,13 @@ class GraphicsViewEditor(QGraphicsView):
         y = scene_point.y()
         
         if not any([self.left_mouse_button, self.middle_mouse_button, self.right_mouse_button]):
-            self.io['maineditor'].update_editor('move', x, y)
+            self.io['maineditor'].update('move', x, y)
         elif self.left_mouse_button:
-            self.io['maineditor'].update_editor('leftclick+move', x, y)
+            self.io['maineditor'].update('leftclick+move', x, y)
         elif self.middle_mouse_button:
-            self.io['maineditor'].update_editor('middleclick+move', x, y)
+            self.io['maineditor'].update('middleclick+move', x, y)
         elif self.right_mouse_button:
-            self.io['maineditor'].update_editor('rightclick+move', x, y)
+            self.io['maineditor'].update('rightclick+move', x, y)
 
         self.scene.update()
         
@@ -98,26 +100,32 @@ class GraphicsViewEditor(QGraphicsView):
         
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = False
-            self.io['maineditor'].update_editor('leftrelease', x, y)
+            self.io['maineditor'].update('leftrelease', x, y)
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = False
-            self.io['maineditor'].update_editor('middlerelease', x, y)
+            self.io['maineditor'].update('middlerelease', x, y)
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = False
-            self.io['maineditor'].update_editor('rightrelease', x, y)
+            self.io['maineditor'].update('rightrelease', x, y)
         
         self.scene.update()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # if the space key is pressed, switch the hand
         if event.key() == Qt.Key_Space:
-            self.io['maineditor'].update_editor('space')
+            self.io['maineditor'].update('space')
         return super().keyPressEvent(event)
     
     # connect a action if mouse leaves the view
     def leaveEvent(self, event):
-        self.io['maineditor'].update_editor('leave')
+        self.io['maineditor'].update('leave')
 
     # connect a action if mouse enters the view
     def enterEvent(self, event):
-        self.io['maineditor'].update_editor('enter')
+        self.io['maineditor'].update('enter')
+
+    def wheelEvent(self, event):
+        super().wheelEvent(event)
+        self.io['maineditor'].update('refresh')
+
+        

@@ -6,12 +6,12 @@ from PySide6.QtGui import QPolygonF, QFont
 from typing import Union, Tuple
 from PySide6.QtGui import QFontDatabase
 
-import sys
-import time
+import sys, re, time
 from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from typing import Tuple, List
+from PySide6.QtCore import QRectF
 
 class DrawUtil:
     '''
@@ -73,6 +73,24 @@ class DrawUtil:
         - find_with_tag() (not yet implemented); find all items with the given tag or tags and return a list of items
             * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
     '''
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     def __init__(self, canvas: QGraphicsScene):
         self.canvas = canvas
 
@@ -83,7 +101,7 @@ class DrawUtil:
                   capstyle: Qt.PenCapStyle = Qt.RoundCap,
                   joinstyle: Qt.PenJoinStyle = Qt.RoundJoin,
                   color: str = '#000000',
-                  tag: str = 'undefined'):
+                  tag: list = []):
         '''Add a line to the scene.'''
         
         # Create a line from (x1, y1) to (x2, y2)
@@ -110,9 +128,9 @@ class DrawUtil:
                         dash: list = None,
                         width: float = 1.0, 
                         capstyle: Qt.PenCapStyle = Qt.RoundCap,
-                        outline_color: str = '#000000',
-                        fill_color: str = '#FFFFFF',
-                        tag: str = 'undefined'):
+                        outline_color: str = '#000000ff',
+                        fill_color: str = '#404040ff',
+                        tag: list = []):
         '''Add a rectangle to the scene.'''
         
         # Create a rectangle from (x1, y1) to (x2, y2)
@@ -123,15 +141,19 @@ class DrawUtil:
         pen = QPen()
         pen.setWidthF(width)
         pen.setCapStyle(capstyle)
-        pen.setColor(QColor(outline_color))
+        # set color and alpha
+        color = QColor(int(outline_color[1:2], 16), int(outline_color[3:4], 16), int(outline_color[5:6], 16), int(outline_color[7:8], 16))
+        pen.setColor(color)
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
 
+        brush = QBrush(QColor(int(fill_color[1:3], 16), int(fill_color[3:5], 16), int(fill_color[5:7], 16), int(fill_color[7:9], 16)))
+
         # Add the rectangle to the scene
-        rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, QBrush(QColor(fill_color)))
+        rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, brush)
         
-        # Add a tag to the rectangle item
+        # Add a tag to the line item
         rect.setData(0, tag)
 
     def new_oval(self, x1: float, y1: float, x2: float, y2: float,
@@ -139,7 +161,7 @@ class DrawUtil:
                     outline_width: float = 1.0,
                     outline_color: str = '#000000',
                     fill_color: str = '#FFFFFF',
-                    tag: str = 'undefined'):
+                    tag: list = []):
         '''Add an oval to the scene.'''
         
         # Create an oval from (x1, y1) to (x2, y2)
@@ -158,7 +180,7 @@ class DrawUtil:
         # Add the oval to the scene
         oval = self.canvas.addEllipse(start.x(), start.y(), width, height, pen, QBrush(QColor(fill_color)))
         
-        # Add a tag to the oval item
+        # Add a tag to the line item
         oval.setData(0, tag)
 
     def new_polygon(self, points: list,
@@ -166,7 +188,7 @@ class DrawUtil:
                     width: float = 1.0,
                     outline_color: str = '#000000',
                     fill_color: str = '#FFFFFF',
-                    tag: str = 'undefined'):
+                    tag: dict = {}):
         '''Add a polygon to the scene.'''
         
         # Create a polygon from the given points
@@ -174,7 +196,11 @@ class DrawUtil:
         
         # Create a pen with the given properties
         pen = QPen()
-        pen.setWidthF(width)
+        # if width is 0, the outline is not drawn
+        if width == 0:
+            pen.setStyle(Qt.NoPen)
+        else:
+            pen.setWidthF(width)
         pen.setColor(QColor(outline_color))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
@@ -183,14 +209,14 @@ class DrawUtil:
         # Add the polygon to the scene
         polygon_item = self.canvas.addPolygon(polygon, pen, QBrush(QColor(fill_color)))
         
-        # Add a tag to the polygon item
+        # Add a tag to the line item
         polygon_item.setData(0, tag)
 
     def new_text(self, x: float, y: float, text: str,
                  font: str = 'Arial',
                  size: float = 12.0, 
                  color: str = '#000000', 
-                 tag: str = 'undefined',
+                 tag: list = [],
                  anchor: str = 'c',
                  angle: float = 0.0):
         '''Add text to the scene.'''
@@ -245,40 +271,67 @@ class DrawUtil:
 
         text_item.setTransformOriginPoint(bounding_rect.width() / 2, bounding_rect.height() / 2)
 
-        # Add a tag to the text item
+        # Add a tag to the line item
         text_item.setData(0, tag)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    '''This part are the methods that handle the tags of the items.'''
+    def find_with_tag(self, tag: list): # TODO: check if it works
+        '''Find all items with the given tag or tags and return a list of items.'''
+        items = []
+        for item in self.canvas.items():
+            item_data = item.data(0)
+            for t in tag:
+                if t in item_data:
+                    items.append(item)
+        return items
 
     def delete_with_tag(self, tag: list):
         '''Delete all items with the given tag or tags.'''
-        for item in self.canvas.items():
-            item_data = item.data(0)
-            if item_data is not None and item_data in tag:
-                self.canvas.removeItem(item)
+        for item in self.find_with_tag(tag):
+            self.canvas.removeItem(item)
 
     def delete_all(self):
         '''Delete all items.'''
         self.canvas.clear()
 
-    def find_with_tag(self, tag: Union[str, Tuple[str, ...]]): # TODO: check if it works
-        '''Find all items with the given tag or tags and return a list of items.'''
-        scene_items = self.canvas.items()
-        items = [item for item in scene_items if item.data(0) in tag]
-        items.sort(key=lambda item: tag.index(item.data(0)))
-        return items
-
-    def tag_raise(self, tag: Union[str, Tuple[str, ...]]):
+    def tag_raise(self, tag: list):
         '''Raise items with the given tag or tags to the top of the scene.'''
-        items = self.find_with_tag(tag)
-        highest_z = max(item.zValue() for item in self.canvas.items()) if self.canvas.items() else 0
-        for item in items:
-            item.setZValue(highest_z + 1.0)
-    
-    def tag_lower(self, tag: Union[str, Tuple[str, ...]]):
+        zvalue = self.canvas.items()[-1].zValue()
+        for t in tag:
+            for item in self.find_with_tag([t]):
+                item.setZValue(zvalue)
+                zvalue += 1
+            
+    def tag_lower(self, tag: list):
         '''Lower items with the given tag or tags to the bottom of the scene.'''
-        items = self.find_with_tag(tag)
-        lowest_z = min(item.zValue() for item in self.canvas.items()) if self.canvas.items() else 0
-        for item in items:
-            item.setZValue(lowest_z - 1.0)
+        zvalue = self.canvas.items()[0].zValue()
+        for t in tag:
+            for item in self.find_with_tag([t]):
+                item.setZValue(zvalue)
+                zvalue -= 1
 
     def find_items(self, x: float, y: float, tag: list = None):
         '''Find all items at the given position that are in the tag list and return a list of items.'''
@@ -286,3 +339,61 @@ class DrawUtil:
         if tag is not None:
             return [item for item in scene_items if item.data(0) in tag]
         return scene_items
+    
+    def detect_object(self, score, x: float, y: float, object_type: str = None):
+        '''Find all items at the given position that have the given string in their tag and return a list of items.'''
+        scene_items = self.canvas.items(QPointF(x, y))
+        if object_type is not None:
+            for item in scene_items:
+                tag = item.data(0)[0]
+                if object_type == 'all':
+                    # we are searching for any object type; if ending on a number it means it is a object in the score file
+                    if bool(re.search(r'\d$', tag)): # if ending on a number
+                        for obj in score['events']['note']:
+                            if obj['tag'] == tag:
+                                return obj
+                else:
+                    # we are searching for a specific object type
+                    if object_type in tag and bool(re.search(r'\d$', tag)):
+                        for note in score['events']['note']:
+                            if note['tag'] == tag:
+                                return note
+        return None
+    
+    def detect_objects_rectangle(self, score, x1: float, y1: float, x2: float, y2: float, object_type: str = None):
+        '''Find all items at the given position that have the given string in their tag and return a list of items.'''
+        # evaluate the rectangle coordinates
+        if x1 > x2:
+            x1, x2 = x2, x1
+        if y1 > y2:
+            y1, y2 = y2, y1
+        scene_items = self.canvas.items(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
+        if object_type is not None:
+            detected_objects = []
+            for item in scene_items:
+                tag = item.data(0)[0]
+                if object_type in tag and bool(re.search(r'\d$', tag)):
+                    for note in score['events']['note']:
+                        if note['tag'] == tag:
+                            detected_objects.append(note)
+            if detected_objects:
+                # remove duplicates
+                detected_objects = list({v['tag']:v for v in detected_objects}.values())
+                return detected_objects
+        return None
+    
+
+
+
+
+
+
+
+
+
+
+
+    # get viewport coordinates
+    def get_viewport(self):
+        '''Get the viewport coordinates.'''
+        return self.canvas.sceneRect()

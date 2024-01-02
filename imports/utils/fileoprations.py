@@ -1,4 +1,4 @@
-import json
+import json, copy
 from PySide6.QtWidgets import QFileDialog
 from imports.utils.constants import SCORE_TEMPLATE
 
@@ -15,10 +15,10 @@ class FileOperations:
 
     def new(self):
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        self.io['score'] = SCORE_TEMPLATE
+        self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # redraw the editor
-        self.io['maineditor'].redraw(self.io)
+        self.io['maineditor'].draw_viewport(self.io)
 
     def load(self):
         file_dialog = QFileDialog()
@@ -29,8 +29,11 @@ class FileOperations:
                 self.io['score'] = json.load(file)
             self.savepath = file_path
 
-            # redraw the editor
-            self.io['maineditor'].redraw(self.io)
+            # renumber tags
+            self.io['calc'].renumber_tags()
+
+            # draw the editor
+            self.io['maineditor'].draw_viewport(self.io)
 
     def save(self):
         file_dialog = QFileDialog()

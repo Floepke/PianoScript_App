@@ -1,4 +1,4 @@
-stylesheet = """
+stylesheet = '''
 QWidget {
     background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                 stop:0 #666666, stop:1 #222222);
@@ -21,9 +21,9 @@ QStatusBar, QMenuBar, QMenu {
 QGraphicsView QScrollBar {
     background-color: #555555;
 }
-"""
+'''
 
-# stylesheet = """
+# stylesheet = '''
 # QMainWindow {
 #     background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
 #                                 stop:0 #666666, stop:1 #222222);
@@ -73,4 +73,4 @@ QGraphicsView QScrollBar {
 #     background-color: #555555;
 #     color: pink;
 # }
-# """
+# '''

@@ -1,5 +1,10 @@
 from imports.editor.draweditor import DrawEditor
-from imports.editor.tool.tool_note import tool_note
+from imports.design.note import Note
+from imports.design.slur import Slur
+from imports.design.beam import Beam
+from imports.design.countline import Countline
+from imports.editor.selection import Selection
+
 
 class Editor:
     '''The editor class handles all the editor functions'''
@@ -7,37 +12,82 @@ class Editor:
     def __init__(self, io):
 
         self.io = io
+        self.toolselector = {
+            'note':Note,
+            'slur':Slur,
+            'beam':Beam,
+            'countline':Countline
+        }
 
-    def update_editor(self, event_type: str, x: int = None, y: int = None):
+    def update(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
 
-        # run the selected tool
-        eval('tool_' + self.io['tool'] + f'(self.io, event_type, x, y)')
+        # update total ticks
+        self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
 
-    def redraw(self, io):
-        '''I want to check the performance if I draw the entire editor every time the score changes. I don't know if it will be fine, but I want to see.'''
+        # run the selected tool
+        self.toolselector[self.io['tool']].tool(self.io, event_type, x, y)
+
+        # run selection module
+        Selection.process(self.io, event_type, x, y)
+
+        # draw_viewport if scroll
+        if event_type == 'refresh':
+            self.draw_viewport(self.io)
+
+        self.drawing_order()
+
+    def draw_viewport(self, io):
+        '''draw_viewportes the editor drawing viewport'''
 
         # clear the editor scene
-        io['editor'].delete_all()
+        io['editor'].delete_with_tag(['midinote', 
+                                      'stem', 
+                                      'noteheadwhite', 
+                                      'leftdotwhite', 
+                                      'noteheadblack', 
+                                      'leftdotblack'])
+        #DrawEditor.draw_background(io)
 
         # draw title, background, staff, barlines, barnumbers, grid and notes
-        DrawEditor.draw_titles(io)
-        DrawEditor.draw_background(io)
-        DrawEditor.draw_staff(io)
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(io)
-        DrawEditor.draw_notes(io) # TODO in progress
+        if io['total_ticks'] != self.io['calc'].get_total_score_ticks():
+            print('total ticks changed; redraw background, staff, barlines, barnumbers and grid')
+            DrawEditor.draw_background(io)
+            DrawEditor.draw_titles(io)
+            DrawEditor.draw_staff(io)
+            DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(io)
 
-    def update_drawing_order(self, io):
+        # these drawing functions only draw in the viewport
+        io['calc'].update_viewport_ticks(io)
+        DrawEditor.draw_notes(io)
+        
+        self.drawing_order()
+
+        # count number of items on the QGraphicScene
+        print(f"number of items on scene: {len(io['editor'].canvas.items())}")
+
+    def drawing_order(self):
         '''
             set drawing order on tags. the tags are hardcoded in the draweditor class
-            they are in order background, staffline, titletext, barline, etc...
+            they are background, staffline, titletext, barline, etc...
         '''
 
-        drawing_order = ['background', 'staffline', 'titletext', 
-                         'barline', 'gridline', 'barnumbering', 
-                         'note', 'stem', 'leftdot', 'notecursor', 
-                         'timesignature', 'measurenumber']
-        for t in drawing_order:
-            io['editor'].tag_raise(t)
+        drawing_order = ['background', 
+                         'midinote', 
+                         'staffline',
+                         'titletext', 
+                         'barline', 
+                         'gridline', 
+                         'barnumbering',
+                         'stem',
+                         'noteheadwhite',
+                         'leftdotwhite',
+                         'noteheadblack',
+                         'leftdotblack',
+                         'timesignature', 
+                         'measurenumber',
+                         'selectionrectangle',
+                        ]
+        self.io['editor'].tag_raise(drawing_order)
         
     

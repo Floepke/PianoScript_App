@@ -115,4 +115,43 @@ class CalcTools:
                 if k in self.io['selection']['copy_types']:
                     obj['tag'] = '#'+obj['tag']
                 self.io['new_tag'] += 1
+
+    @staticmethod
+    def update_viewport_ticks(io):
+        '''updates the viewport toptick and bottomtick based on the scroll position of the editor'''
+        scale_factor = io['gui'].editor_view.transform().m11()
+        px_scene_height = io['gui'].editor_scene.sceneRect().height()
+        ticks_scene_height = (px_scene_height / (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) * scale_factor
+        px_view_height = io['gui'].editor_view.height()
+        tick_view_height = (px_view_height * (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) / scale_factor
+        tick_editor_margin = io['calc'].y2tick_editor(EDITOR_MARGIN + EDITOR_MARGIN)
+        # calculate the toptick and bottomtick
+        toptick = (io['gui'].editor_view.verticalScrollBar().value() * (px_scene_height / ticks_scene_height))
+        bottomtick = toptick + tick_view_height
+        # update the viewport toptick and bottomtick
+        io['viewport']['toptick'] = toptick - tick_editor_margin
+        io['viewport']['bottomtick'] = bottomtick# + tick_editor_margin
+
+    # process grid selector
+    def process_grid(self):
+        
+        # get values
+        listbox = int(self.io['gui'].length_listbox.currentItem().text())
+        divide = self.io['gui'].divide_spin_box.value()
+        multiply = int(self.io['gui'].multiply_spin_box.value())
+        length_dict = {
+            '1': 1024,
+            '2': 512,
+            '4': 256,
+            '8': 128,
+            '16': 64,
+            '32': 32,
+            '64': 16,
+            '128': 8
+        }
+        print(f"listbox: {listbox}, divide: {divide}, multiply: {multiply}")
+        self.io['snap_grid'] = length_dict[str(listbox)] / divide * multiply
+        print(f"listbox: {listbox}, divide: {divide}, multiply: {multiply}")
+
+    
         

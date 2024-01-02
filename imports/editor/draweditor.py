@@ -9,9 +9,9 @@ class DrawEditor:
     def draw_titles(io:dict):
         '''Draws the title and composer name of the score file on the topleft corner of the editor'''
 
-        title = '"' + io['score']['header']['title']['text'] + '"' + ' by composer: ' + io['score']['header']['composer']['text']
+        title = "'" + io['score']['header']['title']['text'] + "'" + ' by composer: ' + io['score']['header']['composer']['text']
         io['editor'].new_text(LEFT, 0, title, 
-                              tag='titletext', 
+                              tag=['titletext'], 
                               anchor='nw', 
                               size=20, 
                               font='Courier New')
@@ -27,9 +27,9 @@ class DrawEditor:
         
         # create the background rectangle
         io['editor'].new_rectangle(LEFT, TOP, RIGHT, background_height,
-                                   fill_color='#eeeeee', 
-                                   outline_color='#eeeeee', 
-                                   tag='background')
+                                   fill_color='#eeeeeeff', 
+                                   outline_color='#eeeeeeff',
+                                   tag=['background'])
 
     @staticmethod
     def draw_staff(io:dict):
@@ -48,7 +48,7 @@ class DrawEditor:
                               x_curs,
                               EDITOR_MARGIN+staff_length,
                               width=2,
-                              tag='staffline',
+                              tag=['staffline'],
                               color='#000000')
         
         x_curs += (STAFF_X_UNIT_EDITOR * 2)
@@ -60,13 +60,13 @@ class DrawEditor:
                     # draw the clef (dashed line)
                     io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN + staff_length,
                         width=1,
-                        tag='staffline',
+                        tag=['staffline'],
                         dash=(6,6),
                         color='black')
                 else:
                     io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN + staff_length,
                         width=1,
-                        tag='staffline',
+                        tag=['staffline'],
                         color='black')
                 x_curs += STAFF_X_UNIT_EDITOR
 
@@ -75,7 +75,7 @@ class DrawEditor:
             for _ in range(3): # draw group of 3 stafflines, traditionally they are is thicker
                 io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN + staff_length,
                         width=2,
-                        tag='staffline',
+                        tag=['staffline'],
                         color='black')
                 x_curs += STAFF_X_UNIT_EDITOR
 
@@ -97,21 +97,21 @@ class DrawEditor:
             # draw the timesignature indicator
             io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), y_cursor,
                                   str(gr['numerator']), 
-                                  tag='timesignature', 
+                                  tag=['timesignature'], 
                                   anchor='s', 
                                   size=40, 
                                   font='Courier New')
             io['editor'].new_line(LEFT + EDITOR_MARGIN - (EDITOR_MARGIN / 3), y_cursor, LEFT + (EDITOR_MARGIN / 3), y_cursor, 
                                   width=6, 
-                                  tag='timesignature', 
+                                  tag=['timesignature'], 
                                   color='black')
             io['editor'].new_line(LEFT + EDITOR_MARGIN, y_cursor, LEFT + (EDITOR_MARGIN / 3), y_cursor,
                                   width=2,
-                                  tag='timesignature',
+                                  tag=['timesignature'],
                                   color='black',
                                   dash=(2, 4))
             io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), y_cursor, str(gr['denominator']),
-                                  tag='timesignature', 
+                                  tag=['timesignature'], 
                                   anchor='n', 
                                   size=40, 
                                   font='Courier New')
@@ -128,7 +128,7 @@ class DrawEditor:
                                       RIGHT - EDITOR_MARGIN,
                                       y_cursor,
                                       width=2,
-                                      tag='barline',
+                                      tag=['barline'],
                                       color='black')
                 
                 # draw the measure number
@@ -136,7 +136,7 @@ class DrawEditor:
                 io['editor'].new_text(LEFT,
                                       y_cursor,
                                       str(measure_numbering),
-                                      tag='barline',
+                                      tag=['barline'],
                                       anchor='nw',
                                       size=30,
                                       font='Courier New')
@@ -149,7 +149,7 @@ class DrawEditor:
                                           LEFT + EDITOR_MARGIN + staff_width,
                                           y_cursor + tick,
                                           width=0.5,
-                                          tag='barline',
+                                          tag=['barline'],
                                           dash=(7,7),
                                           color='black')
                 
@@ -163,31 +163,18 @@ class DrawEditor:
                                           LEFT + EDITOR_MARGIN + staff_width,
                                           y_cursor,
                                           width=4,
-                                          tag='barline',
+                                          tag=['barline'],
                                           color='black')
     
     @staticmethod
     def draw_notes(io):
         '''Draws the notes of the score'''
-
         for note in io['score']['events']['note']:
-            Note.draw_editor(io, note)
-
-    @staticmethod
-    def draw_cursor(io):
-        '''Draws the cursor on the editor'''
-        # delete the old cursor
-        io['editor'].delete_with_tag(['notecursor'])
-
-        # get the x and y position of the cursor
-        x = io['calc'].pitch2x_editor(io['mouse']['pitch'])
-        y = io['calc'].tick2y_editor(io['mouse']['time'])
-
-        # draw the cursor
-        io['editor'].new_rectangle(x - (STAFF_X_UNIT_EDITOR / 2),
-                                   y,
-                                   x + (STAFF_X_UNIT_EDITOR / 2),
-                                   y + (STAFF_X_UNIT_EDITOR * 2),
-                                   tag='notecursor',
-                                   fill_color='red',
-                                   outline_color='red')
+            # if the note is in the current viewport, draw it
+            if note['time'] >= io['viewport']['toptick'] and note['time'] <= io['viewport']['bottomtick'] or note['time'] + note['duration'] >= io['viewport']['toptick'] and note['time'] + note['duration'] <= io['viewport']['bottomtick']:
+                if note in io['selection']['selection_buffer']['note']:
+                    Note.draw_editor(io, note, inselection=True)
+                    #io['drawn_obj'].remove(note['tag'])
+                else:
+                    Note.draw_editor(io, note)
+                    #io['drawn_obj'].append(note['tag'])
