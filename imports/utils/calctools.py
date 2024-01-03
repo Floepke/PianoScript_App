@@ -49,11 +49,12 @@ class CalcTools:
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
     
-    def y2tick_editor(self, y, snap=False):
+    def y2tick_editor(self, y, snap=False, absolute=False):
         '''converts y position on the editor into pianoticks'''
         editor_zoom = self.io['score']['properties']['editor-zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
-        if y <= 0: y = 0
+        if not absolute:
+            if y <= 0: y = 0
         
         if snap:
             # Snap to grid starting from the top of the editor

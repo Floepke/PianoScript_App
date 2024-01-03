@@ -174,7 +174,31 @@ class DrawEditor:
             if note['time'] >= io['viewport']['toptick'] and note['time'] <= io['viewport']['bottomtick'] or note['time'] + note['duration'] >= io['viewport']['toptick'] and note['time'] + note['duration'] <= io['viewport']['bottomtick']:
                 if note in io['selection']['selection_buffer']['note']:
                     Note.draw_editor(io, note, inselection=True)
-                    #io['drawn_obj'].remove(note['tag'])
                 else:
                     Note.draw_editor(io, note)
-                    #io['drawn_obj'].append(note['tag'])
+
+
+    @staticmethod
+    def draw_cursor(io, x, y):
+        '''Draws the cursor'''
+        # delete the old cursor
+        io['editor'].delete_with_tag(['cursor'])
+
+        # get the cursor position
+        print(y)
+        y = io['calc'].y2tick_editor(y, snap=True)
+        y = io['calc'].tick2y_editor(y)
+
+        # draw the new cursor
+        io['editor'].new_line(LEFT, y, LEFT+EDITOR_MARGIN, y,
+                              width=2, 
+                              tag=['cursor'], 
+                              color='black',
+                              dash=(4,4))
+        io['editor'].new_line(RIGHT-EDITOR_MARGIN, y, RIGHT, y,
+                              width=2, 
+                              tag=['cursor'], 
+                              color='black',
+                              dash=(4,4))
+        
+        print('cursor drawn')

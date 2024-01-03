@@ -35,6 +35,10 @@ class Editor:
         if event_type == 'refresh':
             self.draw_viewport(self.io)
 
+        # draw the cursor
+        if event_type == 'move':
+            DrawEditor.draw_cursor(self.io, x, y)
+
         self.drawing_order()
 
     def draw_viewport(self, io):
@@ -91,8 +95,7 @@ class Editor:
         self.io['editor'].tag_raise(drawing_order)
 
     def select_tool(self, tool):
-        '''selects a tool'''
-
+        '''selects a tool that is selected in the tool selector'''
         self.io['tool'] = tool
         self.io['gui'].tool_label.setText(f"Tool: {tool}")
         

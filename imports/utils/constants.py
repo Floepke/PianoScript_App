@@ -107,9 +107,9 @@ SCORE_TEMPLATE = {
             {
         'tag':'grid',
         'amount':16,
-        'numerator':3,
-        'denominator':8,
-        'grid':[128, 256], # a list of ticks relative to the start of every measure. every tick is a gridline
+        'numerator':4,
+        'denominator':4,
+        'grid':[256, 512, 768], # a list of ticks relative to the start of every measure. every tick is a gridline
         'visible':True
       }
     ],
