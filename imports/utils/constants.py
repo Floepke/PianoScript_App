@@ -3,6 +3,9 @@
     All values are capitalized and separated by underscores to indicate 
     that they are constants.
 '''
+# the background color of the editor and print view
+BACKGROUND_COLOR_EDITOR_PRINT = '#bbb'
+
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
 

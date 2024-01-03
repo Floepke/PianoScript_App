@@ -142,12 +142,10 @@ class PianoScript():
 
         # set stylesheet
         self.root.setStyleSheet("""
-        background-color: #1d5242;
+        background-color: #333333;
         color: #eeeeee;
-        font-family: Courier;
-        font-size: 16px;
-        selection-background-color: #666666;
-        selection-color: #eeeeee;
+        font-size: 18px;
+        font-family: Arial;
         """)
 
         # run the application

@@ -1,4 +1,5 @@
 from imports.utils.constants import *
+import copy
 
 class Note:
     '''
@@ -20,14 +21,16 @@ class Note:
             # detect if we clicked on a note
             detect = io['editor'].detect_object(io['score'], float(x), float(y), object_type='note')
             if detect:
-                # if we clicked on a note, we want to edit it
+                # if we clicked on a note, we want to edit it so we create a copy of the note
                 io['editnote'] = detect
+                # io['editnote']['tag'] = 'editnote'
+                print('editnote')
             else:
-                # we have to create a new note:
+                # we have to create a (new) editnote:
                 io['editnote'] = {
                     'tag':'editnote',
                     'time':io['calc'].y2tick_editor(y, snap=True),
-                    'duration':0,
+                    'duration':io['snap_grid'],
                     'pitch':io['calc'].x2pitch_editor(x),
                     'hand':io['hand'],
                     'stem_visible':True,
@@ -36,43 +39,55 @@ class Note:
                 }
                 Note.draw_editor(io, io['editnote'])
                 io['editor'].delete_with_tag(['notecursor'])
+                print('newnote')
 
         elif event_type == 'leftclick+move':
-            # prevent the note from being too short
-            duration = io['calc'].y2tick_editor(y, snap=True) - io['editnote']['time']
-            if duration < io['snap_grid']:
-                duration = io['snap_grid']
-            io['editnote']['duration'] = duration
+            # get the mouse position in pianoticks and pitch
+            mouse_time = io['calc'].y2tick_editor(y, snap=True)
+            mouse_pitch = io['calc'].x2pitch_editor(x)
+            note_start = io['editnote']['time']
+            note_length = mouse_time - io['editnote']['time']
 
-            # edit the pitch if the mouse is before the start position of the note
-            mouse_time = io['calc'].y2tick_editor(y, snap=False)
-            if mouse_time <= io['editnote']['time']:
-                io['editnote']['pitch'] = io['calc'].x2pitch_editor(x)
+            if mouse_time >= note_start + io['snap_grid']:
+                # edit the duration
+                io['editnote']['duration'] = note_length
+            elif mouse_time <= io['editnote']['time']:
+                # edit the pitch
+                io['editnote']['pitch'] = mouse_pitch
+
+            # if not mouse_time > io['editnote']['time']:
+            #     io['editnote']['pitch'] = mouse_pitch
+            # elif mouse_time < io['snap_grid']:
+            #     ...
+            # elif mouse_time >= io['snap_grid']:
+            #     io['editnote']['duration'] = note_end_time
 
             # draw the note
             Note.draw_editor(io, io['editnote'])
+
+            print('move')
         
         elif event_type == 'leftrelease':
-            # delete the editnote
-            io['editor'].delete_with_tag(['editnote'])
+            if io['editnote']:
+                # delete the editnote
+                io['editor'].delete_with_tag([io['editnote']['tag']])
 
-            # prevent the note from being too short
-            duration = io['calc'].y2tick_editor(y, snap=True) - io['editnote']['time']
-            if duration < io['snap_grid']:
-                duration = io['snap_grid']
-            io['editnote']['duration'] = duration
+                # delete the note from file
+                try: io['score']['events']['note'].remove(io['editnote'])
+                except ValueError: pass
 
-            # create copy of the editnote, give it a identical tag and add it to the score
-            new = io['editnote'].copy()
-            new['tag'] = 'note' + str(io['calc'].add_and_return_tag())
-            io['score']['events']['note'].append(new)
+                # create copy of the editnote, give it a identical tag and add it to the score
+                new = copy.deepcopy(io['editnote'])
+                new['tag'] = 'note' + str(io['calc'].add_and_return_tag())
+                io['score']['events']['note'].append(new)
 
-            # draw the note, redraw the editor
-            Note.draw_editor(io, new)
-            io['maineditor'].draw_viewport(io)
+                # draw the note, redraw the editor viewport
+                io['maineditor'].draw_viewport(io)
 
-            # delete the editnote
-            io['editnote'] = None
+                # delete the editnote
+                io['editnote'] = None
+
+            print('leftrelease')
 
 
         # middle mouse button handling:
@@ -94,6 +109,7 @@ class Note:
                 # if we clicked on a note, we want to delete it
                 io['score']['events']['note'].remove(detect)
                 io['editor'].delete_with_tag([detect['tag']])
+                print('deletenote: ', detect['tag'])
                 io['maineditor'].draw_viewport(io)
 
         elif event_type == 'rightclick+move':
@@ -138,6 +154,10 @@ class Note:
     def draw_editor(io, note, inselection=False):
         # delete the old note
         io['editor'].delete_with_tag([note['tag']])
+
+        # update drawn object
+        try: io['drawn_obj'].remove(note['tag'])
+        except ValueError: pass
 
         # get the x and y position of the note
         x = io['calc'].pitch2x_editor(note['pitch'])
@@ -217,6 +237,10 @@ class Note:
                                     fill_color=color, 
                                     width=0,
                                     outline_color=color)
+            
+        # update the drawn object
+        if note['tag'] not in io['drawn_obj']:
+            io['drawn_obj'].append(note['tag'])
             
 
     @staticmethod

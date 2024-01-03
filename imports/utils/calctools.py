@@ -48,6 +48,19 @@ class CalcTools:
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
+    
+    def y2tick_editor(self, y, snap=False):
+        '''converts y position on the editor into pianoticks'''
+        editor_zoom = self.io['score']['properties']['editor-zoom']
+        y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
+        if y <= 0: y = 0
+        
+        if snap:
+            # Snap to grid starting from the top of the editor
+            grid_size = self.io['snap_grid']
+            y = round((y - (grid_size / 2)) / grid_size) * grid_size
+
+        return y
 
     @staticmethod
     def pitch2x_editor(pitch):
@@ -80,19 +93,6 @@ class CalcTools:
         closest_x = min(x_positions, key=lambda y:abs(y-x))
         closest_x_index = x_positions.index(closest_x)
         return closest_x_index + 1
-    
-    def y2tick_editor(self, y, snap=False):
-        '''converts y position on the editor into pianoticks'''
-        editor_zoom = self.io['score']['properties']['editor-zoom']
-        y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
-        if y < 0: y = 0
-        
-        if snap:
-            # Snap to grid
-            grid_size = self.io['snap_grid']
-            y = round(y / grid_size) * grid_size
-
-        return y
     
     def add_and_return_tag(self):
         '''creates a new tag number and returns it'''
@@ -135,23 +135,31 @@ class CalcTools:
     # process grid selector
     def process_grid(self):
         
-        # get values
-        listbox = int(self.io['gui'].length_listbox.currentItem().text())
+        # get selected radio button/length
+        radio = None
+        for i in range(self.io['gui'].radio_layout.count()):
+            radio_button = self.io['gui'].radio_layout.itemAt(i).widget()
+            if radio_button.isChecked():
+                radio = i
+                break
+        
+        # get selected divide and multiply
         divide = self.io['gui'].divide_spin_box.value()
         multiply = int(self.io['gui'].multiply_spin_box.value())
+        
+        # calculate the snap grid
         length_dict = {
-            '1': 1024,
-            '2': 512,
-            '4': 256,
-            '8': 128,
-            '16': 64,
-            '32': 32,
-            '64': 16,
-            '128': 8
+            0: 1024,
+            1: 512,
+            2: 256,
+            3: 128,
+            4: 64,
+            5: 32,
+            6: 16,
+            7: 8
         }
-        print(f"listbox: {listbox}, divide: {divide}, multiply: {multiply}")
-        self.io['snap_grid'] = length_dict[str(listbox)] / divide * multiply
-        print(f"listbox: {listbox}, divide: {divide}, multiply: {multiply}")
+        self.io['snap_grid'] = length_dict[radio] / divide * multiply
 
-    
+        # update the the label
+        self.io['gui'].grid_selector_label.setText(f"Tick: {self.io['snap_grid']}")
         

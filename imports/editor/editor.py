@@ -89,5 +89,11 @@ class Editor:
                          'selectionrectangle',
                         ]
         self.io['editor'].tag_raise(drawing_order)
+
+    def select_tool(self, tool):
+        '''selects a tool'''
+
+        self.io['tool'] = tool
+        self.io['gui'].tool_label.setText(f"Tool: {tool}")
         
     
