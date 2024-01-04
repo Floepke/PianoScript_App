@@ -49,7 +49,7 @@ class GraphicsViewEditor(QGraphicsView):
             new_scroll = old_scroll * new_max / old_max
         vbar.setValue(new_scroll)
 
-        try: self.io['maineditor'].update('refresh')
+        try: self.io['maineditor'].update('resize')
         except KeyError: pass
 
         # call the original resizeEvent
@@ -126,6 +126,6 @@ class GraphicsViewEditor(QGraphicsView):
 
     def wheelEvent(self, event):
         super().wheelEvent(event)
-        self.io['maineditor'].update('refresh')
+        self.io['maineditor'].update('scroll')
 
         

@@ -101,7 +101,7 @@ class CalcTools:
         self.io['new_tag'] += 1
         return tag
     
-    def renumber_tags(self): # TODO: this function is not used yet and needs review
+    def renumber_tags(self): # TODO: this function is not used yet
         '''
             This function takes the score and
             renumbers the event tags starting
@@ -122,6 +122,7 @@ class CalcTools:
         '''updates the viewport toptick and bottomtick based on the scroll position of the editor'''
         scale_factor = io['gui'].editor_view.transform().m11()
         px_scene_height = io['gui'].editor_scene.sceneRect().height()
+        if px_scene_height == 0: px_scene_height = 1 # fix for division by zero
         ticks_scene_height = (px_scene_height / (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) * scale_factor
         px_view_height = io['gui'].editor_view.height()
         tick_view_height = (px_view_height * (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) / scale_factor
@@ -163,4 +164,13 @@ class CalcTools:
 
         # update the the label
         self.io['gui'].grid_selector_label.setText(f"Tick: {self.io['snap_grid']}")
+    
+    # get barline ticks
+    def get_barline_ticks(self):
+        '''returns a list with all barline ticks'''
+        barline_ticks = []
+        for grid in self.io['score']['events']['grid']:
+            for i in range(grid['amount']):
+                barline_ticks.append(grid['numerator'] * ((QUARTER_PIANOTICK*4) / grid['denominator']) * i)
+        return barline_ticks
         

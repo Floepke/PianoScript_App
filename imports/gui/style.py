@@ -1,27 +1,20 @@
+color1 = 'pink' # background1
+color2 = 'pink' # background2
+color3 = '#eeeeee' # text
+color4 = '#5555ff' # highlight
+
 stylesheet = '''
-QWidget {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-    color: #FFFFFF;
-}
-QToolBar, QDockWidget {
+font-size: 16px;
+background-color: #777777;
+color: #eeeeee;
+selection-background-color: #445577;
+selection-color: white;
+QMenuBar::item:selected {
     background-color: #555555;
-}
-QGraphicsView {
-    border: 1px solid qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-}
-QSplitter::handle {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-}
-QStatusBar, QMenuBar, QMenu {
-    background-color: #222222;
-}
-QGraphicsView QScrollBar {
-    background-color: #555555;
+    color: black;
 }
 '''
+
 
 # stylesheet = '''
 # QMainWindow {

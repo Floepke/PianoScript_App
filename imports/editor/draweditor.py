@@ -21,9 +21,8 @@ class DrawEditor:
         '''Draws the background'''
 
         # calculate the height of the background
-        total_ticks = io['calc'].get_total_score_ticks()
         editor_zoom = io['score']['properties']['editor-zoom'] # the size in pixels per quarter note
-        background_height = total_ticks * (editor_zoom / QUARTER_PIANOTICK) + (EDITOR_MARGIN * 2)
+        background_height = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK) + (EDITOR_MARGIN * 2)
         
         # create the background rectangle
         io['editor'].new_rectangle(LEFT, TOP, RIGHT, background_height,
@@ -36,9 +35,8 @@ class DrawEditor:
         '''Draws the staff'''
         
         # calculating staff length
-        total_ticks = io['calc'].get_total_score_ticks()
         editor_zoom = io['score']['properties']['editor-zoom']
-        staff_length = total_ticks * (editor_zoom / QUARTER_PIANOTICK)
+        staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)
 
         x_curs = LEFT + EDITOR_MARGIN
 
@@ -179,13 +177,12 @@ class DrawEditor:
 
 
     @staticmethod
-    def draw_cursor(io, x, y):
+    def draw_line_cursor(io, x, y):
         '''Draws the cursor'''
         # delete the old cursor
         io['editor'].delete_with_tag(['cursor'])
 
         # get the cursor position
-        print(y)
         y = io['calc'].y2tick_editor(y, snap=True)
         y = io['calc'].tick2y_editor(y)
 
@@ -200,5 +197,3 @@ class DrawEditor:
                               tag=['cursor'], 
                               color='black',
                               dash=(4,4))
-        
-        print('cursor drawn')

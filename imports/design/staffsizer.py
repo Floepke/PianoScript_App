@@ -1,10 +1,10 @@
 
 
-class CountLine:
+class StaffSizer:
 
     @staticmethod
     def tool(io, event_type: str, x: int, y: int):
-        '''handles the mouse handling of the countline tool'''
+        '''handles the mouse handling of the staff sizer tool'''
 
         # left mouse button handling:
         if event_type == 'leftclick':

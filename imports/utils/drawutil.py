@@ -72,7 +72,28 @@ class DrawUtil:
         - delete_all(); delete all items
         - find_with_tag() (not yet implemented); find all items with the given tag or tags and return a list of items
             * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
-    '''
+        - tag_raise(); raise items with the given tag or tags to the top of the scene
+            * tag: list of tags (e.g. ['line1'] or ['line1', 'line2', ...])
+        - tag_lower(); lower items with the given tag or tags to the bottom of the scene
+            * tag: list of tags (e.g. ['line1'] or ['line1', 'line2', ...])
+        - find_items(); find all items at the given position that are in the tag list and return a list of items
+            * x: x-coordinate of the position
+            * y: y-coordinate of the position
+            * tag: list of tags (e.g. ['line1'] or ['line1', 'line2', ...])
+        - detect_items(); find all items at the given position that have the given string in their tag and return a list of items
+            * x: x-coordinate of the position
+            * y: y-coordinate of the position
+            * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
+        - detect_objects_rectangle(); find all items in the given rectangle that have the given string in their tag and return a list of items
+            * x1: x-coordinate of the top left corner
+            * y1: y-coordinate of the top left corner
+            * x2: x-coordinate of the bottom right corner
+            * y2: y-coordinate of the bottom right corner
+            * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
+        - get_viewport(); get the viewport coordinates
+        
+
+        '''
     
     
     
@@ -319,7 +340,8 @@ class DrawUtil:
 
     def tag_raise(self, tag: list):
         '''Raise items with the given tag or tags to the top of the scene.'''
-        zvalue = self.canvas.items()[-1].zValue()
+        try: zvalue = self.canvas.items()[-1].zValue()
+        except IndexError: zvalue = 0
         for t in tag:
             for item in self.find_with_tag([t]):
                 item.setZValue(zvalue)
@@ -340,7 +362,7 @@ class DrawUtil:
             return [item for item in scene_items if item.data(0) in tag]
         return scene_items
     
-    def detect_object(self, score, x: float, y: float, object_type: str = None):
+    def detect_items(self, score, x: float, y: float, object_type: str = None):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         scene_items = self.canvas.items(QPointF(x, y))
         if object_type is not None:
@@ -358,7 +380,7 @@ class DrawUtil:
                         for note in score['events']['note']:
                             if note['tag'] == tag:
                                 return note
-        return None
+        return None #TODO: make compitable with all event types
     
     def detect_objects_rectangle(self, score, x1: float, y1: float, x2: float, y2: float, object_type: str = None):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
@@ -367,6 +389,8 @@ class DrawUtil:
             x1, x2 = x2, x1
         if y1 > y2:
             y1, y2 = y2, y1
+
+        # find all items in the rectangle
         scene_items = self.canvas.items(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
         if object_type is not None:
             detected_objects = []
@@ -382,7 +406,15 @@ class DrawUtil:
                 return detected_objects
         return None
     
-
+    def find_with_tag(self, tag: str):
+        '''Find all items with the given tag or tags and return a list of items.'''
+        items = []
+        for item in self.canvas.items():
+            item_data = item.data(0)
+            for t in tag:
+                if t in item_data:
+                    items.append(item)
+        return items
 
 
 
@@ -394,6 +426,6 @@ class DrawUtil:
 
 
     # get viewport coordinates
-    def get_viewport(self):
+    def get_viewport_coords(self):
         '''Get the viewport coordinates.'''
         return self.canvas.sceneRect()

@@ -13,7 +13,7 @@ class Selection:
             io['editor'].delete_with_tag(['notecursor'])
 
             # detect if we are clicking an object (tag ending on a number)
-            detect = io['editor'].detect_object(io['score'], float(x), float(y), object_type='all')
+            detect = io['editor'].detect_items(io['score'], float(x), float(y), object_type='all')
             if not detect:
                 # if we are not clicking an object we want to start a selection rectangle
                 io['selection']['rectangle_on'] = True

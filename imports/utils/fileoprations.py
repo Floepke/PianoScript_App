@@ -1,6 +1,7 @@
 import json, copy
 from PySide6.QtWidgets import QFileDialog
 from imports.utils.constants import SCORE_TEMPLATE
+from PySide6.QtWidgets import QMessageBox
 
 class FileOperations:
     '''
@@ -12,15 +13,73 @@ class FileOperations:
     def __init__(self, io):
         self.io = io
         self.savepath = None
+        self.init = True
 
     def new(self):
+        if not self.init:
+            # check if there is a score loaded
+            yesnocancel = QMessageBox()
+            yesnocancel.setText("Do you wish to save current file?")
+            yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+            yesnocancel.setDefaultButton(QMessageBox.Yes)
+            response = yesnocancel.exec()
+            if response == QMessageBox.Yes:
+                self.save()
+            elif response == QMessageBox.No:
+                ...
+            elif response == QMessageBox.Cancel:
+                return
+        self.init = False
+        
+        # reset the saved flag
+        self.io['saved'] = True
+        # reset the savepath
+        self.savepath = None
+        # reset the new_tag counter
+        self.io['new_tag'] = 0
+        # reset the selection
+        self.io['selection']['active'] = False
+        self.io['selection']['rectangle_on'] = False
+        self.io['selection']['selection_buffer'] = {
+            'note':[],
+            'ornament':[],
+            'text':[],
+            'beam':[],
+            'slur':[],
+            'pedal':[],
+            'countline':[],
+            'staffsizer':[],
+            'startrepeat':[],
+            'endrepeat':[],
+            'starthook':[],
+            'endhook':[],
+            'countline':[]
+        }
+        
+        # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
         self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
+        # renumber tags
+        self.io['calc'].renumber_tags()
+
         # redraw the editor
-        self.io['maineditor'].draw_viewport(self.io)
+        self.io['maineditor'].update('loadfile')
 
     def load(self):
+        # check if we want to save the current score
+        yesnocancel = QMessageBox()
+        yesnocancel.setText("Do you wish to save the file?")
+        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        yesnocancel.setDefaultButton(QMessageBox.Yes)
+        response = yesnocancel.exec()
+        if response == QMessageBox.Yes:
+            self.save()
+        elif response == QMessageBox.No:
+            ...
+        elif response == QMessageBox.Cancel:
+            return
+        
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getOpenFileName()
         if file_path:
@@ -33,21 +92,18 @@ class FileOperations:
             self.io['calc'].renumber_tags()
 
             # draw the editor
-            self.io['maineditor'].draw_viewport(self.io)
+            self.io['maineditor'].update('loadfile')
 
     def save(self):
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
-        if file_path:
-            with open(file_path, 'w') as file:
+        if self.savepath:
+            with open(self.savepath, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)
+        else:
+            self.saveas()
 
     def saveas(self):
-        if self.savepath:
-            file_path = self.savepath
-        else:
-            file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)

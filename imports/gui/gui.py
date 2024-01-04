@@ -38,39 +38,45 @@ class Gui():
         # self.toolbar = QToolBar(self.main)
         # #self.main.addToolBar(self.toolbar)
 
-        # Create a QMenu
+        # Create a File menu
         self.file_menu = QMenu('File', self.main)
-
-        # Add actions to the QMenu
         self.new_action = QAction('New', self.main)
         self.file_menu.addAction(self.new_action)
-
         self.load_action = QAction('Load', self.main)
         self.file_menu.addAction(self.load_action)
-
         self.save_action = QAction('Save', self.main)
         self.file_menu.addAction(self.save_action)
-
         self.saveas_action = QAction('Save As', self.main)
         self.file_menu.addAction(self.saveas_action)
-
         self.file_menu.addSeparator()
-
         self.exit_action = QAction('Exit', self.main)
         self.file_menu.addAction(self.exit_action)
-
-        # # Create a QToolButton
-        # self.file_button = QToolButton(self.main)
-        # self.file_button.setText('File')
-        # self.file_button.setMenu(self.file_menu)
-        # self.file_button.setPopupMode(QToolButton.InstantPopup)
-
-        # add the menu to the mainwindow
         self.menu_bar.addMenu(self.file_menu)
         self.main.setMenuWidget(self.menu_bar)
 
-        # # Add the QToolButton to the QToolBar
-        # self.toolbar.addWidget(self.file_button)
+        # Create an Edit menu
+        self.edit_menu = QMenu('Edit', self.main)
+        self.undo_action = QAction('Undo', self.main)
+        self.edit_menu.addAction(self.undo_action)
+        self.redo_action = QAction('Redo', self.main)
+        self.edit_menu.addAction(self.redo_action)
+        self.edit_menu.addSeparator()
+        self.cut_action = QAction('Cut', self.main)
+        self.edit_menu.addAction(self.cut_action)
+        self.copy_action = QAction('Copy', self.main)
+        self.edit_menu.addAction(self.copy_action)
+        self.paste_action = QAction('Paste', self.main)
+        self.edit_menu.addAction(self.paste_action)
+        self.menu_bar.addMenu(self.edit_menu)
+
+        # Create a View menu
+        self.view_menu = QMenu('View', self.main)
+        self.zoom_in_action = QAction('Zoom In', self.main)
+        self.view_menu.addAction(self.zoom_in_action)
+        self.zoom_out_action = QAction('Zoom Out', self.main)
+        self.view_menu.addAction(self.zoom_out_action)
+        self.menu_bar.addMenu(self.view_menu)
+        
 
         #end menu--------------------------------------------------------------------
 
@@ -105,7 +111,7 @@ class Gui():
         # self.grid_selector_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
         # set stylesheet
-        self.grid_selector_dock.setStyleSheet("""background-color: #555555;""")
+        self.grid_selector_dock.setStyleSheet("""background-color: #678;""")
 
         # create a layout in the dockable widget
         self.gs_dock_layout = QVBoxLayout()
@@ -167,9 +173,8 @@ class Gui():
         # Create a second dockable widget on the left side
         self.tool_dock = QDockWidget('Tool Selector', self.main)
         self.tool_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        # self.tool_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
-        self.tool_dock.setStyleSheet("""background-color: #555555;""")
+        self.tool_dock.setStyleSheet("""background-color: #678;""")
 
         # create a layout in the dockable widget
         self.tool_layout = QVBoxLayout()
@@ -191,23 +196,17 @@ class Gui():
         self.tree_view.setIndentation(0)
         # set single selection
         self.tree_view.setSelectionMode(QTreeView.SingleSelection)
-        # set single click open folder
-        self.tree_view.clicked.connect(lambda index: self.tree_view.setExpanded(index, not self.tree_view.isExpanded(index)))
-        # set background color
         self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
-        # Add the tree view to the layout
-        # set the folding unfolded
         self.tree_view.expandAll()
         # set color of any selected item
-        self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: grey; color: #ffffff}')
+        self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: #486; color: #ffffff}')
         self.tool_layout.addWidget(self.tool_label)
         self.tool_layout.addWidget(self.tree_view)
-        
-
-        # self.tool_listbox.currentTextChanged.connect(lambda v: self.io['maineditor'].select_tool(v))
-
-        # add the widgets to the dockable widget
-        self.tool_layout.addLayout(self.tool_layout)
+        # connect the treeview to the select_tool function
+        self.tree_view.clicked.connect(self.on_tree_view_clicked)
+        # select the note tool by default
+        self.tree_view.setCurrentIndex(self.tree_view.model().index(0,0))
+        self.last_selected_child = None
 
 
     def show(self):
@@ -227,29 +226,23 @@ class Gui():
         tree = {
             'Harmony':[
                 'note',
-                'ornament',
+                'grace note',
                 ],
             'Layout':[
-                'staffsizer',
+                'staff sizer',
                 'beam'
                 ],
             'Phrase':[
-                'countline',
-                'bpm',
-                'slur'
-            ],
-            'Measure symbols':[
-                'pedal',
-                'startrepeat',
-                'endrepeat',
-                'starthook',
-                'endhook',
-                ]
+                'count line',
+                'slur',
+                'arpeggio',
+                'trill'
+            ]
         }
         for folder in tree:
             # Create a parent item for the first branch
             parent = QStandardItem(folder)
-            parent.setBackground(QBrush(QColor("#007aff")))  # Set background color
+            parent.setBackground(QBrush(QColor("#777777")))  # Set background color
             parent.setForeground(QBrush(QColor("white")))  # Set foreground (text) color
             parent.setSelectable(False)
             model.appendRow(parent)
@@ -262,5 +255,31 @@ class Gui():
                 parent.appendRow(child)
 
         return model
+    
+    def on_tree_view_clicked(self, index):
+        if self.tree_view.model().hasChildren(index): 
+            # if it's a parent
+            if self.last_selected_child.parent() == index: 
+                # if the last selected child is a child of the clicked parent
+                if self.tree_view.isExpanded(index):
+                    self.tree_view.collapse(index)
+                    return
+                else:
+                    self.tree_view.expand(index)
+                    self.tree_view.setCurrentIndex(self.last_selected_child)
+                    return
+            else: 
+                # if the last selected child is not a child of the clicked parent
+                if self.tree_view.isExpanded(index):
+                    self.tree_view.collapse(index)
+                else:
+                    self.tree_view.expand(index)
+                self.tree_view.setCurrentIndex(self.last_selected_child)
+                return
+        
+        # if index is a child
+        else:
+            self.last_selected_child = index
+            self.io['maineditor'].select_tool(index.data())
 
     

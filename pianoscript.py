@@ -12,6 +12,7 @@ from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
+from imports.editor.zoom import Zoom
 
 class PianoScript():
 
@@ -116,6 +117,9 @@ class PianoScript():
 
             # drawn_objects
             'drawn_obj':[],
+
+            # wheter the score is saved or not
+            'saved':True,
         }
 
         # setup
@@ -129,6 +133,7 @@ class PianoScript():
         self.io['fileoperations'] = FileOperations(self.io)
         self.io['calc'] = CalcTools(self.io)
         self.io['maineditor'] = Editor(self.io)
+        self.io['zoom'] = Zoom(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -141,12 +146,7 @@ class PianoScript():
         self.io['fileoperations'].new()
 
         # set stylesheet
-        self.root.setStyleSheet("""
-        background-color: #333333;
-        color: #eeeeee;
-        font-size: 18px;
-        font-family: Arial;
-        """)
+        self.root.setStyleSheet(stylesheet)
 
         # run the application
         sys.exit(self.app.exec())
