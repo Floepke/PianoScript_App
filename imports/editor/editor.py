@@ -8,6 +8,8 @@ from imports.design.arpeggio import Arpeggio
 from imports.design.gracenote import GraceNote
 from imports.design.staffsizer import StaffSizer
 from imports.design.trill import Trill
+import re
+from imports.editor.ctlz import CtlZ
 
 
 
@@ -17,7 +19,7 @@ class Editor:
     def __init__(self, io):
 
         self.io = io
-        self.toolselector = {
+        self.funcselector = {
             'note':Note,
             'slur':Slur,
             'beam':Beam,
@@ -31,52 +33,89 @@ class Editor:
     def update(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
 
+        if 'move' in event_type:
+            # write the mouse position to the io['mouse'] dict
+            self.io['mouse']['x'] = x
+            self.io['mouse']['y'] = y
+
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
 
         # run the selected tool
-        self.toolselector[self.io['tool']].tool(self.io, event_type, x, y)
+        self.funcselector[self.io['tool']].tool(self.io, event_type, x, y)
 
         # run selection module
         Selection.process(self.io, event_type, x, y)
 
         # draw_viewport if one of the following events occured
-        if event_type in ['resize', 'scroll']:
-            self.draw_viewport(self.io)
+        if event_type in ['resize', 'scroll', 'scrollbarmouserelease']:
+            self.draw_viewport()
 
         if event_type in ['zoom', 'loadfile', 'grid_edit']:
-            self.redraw_editor(self.io)
-            self.draw_viewport(self.io)
+            self.redraw_editor()
 
         # draw the cursor
-        if event_type == 'move':
+        if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
         self.drawing_order()
 
-    def draw_viewport(self, io):
-        '''draws all events only in the viewport'''
-
-        # clear the editor scene
-        io['editor'].delete_with_tag(['midinote', 
-                                      'noteheadwhite', 
-                                      'leftdotwhite', 
-                                      'noteheadblack', 
-                                      'leftdotblack',
-                                      'soundingdot',
-                                      'stem',
-                                      'connectstem',
-                                      'notestop'])
         
-        io['calc'].update_viewport_ticks(io)
 
-        # these drawing functions only draw in the viewport
-        DrawEditor.draw_notes(io)
+    def draw_viewport(self):
+        '''draws all events only in the viewport'''
+        
+        self.io['calc'].update_viewport_ticks(self.io)
+
+        def draw_time_based_events_in_viewport(io):
+            '''Draws all time based events of the score in the viewport'''
+
+            def is_in_viewport(event, top, bttm):
+                '''returns True if the event is in the viewport, False if not'''
+                tm = event['time']
+                try:
+                    d = event['duration']
+                except KeyError:
+                    d = None
+                
+                if d: # event has a duration
+                    # check if the event is in the viewports range being visible or not
+                    if tm >= top and tm <= bttm or tm + d >= top and tm + d <= bttm or tm <= top and tm + d >= bttm:
+                        return True
+                else: # event has no duration
+                    if tm >= top and tm <= bttm:
+                        return True
+                
+                return False
+
+            for e_type in io['score']['events'].keys():
+                if e_type in ['grid']: # skip all events that are not time based
+                    continue
+                for event in io['score']['events'][e_type]:
+                    if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
+                        # element is in viewport
+                        if not event['tag'] in io['drawn_obj']:
+                            # element was not yet drawn, draw it
+                            if event in io['selection']['selection_buffer'][e_type]:
+                                self.funcselector[e_type].add_editor(io, event, inselection=True)
+                            else:
+                                self.funcselector[e_type].add_editor(io, event)
+                            io['drawn_obj'].append(event['tag'])
+                        else:
+                            # element was already drawn, do nothing
+                            ...
+                    else:
+                        # element is outside the viewport, delete it
+                        if event['tag'] in io['drawn_obj']:
+                            io['editor'].delete_with_tag([event['tag']])
+                            io['drawn_obj'].remove(event['tag'])
+
+        draw_time_based_events_in_viewport(self.io)
         
         self.drawing_order()
 
-        # count number of items on the QGraphicScene
-        print(f"number of items on scene: {len(io['editor'].canvas.items())}")
+        # add to ctlz stack (in this function we check if there is indeed a change in the score)
+        self.io['ctlz'].add_ctlz()
 
     def drawing_order(self):
         '''
@@ -113,28 +152,20 @@ class Editor:
         self.io['tool'] = tool
         self.io['gui'].tool_label.setText(f"Tool: {tool}")
 
-    def redraw_editor(self, io):
+    def redraw_editor(self):
         '''redraws the editor'''
 
         # clear the editor scene
-        io['editor'].delete_all()
+        self.io['editor'].delete_all()
+        self.io['drawn_obj'] = []
 
         # draw the editor
-        DrawEditor.draw_background(io)
-        DrawEditor.draw_titles(io)
-        DrawEditor.draw_staff(io)
-        print(io['score']['properties']['editor-zoom'])
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(io)
+        DrawEditor.draw_background(self.io)
+        DrawEditor.draw_titles(self.io)
+        DrawEditor.draw_staff(self.io)
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io)
         
-        # events
-        DrawEditor.draw_notes(io)
-
-        self.drawing_order()
-
-    def draw_non_viewport(self, io):
-        '''draws all events outside the viewport'''
-
-        # clear the editor scene
-        io['editor'].delete_all()
+        # draw all events in viewport
+        self.draw_viewport()
         
     

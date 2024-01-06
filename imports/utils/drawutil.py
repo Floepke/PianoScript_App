@@ -1,16 +1,13 @@
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QBrush, QColor
-from PySide6.QtWidgets import QGraphicsScene
-from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsItem
 from PySide6.QtGui import QPolygonF, QFont
 from typing import Union, Tuple
 from PySide6.QtGui import QFontDatabase
 
 import sys, re, time
-from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from typing import Tuple, List
 from PySide6.QtCore import QRectF
 
 class DrawUtil:
@@ -80,7 +77,7 @@ class DrawUtil:
             * x: x-coordinate of the position
             * y: y-coordinate of the position
             * tag: list of tags (e.g. ['line1'] or ['line1', 'line2', ...])
-        - detect_items(); find all items at the given position that have the given string in their tag and return a list of items
+        - detect_item(); find all items at the given position that have the given string in their tag and return a list of items
             * x: x-coordinate of the position
             * y: y-coordinate of the position
             * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
@@ -218,7 +215,7 @@ class DrawUtil:
         # Create a pen with the given properties
         pen = QPen()
         # if width is 0, the outline is not drawn
-        if width == 0:
+        if width == 0 or outline_color == '':
             pen.setStyle(Qt.NoPen)
         else:
             pen.setWidthF(width)
@@ -334,9 +331,20 @@ class DrawUtil:
         for item in self.find_with_tag(tag):
             self.canvas.removeItem(item)
 
+    def delete_item(self, item: QGraphicsItem):
+        '''Delete the given item.'''
+        self.canvas.removeItem(item)
+
     def delete_all(self):
         '''Delete all items.'''
         self.canvas.clear()
+
+    def delete_if_with_all_tags(self, tags: list):
+        '''Delete all items with all the given tags.'''
+        for item in self.canvas.items():
+            item_data = item.data(0)
+            if all(t in item_data for t in tags):
+                self.canvas.removeItem(item)
 
     def tag_raise(self, tag: list):
         '''Raise items with the given tag or tags to the top of the scene.'''
@@ -362,27 +370,42 @@ class DrawUtil:
             return [item for item in scene_items if item.data(0) in tag]
         return scene_items
     
-    def detect_items(self, score, x: float, y: float, object_type: str = None):
+    def detect_item(self, io, x: float, y: float, event_type: str = 'all'):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         scene_items = self.canvas.items(QPointF(x, y))
-        if object_type is not None:
+        if event_type is not None:
             for item in scene_items:
                 tag = item.data(0)[0]
-                if object_type == 'all':
+                if event_type == 'all':
                     # we are searching for any object type; if ending on a number it means it is a object in the score file
                     if bool(re.search(r'\d$', tag)): # if ending on a number
-                        for obj in score['events']['note']:
+                        for evttypes in io['score']['events'].keys():
+                            if evttypes in ['grid']: # skip all events that are not selectable by the selection rectangle
+                                continue
+                            for obj in io['score']['events'][evttypes]:
+                                if obj['tag'] == tag:
+                                    return obj
+                else:
+                    # we are searching for a specific object type    
+                    if event_type in tag and bool(re.search(r'\d$', tag)):
+                        for obj in io['score']['events'][event_type]:
                             if obj['tag'] == tag:
                                 return obj
-                else:
-                    # we are searching for a specific object type
-                    if object_type in tag and bool(re.search(r'\d$', tag)):
-                        for note in score['events']['note']:
-                            if note['tag'] == tag:
-                                return note
+                # if object_type == 'all':
+                #     # we are searching for any object type; if ending on a number it means it is a object in the score file
+                #     if bool(re.search(r'\d$', tag)): # if ending on a number
+                #         for obj in score['events']['note']:
+                #             if obj['tag'] == tag:
+                #                 return obj
+                # else:
+                #     # we are searching for a specific object type
+                #     if object_type in tag and bool(re.search(r'\d$', tag)):
+                #         for obj in score['events'][object_type]:
+                #             if obj['tag'] == tag:
+                #                 return obj
         return None #TODO: make compitable with all event types
     
-    def detect_objects_rectangle(self, score, x1: float, y1: float, x2: float, y2: float, object_type: str = None):
+    def detect_objects_rectangle(self, io, x1: float, y1: float, x2: float, y2: float, event_type: str = 'all'):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         # evaluate the rectangle coordinates
         if x1 > x2:
@@ -392,14 +415,25 @@ class DrawUtil:
 
         # find all items in the rectangle
         scene_items = self.canvas.items(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
-        if object_type is not None:
+        if event_type is not None:
             detected_objects = []
             for item in scene_items:
                 tag = item.data(0)[0]
-                if object_type in tag and bool(re.search(r'\d$', tag)):
-                    for note in score['events']['note']:
-                        if note['tag'] == tag:
-                            detected_objects.append(note)
+                if event_type == 'all':
+                    # we are searching for any object type; if ending on a number it means it is a object in the score file
+                    if bool(re.search(r'\d$', tag)): # if ending on a number
+                        for evttypes in io['score']['events'].keys():
+                            if evttypes in ['grid']: # skip all events that are not selectable by the selection rectangle
+                                continue
+                            for obj in io['score']['events'][evttypes]:
+                                if obj['tag'] == tag:
+                                    detected_objects.append(obj)
+                else:
+                    # we are searching for a specific object type    
+                    if event_type in tag and bool(re.search(r'\d$', tag)):
+                        for note in io['score']['events'][event_type]:
+                            if note['tag'] == tag:
+                                detected_objects.append(note)
             if detected_objects:
                 # remove duplicates
                 detected_objects = list({v['tag']:v for v in detected_objects}.values())

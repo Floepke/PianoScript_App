@@ -114,7 +114,7 @@ class CalcTools:
                 if obj['tag'] == 'linebreak': continue # to prevent that only the first linebreak doesn't get deleted later in the program
                 obj['tag'] = f"{k}{self.io['new_tag']}"
                 if k in self.io['selection']['copy_types']:
-                    obj['tag'] = '#'+obj['tag']
+                    obj['tag'] = obj['tag']
                 self.io['new_tag'] += 1
 
     @staticmethod

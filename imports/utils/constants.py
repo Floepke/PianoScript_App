@@ -1370,7 +1370,7 @@ SCORE_TEMPLATE = {
 #         'end-of-note':False
 #       }
 #     ],
-#     'ornament':[],
+#     'gracenote':[],
 #     'text':[],
 #     'beam':[],
 #     'bpm':[],
@@ -1408,6 +1408,16 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
          28, 30, 32, 33, 35, 37, 39, 40, 42, 44, 45, 47, 49,
          51, 52, 54, 56, 57, 59, 61, 63, 64, 66, 68, 69,
          71, 73, 75, 76, 78, 80, 81, 83, 85, 87, 88]
+
+# in the comparison of equals, this is the treshold for the difference between two floats that is used in the code to deside
+# if two floats are equal or not. If the difference between two floats is smaller than this treshold, the floats are considered equal.
+EQUALS_TRESHOLD = 1
+def EQUALS(a, b):
+    return abs(a - b) <= (EQUALS_TRESHOLD / 2)
+def LESS(a, b):
+    return a < b - (EQUALS_TRESHOLD / 2)
+def GREATER(a, b):
+    return a > b + (EQUALS_TRESHOLD / 2)
 
 
 # ----------editor and printview dimensions for easy calculations (all pixel values get's scaled by the QGraphicView)----------

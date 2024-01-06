@@ -2,7 +2,7 @@
 from imports.utils.constants import *
 
 # pyside6 imports
-from PySide6.QtWidgets import QGraphicsView
+from PySide6.QtWidgets import QGraphicsView, QApplication
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent, QPainter
 from PySide6.QtGui import QCursor
@@ -20,8 +20,9 @@ class GraphicsViewEditor(QGraphicsView):
         self.resizeEvent(None)
         self.setScene(scene)
 
-        # Enable antialiasing
+        # Settings for the qgraphicsview
         self.setRenderHint(QPainter.Antialiasing)
+        #self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
         # mouse buttons
         self.left_mouse_button = False
@@ -101,6 +102,10 @@ class GraphicsViewEditor(QGraphicsView):
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = False
             self.io['maineditor'].update('leftrelease', x, y)
+
+            # if 1: # TODO: check if the mouse is over the scrollbar
+            #     self.io['maineditor'].update('scrollbarmouserelease')
+
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = False
             self.io['maineditor'].update('middlerelease', x, y)
@@ -126,6 +131,9 @@ class GraphicsViewEditor(QGraphicsView):
 
     def wheelEvent(self, event):
         super().wheelEvent(event)
-        self.io['maineditor'].update('scroll')
+        scene_point = self.mapToScene(event.position().toPoint())
+        x = scene_point.x()
+        y = scene_point.y()
+        self.io['maineditor'].update('scroll', x, y)
 
         

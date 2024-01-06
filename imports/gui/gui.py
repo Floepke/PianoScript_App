@@ -23,7 +23,7 @@ class Gui():
         
         # Set window properties
         self.main.setWindowTitle('PianoScript')
-        self.main.setGeometry(100, 100, 800, 600)
+        self.main.setGeometry(250, 200, 2000, 1000)
 
         # Create the status bar
         self.statusbar = self.main.statusBar()
@@ -84,6 +84,8 @@ class Gui():
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR_PRINT))
         self.editor_view = GraphicsViewEditor(self.editor_scene, self.io, self.main)
+        # set minimum width of the editor
+        self.editor_view.setMinimumWidth(400)
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
@@ -98,6 +100,8 @@ class Gui():
 
         # Set the initial sizes of the widgets in the splitter
         self.splitter.setSizes([10, self.splitter.width()])
+        # set the minimum width of the splitter
+        self.splitter.setMinimumWidth(400)
 
         # Set up the main layout
         self.central_widget = QWidget(self.main)

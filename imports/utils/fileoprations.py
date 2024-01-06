@@ -2,6 +2,7 @@ import json, copy
 from PySide6.QtWidgets import QFileDialog
 from imports.utils.constants import SCORE_TEMPLATE
 from PySide6.QtWidgets import QMessageBox
+from imports.utils.savefilestructure import empty_events_folder
 
 class FileOperations:
     '''
@@ -40,24 +41,11 @@ class FileOperations:
         # reset the selection
         self.io['selection']['active'] = False
         self.io['selection']['rectangle_on'] = False
-        self.io['selection']['selection_buffer'] = {
-            'note':[],
-            'ornament':[],
-            'text':[],
-            'beam':[],
-            'slur':[],
-            'pedal':[],
-            'countline':[],
-            'staffsizer':[],
-            'startrepeat':[],
-            'endrepeat':[],
-            'starthook':[],
-            'endhook':[],
-            'countline':[]
-        }
+        self.io['selection']['selection_buffer'] = empty_events_folder()
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
+        self.io['score'] = json.load(open('Fur_elise.pianoscript', 'r'))
         self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags
@@ -65,6 +53,9 @@ class FileOperations:
 
         # redraw the editor
         self.io['maineditor'].update('loadfile')
+
+        # reset the ctlz buffer
+        self.io['ctlz'].reset_ctlz()
 
     def load(self):
         # check if we want to save the current score
@@ -93,6 +84,9 @@ class FileOperations:
 
             # draw the editor
             self.io['maineditor'].update('loadfile')
+
+            # reset the ctlz buffer
+            self.io['ctlz'].reset_ctlz()
 
     def save(self):
         if self.savepath:

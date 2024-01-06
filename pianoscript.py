@@ -13,6 +13,11 @@ from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
+from imports.utils.savefilestructure import empty_events_folder
+from imports.editor.selectoperations import SelectOperations
+from PySide6.QtGui import QShortcut
+from PySide6.QtGui import QKeySequence
+from imports.editor.ctlz import CtlZ
 
 class PianoScript():
 
@@ -32,48 +37,24 @@ class PianoScript():
                 'rectangle_on':False,
                 # True if there is a active selection
                 'active':False,
+                'inrectangle':[],
                 # coords for the selection rectangle
                 'x1':None,
                 'y1':None,
                 'x2':None,
                 'y2':None,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
-                'selection_buffer':{
-                    'note':[],
-                    'ornament':[],
-                    'text':[],
-                    'beam':[],
-                    'slur':[],
-                    'pedal':[],
-                    'countline':[],
-                    'staffsizer':[],
-                    'startrepeat':[],
-                    'endrepeat':[],
-                    'starthook':[],
-                    'endhook':[],
-                    'countline':[]
-                },
+                'selection_buffer':empty_events_folder(),
                 # the buffer that holds any copied or cutted selection; same structure as above
-                'copycut_buffer':{
-                    'note':[],
-                    'ornament':[],
-                    'text':[],
-                    'beam':[],
-                    'slur':[],
-                    'pedal':[],
-                    'countline':[],
-                    'staffsizer':[],
-                    'startrepeat':[],
-                    'endrepeat':[],
-                    'starthook':[],
-                    'endhook':[]
-                },
+                'copycut_buffer':empty_events_folder(),
                 # all event types that are alowed to copy, cut, paste
-                'copy_types':['note', 'ornament', 'beam', 'countline', 'slur', 'text', 'pedal'],
-                # all event types that are alowed to transpose
-                'transpose_types':['note', 'text', 'ornament',],
-                # all event types that are alowed to move forward or backward in time
-                'move_types':['note', 'ornament', 'beam', 'countline', 'slur', 'text', 'pedal']
+                'copy_types':['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
+                # all event types that are alowed to transpose (are pitch based)
+                'transpose_types':['note', 'text', 'gracenote', 'slur'],
+                # all event types that have the time property (are time based)
+                'move_types':['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
+                # all event types that have the hand property
+                'hand_types':['note', 'gracenote', 'beam']
             },
             
             # all info for the mouse:
@@ -100,7 +81,7 @@ class PianoScript():
             # current selected grid
             'snap_grid':128,
 
-            # current selected tool (note, ornament, beam, countline, slur, text, pedal, ...)
+            # current selected tool (note, gracenote, beam, countline, slur, text, pedal, ...)
             'tool':'note',
 
             # current selected hand (l, r)
@@ -134,6 +115,8 @@ class PianoScript():
         self.io['calc'] = CalcTools(self.io)
         self.io['maineditor'] = Editor(self.io)
         self.io['zoom'] = Zoom(self.io)
+        self.io['selectoperations'] = SelectOperations(self.io)
+        self.io['ctlz'] = CtlZ(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -141,6 +124,32 @@ class PianoScript():
         self.gui.save_action.triggered.connect(self.io['fileoperations'].save)
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
         self.gui.exit_action.triggered.connect(self.root.close)
+
+        # shortcuts
+        cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
+        cut_shortcut.activated.connect(self.io['selectoperations'].cut)  # Replace with your cut function
+        copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.root)
+        copy_shortcut.activated.connect(self.io['selectoperations'].copy)  # Replace with your copy function
+        paste_shortcut = QShortcut(QKeySequence("Ctrl+V"), self.root)
+        paste_shortcut.activated.connect(self.io['selectoperations'].paste)  # Replace with your paste function
+        delete_shortcut = QShortcut(QKeySequence("Delete"), self.root)
+        delete_shortcut.activated.connect(self.io['selectoperations'].delete)
+        transpose_up_shortcut = QShortcut(QKeySequence("Right"), self.root)
+        transpose_up_shortcut.activated.connect(self.io['selectoperations'].transpose_up)
+        transpose_down_shortcut = QShortcut(QKeySequence("Left"), self.root)
+        transpose_down_shortcut.activated.connect(self.io['selectoperations'].transpose_down)
+        move_backward_shortcut = QShortcut(QKeySequence("Up"), self.root)
+        move_backward_shortcut.activated.connect(self.io['selectoperations'].move_backward)
+        move_forward_shortcut = QShortcut(QKeySequence("Down"), self.root)
+        move_forward_shortcut.activated.connect(self.io['selectoperations'].move_forward)
+        undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self.root)
+        undo_shortcut.activated.connect(self.io['ctlz'].undo)
+        redo_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Z"), self.root)
+        redo_shortcut.activated.connect(self.io['ctlz'].redo)
+        hand_left_shortcut = QShortcut(QKeySequence("["), self.root)
+        hand_left_shortcut.activated.connect(self.io['selectoperations'].hand_left)
+        hand_right_shortcut = QShortcut(QKeySequence("]"), self.root)
+        hand_right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
 
         # create initial new file
         self.io['fileoperations'].new()

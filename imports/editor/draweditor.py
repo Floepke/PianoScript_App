@@ -165,15 +165,40 @@ class DrawEditor:
                                           color='black')
     
     @staticmethod
-    def draw_notes(io):
-        '''Draws the notes of the score'''
-        for note in io['score']['events']['note']:
-            # if the note is in the current viewport, draw it
-            if note['time'] >= io['viewport']['toptick'] and note['time'] <= io['viewport']['bottomtick'] or note['time'] + note['duration'] >= io['viewport']['toptick'] and note['time'] + note['duration'] <= io['viewport']['bottomtick']:
-                if note in io['selection']['selection_buffer']['note']:
-                    Note.draw_editor(io, note, inselection=True)
-                else:
-                    Note.draw_editor(io, note)
+    def draw_time_based_events_in_viewport(io):
+        '''Draws all time based events of the score in the viewport'''
+
+        def is_in_viewport(event, top, bttm):
+            '''returns True if the event is in the viewport, False if not'''
+            t = event['time']
+            try:
+                d = event['duration']
+            except KeyError:
+                d = None
+            
+            if d: # event has a duration
+                # check if the event is in the viewports range being visible or not
+                if t >= top and t <= bttm or t + d >= top and t + d <= bttm or t <= top and t + d >= bttm:
+                    return True
+            else: # event has no duration
+                if t >= top and t <= bttm:
+                    return True
+            
+            return False
+
+        for note in io['score']['events']:
+            for type in io['score']['events'].keys():
+                if type in ['grid']: # skip all events that are not time based
+                    continue
+                for event in io['score']['events'][type]:
+                    if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
+                        Note.add_editor(io, event)
+            # # if the note is in the current viewport, draw it
+            # if is_in_viewport(note, io['viewport']['toptick'], io['viewport']['bottomtick']):
+            #     if note in io['selection']['selection_buffer']['note']:
+            #         Note.draw_editor(io, note, inselection=True)
+            #     else:
+            #         Note.draw_editor(io, note)
 
 
     @staticmethod

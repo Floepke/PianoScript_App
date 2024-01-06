@@ -10,6 +10,10 @@ class Note:
     '''
 
     @staticmethod
+    def trashold(x, y):
+        return abs(x - y) < EQUALS_TRESHOLD
+
+    @staticmethod
     def tool(io, event_type: str, x: int, y: int):
         '''handles the note tool'''
 
@@ -19,7 +23,7 @@ class Note:
             io['editor'].delete_with_tag(['notecursor'])
 
             # detect if we clicked on a note
-            detect = io['editor'].detect_items(io['score'], float(x), float(y), object_type='note')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to edit it so we create a copy of the note
                 io['editnote'] = detect
@@ -35,7 +39,7 @@ class Note:
                     'accidental':0,
                     'staff':1
                 }
-                Note.draw_editor(io, io['editnote'])
+                Note.add_editor(io, io['editnote'])
                 io['editor'].delete_with_tag(['notecursor'])
 
         elif event_type == 'leftclick+move':
@@ -54,7 +58,7 @@ class Note:
                 io['editnote']['pitch'] = mouse_pitch
 
             # draw the note
-            Note.draw_editor(io, io['editnote'])
+            Note.add_editor(io, io['editnote'])
         
         elif event_type == 'leftrelease':
             if io['editnote']:
@@ -71,7 +75,7 @@ class Note:
                 io['score']['events']['note'].append(new)
 
                 # draw the note, redraw the editor viewport
-                io['maineditor'].draw_viewport(io)
+                io['maineditor'].draw_viewport()
 
                 # delete the editnote
                 io['editnote'] = None
@@ -93,13 +97,10 @@ class Note:
         # right mouse button handling:
         elif event_type == 'rightclick':
             # detect if we clicked on a note
-            detect = io['editor'].detect_items(io['score'], float(x), float(y), object_type='note')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to delete it
-                io['score']['events']['note'].remove(detect)
-                io['editor'].delete_with_tag([detect['tag']])
-                print('deletenote: ', detect['tag'])
-                io['maineditor'].draw_viewport(io)
+                Note.delete_editor(io, detect)
 
         elif event_type == 'rightclick+move':
             ...
@@ -111,7 +112,7 @@ class Note:
         # move mouse handling: (mouse is moved while no button is pressed)
         elif event_type == 'move':
             # detect if we clicked on a note
-            detect = io['editor'].detect_items(io['score'], float(x), float(y), object_type='note')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
             if detect:
                 # note cursor on detected note position
                 io['cursor'] = detect.copy()
@@ -129,12 +130,12 @@ class Note:
                     'staff':None,
                     'notestop':False,
                 }
-            Note.draw_editor(io, io['cursor'])
+            Note.add_editor(io, io['cursor'])
 
         elif event_type == 'space':
             io['hand'] = 'r' if io['hand'] == 'l' else 'l'
             io['cursor']['hand'] = io['hand']
-            Note.draw_editor(io, io['cursor'])
+            Note.add_editor(io, io['cursor'])
 
         elif event_type == 'leave':
             io['editor'].delete_with_tag(['notecursor'])
@@ -152,7 +153,7 @@ class Note:
 
 
     @staticmethod
-    def draw_editor(io, note, inselection=False):
+    def add_editor(io, note, inselection=False):
         # delete the old note
         io['editor'].delete_with_tag([note['tag']])
 
@@ -170,12 +171,17 @@ class Note:
         else:
             color = 'black' # TODO: set color depending on settings
 
-        def sounding_dot(x, y):
+        def sounding_dot(x, y, n=None):
+            if n:
+                tag = [n['tag'], note['tag'], 'soundingdot']
+            else:
+                tag = [note['tag'], 'soundingdot']
+
             io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
                 x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
                 outline_color='black',
                 fill_color='black',
-                tag=[note['tag'], 'soundingdot'])
+                tag=tag)
 
         # draw the notehead
         unit = STAFF_X_UNIT_EDITOR / 2
@@ -236,32 +242,33 @@ class Note:
                                 color=color)
             
         # draw the midi note
-        if note['tag'] != 'notecursor':
-            if not inselection:
-                midicolor = '#bbbbbb'
-            else:
-                midicolor = '#009cff'
-            endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
-            io['editor'].new_polygon([(x, y), (x + unit, y + (unit/2)), (x + unit, endy), (x - unit, endy), (x - unit, y + (unit/2))],
-                                    tag=[note['tag'], 'midinote'], 
-                                    fill_color=midicolor, 
-                                    width=0,
-                                    outline_color=midicolor)
+        if note['tag'] == 'editnote':
+            midicolor = '#ccc'
+        elif inselection:# if note is in selection
+            midicolor = '#009cff'
+        else:# if normal note
+            midicolor = '#ccc'
+        endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
+
+        io['editor'].new_polygon([(x, y), (x + unit, y + (unit/2)), (x + unit, endy), (x - unit, endy), (x - unit, y + (unit/2))],
+                                tag=[note['tag'], 'midinote'], 
+                                fill_color=midicolor, 
+                                width=0)
         
         barline_times = io['calc'].get_barline_ticks()
         # if note is sounding at the barline time we need always to draw a continuation dot
         for bl_time in barline_times:
-            if note['time'] < bl_time and note['time']+note['duration'] > bl_time:
+            if LESS(note['time'], bl_time) and GREATER(note['time']+note['duration'], bl_time):
                 x = io['calc'].pitch2x_editor(note['pitch'])
                 y = io['calc'].tick2y_editor(bl_time)
+                io['editor'].delete_if_with_all_tags([note['tag'], 'soundingdot'])
                 sounding_dot(x, y)
                 
         # now we need to loop through all notes to see if we need to draw a continuation dot or a notestop sign
-            
         stopflag = True
-        for n in io['score']['events']['note']:
+        for n in io['score']['events']['note']: # N == THE COMPARED NOTE
             # connect chords (if two or more notes start at the same time)
-            if note['hand'] == n['hand'] and n['time'] == note['time']:
+            if note['hand'] == n['hand'] and n['time'] == note['time'] and not note['tag'] == 'notecursor':
                 x1 = io['calc'].pitch2x_editor(note['pitch'])
                 x2 = io['calc'].pitch2x_editor(n['pitch'])
                 y = io['calc'].tick2y_editor(note['time'])
@@ -272,33 +279,39 @@ class Note:
             
             # continuation dot:
             # there are 5 possible situations where we have to draw a continuation dot:
-            if n['time']+n['duration'] > note['time'] and n['time']+n['duration'] < note['time']+note['duration'] and note['hand'] == n['hand']:
-                x = io['calc'].pitch2x_editor(note['pitch'])
-                y = io['calc'].tick2y_editor(n['time']+n['duration'])
-                sounding_dot(x, y)
-            if note['time']+note['duration'] < n['time']+n['duration'] and note['time']+note['duration'] > n['time'] and note['hand'] == n['hand']:
-                x = io['calc'].pitch2x_editor(n['pitch'])
-                y = io['calc'].tick2y_editor(note['time']+note['duration'])
-                sounding_dot(x, y)
-            if note['time'] > n['time'] and note['time'] < n['time']+n['duration'] and note['hand'] == n['hand']:
-                x = io['calc'].pitch2x_editor(n['pitch'])
-                y = io['calc'].tick2y_editor(note['time'])
-                sounding_dot(x, y)
-            if n['time'] > note['time'] and n['time'] < note['time']+note['duration'] and note['hand'] == n['hand']:
-                x = io['calc'].pitch2x_editor(note['pitch'])
-                y = io['calc'].tick2y_editor(n['time'])
-                sounding_dot(x, y)
+            comp_start = n['time']
+            comp_end = n['time']+n['duration']
+            note_start = note['time']
+            note_end = note['time']+note['duration']
+
+            if not note['tag'] == 'notecursor':
+                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
+                    x = io['calc'].pitch2x_editor(note['pitch'])
+                    y = io['calc'].tick2y_editor(n['time']+n['duration'])
+                    sounding_dot(x, y, n)
+
+                if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
+                    x = io['calc'].pitch2x_editor(n['pitch'])
+                    y = io['calc'].tick2y_editor(note['time']+note['duration'])
+                    sounding_dot(x, y, n)
+
+                if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
+                    x = io['calc'].pitch2x_editor(n['pitch'])
+                    y = io['calc'].tick2y_editor(note['time'])
+                    sounding_dot(x, y, n)
+
+                if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
+                    x = io['calc'].pitch2x_editor(note['pitch'])
+                    y = io['calc'].tick2y_editor(n['time'])
+                    sounding_dot(x, y, n)
 
             # stop sign
-            if n['time'] == note['time']+note['duration']: 
+            if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
                 stopflag = False
 
             # delete notestop sign if the new note starts at the same time as the end time of another note
-            if n['time']+n['duration'] == note['time']:
-                for item in io['editor'].find_with_tag(n['tag']):
-                    if 'notestop' in item.data(0):
-                        io['editor'].delete(item)
-                        break
+            if EQUALS(comp_end, note_start) and note['hand'] == n['hand'] and not note['tag'] == 'notecursor':
+                io['editor'].delete_if_with_all_tags([n['tag'], 'notestop'])
         
         if stopflag and not note['tag'] == 'notecursor':
             # draw the notestop sign
@@ -306,18 +319,29 @@ class Note:
             y = io['calc'].tick2y_editor(note['time']+note['duration'])
             io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
                 x, y,
-                tag=(note['tag'], 'notestop'),
+                tag=[note['tag'], 'notestop'],
                 width=2,
                 color='black')
             io['editor'].new_line(x, y,
                 x+(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
-                tag=(note['tag'], 'notestop'),
+                tag=[note['tag'], 'notestop'],
                 width=2,
                 color='black')
             
-        # update the drawn object
-        if note['tag'] not in io['drawn_obj']:
-            io['drawn_obj'].append(note['tag'])
+
+    def delete_editor(io, note):
+        '''deletes a note'''
+        
+        # delete from file and editor
+        io['score']['events']['note'].remove(note)
+        io['editor'].delete_with_tag([note['tag']])
+        if note['tag'] in io['drawn_obj']:
+            io['drawn_obj'].remove(note['tag'])
+        
+        # check for notes to be drawn again for correcting the stop sign
+        for n in io['score']['events']['note']:
+            if EQUALS(n['time']+n['duration'], note['time']) and n['hand'] == note['hand']:
+                Note.add_editor(io, n)
             
 
     @staticmethod
