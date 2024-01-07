@@ -60,8 +60,6 @@ class Editor:
 
         self.drawing_order()
 
-        
-
     def draw_viewport(self):
         '''draws all events only in the viewport'''
         

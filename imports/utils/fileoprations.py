@@ -102,4 +102,19 @@ class FileOperations:
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)
 
+    def quit(self):
+        # check if we want to save the current score
+        yesnocancel = QMessageBox()
+        yesnocancel.setText("Do you wish to save the file?")
+        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        yesnocancel.setDefaultButton(QMessageBox.Yes)
+        response = yesnocancel.exec()
+        if response == QMessageBox.Yes:
+            self.save()
+        elif response == QMessageBox.No:
+            ...
+        elif response == QMessageBox.Cancel:
+            return
+        self.io['root'].close()
+
 

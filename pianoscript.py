@@ -2,7 +2,6 @@
 from imports.utils.constants import *
 
 # pyside6 imports
-from PySide6.QtGui import QKeyEvent
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui.gui import Gui
@@ -15,8 +14,7 @@ from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
 from imports.utils.savefilestructure import empty_events_folder
 from imports.editor.selectoperations import SelectOperations
-from PySide6.QtGui import QShortcut
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 
 class PianoScript():
@@ -108,6 +106,7 @@ class PianoScript():
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
+        self.io['root'] = self.root
         self.io['gui'] = self.gui
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
@@ -127,11 +126,11 @@ class PianoScript():
 
         # shortcuts
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
-        cut_shortcut.activated.connect(self.io['selectoperations'].cut)  # Replace with your cut function
+        cut_shortcut.activated.connect(self.io['selectoperations'].cut)
         copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.root)
-        copy_shortcut.activated.connect(self.io['selectoperations'].copy)  # Replace with your copy function
+        copy_shortcut.activated.connect(self.io['selectoperations'].copy)
         paste_shortcut = QShortcut(QKeySequence("Ctrl+V"), self.root)
-        paste_shortcut.activated.connect(self.io['selectoperations'].paste)  # Replace with your paste function
+        paste_shortcut.activated.connect(self.io['selectoperations'].paste)
         delete_shortcut = QShortcut(QKeySequence("Delete"), self.root)
         delete_shortcut.activated.connect(self.io['selectoperations'].delete)
         transpose_up_shortcut = QShortcut(QKeySequence("Right"), self.root)
@@ -150,6 +149,8 @@ class PianoScript():
         hand_left_shortcut.activated.connect(self.io['selectoperations'].hand_left)
         hand_right_shortcut = QShortcut(QKeySequence("]"), self.root)
         hand_right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
+        escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
+        escape_shortcut.activated.connect(self.io['fileoperations'].quit)
 
         # create initial new file
         self.io['fileoperations'].new()

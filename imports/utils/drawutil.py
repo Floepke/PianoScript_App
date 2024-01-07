@@ -112,6 +112,10 @@ class DrawUtil:
     def __init__(self, canvas: QGraphicsScene):
         self.canvas = canvas
 
+        # Create a pen
+        self.pen = QPen()
+        self.brush = QBrush()
+
     # basic shapes
     def new_line(self, x1: float, y1: float, x2: float, y2: float,
                   dash: list = None,
@@ -127,7 +131,7 @@ class DrawUtil:
         end = QPointF(x2, y2)
         
         # Create a pen with the given properties
-        pen = QPen()
+        pen = self.pen
         pen.setWidthF(width)
         pen.setCapStyle(capstyle)
         pen.setJoinStyle(joinstyle)
@@ -135,6 +139,9 @@ class DrawUtil:
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
+        else:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
         
         # Add the line to the scene
         line = self.canvas.addLine(start.x(), start.y(), end.x(), end.y(), pen)
@@ -156,17 +163,20 @@ class DrawUtil:
         end = QPointF(x2, y2)
         
         # Create a pen with the given properties
-        pen = QPen()
+        pen = self.pen
         pen.setWidthF(width)
         pen.setCapStyle(capstyle)
         # set color and alpha
-        color = QColor(int(outline_color[1:2], 16), int(outline_color[3:4], 16), int(outline_color[5:6], 16), int(outline_color[7:8], 16))
-        pen.setColor(color)
+        pen.setColor(QColor(int(outline_color[1:2], 16), int(outline_color[3:4], 16), int(outline_color[5:6], 16), int(outline_color[7:8], 16)))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
+        else:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
 
-        brush = QBrush(QColor(int(fill_color[1:3], 16), int(fill_color[3:5], 16), int(fill_color[5:7], 16), int(fill_color[7:9], 16)))
+        brush = self.brush
+        brush.setColor(QColor(int(fill_color[1:3], 16), int(fill_color[3:5], 16), int(fill_color[5:7], 16), int(fill_color[7:9], 16)))
 
         # Add the rectangle to the scene
         rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, brush)
@@ -175,11 +185,11 @@ class DrawUtil:
         rect.setData(0, tag)
 
     def new_oval(self, x1: float, y1: float, x2: float, y2: float,
-                    dash: list = None,
-                    outline_width: float = 1.0,
-                    outline_color: str = '#000000',
-                    fill_color: str = '#FFFFFF',
-                    tag: list = []):
+                dash: list = None,
+                outline_width: float = 1.0,
+                outline_color: str = '#000000',
+                fill_color: str = '#FFFFFF',
+                tag: list = []):
         '''Add an oval to the scene.'''
         
         # Create an oval from (x1, y1) to (x2, y2)
@@ -187,16 +197,29 @@ class DrawUtil:
         width = abs(x2 - x1)
         height = abs(y2 - y1)
         
-        # Create a pen with the given properties
-        pen = QPen()
+        # Change the pen with the given properties
+        pen = self.pen
         pen.setWidthF(outline_width)
         pen.setColor(QColor(outline_color))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
+        else:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
+        if width == 0 or outline_color == '':
+            pen.setStyle(Qt.NoPen)
+
+        # Create a new brush object with the given properties
+        brush = self.brush
+        if fill_color == '':
+            brush.setStyle(Qt.NoBrush)
+        else:
+            brush.setColor(QColor(fill_color))
+            brush.setStyle(Qt.SolidPattern)
         
         # Add the oval to the scene
-        oval = self.canvas.addEllipse(start.x(), start.y(), width, height, pen, QBrush(QColor(fill_color)))
+        oval = self.canvas.addEllipse(start.x(), start.y(), width, height, pen, brush)
         
         # Add a tag to the line item
         oval.setData(0, tag)
@@ -212,20 +235,33 @@ class DrawUtil:
         # Create a polygon from the given points
         polygon = QPolygonF([QPointF(x, y) for x, y in points])
         
-        # Create a pen with the given properties
-        pen = QPen()
-        # if width is 0, the outline is not drawn
-        if width == 0 or outline_color == '':
-            pen.setStyle(Qt.NoPen)
-        else:
-            pen.setWidthF(width)
+        # change the pen with the given properties
+        pen = self.pen
+        pen.setWidthF(width)
         pen.setColor(QColor(outline_color))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
+        elif dash is None:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
+        elif dash == []:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
+        if outline_color == '':
+            pen.setStyle(Qt.NoPen)
+        pen.setWidthF(width)
+
+        # Create a new brush object with the given properties
+        brush = self.brush
+        if fill_color == '':
+            brush.setStyle(Qt.NoBrush)
+        else:
+            brush.setColor(QColor(fill_color))
+            brush.setStyle(Qt.SolidPattern)
         
         # Add the polygon to the scene
-        polygon_item = self.canvas.addPolygon(polygon, pen, QBrush(QColor(fill_color)))
+        polygon_item = self.canvas.addPolygon(polygon, pen, brush)
         
         # Add a tag to the line item
         polygon_item.setData(0, tag)

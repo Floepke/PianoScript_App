@@ -119,20 +119,30 @@ class CalcTools:
 
     @staticmethod
     def update_viewport_ticks(io):
-        '''updates the viewport toptick and bottomtick based on the scroll position of the editor'''
-        scale_factor = io['gui'].editor_view.transform().m11()
-        px_scene_height = io['gui'].editor_scene.sceneRect().height()
-        if px_scene_height == 0: px_scene_height = 1 # fix for division by zero
-        ticks_scene_height = (px_scene_height / (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) * scale_factor
-        px_view_height = io['gui'].editor_view.height()
-        tick_view_height = (px_view_height * (QUARTER_PIANOTICK / io['score']['properties']['editor-zoom'])) / scale_factor
+        gui = io['gui']
+        editor_view = gui.editor_view
+        editor_scene = gui.editor_scene
+        editor_zoom = io['score']['properties']['editor-zoom']
+        viewport = io['viewport']
+    
+        scale_factor = editor_view.transform().m11()
+        px_scene_height = editor_scene.sceneRect().height()
+    
+        if px_scene_height == 0:
+            px_scene_height = 1  # Fix for division by zero
+    
+        ticks_scene_height = (px_scene_height / (QUARTER_PIANOTICK / editor_zoom)) * scale_factor
+        px_view_height = editor_view.height()
+        tick_view_height = (px_view_height * (QUARTER_PIANOTICK / editor_zoom)) / scale_factor
         tick_editor_margin = io['calc'].y2tick_editor(EDITOR_MARGIN + EDITOR_MARGIN)
-        # calculate the toptick and bottomtick
-        toptick = (io['gui'].editor_view.verticalScrollBar().value() * (px_scene_height / ticks_scene_height))
+    
+        # Calculate the toptick and bottomtick
+        toptick = editor_view.verticalScrollBar().value() * (px_scene_height / ticks_scene_height) - tick_editor_margin
         bottomtick = toptick + tick_view_height
-        # update the viewport toptick and bottomtick
-        io['viewport']['toptick'] = toptick - tick_editor_margin
-        io['viewport']['bottomtick'] = bottomtick# + tick_editor_margin
+    
+        # Update the viewport toptick and bottomtick
+        viewport['toptick'] = toptick - 1
+        viewport['bottomtick'] = bottomtick + 1
 
     # process grid selector
     def process_grid(self):

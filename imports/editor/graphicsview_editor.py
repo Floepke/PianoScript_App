@@ -22,7 +22,6 @@ class GraphicsViewEditor(QGraphicsView):
 
         # Settings for the qgraphicsview
         self.setRenderHint(QPainter.Antialiasing)
-        #self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
         # mouse buttons
         self.left_mouse_button = False
@@ -30,6 +29,8 @@ class GraphicsViewEditor(QGraphicsView):
         self.right_mouse_button = False
 
         self.scene = scene
+
+        self.verticalScrollBar().sliderMoved.connect(lambda: self.io['maineditor'].update('scroll'))
 
     def resizeEvent(self, event):
         # get the old scroll position and maximum
@@ -90,7 +91,7 @@ class GraphicsViewEditor(QGraphicsView):
         elif self.right_mouse_button:
             self.io['maineditor'].update('rightclick+move', x, y)
 
-        self.scene.update()
+        #self.scene.update()
         
 
     def mouseReleaseEvent(self, event):
@@ -102,10 +103,6 @@ class GraphicsViewEditor(QGraphicsView):
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = False
             self.io['maineditor'].update('leftrelease', x, y)
-
-            # if 1: # TODO: check if the mouse is over the scrollbar
-            #     self.io['maineditor'].update('scrollbarmouserelease')
-
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = False
             self.io['maineditor'].update('middlerelease', x, y)

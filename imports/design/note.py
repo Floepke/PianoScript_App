@@ -5,8 +5,12 @@ class Note:
     '''
         The Note class handles:
             - mouse handling for the note tool in the editor
-            - drawing the note in the editor (design)
-            - drawing the note in the engraver (design)
+            - drawing the note in the editor including:
+                * notehead
+                * stem
+                * automatic sounding dot
+                * automatic stopsign
+            - drawing the note in the engraver (TODO)
     '''
 
     @staticmethod
@@ -15,7 +19,7 @@ class Note:
 
     @staticmethod
     def tool(io, event_type: str, x: int, y: int):
-        '''handles the note tool'''
+        '''handles the note tool mouse handling'''
 
         # left mouse button handling:
         if event_type == 'leftclick':
@@ -79,8 +83,6 @@ class Note:
 
                 # delete the editnote
                 io['editnote'] = None
-
-            print('leftrelease')
 
 
         # middle mouse button handling:
@@ -154,6 +156,10 @@ class Note:
 
     @staticmethod
     def add_editor(io, note, inselection=False):
+        '''
+            draws a note on the editor
+        '''
+
         # delete the old note
         io['editor'].delete_with_tag([note['tag']])
 
@@ -169,28 +175,24 @@ class Note:
         if note['tag'] == 'notecursor' or inselection:
             color = '#009cff' # TODO: set color depending on settings
         else:
-            color = 'black' # TODO: set color depending on settings
+            color = '#000000' # TODO: set color depending on settings
 
-        def sounding_dot(x, y, n=None):
-            if n:
-                tag = [n['tag'], note['tag'], 'soundingdot']
-            else:
-                tag = [note['tag'], 'soundingdot']
-
-            io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
-                x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
-                outline_color='black',
-                fill_color='black',
-                tag=tag)
-
-        # draw the notehead
+        # draw notehead
         unit = STAFF_X_UNIT_EDITOR / 2
-        thickness = 5
-        if note['pitch'] in BLACK_KEYS:
+        if note['pitch'] in BLACK_KEYS and io['score']['properties']['black-note-style'] == 'PianoScript':
             io['editor'].new_oval(x - (unit * .75),
                                 y,
                                 x + (unit * .75),
                                 y + unit * 2,
+                                tag=[note['tag'], 'noteheadblack'],
+                                fill_color=color,
+                                outline_width=2,
+                                outline_color=color)
+        elif note['pitch'] in BLACK_KEYS and io['score']['properties']['black-note-style'] == 'Klavarskribo':
+            io['editor'].new_oval(x - unit,
+                                y - unit * 2,
+                                x + unit,
+                                y,
                                 tag=[note['tag'], 'noteheadblack'],
                                 fill_color=color,
                                 outline_width=2,
@@ -206,8 +208,11 @@ class Note:
                                 outline_color=color)
         
         # draw the left dot
-        if note['hand'] == 'l' and note['pitch'] in BLACK_KEYS:
+        if io['score']['properties']['black-note-style'] == 'PianoScript':
             yy = y + unit
+        else:
+            yy = y - unit
+        if note['hand'] == 'l' and note['pitch'] in BLACK_KEYS:
             radius = (unit * .5) / 2
             io['editor'].new_oval(x - radius,
                                 yy - radius,
@@ -217,7 +222,7 @@ class Note:
                                 fill_color='white',
                                 outline_width=1,
                                 outline_color='white')
-        elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS:
+        elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS: # white note
             yy = y + unit
             radius = (unit * .5) / 2
             io['editor'].new_oval(x - radius,
@@ -230,6 +235,7 @@ class Note:
                                 outline_color=color)
             
         # draw the stem
+        thickness = 5
         if note['hand'] == 'l' and note['stem_visible']:
             io['editor'].new_line(x, y, x - (unit * 5), y,
                                 tag=[note['tag'], 'stem'],
@@ -247,13 +253,26 @@ class Note:
         elif inselection:# if note is in selection
             midicolor = '#009cff'
         else:# if normal note
-            midicolor = '#ccc'
+            midicolor = '#eee'
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
         io['editor'].new_polygon([(x, y), (x + unit, y + (unit/2)), (x + unit, endy), (x - unit, endy), (x - unit, y + (unit/2))],
                                 tag=[note['tag'], 'midinote'], 
                                 fill_color=midicolor, 
-                                width=0)
+                                outline_color='')
+        
+        # draw the sounding dot
+        def sounding_dot(x, y, n=None):
+            if n:
+                tag = [n['tag'], note['tag'], 'soundingdot']
+            else:
+                tag = [note['tag'], 'soundingdot']
+
+            io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
+                x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
+                outline_color='black',
+                fill_color='#000000',
+                tag=tag)
         
         barline_times = io['calc'].get_barline_ticks()
         # if note is sounding at the barline time we need always to draw a continuation dot
@@ -285,7 +304,7 @@ class Note:
             note_end = note['time']+note['duration']
 
             if not note['tag'] == 'notecursor':
-                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
+                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']: # GREATER, LESS and EQUALS are defined in constants.py and applies a treshold to the comparison
                     x = io['calc'].pitch2x_editor(note['pitch'])
                     y = io['calc'].tick2y_editor(n['time']+n['duration'])
                     sounding_dot(x, y, n)

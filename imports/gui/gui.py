@@ -34,10 +34,6 @@ class Gui():
         self.menu_bar = self.main.menuBar()
         self.menu_bar.setNativeMenuBar(False)
 
-        # # Create a toolbar
-        # self.toolbar = QToolBar(self.main)
-        # #self.main.addToolBar(self.toolbar)
-
         # Create a File menu
         self.file_menu = QMenu('File', self.main)
         self.new_action = QAction('New', self.main)
@@ -101,7 +97,7 @@ class Gui():
         # Set the initial sizes of the widgets in the splitter
         self.splitter.setSizes([10, self.splitter.width()])
         # set the minimum width of the splitter
-        self.splitter.setMinimumWidth(400)
+        self.splitter.setMinimumWidth(500)
 
         # Set up the main layout
         self.central_widget = QWidget(self.main)
@@ -110,7 +106,7 @@ class Gui():
         self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
-        self.grid_selector_dock = QDockWidget('Grid Selector', self.main)
+        self.grid_selector_dock = QDockWidget('Input Grid', self.main)
         self.grid_selector_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         # self.grid_selector_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
@@ -175,7 +171,7 @@ class Gui():
 
         
         # Create a second dockable widget on the left side
-        self.tool_dock = QDockWidget('Tool Selector', self.main)
+        self.tool_dock = QDockWidget('Tool', self.main)
         self.tool_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
         self.tool_dock.setStyleSheet("""background-color: #678;""")
