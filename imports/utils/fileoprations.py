@@ -17,20 +17,12 @@ class FileOperations:
         self.init = True
 
     def new(self):
-        if not self.init:
-            # check if there is a score loaded
-            yesnocancel = QMessageBox()
-            yesnocancel.setText("Do you wish to save current file?")
-            yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-            yesnocancel.setDefaultButton(QMessageBox.Yes)
-            response = yesnocancel.exec()
-            if response == QMessageBox.Yes:
-                self.save()
-            elif response == QMessageBox.No:
-                ...
-            elif response == QMessageBox.Cancel:
+        
+        if self.init:
+            self.init = False
+        else:
+            if not self.save_check():
                 return
-        self.init = False
         
         # reset the saved flag
         self.io['saved'] = True
@@ -57,7 +49,8 @@ class FileOperations:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz()
 
-    def load(self):
+    def save_check(self):
+
         # check if we want to save the current score
         yesnocancel = QMessageBox()
         yesnocancel.setText("Do you wish to save the file?")
@@ -66,9 +59,15 @@ class FileOperations:
         response = yesnocancel.exec()
         if response == QMessageBox.Yes:
             self.save()
+            return True
         elif response == QMessageBox.No:
-            ...
+            return True
         elif response == QMessageBox.Cancel:
+            return False
+
+    def load(self):
+        
+        if not self.save_check():
             return
         
         file_dialog = QFileDialog()
@@ -103,18 +102,8 @@ class FileOperations:
                 json.dump(self.io['score'], file, indent=4)
 
     def quit(self):
-        # check if we want to save the current score
-        yesnocancel = QMessageBox()
-        yesnocancel.setText("Do you wish to save the file?")
-        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        yesnocancel.setDefaultButton(QMessageBox.Yes)
-        response = yesnocancel.exec()
-        if response == QMessageBox.Yes:
-            self.save()
-        elif response == QMessageBox.No:
-            ...
-        elif response == QMessageBox.Cancel:
+        
+        if not self.save_check():
             return
-        self.io['root'].close()
-
-
+        
+        self.io['root'].close

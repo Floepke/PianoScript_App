@@ -100,7 +100,8 @@ SCORE_TEMPLATE = {
         'black-note-style':'PianoScript',
         'threelinescale':1,
         'stop-sign-style':'PianoScript',
-        'leftdotonoff':True
+        'leftdotonoff':True,
+        'midi_import':False
     },
     'events':{
         'grid':[
@@ -135,13 +136,13 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
 
 # in the comparison of equals, this is the treshold for the difference between two floats that is used in the code to deside
 # if two floats are equal or not. If the difference between two floats is smaller than this treshold, the floats are considered equal.
-EQUALS_TRESHOLD = 1
+EQUALS_TRESHOLD = 7
 def EQUALS(a, b):
-    return abs(a - b) <= (EQUALS_TRESHOLD / 2)
+    return abs(a - b) < EQUALS_TRESHOLD
 def LESS(a, b):
-    return a < b - (EQUALS_TRESHOLD / 2)
+    return a < b - EQUALS_TRESHOLD
 def GREATER(a, b):
-    return a > b + (EQUALS_TRESHOLD / 2)
+    return a > b + EQUALS_TRESHOLD
 
 
 # ----------editor and printview dimensions for easy calculations (all pixel values get's scaled by the QGraphicView)----------

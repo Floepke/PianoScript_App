@@ -16,6 +16,7 @@ from imports.utils.savefilestructure import empty_events_folder
 from imports.editor.selectoperations import SelectOperations
 from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
+from imports.utils.midi import Midi
 
 class PianoScript():
 
@@ -116,6 +117,7 @@ class PianoScript():
         self.io['zoom'] = Zoom(self.io)
         self.io['selectoperations'] = SelectOperations(self.io)
         self.io['ctlz'] = CtlZ(self.io)
+        self.io['midi'] = Midi(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)

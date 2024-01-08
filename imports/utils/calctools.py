@@ -43,7 +43,7 @@ class CalcTools:
             returns the length of a measure in pianoticks 
             based on the grid message from the score file
         '''
-        return int(grid['numerator'] * (1024 / grid['denominator']))
+        return int(grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']))
     
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''

@@ -2,7 +2,6 @@ from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QBrush, QColor
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsItem
 from PySide6.QtGui import QPolygonF, QFont
-from typing import Union, Tuple
 from PySide6.QtGui import QFontDatabase
 
 import sys, re, time
