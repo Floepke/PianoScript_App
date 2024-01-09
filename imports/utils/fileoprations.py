@@ -37,7 +37,6 @@ class FileOperations:
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        self.io['score'] = json.load(open('Fur_elise.pianoscript', 'r'))
         self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags

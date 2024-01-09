@@ -39,7 +39,7 @@ class Note:
                     'duration':io['snap_grid'],
                     'pitch':io['calc'].x2pitch_editor(x),
                     'hand':io['hand'],
-                    'stem_visible':True,
+                    'stem-visible':True,
                     'accidental':0,
                     'staff':1
                 }
@@ -127,7 +127,7 @@ class Note:
                     'duration':0,
                     'pitch':io['calc'].x2pitch_editor(x),
                     'hand':'r' if io['hand'] == 'r' else 'l',
-                    'stem_visible':True,
+                    'stem-visible':True,
                     'accidental':0,
                     'staff':None,
                     'notestop':False,
@@ -236,12 +236,12 @@ class Note:
             
         # draw the stem
         thickness = 5
-        if note['hand'] == 'l' and note['stem_visible']:
+        if note['hand'] == 'l' and note['stem-visible']:
             io['editor'].new_line(x, y, x - (unit * 5), y,
                                 tag=[note['tag'], 'stem'],
                                 width=thickness,
                                 color=color)
-        elif note['hand'] == 'r' and note['stem_visible']:
+        elif note['hand'] == 'r' and note['stem-visible']:
             io['editor'].new_line(x, y, x + (unit * 5), y,
                                 tag=[note['tag'], 'stem'],
                                 width=thickness,
