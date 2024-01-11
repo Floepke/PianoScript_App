@@ -1,0 +1,806 @@
+{
+    "header": {
+        "title": "Untitled",
+        "composer": "PianoScript",
+        "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
+        "app-name": "pianoscript",
+        "app-version": 1.0,
+        "timestamp": "09-01-2024_07:12:45",
+        "genre": "",
+        "comment": ""
+    },
+    "properties": {
+        "page-width": 210,
+        "page-height": 297,
+        "page-margin-left": 10,
+        "page-margin-right": 10,
+        "page-margin-up": 10,
+        "page-margin-down": 10,
+        "draw-scale": 1,
+        "header-height": 10,
+        "footer-height": 10,
+        "minipiano": true,
+        "engraver": "pianoscript vertical",
+        "color-right-hand-midinote": "#c8c8c8",
+        "color-left-hand-midinote": "#c8c8c8",
+        "editor_zoom": 80,
+        "staffonoff": true,
+        "stemonoff": true,
+        "beamonoff": true,
+        "noteonoff": true,
+        "midinoteonoff": true,
+        "notestoponoff": true,
+        "pagenumberingonoff": true,
+        "barlinesonoff": true,
+        "basegridonoff": true,
+        "countlineonoff": true,
+        "measurenumberingonoff": true,
+        "accidentalonoff": true,
+        "staff": [
+            {
+                "onoff": true,
+                "name": "Staff 1",
+                "staff-number": 0,
+                "staff-scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 2",
+                "staff-number": 1,
+                "staff-scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 3",
+                "staff-number": 2,
+                "staff-scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 4",
+                "staff-number": 3,
+                "staff-scale": 1.0
+            }
+        ],
+        "soundingdotonoff": true,
+        "black-note-style": "PianoScript",
+        "threelinescale": 1,
+        "stop-sign-style": "PianoScript",
+        "leftdotonoff": true,
+        "midi_import": false
+    },
+    "events": {
+        "grid": [
+            {
+                "tag": "grid0",
+                "amount": 16,
+                "numerator": 4,
+                "denominator": 4,
+                "grid": [
+                    256,
+                    512,
+                    768
+                ],
+                "visible": true
+            }
+        ],
+        "note": [
+            {
+                "tag": "note70",
+                "time": 0,
+                "duration": 256,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note71",
+                "time": 0,
+                "duration": 256,
+                "pitch": 32,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note72",
+                "time": 256,
+                "duration": 256,
+                "pitch": 33,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note73",
+                "time": 256,
+                "duration": 128,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note74",
+                "time": 384,
+                "duration": 128,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note75",
+                "time": 512,
+                "duration": 384,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note77",
+                "time": 896,
+                "duration": 128,
+                "pitch": 42,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note78",
+                "time": 1024,
+                "duration": 256,
+                "pitch": 44,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note79",
+                "time": 1280,
+                "duration": 128,
+                "pitch": 44,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note80",
+                "time": 1408,
+                "duration": 128,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note81",
+                "time": 1536,
+                "duration": 384,
+                "pitch": 44,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note82",
+                "time": 1920,
+                "duration": 128,
+                "pitch": 42,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note83",
+                "time": 2048,
+                "duration": 256,
+                "pitch": 47,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note84",
+                "time": 2304,
+                "duration": 128,
+                "pitch": 47,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note85",
+                "time": 2432,
+                "duration": 128,
+                "pitch": 49,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note86",
+                "time": 2560,
+                "duration": 128,
+                "pitch": 44,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note87",
+                "time": 2688,
+                "duration": 128,
+                "pitch": 42,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note88",
+                "time": 2816,
+                "duration": 128,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note89",
+                "time": 2944,
+                "duration": 128,
+                "pitch": 44,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note90",
+                "time": 3072,
+                "duration": 128,
+                "pitch": 42,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note91",
+                "time": 3200,
+                "duration": 128,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note92",
+                "time": 3328,
+                "duration": 128,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note93",
+                "time": 3456,
+                "duration": 128,
+                "pitch": 39,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note94",
+                "time": 3584,
+                "duration": 256,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note95",
+                "time": 3840,
+                "duration": 256,
+                "pitch": 35,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note96",
+                "time": 512,
+                "duration": 256,
+                "pitch": 35,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note97",
+                "time": 768,
+                "duration": 256,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note98",
+                "time": 1024,
+                "duration": 256,
+                "pitch": 39,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note99",
+                "time": 1280,
+                "duration": 128,
+                "pitch": 40,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note100",
+                "time": 1536,
+                "duration": 256,
+                "pitch": 39,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note101",
+                "time": 1792,
+                "duration": 256,
+                "pitch": 35,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note102",
+                "time": 2048,
+                "duration": 256,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note103",
+                "time": 2304,
+                "duration": 256,
+                "pitch": 39,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note104",
+                "time": 2560,
+                "duration": 256,
+                "pitch": 35,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note106",
+                "time": 2816,
+                "duration": 128,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note107",
+                "time": 2944,
+                "duration": 128,
+                "pitch": 39,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note108",
+                "time": 3072,
+                "duration": 128,
+                "pitch": 37,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note109",
+                "time": 3200,
+                "duration": 128,
+                "pitch": 35,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note111",
+                "time": 3328,
+                "duration": 256,
+                "pitch": 34,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note113",
+                "time": 3584,
+                "duration": 512,
+                "pitch": 33,
+                "hand": "r",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note115",
+                "time": 0,
+                "duration": 256,
+                "pitch": 16,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note116",
+                "time": 0,
+                "duration": 256,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note117",
+                "time": 256,
+                "duration": 256,
+                "pitch": 18,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note118",
+                "time": 256,
+                "duration": 256,
+                "pitch": 25,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note119",
+                "time": 512,
+                "duration": 256,
+                "pitch": 19,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note120",
+                "time": 512,
+                "duration": 256,
+                "pitch": 26,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note121",
+                "time": 768,
+                "duration": 256,
+                "pitch": 21,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note122",
+                "time": 768,
+                "duration": 256,
+                "pitch": 28,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note123",
+                "time": 1024,
+                "duration": 256,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note124",
+                "time": 1024,
+                "duration": 256,
+                "pitch": 30,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note125",
+                "time": 1280,
+                "duration": 256,
+                "pitch": 25,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note126",
+                "time": 1280,
+                "duration": 128,
+                "pitch": 32,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note127",
+                "time": 1408,
+                "duration": 128,
+                "pitch": 28,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note128",
+                "time": 1536,
+                "duration": 256,
+                "pitch": 32,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note130",
+                "time": 1536,
+                "duration": 256,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note131",
+                "time": 1792,
+                "duration": 256,
+                "pitch": 27,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note132",
+                "time": 1792,
+                "duration": 256,
+                "pitch": 20,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note133",
+                "time": 2048,
+                "duration": 256,
+                "pitch": 21,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note135",
+                "time": 2048,
+                "duration": 256,
+                "pitch": 32,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note136",
+                "time": 2304,
+                "duration": 256,
+                "pitch": 30,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note137",
+                "time": 2304,
+                "duration": 256,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note138",
+                "time": 2560,
+                "duration": 128,
+                "pitch": 28,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note139",
+                "time": 2688,
+                "duration": 128,
+                "pitch": 27,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note141",
+                "time": 2816,
+                "duration": 128,
+                "pitch": 25,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note142",
+                "time": 2944,
+                "duration": 128,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note143",
+                "time": 3072,
+                "duration": 128,
+                "pitch": 22,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note144",
+                "time": 3200,
+                "duration": 128,
+                "pitch": 20,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note145",
+                "time": 3328,
+                "duration": 256,
+                "pitch": 18,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note146",
+                "time": 3584,
+                "duration": 512,
+                "pitch": 23,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note147",
+                "time": 3584,
+                "duration": 512,
+                "pitch": 27,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            },
+            {
+                "tag": "note148",
+                "time": 3584,
+                "duration": 512,
+                "pitch": 30,
+                "hand": "l",
+                "stem-visible": true,
+                "accidental": 0,
+                "staff": 1
+            }
+        ],
+        "countline": [],
+        "staffsizer": [],
+        "startrepeat": [],
+        "endrepeat": [],
+        "starthook": [],
+        "endhook": []
+    }
+}

@@ -4,7 +4,7 @@
     that they are constants.
 '''
 # the background color of the editor and print view
-BACKGROUND_COLOR_EDITOR_PRINT = '#eee'
+BACKGROUND_COLOR = '#fee'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -15,93 +15,80 @@ QUARTER_PIANOTICK = 256.0
 
 # the 'blueprint' for a score; it's the fallback score if no score is loaded and a reference for the developer.
 # if we write a property in the blueprint that is not in the score, it will be added to the score by the
-# FixScore() class based on this blueprint.
+# FixScore() class based on this blueprint. TODO: Create a FixScore class
 import datetime
 SCORE_TEMPLATE = {
     'header':{
-        'title':{
-            'text':'Untitled',
-            'x-offset':0,
-            'y-offset':0,
-            'visible':True
-        },
-        'composer':{
-            'text':'PianoScript',
-            'x-offset':0,
-            'y-offset':0,
-            'visible':True
-        },
-        'copyright':{
-            'text':'\u00a9 PianoScript 2023',
-            'x-offset':0,
-            'y-offset':0,
-            'visible':True
-        },
-        'app-name':'pianoscript',
-        'app-version':1.0,
+        'title':'Untitled',
+        'composer':'PianoScript',
+        'copyright':'Copyright (C) 2024, Pianoscript. All rights reserved.',
+        'app_name':'pianoscript',
+        'app_version':1.0,
         'timestamp':datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S'),
         'genre':'',
         'comment':''
     },
     'properties':{
-        'page-width':210,
-        'page-height':297,
-        'page-margin-left':10,
-        'page-margin-right':10,
-        'page-margin-up':10,
-        'page-margin-down':10,
-        'draw-scale':1,
-        'header-height':10,
-        'footer-height':10,
-        'minipiano':True,
-        'engraver':'pianoscript vertical',
-        'color-right-hand-midinote':'#c8c8c8',
-        'color-left-hand-midinote':'#c8c8c8',
-        'editor-zoom':180, # size in pixels per quarter note
-        'staffonoff':True,
-        'stemonoff':True,
-        'beamonoff':True,
-        'noteonoff':True,
-        'midinoteonoff':True,
-        'notestoponoff':True,
-        'pagenumberingonoff':True,
-        'barlinesonoff':True,
-        'basegridonoff':True,
-        'countlineonoff':True,
-        'measurenumberingonoff':True,
-        'accidentalonoff':True,
-        'staff':[
-            {
+        'page_orientation':'portrait', # portait or landscape
+        'page_margin_left':10,
+        'page_margin_right':10,
+        'page_margin_up':10,
+        'page_margin_down':10,
+        'draw_scale':1,
+        'header_height':10,
+        'footer_height':10,
+        'color_right_midinote':'#c8c8c8',
+        'color_left_midinote':'#c8c8c8',
+        'editor_zoom':80, # size in pixels per quarter note
+        'black_note_rule':[
+            'AlwaysUp', 
+            'AlwaysDown', 
+            'OnlyChordUp', 
+            'AlwaysDownExceptCollisions', 
+            'AlwaysUpExceptCollisions'
+            ][2],
+        'threeline_scale':1,
+        'stop_sign_style':['PianoScript', 'Klavarskribo'][0],
+        'continuation_dot_style':['PianoScript', 'Klavarskribo'][1],
+        
+        'staff_onoff':True,
+        'minipiano_onoff':True,
+        'stem_onoff':True,
+        'beam_onoff':True,
+        'note_onoff':True,
+        'midinote_onoff':True,
+        'notestop_onoff':True,
+        'page_numbering_onoff':True,
+        'barlines_onoff':True,
+        'basegrid_onoff':True,
+        'countline_onoff':True,
+        'measure_numbering_onoff':True,
+        'accidental_onoff':True,
+        'soundingdot_onoff':True,
+        'leftdot_onoff':True,
+        'staffs':{
+            '1':{
                 'onoff':True,
-                'name':'Staff 1',
-                'staff-number':0,
-                'staff-scale':1.0
+                'staff_number':0,
+                'staff_scale':1.0
             },
-            {
+            '2':{
                 'onoff':False,
-                'name':'Staff 2',
-                'staff-number':1,
-                'staff-scale':1.0
+                'staff_number':1,
+                'staff_scale':1.0
             },
-            {
+            '3':{
                 'onoff':False,
-                'name':'Staff 3',
-                'staff-number':2,
-                'staff-scale':1.0
+                'staff_number':2,
+                'staff_scale':1.0
             },
-            {
+            '4':{
                 'onoff':False,
                 'name':'Staff 4',
-                'staff-number':3,
-                'staff-scale':1.0
+                'staff_number':3,
+                'staff_scale':1.0
             }
-        ],
-        'soundingdotonoff':True,
-        'black-note-style':'PianoScript',
-        'threelinescale':1,
-        'stop-sign-style':'PianoScript',
-        'leftdotonoff':True,
-        'midi_import':False
+        },
     },
     'events':{
         'grid':[

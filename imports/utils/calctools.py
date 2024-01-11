@@ -47,11 +47,11 @@ class CalcTools:
     
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
-        return time * (self.io['score']['properties']['editor-zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
+        return time * (self.io['score']['properties']['editor_zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
     
     def y2tick_editor(self, y, snap=False, absolute=False):
         '''converts y position on the editor into pianoticks'''
-        editor_zoom = self.io['score']['properties']['editor-zoom']
+        editor_zoom = self.io['score']['properties']['editor_zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
         if not absolute:
             if y <= 0: y = 0
@@ -122,7 +122,7 @@ class CalcTools:
         gui = io['gui']
         editor_view = gui.editor_view
         editor_scene = gui.editor_scene
-        editor_zoom = io['score']['properties']['editor-zoom']
+        editor_zoom = io['score']['properties']['editor_zoom']
         viewport = io['viewport']
     
         scale_factor = editor_view.transform().m11()

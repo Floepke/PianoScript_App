@@ -43,7 +43,7 @@ class Midi:
         self.io['midi_import'] = True
 
         # set title to name of the midi file
-        self.io['score']['header']['title']['text'] = os.path.splitext(os.path.basename(file_path))[0]
+        self.io['score']['header']['title'] = os.path.splitext(os.path.basename(file_path))[0]
 
         # clear grid
         self.io['score']['events']['grid'] = []
@@ -118,19 +118,15 @@ class Midi:
                 print(msg, msg['type'])
                 msg['duration'] = int(QUARTER_PIANOTICK / tpb * msg['duration'])
 
-        # for i in all_msg:
-        #     if i['type'] != 'note_off':
-        #         print(i)
-
-        # ask user for choose hand for tracks
-        ...
-
         # write time_signatures and notes:
         for i in all_msg:
             if i['type'] == 'time_signature':
+
+                # create grid
+                length = int(int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
                 msg = {
                     'tag':'grid',
-                    'amount':int(i['duration'] / int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator']))),
+                    'amount':int(i['duration'] / length),
                     'numerator':i['numerator'],
                     'denominator':i['denominator'],
                     'grid':[],
@@ -138,15 +134,14 @@ class Midi:
                 }
 
                 # calculate grid ticks
-                length = int(int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
                 for g in range(i['numerator']):
-                    msg['grid'].append(length*(g+1))
+                    msg['grid'].append(length * (g + 1))
                 
                 # add the message
                 self.io['score']['events']['grid'].append(msg)
 
             # write notes
-            if i['type'] == 'note_on':
+            elif i['type'] == 'note_on':
 
                 note = {'time': i['time'],
                         'duration': i['duration'],

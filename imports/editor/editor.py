@@ -7,6 +7,7 @@ from imports.editor.selection import Selection
 from imports.design.arpeggio import Arpeggio
 from imports.design.gracenote import GraceNote
 from imports.design.staffsizer import StaffSizer
+from imports.design.linebreak import LineBreak
 from imports.design.trill import Trill
 import re
 from imports.editor.ctlz import CtlZ
@@ -23,11 +24,12 @@ class Editor:
             'note':Note,
             'slur':Slur,
             'beam':Beam,
-            'count line':CountLine,
+            'countline':CountLine,
             'arpeggio':Arpeggio,
-            'grace note':GraceNote,
-            'staff sizer':StaffSizer,
+            'gracenote':GraceNote,
+            'staffsizer':StaffSizer,
             'trill':Trill,
+            'linebreak':LineBreak
         }
 
     def update(self, event_type: str, x: int = None, y: int = None):
@@ -58,7 +60,12 @@ class Editor:
         if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
-        self.drawing_order()
+        # TODO: check if undo update is working, currenyly it checks if the score changed since the last edit action
+        if self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index]:
+            self.io['engraver'].do_engrave()
+        
+        # add to ctlz stack (in this function we check if there is indeed a change in the score)
+        self.io['ctlz'].add_ctlz()
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''
@@ -112,9 +119,6 @@ class Editor:
         
         self.drawing_order()
 
-        # add to ctlz stack (in this function we check if there is indeed a change in the score)
-        self.io['ctlz'].add_ctlz()
-
     def drawing_order(self):
         '''
             set drawing order on tags. the tags are hardcoded in the draweditor class
@@ -130,6 +134,7 @@ class Editor:
             'gridline', 
             'barnumbering',
             'stem',
+            'soundingdot',
             'connectstem',
             'noteheadwhite',
             'leftdotwhite',
@@ -138,9 +143,10 @@ class Editor:
             'timesignature', 
             'measurenumber',
             'selectionrectangle',
-            'soundingdot',
             'notestop',
-            'cursor'
+            'cursor',
+            'countline',
+            'handle'
         ]
         self.io['editor'].tag_raise(drawing_order)
 

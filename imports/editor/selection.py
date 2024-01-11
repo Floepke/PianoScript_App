@@ -1,6 +1,6 @@
 import re
 from imports.design.note import Note
-from imports.utils.savefilestructure import empty_events_folder
+from imports.utils.savefilestructure import SaveFileStructureSource
 
 class Selection:
 
@@ -27,24 +27,20 @@ class Selection:
                 io['selection']['y2'] = y
 
                 # empty the selection buffer
-                io['selection']['selection_buffer'] = empty_events_folder()
+                io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
                 
 
         elif event_type in ['rightclick+move', 'scroll']:
             if io['selection']['rectangle_on']:
                 # if we are in rectangle selection mode we want to update the rectangle and detect the containing objects
-                Selection.draw_selection_rectangle_and_detect(io, x, y)
+                Selection.draw_selection_rectangle(io, x, y)
 
         
         elif event_type == 'rightrelease':
             # delete the selection rectangle
             io['editor'].delete_with_tag(['selectionrectangle'])
 
-            selected = io['selection']['inrectangle']
-            
-            # write the selected objects to the selection buffer in the folder structure of ['score']['events']
-            if selected is not None: 
-                io['selection']['selection_buffer'] = Selection.organize_selection_add(io, selected)
+            Selection.detect_selection(io)
 
             io['maineditor'].draw_viewport()
 
@@ -85,7 +81,7 @@ class Selection:
                     io['drawn_obj'].remove(event['tag'])
 
     @staticmethod
-    def draw_selection_rectangle_and_detect(io, x, y):
+    def draw_selection_rectangle(io, x, y):
         '''draws the selection rectangle and detects all objects in the rectangle'''
 
         # if we are in rectangle selection mode we want to update the rectangle
@@ -101,22 +97,6 @@ class Selection:
         
         x1, y1, x2, y2 = standardize_coordinates(io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
 
-        # detect all notes in the selection rectangle
-        selected = io['editor'].detect_objects_rectangle(io, 
-                                                            x1, 
-                                                            y1, 
-                                                            x2,
-                                                            y2, 
-                                                            event_type='all')
-        
-        # add the selected notes to the rectangle detection list
-        if selected is not None:
-            for s in selected:
-                io['selection']['inrectangle'].append(s)
-
-        # remove duplicates from the inrectangle list
-        io['selection']['inrectangle'] = list({v['tag']:v for v in io['selection']['inrectangle']}.values())
-
         # delete the selection rectangle
         io['editor'].delete_with_tag(['selectionrectangle'])
 
@@ -131,5 +111,42 @@ class Selection:
                                    outline_color='000000ff',
                                    dash=(6,6))
         io['editor'].tag_raise(['selectionrectangle'])
+
+    @staticmethod
+    def detect_selection(io):
+        '''detects if an object is in the selection rectangle'''
+
+        def standardize_coordinates(x1, y1, x2, y2):
+            top_left_x = min(x1, x2)
+            top_left_y = min(y1, y2)
+            bottom_right_x = max(x1, x2)
+            bottom_right_y = max(y1, y2)
+            return top_left_x, top_left_y, bottom_right_x, bottom_right_y
+        
+        x1, y1, x2, y2 = standardize_coordinates(io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
+
+        # define the boundaries of the selection rectangle
+        start_time = io['calc'].y2tick_editor(y1, snap=False)
+        end_time = io['calc'].y2tick_editor(y2, snap=False)
+        note_min = io['calc'].x2pitch_editor(x1)
+        note_max = io['calc'].x2pitch_editor(x2)
+
+        for evt_type in io['score']['events'].keys():
+            if evt_type == 'grid' or evt_type not in io['selection']['transpose_types']:
+                continue
+                
+            for event in io['score']['events'][evt_type]:
+                if event['time'] < start_time or event['time'] > end_time:
+                    continue
+                if event['pitch'] < note_min or event['pitch'] > note_max:
+                    continue
+                io['selection']['selection_buffer'][evt_type].append(event)
+                if event['tag'] in io['drawn_obj']:
+                    io['drawn_obj'].remove(event['tag'])
+
+
+
+
+        
 
         

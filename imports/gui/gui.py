@@ -15,6 +15,7 @@ from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 # import QIcon
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QStandardItemModel, QStandardItem
+from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
 class Gui():
     def __init__(self, main, io):
@@ -24,6 +25,7 @@ class Gui():
         # Set window properties
         self.main.setWindowTitle('PianoScript')
         self.main.setGeometry(250, 200, 2000, 1000)
+        self.main.showMaximized()
 
         # Create the status bar
         self.statusbar = self.main.statusBar()
@@ -83,20 +85,27 @@ class Gui():
         self.zoom_out_action = QAction('Zoom Out', self.main)
         self.view_menu.addAction(self.zoom_out_action)
         self.menu_bar.addMenu(self.view_menu)
-        
+
+        # Create a Help menu
+        self.help_menu = QMenu('Help', self.main)
+        self.menu_bar.addMenu(self.help_menu)
+        self.score_options_dialog_action = QAction('Score Options', self.main)
+        self.score_options_dialog_action.triggered.connect(lambda: ScoreOptionsDialog().exec())
+        self.help_menu.addAction(self.score_options_dialog_action)
+
 
         #end menu--------------------------------------------------------------------
 
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
-        self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR_PRINT))
+        self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
         self.editor_view = GraphicsViewEditor(self.editor_scene, self.io, self.main)
         # set minimum width of the editor
         self.editor_view.setMinimumWidth(400)
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
-        self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR_PRINT))
+        self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
         self.print_view = GraphicsViewEngraver(self.print_scene, self.io, self.main)
 
         # Create a resizable splitter
@@ -237,14 +246,15 @@ class Gui():
         tree = {
             'Harmony':[
                 'note',
-                'grace note',
+                'gracenote',
                 ],
             'Layout':[
-                'staff sizer',
-                'beam'
+                'staffsizer',
+                'beam',
+                'linebreak'
                 ],
             'Phrase':[
-                'count line',
+                'countline',
                 'slur',
                 'arpeggio',
                 'trill'

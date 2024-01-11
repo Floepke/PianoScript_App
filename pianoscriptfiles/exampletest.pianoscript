@@ -1,0 +1,123 @@
+{
+    "header": {
+        "title": "Untitled",
+        "composer": "PianoScript",
+        "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
+        "app_name": "pianoscript",
+        "app_version": 1.0,
+        "timestamp": "11-01-2024_03:13:14",
+        "genre": "",
+        "comment": ""
+    },
+    "properties": {
+        "page_orientation": "portrait",
+        "page_margin_left": 10,
+        "page_margin_right": 10,
+        "page_margin_up": 10,
+        "page_margin_down": 10,
+        "draw_scale": 1,
+        "header_height": 10,
+        "footer_height": 10,
+        "color_right_midinote": "#c8c8c8",
+        "color_left_midinote": "#c8c8c8",
+        "editor_zoom": 80,
+        "black_note_rule": "OnlyChordUp",
+        "threeline_scale": 1,
+        "stop_sign_style": "Klavarskribo",
+        "continuation_dot_style": "Klavarskribo",
+        "staff_onoff": true,
+        "minipiano_onoff": true,
+        "stem_onoff": true,
+        "beam_onoff": true,
+        "note_onoff": true,
+        "midinote_onoff": true,
+        "notestop_onoff": true,
+        "page_numbering_onoff": true,
+        "barlines_onoff": true,
+        "basegrid_onoff": true,
+        "countline_onoff": true,
+        "measure_numbering_onoff": true,
+        "accidental_onoff": true,
+        "soundingdot_onoff": true,
+        "leftdot_onoff": true,
+        "staffs": {
+            "1": {
+                "onoff": true,
+                "staff_number": 0,
+                "staff_scale": 1.0
+            },
+            "2": {
+                "onoff": false,
+                "staff_number": 1,
+                "staff_scale": 1.0
+            },
+            "3": {
+                "onoff": false,
+                "staff_number": 2,
+                "staff_scale": 1.0
+            },
+            "4": {
+                "onoff": false,
+                "name": "Staff 4",
+                "staff_number": 3,
+                "staff_scale": 1.0
+            }
+        }
+    },
+    "events": {
+        "grid": [
+            {
+                "tag": "grid0",
+                "amount": 16,
+                "numerator": 4,
+                "denominator": 4,
+                "grid": [
+                    256,
+                    512,
+                    768
+                ],
+                "visible": true
+            }
+        ],
+        "note": [],
+        "countline": [
+            {
+                "tag": "countline4",
+                "time": 384,
+                "pitch1": 24,
+                "pitch2": 44,
+                "staff": 0,
+                "handle": "handle2"
+            },
+            {
+                "tag": "countline5",
+                "time": 640,
+                "pitch1": 27,
+                "pitch2": 37,
+                "staff": 0,
+                "handle": "handle2"
+            },
+            {
+                "tag": "countline6",
+                "time": 896,
+                "pitch1": 46,
+                "pitch2": 64,
+                "staff": 0,
+                "handle": "handle2"
+            },
+            {
+                "tag": "countline7",
+                "time": 1152,
+                "pitch1": 39,
+                "pitch2": 45,
+                "staff": 0,
+                "handle": "handle2"
+            }
+        ],
+        "staffsizer": [],
+        "startrepeat": [],
+        "endrepeat": [],
+        "starthook": [],
+        "endhook": []
+    }
+}

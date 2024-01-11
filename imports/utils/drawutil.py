@@ -426,18 +426,6 @@ class DrawUtil:
                         for obj in io['score']['events'][event_type]:
                             if obj['tag'] == tag:
                                 return obj
-                # if object_type == 'all':
-                #     # we are searching for any object type; if ending on a number it means it is a object in the score file
-                #     if bool(re.search(r'\d$', tag)): # if ending on a number
-                #         for obj in score['events']['note']:
-                #             if obj['tag'] == tag:
-                #                 return obj
-                # else:
-                #     # we are searching for a specific object type
-                #     if object_type in tag and bool(re.search(r'\d$', tag)):
-                #         for obj in score['events'][object_type]:
-                #             if obj['tag'] == tag:
-                #                 return obj
         return None #TODO: make compitable with all event types
     
     def detect_objects_rectangle(self, io, x1: float, y1: float, x2: float, y2: float, event_type: str = 'all'):
@@ -484,6 +472,17 @@ class DrawUtil:
                 if t in item_data:
                     items.append(item)
         return items
+    
+    def get_xy_tags(self, x: float, y: float):
+        '''Get all tags at the given position.'''
+        point = QPointF(x, y)
+        items = self.canvas.items(point)
+        detect = [item.data(0) for item in items]
+        out = []
+        for d in detect:
+            for t in d:
+                out.append(t)
+        return out
 
 
 

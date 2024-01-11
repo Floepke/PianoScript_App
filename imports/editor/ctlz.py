@@ -35,9 +35,8 @@ class CtlZ:
         self.index = len(self.buffer) - 1
 
     def undo(self): 
-        print('undo...')
+        print('undo')
         
-
         # load undo version
         self.index -= 1
         if self.index < 0:
@@ -49,7 +48,7 @@ class CtlZ:
         #self.io['engraver'].trigger_render()
 
     def redo(self):
-        print('redo...')
+        print('redo')
 
         # load redo version
         self.index += 1

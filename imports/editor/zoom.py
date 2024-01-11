@@ -12,14 +12,14 @@ class Zoom:
 
 def zoom_in(io):
     '''zooms in the editor'''
-    io['score']['properties']['editor-zoom'] += 10
-    if io['score']['properties']['editor-zoom'] > 1000:
-        io['score']['properties']['editor-zoom'] = 1000
+    io['score']['properties']['editor_zoom'] += 10
+    if io['score']['properties']['editor_zoom'] > 1000:
+        io['score']['properties']['editor_zoom'] = 1000
     io['maineditor'].update('zoom')
 
 def zoom_out(io):
     '''zooms out the editor'''
-    io['score']['properties']['editor-zoom'] -= 10
-    if io['score']['properties']['editor-zoom'] < 10:
-        io['score']['properties']['editor-zoom'] = 10
+    io['score']['properties']['editor_zoom'] -= 10
+    if io['score']['properties']['editor_zoom'] < 10:
+        io['score']['properties']['editor_zoom'] = 10
     io['maineditor'].update('zoom')

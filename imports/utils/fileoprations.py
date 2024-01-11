@@ -2,7 +2,7 @@ import json, copy
 from PySide6.QtWidgets import QFileDialog
 from imports.utils.constants import SCORE_TEMPLATE
 from PySide6.QtWidgets import QMessageBox
-from imports.utils.savefilestructure import empty_events_folder
+from imports.utils.savefilestructure import SaveFileStructureSource
 
 class FileOperations:
     '''
@@ -14,13 +14,12 @@ class FileOperations:
     def __init__(self, io):
         self.io = io
         self.savepath = None
-        self.init = True
+        
+        self.new()
 
     def new(self):
         
-        if self.init:
-            self.init = False
-        else:
+        if self.savepath:
             if not self.save_check():
                 return
         
@@ -33,10 +32,11 @@ class FileOperations:
         # reset the selection
         self.io['selection']['active'] = False
         self.io['selection']['rectangle_on'] = False
-        self.io['selection']['selection_buffer'] = empty_events_folder()
+        self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
+        #self.io['score'] = json.load(open('pianoscriptfiles/exampletest.pianoscript', 'r'))
         self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags

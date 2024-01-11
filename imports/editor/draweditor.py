@@ -9,7 +9,7 @@ class DrawEditor:
     def draw_titles(io:dict):
         '''Draws the title and composer name of the score file on the topleft corner of the editor'''
 
-        title = "'" + io['score']['header']['title']['text'] + "'" + ' by composer: ' + io['score']['header']['composer']['text']
+        title = "'" + io['score']['header']['title'] + "'" + ' by composer: ' + io['score']['header']['composer']
         io['editor'].new_text(LEFT, 0, title, 
                               tag=['titletext'], 
                               anchor='nw', 
@@ -21,7 +21,7 @@ class DrawEditor:
         '''Draws the background'''
 
         # calculate the height of the background
-        editor_zoom = io['score']['properties']['editor-zoom'] # the size in pixels per quarter note
+        editor_zoom = io['score']['properties']['editor_zoom'] # the size in pixels per quarter note
         background_height = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK) + (EDITOR_MARGIN * 2)
 
         # set the editor boundaries
@@ -38,7 +38,7 @@ class DrawEditor:
         '''Draws the staff'''
         
         # calculating staff length
-        editor_zoom = io['score']['properties']['editor-zoom']
+        editor_zoom = io['score']['properties']['editor_zoom']
         staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)
 
         x_curs = LEFT + EDITOR_MARGIN
@@ -88,7 +88,7 @@ class DrawEditor:
 
         # calculating dimensions
         staff_width = WIDTH - (EDITOR_MARGIN * 2)
-        editor_zoom = io['score']['properties']['editor-zoom']
+        editor_zoom = io['score']['properties']['editor_zoom']
 
         y_cursor = EDITOR_MARGIN
         measure_numbering = 0

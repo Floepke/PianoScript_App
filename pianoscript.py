@@ -12,11 +12,12 @@ from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
 from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
-from imports.utils.savefilestructure import empty_events_folder
+from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.editor.selectoperations import SelectOperations
 from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
+from imports.engraver.engraver import Engraver
 
 class PianoScript():
 
@@ -43,9 +44,9 @@ class PianoScript():
                 'x2':None,
                 'y2':None,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
-                'selection_buffer':empty_events_folder(),
+                'selection_buffer':SaveFileStructureSource.new_events_folder(),
                 # the buffer that holds any copied or cutted selection; same structure as above
-                'copycut_buffer':empty_events_folder(),
+                'copycut_buffer':SaveFileStructureSource.new_events_folder(),
                 # all event types that are alowed to copy, cut, paste
                 'copy_types':['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that are alowed to transpose (are pitch based)
@@ -100,6 +101,11 @@ class PianoScript():
 
             # wheter the score is saved or not
             'saved':True,
+
+            # edit_obj == the object that is being edited
+            'edit_obj':None,
+
+            # handle
         }
 
         # setup
@@ -111,13 +117,15 @@ class PianoScript():
         self.io['gui'] = self.gui
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
-        self.io['fileoperations'] = FileOperations(self.io)
         self.io['calc'] = CalcTools(self.io)
+        self.io['engraver'] = Engraver(self.io)
         self.io['maineditor'] = Editor(self.io)
         self.io['zoom'] = Zoom(self.io)
         self.io['selectoperations'] = SelectOperations(self.io)
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
+        self.io['fileoperations'] = FileOperations(self.io)
+        
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -153,9 +161,6 @@ class PianoScript():
         hand_right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
         escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
-
-        # create initial new file
-        self.io['fileoperations'].new()
 
         # set stylesheet
         self.root.setStyleSheet(stylesheet)

@@ -1,18 +1,78 @@
 
+class SaveFileStructureSource:
+    '''
+        Stores all event types standard json structures for saving 
+        to a score file or creating new messages from. That way we 
+        can add new preferences to for example note_msg() and change 
+        that only in this file.
+    '''
+    
+    def new_events_folder():
+        '''returns the structure of the events folder in a score file'''
+        return {
+            'note':[],
+            'gracenote':[],
+            'text':[],
+            'beam':[],
+            'slur':[],
+            'pedal':[],
+            'countline':[],
+            'staffsizer':[],
+            'startrepeat':[],
+            'endrepeat':[],
+            'starthook':[],
+            'endhook':[]
+        }
 
-def empty_events_folder():
-    '''returns the structure of the events folder in a score file'''
-    return {
-        'note':[],
-        'gracenote':[],
-        'text':[],
-        'beam':[],
-        'slur':[],
-        'pedal':[],
-        'countline':[],
-        'staffsizer':[],
-        'startrepeat':[],
-        'endrepeat':[],
-        'starthook':[],
-        'endhook':[]
-    }
+    def new_note(
+            tag: str, # note+tagnumber to make tag unique
+            pitch: int, # piano note number 1 to 88
+            time: float, # in linear time in pianoticks 0 to infinity (quarter note == 256)
+            duration: float, # in linear time in pianoticks 0 to infinity
+            hand: str, # 'l' or 'r'
+            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            attached: str = '' # possible are the following symbols in any order: '>' = accent, '.' = staccato, '-' = tenuto, 'v' = staccatissimo, '#' = sharp, 'b' = flat, '^' = marcato
+            ):
+        '''The note event structure.'''
+        return {
+            'tag':tag,
+            'pitch':pitch,
+            'time':time,
+            'duration':duration,
+            'hand':hand,
+            'staff':staff,
+            'attached':attached
+        }
+    
+    def new_grid(
+            amount: int, # amount of measures to repeat
+            numerator: int, # numerator of the grid
+            denominator: int, # denominator of the grid
+            grid: list, # list of ticks relative to the start of every measure. every tick is a gridline
+            visible: bool = True, # are the stafflines and the gridlines visible if False in the editor the background is redish
+            ):
+        '''The grid event structure.'''
+        return {
+            'tag':'grid',
+            'amount':amount,
+            'numerator':numerator,
+            'denominator':denominator,
+            'grid':grid,
+            'visible':visible
+        }
+
+    def new_countline(
+            tag: str, # countline+tagnumber to make tag unique
+            time: float, # in linear time in pianoticks 0 to infinity
+            pitch1: int, # piano note number 1 to 88
+            pitch2: int, # piano note number 1 to 88
+            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            ):
+        '''The countline event structure.'''
+        return {
+            'tag':tag,
+            'time':time,
+            'pitch1':pitch1,
+            'pitch2':pitch2,
+            'staff':staff
+        }

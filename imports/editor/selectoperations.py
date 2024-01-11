@@ -1,5 +1,5 @@
 import copy
-from imports.editor.selection import empty_events_folder
+from imports.editor.selection import SaveFileStructureSource
 from imports.design.note import Note
 
 class SelectOperations:
@@ -132,7 +132,7 @@ class SelectOperations:
 
         self.io['maineditor'].redraw_editor()
 
-        print('hand left')
+        print('hand to left')
 
     def hand_right(self):
         '''sets the selected events to the right hand'''
@@ -147,6 +147,6 @@ class SelectOperations:
 
         self.io['maineditor'].redraw_editor()
 
-        print('hand right')
+        print('hand to right')
 
     
