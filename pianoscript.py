@@ -90,7 +90,7 @@ class PianoScript():
             # viewport
             'viewport':{
                 'toptick':0,
-                'bottomtick':0
+                'bottomtick':0,
             },
 
             # total ticks

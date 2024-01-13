@@ -93,25 +93,12 @@ class Editor:
                         return True
                 
                 return False
-
-            skipped_after = 0
-            skipped_before = 0            
+           
             for e_type in io['score']['events'].keys():
                 if e_type in ['grid']: # skip all events that are not time based
                     continue
-                for event in io['score']['events'][e_type]:
-                    
-                    # check if we can skip this event
-                    if event['time'] > io['viewport']['bottomtick']:
-                        # Skip events that are below the viewport
-                        skipped_after += 1
-                        print('!')
-                        break
-                    elif event['time'] + event.get('duration', 0) < io['viewport']['toptick']:
-                        # Skip events that are above the viewport
-                        skipped_before += 1
-                        continue
-
+                
+                for idx, event in enumerate(io['score']['events'][e_type]):
                     if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
                         # element is in viewport
                         if not event['tag'] in io['drawn_obj']:
@@ -129,13 +116,11 @@ class Editor:
                         if event['tag'] in io['drawn_obj']:
                             io['editor'].delete_with_tag([event['tag']])
                             io['drawn_obj'].remove(event['tag'])
-            return skipped_after, skipped_before
 
-        skippedafter, skippedbefore = draw_time_based_events_in_viewport(self.io)
+        draw_time_based_events_in_viewport(self.io)
         
         self.drawing_order()
-
-        print('events skipped before toptick:', skippedbefore, 'events skipped after bottomtick:', skippedafter)
+        
 
     def drawing_order(self):
         '''
