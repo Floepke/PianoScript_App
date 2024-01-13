@@ -46,7 +46,7 @@ class Note:
                     staff=1,
                     attached=''
                 )
-                Note.add_editor(io, io['edit_obj'])
+                Note.draw_editor(io, io['edit_obj'])
                 io['editor'].delete_with_tag(['notecursor'])
 
         elif event_type == 'leftclick+move':
@@ -65,7 +65,7 @@ class Note:
                 io['edit_obj']['pitch'] = mouse_pitch
 
             # draw the note
-            Note.add_editor(io, io['edit_obj'])
+            Note.draw_editor(io, io['edit_obj'])
         
         elif event_type == 'leftrelease':
             if io['edit_obj']:
@@ -135,12 +135,12 @@ class Note:
                 'staff':None,
                 'notestop':False,
             }
-            Note.add_editor(io, io['cursor'])
+            Note.draw_editor(io, io['cursor'])
 
         elif event_type == 'space':
             io['hand'] = 'r' if io['hand'] == 'l' else 'l'
             io['cursor']['hand'] = io['hand']
-            Note.add_editor(io, io['cursor'])
+            Note.draw_editor(io, io['cursor'])
 
         elif event_type == 'leave':
             io['editor'].delete_with_tag(['notecursor'])
@@ -158,7 +158,7 @@ class Note:
 
 
     @staticmethod
-    def add_editor(io, note, inselection=False, noteheadup=False):
+    def draw_editor(io, note, inselection=False, noteheadup=False):
         '''
             draws a note on the editor
         '''
@@ -294,7 +294,8 @@ class Note:
                     if GREATER(note_start, comp_start) and LESS(note_start, comp_end) or EQUALS(note_start, comp_start):
                         noteheadup = True
                         if n['pitch'] in BLACK_KEYS:
-                            io['drawn_obj'].remove(n['tag'])
+                            try: io['drawn_obj'].remove(n['tag'])
+                            except: ...
 
             # stop sign desicion:
             if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:

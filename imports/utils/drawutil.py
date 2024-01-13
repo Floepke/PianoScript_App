@@ -114,6 +114,8 @@ class DrawUtil:
         # Create a pen
         self.pen = QPen()
         self.brush = QBrush()
+        self.brush.setColor(QColor('#00008833'))
+        self.brush.setStyle(Qt.SolidPattern)
 
     # basic shapes
     def new_line(self, x1: float, y1: float, x2: float, y2: float,
@@ -166,7 +168,7 @@ class DrawUtil:
         pen.setWidthF(width)
         pen.setCapStyle(capstyle)
         # set color and alpha
-        pen.setColor(QColor(int(outline_color[1:2], 16), int(outline_color[3:4], 16), int(outline_color[5:6], 16), int(outline_color[7:8], 16)))
+        pen.setColor(QColor(outline_color))
         if dash is not None:
             pen.setStyle(Qt.DashLine)
             pen.setDashPattern(dash)
@@ -175,7 +177,7 @@ class DrawUtil:
             pen.setDashPattern([])
 
         brush = self.brush
-        brush.setColor(QColor(int(fill_color[1:3], 16), int(fill_color[3:5], 16), int(fill_color[5:7], 16), int(fill_color[7:9], 16)))
+        brush.setColor(QColor(fill_color))  
 
         # Add the rectangle to the scene
         rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, brush)
@@ -226,8 +228,8 @@ class DrawUtil:
     def new_polygon(self, points: list,
                     dash: list = None,
                     width: float = 1.0,
-                    outline_color: str = '#000000',
-                    fill_color: str = '#FFFFFF',
+                    outline_color: str = '#000000ff',
+                    fill_color: str = '#000000ff',
                     tag: dict = {}):
         '''Add a polygon to the scene.'''
         

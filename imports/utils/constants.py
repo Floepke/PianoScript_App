@@ -13,6 +13,9 @@ STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
 # a quarter pianotick is 256 pianoticks so an eighth pianotick is 128 pianoticks and so on.
 QUARTER_PIANOTICK = 256.0
 
+# fraction is a really small value for if we need to offset a value for a small fraction
+FRACTION = 0.0000001
+
 # the 'blueprint' for a score; it's the fallback score if no score is loaded and a reference for the developer.
 # if we write a property in the blueprint that is not in the score, it will be added to the score by the
 # FixScore() class based on this blueprint. TODO: Create a FixScore class
@@ -66,35 +69,34 @@ SCORE_TEMPLATE = {
         'accidental_onoff':True,
         'soundingdot_onoff':True,
         'leftdot_onoff':True,
-        'staffs':{
-            '1':{
+        'staffs':(
+            {
                 'onoff':True,
-                'staff_number':0,
+                'name':'Staff 1',
                 'staff_scale':1.0
             },
-            '2':{
+            {
                 'onoff':False,
-                'staff_number':1,
+                'name':'Staff 2',
                 'staff_scale':1.0
             },
-            '3':{
+            {
                 'onoff':False,
-                'staff_number':2,
+                'name':'Staff 3',
                 'staff_scale':1.0
             },
-            '4':{
+            {
                 'onoff':False,
                 'name':'Staff 4',
-                'staff_number':3,
                 'staff_scale':1.0
             }
-        },
+        )
     },
     'events':{
         'grid':[
             {
         'tag':'grid',
-        'amount':16,
+        'amount':4,
         'numerator':4,
         'denominator':4,
         'grid':[256, 512, 768], # a list of ticks relative to the start of every measure. every tick is a gridline
@@ -103,6 +105,28 @@ SCORE_TEMPLATE = {
     ],
     'note':[],
     'countline':[],
+    'linebreak':[
+        {
+                "tag": "lockedlinebreak",
+                "time": -FRACTION,
+                "staff1_lr_margins": [
+                    10.0,
+                    10.0
+                ],
+                "staff2_lr_margins": [
+                    10.0,
+                    10.0
+                ],
+                "staff3_lr_margins": [
+                    10.0,
+                    10.0
+                ],
+                "staff4_lr_margins": [
+                    10.0,
+                    10.0
+                ]
+            }
+    ],
     'staffsizer':[],
     'startrepeat':[],
     'endrepeat':[],
@@ -162,6 +186,4 @@ BOTTOM = HEIGHT
 STAFF_X_UNIT_EDITOR = (WIDTH - (EDITOR_MARGIN * 2)) / 49
 
 # ----------------------------------------------------------------------------------------------------------------------------
-
-
 

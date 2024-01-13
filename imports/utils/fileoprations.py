@@ -36,7 +36,7 @@ class FileOperations:
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        #self.io['score'] = json.load(open('pianoscriptfiles/exampletest.pianoscript', 'r'))
+        #self.io['score'] = json.load(open('pianoscriptfiles/moonlight3.pianoscript', 'r'))
         self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags
@@ -102,7 +102,20 @@ class FileOperations:
 
     def quit(self):
         
-        if not self.save_check():
-            return
+        # if not self.save_check(): # TODO: uncomment on publish
+        #     return
         
-        self.io['root'].close
+        self.io['root'].close()
+
+
+
+
+
+
+
+
+
+
+
+
+

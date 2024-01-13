@@ -27,7 +27,7 @@ class CountLine:
                     staff=0
                 )
                 io['edit_obj']['handle'] = 'handle2'
-            CountLine.add_editor(io, io['edit_obj'])
+            CountLine.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftclick+move':
             # get the mouse position in pianoticks and pitch
@@ -42,7 +42,7 @@ class CountLine:
             io['edit_obj']['time'] = mouse_time
 
             # draw the note
-            CountLine.add_editor(io, io['edit_obj'])
+            CountLine.draw_editor(io, io['edit_obj'])
         
         elif event_type == 'leftrelease':
             if io['edit_obj']:
@@ -91,7 +91,7 @@ class CountLine:
             ...
 
     @staticmethod
-    def add_editor(io, countline):
+    def draw_editor(io, countline):
         
         # first delete the old countline
         io['editor'].delete_with_tag([countline['tag']])

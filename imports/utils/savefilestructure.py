@@ -1,3 +1,4 @@
+from typing import Tuple
 
 class SaveFileStructureSource:
     '''
@@ -11,6 +12,7 @@ class SaveFileStructureSource:
         '''returns the structure of the events folder in a score file'''
         return {
             'note':[],
+            'linebreak':[],
             'gracenote':[],
             'text':[],
             'beam':[],
@@ -66,7 +68,7 @@ class SaveFileStructureSource:
             time: float, # in linear time in pianoticks 0 to infinity
             pitch1: int, # piano note number 1 to 88
             pitch2: int, # piano note number 1 to 88
-            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            staff: int = 0, # staff number 0 to 3 there is a total of 4 staffs available
             ):
         '''The countline event structure.'''
         return {
@@ -75,4 +77,22 @@ class SaveFileStructureSource:
             'pitch1':pitch1,
             'pitch2':pitch2,
             'staff':staff
+        }
+    
+    def new_linebreak(
+            tag: str, # linebreak+tagnumber to make tag unique
+            time: float, # in linear time in pianoticks 0 to infinity
+            staff1_lr_margins: Tuple[float, float] = (10.0, 10.0), # tuple with two values: (leftmargin, rightmargin) in mm
+            staff2_lr_margins: Tuple[float, float] = (10.0, 10.0), # ...
+            staff3_lr_margins: Tuple[float, float] = (10.0, 10.0), 
+            staff4_lr_margins: Tuple[float, float] = (10.0, 10.0), 
+            ):
+        '''The linebreak event structure.'''
+        return {
+            'tag':tag,
+            'time':time,
+            'staff1_lr_margins': staff1_lr_margins,
+            'staff2_lr_margins': staff2_lr_margins,
+            'staff3_lr_margins': staff3_lr_margins,
+            'staff4_lr_margins': staff4_lr_margins
         }

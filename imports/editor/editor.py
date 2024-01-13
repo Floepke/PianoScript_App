@@ -11,6 +11,7 @@ from imports.design.linebreak import LineBreak
 from imports.design.trill import Trill
 import re
 from imports.editor.ctlz import CtlZ
+import threading
 
 
 
@@ -38,7 +39,7 @@ class Editor:
         if 'move' in event_type:
             # write the mouse position to the io['mouse'] dict
             self.io['mouse']['x'] = x
-            self.io['mouse']['y'] = y
+            self.io['mouse']['y'] = y # TODO: check if this is neccessary
 
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
@@ -50,7 +51,7 @@ class Editor:
         Selection.process(self.io, event_type, x, y)
 
         # draw_viewport if one of the following events occured
-        if event_type in ['resize', 'scroll', 'scrollbarmouserelease']:
+        if event_type in ['resize', 'scroll']:
             self.draw_viewport()
 
         if event_type in ['zoom', 'loadfile', 'grid_edit']:
@@ -74,7 +75,7 @@ class Editor:
 
         def draw_time_based_events_in_viewport(io):
             '''Draws all time based events of the score in the viewport'''
-
+        
             def is_in_viewport(event, top, bttm):
                 '''returns True if the event is in the viewport, False if not'''
                 tm = event['time']
@@ -93,18 +94,32 @@ class Editor:
                 
                 return False
 
+            skipped_after = 0
+            skipped_before = 0            
             for e_type in io['score']['events'].keys():
                 if e_type in ['grid']: # skip all events that are not time based
                     continue
                 for event in io['score']['events'][e_type]:
+                    
+                    # check if we can skip this event
+                    if event['time'] > io['viewport']['bottomtick']:
+                        # Skip events that are below the viewport
+                        skipped_after += 1
+                        print('!')
+                        break
+                    elif event['time'] + event.get('duration', 0) < io['viewport']['toptick']:
+                        # Skip events that are above the viewport
+                        skipped_before += 1
+                        continue
+
                     if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
                         # element is in viewport
                         if not event['tag'] in io['drawn_obj']:
                             # element was not yet drawn, draw it
                             if event in io['selection']['selection_buffer'][e_type]:
-                                self.funcselector[e_type].add_editor(io, event, inselection=True)
+                                self.funcselector[e_type].draw_editor(io, event, inselection=True)
                             else:
-                                self.funcselector[e_type].add_editor(io, event)
+                                self.funcselector[e_type].draw_editor(io, event)
                             io['drawn_obj'].append(event['tag'])
                         else:
                             # element was already drawn, do nothing
@@ -114,10 +129,13 @@ class Editor:
                         if event['tag'] in io['drawn_obj']:
                             io['editor'].delete_with_tag([event['tag']])
                             io['drawn_obj'].remove(event['tag'])
+            return skipped_after, skipped_before
 
-        draw_time_based_events_in_viewport(self.io)
+        skippedafter, skippedbefore = draw_time_based_events_in_viewport(self.io)
         
         self.drawing_order()
+
+        print('events skipped before toptick:', skippedbefore, 'events skipped after bottomtick:', skippedafter)
 
     def drawing_order(self):
         '''
@@ -146,7 +164,8 @@ class Editor:
             'notestop',
             'cursor',
             'countline',
-            'handle'
+            'handle',
+            'linebreak'
         ]
         self.io['editor'].tag_raise(drawing_order)
 

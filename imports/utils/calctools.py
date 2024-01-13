@@ -111,7 +111,7 @@ class CalcTools:
         for k in self.io['score']['events'].keys(): # loop through all event types
             for obj in self.io['score']['events'][k]: # loop through all objects of one event type
                 if not 'tag' in obj: continue # to skip any event that doesn't have a tag
-                if obj['tag'] == 'linebreak': continue # to prevent that only the first linebreak doesn't get deleted later in the program
+                if obj['tag'] == 'lockedlinebreak': continue # to prevent that only the first linebreak doesn't get deleted later in the program
                 obj['tag'] = f"{k}{self.io['new_tag']}"
                 if k in self.io['selection']['copy_types']:
                     obj['tag'] = obj['tag']
