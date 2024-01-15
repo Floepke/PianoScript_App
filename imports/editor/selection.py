@@ -46,12 +46,12 @@ class Selection:
 
             # disable the selection rectangle
             io['selection']['rectangle_on'] = False
-            io['selection']['x1'] = None
-            io['selection']['y1'] = None
-            io['selection']['x2'] = None
-            io['selection']['y2'] = None
+            io['selection']['x1'] = 0
+            io['selection']['y1'] = 0
+            io['selection']['x2'] = 0
+            io['selection']['y2'] = 0
 
-        io['maineditor'].draw_viewport()
+        #io['maineditor'].draw_viewport()
 
     @staticmethod
     def organize_selection_add(io, selected):

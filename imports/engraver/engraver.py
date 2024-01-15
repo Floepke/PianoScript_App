@@ -151,7 +151,6 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
             for start_time, next_start_time in linebreak_time_sets:
                 # Create a new line-doc for each linebreak
                 line_doc = []
-                print(start_time, next_start_time, '!')
         
                 # Iterate over the events in the DOC
                 for event in DOC:

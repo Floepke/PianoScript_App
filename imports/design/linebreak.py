@@ -70,7 +70,6 @@ class LineBreak:
             color='blue'
 
         # add the new linebreak
-        print('draw linebreak', linebreak['time'])
         io['editor'].new_rectangle(RIGHT - (EDITOR_MARGIN/3), y, RIGHT, y+height,
                             tag=[linebreak['tag'], 'linebreak'],
                             fill_color='#00008833',

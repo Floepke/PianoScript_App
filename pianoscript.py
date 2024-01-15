@@ -39,10 +39,10 @@ class PianoScript():
                 'active':False,
                 'inrectangle':[],
                 # coords for the selection rectangle
-                'x1':None,
-                'y1':None,
-                'x2':None,
-                'y2':None,
+                'x1':0,
+                'y1':0,
+                'x2':0,
+                'y2':0,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
                 'selection_buffer':SaveFileStructureSource.new_events_folder(),
                 # the buffer that holds any copied or cutted selection; same structure as above
@@ -91,6 +91,7 @@ class PianoScript():
             'viewport':{
                 'toptick':0,
                 'bottomtick':0,
+                'events':SaveFileStructureSource.new_events_folder()
             },
 
             # total ticks
@@ -113,6 +114,7 @@ class PianoScript():
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
+        self.io['app'] = self.app
         self.io['root'] = self.root
         self.io['gui'] = self.gui
         self.io['editor'] = DrawUtil(self.gui.editor_scene)

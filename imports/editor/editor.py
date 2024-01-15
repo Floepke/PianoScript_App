@@ -12,6 +12,8 @@ from imports.design.trill import Trill
 import re
 from imports.editor.ctlz import CtlZ
 import threading
+from imports.utils.constants import *
+from imports.utils.savefilestructure import SaveFileStructureSource
 
 
 
@@ -68,6 +70,9 @@ class Editor:
         # add to ctlz stack (in this function we check if there is indeed a change in the score)
         self.io['ctlz'].add_ctlz()
 
+        # sort the events on time
+        # self.io['score']['events']['note'] = sorted(self.io['score']['events']['note'], key=lambda y: y['time'])
+
     def draw_viewport(self):
         '''draws all events only in the viewport'''
         
@@ -97,17 +102,23 @@ class Editor:
             for e_type in io['score']['events'].keys():
                 if e_type in ['grid']: # skip all events that are not time based
                     continue
+
+                # delete double events
+                events = io['viewport']['events'][e_type]
+                io['viewport']['events'][e_type] = [i for n, i in enumerate(events) if i not in events[n + 1:]]
                 
                 for idx, event in enumerate(io['score']['events'][e_type]):
+
                     if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
                         # element is in viewport
-                        if not event['tag'] in io['drawn_obj']:
+                        if not event in io['viewport']['events'][e_type]:
                             # element was not yet drawn, draw it
                             if event in io['selection']['selection_buffer'][e_type]:
                                 self.funcselector[e_type].draw_editor(io, event, inselection=True)
                             else:
                                 self.funcselector[e_type].draw_editor(io, event)
                             io['drawn_obj'].append(event['tag'])
+                            io['viewport']['events'][e_type].append(event)
                         else:
                             # element was already drawn, do nothing
                             ...
@@ -116,10 +127,27 @@ class Editor:
                         if event['tag'] in io['drawn_obj']:
                             io['editor'].delete_with_tag([event['tag']])
                             io['drawn_obj'].remove(event['tag'])
+                        if event in io['viewport']['events'][e_type]:
+                            io['viewport']['events'][e_type].remove(event)
 
         draw_time_based_events_in_viewport(self.io)
+
+        # update the soundingdots and stopsigns
+        #DrawEditor.update_soundingdots_and_stopsigns(self.io)
+
+        # draw the grid and barlines
+        top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])
+        bottom_y = self.io['calc'].tick2y_editor(self.io['viewport']['bottomtick'])
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io, top_y, bottom_y)
+
+        # Move the stafflines with the viewport
+        DrawEditor.move_staff(self.io, top_y)
+
+
         
         self.drawing_order()
+
+        self.io['gui'].editor_view.update()
         
 
     def drawing_order(self):
@@ -129,10 +157,10 @@ class Editor:
         '''
 
         drawing_order = [
-            'background', 
             'midinote', 
             'staffline',
-            'titletext', 
+            'titlebackground',
+            'titletext',
             'barline', 
             'gridline', 
             'barnumbering',
@@ -150,7 +178,7 @@ class Editor:
             'cursor',
             'countline',
             'handle',
-            'linebreak'
+            'linebreak', 
         ]
         self.io['editor'].tag_raise(drawing_order)
 
@@ -166,14 +194,31 @@ class Editor:
         # clear the editor scene
         self.io['editor'].delete_all()
         self.io['drawn_obj'] = []
+        self.io['viewport']['events'] = SaveFileStructureSource.new_events_folder()
 
         # draw the editor
-        DrawEditor.draw_background(self.io)
         DrawEditor.draw_titles(self.io)
         DrawEditor.draw_staff(self.io)
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io)
+
+        # set scene size
+        height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * self.io['score']['properties']['editor_zoom'] + EDITOR_MARGIN + EDITOR_MARGIN
+        self.io['gui'].editor_scene.setSceneRect(LEFT, TOP, WIDTH, height)
         
         # draw all events in viewport
         self.draw_viewport()
         
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
