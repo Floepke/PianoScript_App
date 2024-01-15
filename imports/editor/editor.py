@@ -139,12 +139,13 @@ class Editor:
 
         # Move the stafflines with the viewport
         DrawEditor.move_staff(self.io, top_y)
-
-
         
         self.drawing_order()
 
         self.io['gui'].editor_view.update()
+
+        # count how many items are on the scene
+        print(f"items on scene: {len(self.io['editor'].canvas.items())}")
         
 
     def drawing_order(self):
@@ -197,7 +198,7 @@ class Editor:
         DrawEditor.draw_staff(self.io)
 
         # set scene size
-        height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * self.io['score']['properties']['editor_zoom'] + EDITOR_MARGIN + EDITOR_MARGIN
+        height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * self.io['score']['properties']['editor_zoom'] + EDITOR_MARGIN
         self.io['gui'].editor_scene.setSceneRect(LEFT, TOP, WIDTH, height)
         
         # draw all events in viewport

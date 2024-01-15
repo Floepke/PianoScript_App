@@ -6,6 +6,17 @@ from PySide6.QtWidgets import QGraphicsView, QApplication
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent, QPainter
 from PySide6.QtGui import QCursor
+from PySide6.QtWidgets import QScrollBar
+
+class CustomScrollBar(QScrollBar):
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.orientation() == Qt.Vertical:
+                value = self.minimum() + ((self.maximum()-self.minimum()) * (self.height()-event.y())) / self.height()
+            else:
+                value = self.minimum() + ((self.maximum()-self.minimum()) * event.x()) / self.width()
+            self.setValue(value)
+        QScrollBar.mousePressEvent(self, event)
 
 class GraphicsViewEditor(QGraphicsView):
 
@@ -22,6 +33,7 @@ class GraphicsViewEditor(QGraphicsView):
 
         # Settings for the qgraphicsview
         self.setRenderHint(QPainter.Antialiasing)
+        self.setOptimizationFlag(QGraphicsView.DontAdjustForAntialiasing)
 
         # mouse buttons
         self.left_mouse_button = False
@@ -30,7 +42,9 @@ class GraphicsViewEditor(QGraphicsView):
 
         self.scene = scene
 
-        self.verticalScrollBar().sliderMoved.connect(lambda: self.io['maineditor'].update('scroll'))
+        #self.setVerticalScrollBar(CustomScrollBar(Qt.Vertical, self))
+
+        self.verticalScrollBar().valueChanged.connect(lambda: self.io['maineditor'].update('scroll'))
 
     def resizeEvent(self, event):
         # get the old scroll position and maximum

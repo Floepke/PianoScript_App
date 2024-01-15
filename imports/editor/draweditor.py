@@ -9,11 +9,13 @@ class DrawEditor:
     def draw_titles(io:dict):
         '''Draws the title and composer name of the score file on the topleft corner of the editor'''
 
-        # draw background
+        # draw title background
         io['editor'].new_rectangle(LEFT, TOP, RIGHT, EDITOR_MARGIN,
                                       fill_color='#fee', 
                                       outline_color='#fee',
                                       tag=['titlebackground'])
+        
+        # draw bottom background to hide the stafflines
         io['editor'].new_rectangle(LEFT, TOP, RIGHT, EDITOR_MARGIN,
                                       fill_color='#fee', 
                                       outline_color='#fee',
@@ -32,8 +34,7 @@ class DrawEditor:
         
         # calculating staff length
         editor_zoom = io['score']['properties']['editor_zoom']
-        staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)
-        staff_length = io['app'].primaryScreen().geometry().height()
+        staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)+EDITOR_MARGIN+EDITOR_MARGIN
         # get the total screen height of the pc
 
         x_curs = LEFT + EDITOR_MARGIN
@@ -204,7 +205,7 @@ class DrawEditor:
         stafflines = io['editor'].find_with_tag(['staffline'])
         for staffline in stafflines:
             # TODO: fit the stafflines to the screen
-            staffline.setPos(0, y-EDITOR_MARGIN)
+            staffline.setPos(0, y-EDITOR_MARGIN-EDITOR_MARGIN)
 
 
     
