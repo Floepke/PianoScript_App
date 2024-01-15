@@ -167,8 +167,8 @@ class Note:
         io['editor'].delete_with_tag([note['tag']])
 
         # update drawn object
-        try: io['drawn_obj'].remove(note['tag'])
-        except ValueError: pass
+        if note in io['viewport']['events']['note']: 
+            io['viewport']['events']['note'].remove(note)
 
         # get the x and y position of the note
         x = io['calc'].pitch2x_editor(note['pitch'])
@@ -182,18 +182,18 @@ class Note:
 
         unit = STAFF_X_UNIT_EDITOR / 2
             
-        # draw the stem
-        thickness = 5
-        if note['hand'] == 'l':
-            io['editor'].new_line(x, y, x - (unit * 5), y,
-                                tag=[note['tag'], 'stem'],
-                                width=thickness,
-                                color=color)
-        elif note['hand'] == 'r':
-            io['editor'].new_line(x, y, x + (unit * 5), y,
-                                tag=[note['tag'], 'stem'],
-                                width=thickness,
-                                color=color)
+        # # draw the stem
+        # thickness = 5
+        # if note['hand'] == 'l':
+        #     io['editor'].new_line(x, y, x - (unit * 5), y,
+        #                         tag=[note['tag'], 'stem'],
+        #                         width=thickness,
+        #                         color=color)
+        # elif note['hand'] == 'r':
+        #     io['editor'].new_line(x, y, x + (unit * 5), y,
+        #                         tag=[note['tag'], 'stem'],
+        #                         width=thickness,
+        #                         color=color)
             
         # draw the midi note
         if note['tag'] == 'edit_obj':
@@ -204,10 +204,13 @@ class Note:
             midicolor = '#bbb'
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
-        io['editor'].new_polygon([(x, y), (x + unit, y + (unit/2)), (x + unit, endy), (x - unit, endy), (x - unit, y + (unit/2))],
-                                tag=[note['tag'], 'midinote'], 
-                                fill_color=midicolor, 
-                                outline_color='')
+        io['editor'].new_polygon([(x, y), 
+                                  (x + unit, y + (unit/2)), 
+                                  (x + unit, endy), (x - unit, endy), 
+                                  (x - unit, y + (unit/2))],
+                                  tag=[note['tag'], 'midinote'], 
+                                  fill_color=midicolor, 
+                                  outline_color='')
         
         # # draw the sounding dot
         # def sounding_dot(x, y, n=None, fcolor='black'):
@@ -402,36 +405,35 @@ class Note:
         
         # delete from file and editor
         io['score']['events']['note'].remove(note)
-        io['viewport']['events']['note'].remove(note)
+        if note in io['viewport']['events']['note']:
+            io['viewport']['events']['note'].remove(note)
         io['editor'].delete_with_tag([note['tag']])
-        if note['tag'] in io['drawn_obj']:
-            io['drawn_obj'].remove(note['tag'])
         
-        # check for notes to be drawn again for correcting the stop sign
-        note_start = note['time']
-        note_end = note['time']+note['duration']
-        for n in io['viewport']['events']['note']: #TODO: change folder structure in measures
-            comp_start = n['time']
-            comp_end = n['time']+n['duration']
+        # # check for notes to be drawn again for correcting the stop sign
+        # note_start = note['time']
+        # note_end = note['time']+note['duration']
+        # for n in io['viewport']['events']['note']: #TODO: change folder structure in measures
+        #     comp_start = n['time']
+        #     comp_end = n['time']+n['duration']
 
-            if EQUALS(n['time']+n['duration'], note['time']) and n['hand'] == note['hand']:
-                if n['tag'] in io['drawn_obj']: 
-                    io['drawn_obj'].remove(n['tag'])
-                io['viewport']['events']['note'].remove(n)
+        #     if EQUALS(n['time']+n['duration'], note['time']) and n['hand'] == note['hand']:
+        #         if n['tag'] in io['drawn_obj']: 
+        #             io['drawn_obj'].remove(n['tag'])
+        #         io['viewport']['events']['note'].remove(n)
 
-            # check if there is another note thats one semitone hgher or lower then the removed
-            if note['pitch'] in [n['pitch']-1, n['pitch']+1] and n['pitch'] in BLACK_KEYS:
-                # check if start of the note is in between a note
-                if GREATER(note_start, comp_start) and LESS(note_start, comp_end):
-                    if note['tag'] in io['drawn_obj']: 
-                        io['drawn_obj'].remove(n['tag']) # redraw this note
-                    io['viewport']['events']['note'].remove(n)
+        #     # check if there is another note thats one semitone hgher or lower then the removed
+        #     if note['pitch'] in [n['pitch']-1, n['pitch']+1] and n['pitch'] in BLACK_KEYS:
+        #         # check if start of the note is in between a note
+        #         if GREATER(note_start, comp_start) and LESS(note_start, comp_end):
+        #             if note['tag'] in io['drawn_obj']: 
+        #                 io['drawn_obj'].remove(n['tag']) # redraw this note
+        #             io['viewport']['events']['note'].remove(n)
                 
-                # check if note start is equal to the removed note
-                if EQUALS(note_start, comp_start):
-                    if note['tag'] in io['drawn_obj']: 
-                        io['drawn_obj'].remove(n['tag']) # redraw ...
-                    io['viewport']['events']['note'].remove(n)
+        #         # check if note start is equal to the removed note
+        #         if EQUALS(note_start, comp_start):
+        #             if note['tag'] in io['drawn_obj']: 
+        #                 io['drawn_obj'].remove(n['tag']) # redraw ...
+        #             io['viewport']['events']['note'].remove(n)
         
         # io['maineditor'].draw_viewport()
             

@@ -80,7 +80,7 @@ class Editor:
 
         def draw_time_based_events_in_viewport(io):
             '''Draws all time based events of the score in the viewport'''
-        
+
             def is_in_viewport(event, top, bttm):
                 '''returns True if the event is in the viewport, False if not'''
                 tm = event['time']
@@ -117,17 +117,14 @@ class Editor:
                                 self.funcselector[e_type].draw_editor(io, event, inselection=True)
                             else:
                                 self.funcselector[e_type].draw_editor(io, event)
-                            io['drawn_obj'].append(event['tag'])
                             io['viewport']['events'][e_type].append(event)
                         else:
                             # element was already drawn, do nothing
                             ...
                     else:
-                        # element is outside the viewport, delete it
-                        if event['tag'] in io['drawn_obj']:
-                            io['editor'].delete_with_tag([event['tag']])
-                            io['drawn_obj'].remove(event['tag'])
+                        # element is outside the viewport, delete it if it was drawn
                         if event in io['viewport']['events'][e_type]:
+                            io['editor'].delete_with_tag([event['tag']])
                             io['viewport']['events'][e_type].remove(event)
 
         draw_time_based_events_in_viewport(self.io)
@@ -193,7 +190,6 @@ class Editor:
 
         # clear the editor scene
         self.io['editor'].delete_all()
-        self.io['drawn_obj'] = []
         self.io['viewport']['events'] = SaveFileStructureSource.new_events_folder()
 
         # draw the editor

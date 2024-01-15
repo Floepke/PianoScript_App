@@ -70,12 +70,12 @@ class LineBreak:
             color='blue'
 
         # add the new linebreak
-        io['editor'].new_rectangle(RIGHT - (EDITOR_MARGIN/3), y, RIGHT, y+height,
+        io['editor'].new_rectangle(RIGHT - (EDITOR_MARGIN/2), y, RIGHT - (EDITOR_MARGIN/4), y+height,
                             tag=[linebreak['tag'], 'linebreak'],
                             fill_color='#00008833',
                             outline_color=color,
-                            width=2)
-        io['editor'].new_text(RIGHT - (EDITOR_MARGIN/6), y+(height*.5), 'B',
+                            width=3)
+        io['editor'].new_text(RIGHT - (EDITOR_MARGIN/4*1.5), y+(height*.5), 'B',
                             tag=[linebreak['tag'], 'linebreak'],
                             font='Courier New',
                             size=32,
@@ -91,5 +91,5 @@ class LineBreak:
         # delete from file and editor
         io['score']['events']['linebreak'].remove(linebreak)
         io['editor'].delete_with_tag([linebreak['tag']])
-        if linebreak['tag'] in io['drawn_obj']:
-            io['drawn_obj'].remove(linebreak['tag'])
+        if linebreak in io['viewport']['events']['linebreak']:
+            io['viewport']['events']['linebreak'].remove(linebreak)

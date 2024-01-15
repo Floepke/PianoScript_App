@@ -97,8 +97,8 @@ class CountLine:
         io['editor'].delete_with_tag([countline['tag']])
 
         # update drawn object
-        try: io['drawn_obj'].remove(countline['tag'])
-        except ValueError: pass
+        if countline in io['viewport']['events']['countline']:
+            io['viewport']['events']['countline'].remove(countline)
 
         # get the x and y position of the countline
         x1 = io['calc'].pitch2x_editor(countline['pitch1'])
@@ -127,5 +127,5 @@ class CountLine:
         # delete from file and editor
         io['score']['events']['countline'].remove(countline)
         io['editor'].delete_with_tag([countline['tag']])
-        if countline['tag'] in io['drawn_obj']:
-            io['drawn_obj'].remove(countline['tag'])
+        if countline in io['viewport']['events']['countline']:
+            io['viewport']['events']['countline'].remove(countline)
