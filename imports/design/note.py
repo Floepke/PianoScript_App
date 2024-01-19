@@ -43,7 +43,7 @@ class Note:
                     duration=io['snap_grid'],
                     pitch=io['calc'].x2pitch_editor(x),
                     hand=io['hand'],
-                    staff=1,
+                    staff=0,
                     attached=''
                 )
                 Note.draw_editor(io, io['edit_obj'])
@@ -73,7 +73,7 @@ class Note:
                 io['editor'].delete_with_tag([io['edit_obj']['tag']])
 
                 # delete the note from file
-                try: io['score']['events']['note'].remove(io['edit_obj'])
+                try: io['score']['events']['note'].remove(io['edit_obj']) 
                 except ValueError: pass
 
                 # create copy of the edit_obj, give it a identical tag and add it to the score
@@ -167,8 +167,8 @@ class Note:
         io['editor'].delete_with_tag([note['tag']])
 
         # update drawn object
-        try: io['drawn_obj'].remove(note['tag'])
-        except ValueError: pass
+        if note in io['viewport']['events']['note']: 
+            io['viewport']['events']['note'].remove(note)
 
         # get the x and y position of the note
         x = io['calc'].pitch2x_editor(note['pitch'])
@@ -204,136 +204,139 @@ class Note:
             midicolor = '#bbb'
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
-        io['editor'].new_polygon([(x, y), (x + unit, y + (unit/2)), (x + unit, endy), (x - unit, endy), (x - unit, y + (unit/2))],
-                                tag=[note['tag'], 'midinote'], 
-                                fill_color=midicolor, 
-                                outline_color='')
+        io['editor'].new_polygon([(x, y), 
+                                  (x + unit, y + (unit/2)), 
+                                  (x + unit, endy), (x - unit, endy), 
+                                  (x - unit, y + (unit/2))],
+                                  tag=[note['tag'], 'midinote'], 
+                                  fill_color=midicolor, 
+                                  outline_color='')
         
-        # draw the sounding dot
-        def sounding_dot(x, y, n=None, fcolor='black'):
-            if n:
-                tag = [n['tag'], note['tag'], 'soundingdot']
-            else:
-                tag = [note['tag'], 'soundingdot']
-            if io['score']['properties']['continuation_dot_style'] == 'Klavarskribo':
-                # Klavarskribo continuation dot
-                io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
-                    x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
-                    outline_color='black',
-                    fill_color='#000000',
-                    tag=tag)
-            elif io['score']['properties']['continuation_dot_style'] == 'PianoScript':
-                # experimantal continuation symbol
-                points = [(x-unit,y), (x,y+unit+unit), (x+unit,y)]
-                io['editor'].new_polygon(points, fill_color='black', outline_color='', tag=tag)
-            io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
-                    tag=tag,
-                    width=.75,
-                    dash=[3, 3],
-                    color=color)
-        
-        barline_times = io['calc'].get_barline_ticks()
-        # if note is sounding at the barline time we need always to draw a continuation dot
-        for bl_time in barline_times:
-            if LESS(note['time'], bl_time) and GREATER(note['time']+note['duration'], bl_time):
-                x = io['calc'].pitch2x_editor(note['pitch'])
-                y = io['calc'].tick2y_editor(bl_time)
-                io['editor'].delete_if_with_all_tags([note['tag'], 'soundingdot'])
-                if note['pitch'] in BLACK_KEYS:
-                    sounding_dot(x, y, fcolor='black')
-                else:
-                    sounding_dot(x, y, fcolor='white')
-                
+        # # draw the sounding dot
+        # def sounding_dot(x, y, n=None, fcolor='black'):
+        #     if n:
+        #         tag = [n['tag'], note['tag'], 'soundingdot']
+        #     else:
+        #         tag = [note['tag'], 'soundingdot']
+        #     if io['score']['properties']['continuation_dot_style'] == 'Klavarskribo':
+        #         # Klavarskribo continuation dot
+        #         io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
+        #             x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
+        #             outline_color='black',
+        #             fill_color='#000000',
+        #             tag=tag)
+        #     elif io['score']['properties']['continuation_dot_style'] == 'PianoScript':
+        #         # experimantal continuation symbol
+        #         points = [(x-unit,y), (x,y+unit+unit), (x+unit,y)]
+        #         io['editor'].new_polygon(points, fill_color='black', outline_color='', tag=tag)
+        #     io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
+        #             tag=tag,
+        #             width=.75,
+        #             dash=[3, 3],
+        #             color=color)
+
+        # barline_times = io['calc'].get_barline_ticks()
+        # # if note is sounding at the barline time we need always to draw a continuation dot
+        # for bl_time in barline_times:
+        #     if LESS(note['time'], bl_time) and GREATER(note['time']+note['duration'], bl_time):
+        #         x = io['calc'].pitch2x_editor(note['pitch'])
+        #         y = io['calc'].tick2y_editor(bl_time)
+        #         io['editor'].delete_if_with_all_tags([note['tag'], 'soundingdot'])
+        #         if note['pitch'] in BLACK_KEYS:
+        #             sounding_dot(x, y, fcolor='black')
+        #         else:
+        #             sounding_dot(x, y, fcolor='white')
+
         # now we need to loop through all notes to see if we need to draw a continuation dot or a notestop sign
         stopflag = True
         noteheadupdownflag = False
         note_start = note['time']
         note_end = note['time']+note['duration']
-        for n in io['score']['events']['note']: # N == THE COMPARED NOTE
-            # connect chords (if two or more notes start at the same time)
-            if note['hand'] == n['hand'] and n['time'] == note['time'] and not note['tag'] == 'notecursor':
-                x1 = io['calc'].pitch2x_editor(note['pitch'])
-                x2 = io['calc'].pitch2x_editor(n['pitch'])
-                y = io['calc'].tick2y_editor(note['time'])
-                io['editor'].new_line(x1,y,x2,y,
-                    tag=[n['tag'], note['tag'], 'connectstem'],
-                    width=5,
-                    color='black')
+        # for n in io['score']['events']['note']: # N == THE COMPARED NOTE TODO: change folder structure in measures
+        #     # connect chords (if two or more notes start at the same time)
+        #     if note['hand'] == n['hand'] and n['time'] == note['time'] and not note['tag'] == 'notecursor':
+        #         x1 = io['calc'].pitch2x_editor(note['pitch'])
+        #         x2 = io['calc'].pitch2x_editor(n['pitch'])
+        #         y = io['calc'].tick2y_editor(note['time'])
+        #         io['editor'].new_line(x1,y,x2,y,
+        #             tag=[n['tag'], note['tag'], 'connectstem'],
+        #             width=5,
+        #             color='black')
             
-            # continuation dot:
-            # there are 5 possible situations where we have to draw a continuation dot
-            # if we draw one, we have also to check if this continuation dot is on the 
-            # same hand as the note and if the pitch is one semitone higher or lower, 
-            # so that we can draw the notehead upwards further in the code.
-            comp_start = n['time']
-            comp_end = n['time']+n['duration']
-            # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
-            if not note['tag'] == 'notecursor':
-                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']: 
-                    x = io['calc'].pitch2x_editor(note['pitch'])
-                    y = io['calc'].tick2y_editor(n['time']+n['duration'])
-                    sounding_dot(x, y, n)
+        #     continuation dot:
+        #     there are 5 possible situations where we have to draw a continuation dot
+        #     if we draw one, we have also to check if this continuation dot is on the 
+        #     same hand as the note and if the pitch is one semitone higher or lower, 
+        #     so that we can draw the notehead upwards further in the code.
+        #     comp_start = n['time']
+        #     comp_end = n['time']+n['duration']
+        #     # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
+        #     if not note['tag'] == 'notecursor':
+        #         if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']: 
+        #             x = io['calc'].pitch2x_editor(note['pitch'])
+        #             y = io['calc'].tick2y_editor(n['time']+n['duration'])
+        #             sounding_dot(x, y, n)
 
-                if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
-                    x = io['calc'].pitch2x_editor(n['pitch'])
-                    y = io['calc'].tick2y_editor(note['time']+note['duration'])
-                    sounding_dot(x, y, n)
+        #         if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
+        #             x = io['calc'].pitch2x_editor(n['pitch'])
+        #             y = io['calc'].tick2y_editor(note['time']+note['duration'])
+        #             sounding_dot(x, y, n)
 
-                if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
-                    x = io['calc'].pitch2x_editor(n['pitch'])
-                    y = io['calc'].tick2y_editor(note['time'])
-                    sounding_dot(x, y, n)
+        #         if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
+        #             x = io['calc'].pitch2x_editor(n['pitch'])
+        #             y = io['calc'].tick2y_editor(note['time'])
+        #             sounding_dot(x, y, n)
 
-                if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
-                    x = io['calc'].pitch2x_editor(note['pitch'])
-                    y = io['calc'].tick2y_editor(n['time'])
-                    sounding_dot(x, y, n)
+        #         if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
+        #             x = io['calc'].pitch2x_editor(note['pitch'])
+        #             y = io['calc'].tick2y_editor(n['time'])
+        #             sounding_dot(x, y, n)
                 
-                if note['pitch'] in [n['pitch']-1, n['pitch']+1] and not noteheadup:
-                    # check if n is sounding at note start time or note start == n start time
-                    if GREATER(note_start, comp_start) and LESS(note_start, comp_end) or EQUALS(note_start, comp_start):
-                        noteheadup = True
-                        if n['pitch'] in BLACK_KEYS:
-                            try: io['drawn_obj'].remove(n['tag'])
-                            except: ...
+        #         if note['pitch'] in [n['pitch']-1, n['pitch']+1] and not noteheadup:
+        #             # check if n is sounding at note start time or note start == n start time
+        #             if GREATER(note_start, comp_start) and LESS(note_start, comp_end) or EQUALS(note_start, comp_start):
+        #                 noteheadup = True
+        #                 if n['pitch'] in BLACK_KEYS:
+        #                     try: io['drawn_obj'].remove(n['tag'])
+        #                     except: ...
 
-            # stop sign desicion:
-            if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
-                stopflag = False
+        #     # stop sign desicion:
+        #     if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
+        #         stopflag = False
 
-            # delete notestop sign if the new note starts at the same time as the end time of another note
-            if EQUALS(comp_end, note_start) and note['hand'] == n['hand'] and not note['tag'] == 'notecursor':
-                io['editor'].delete_if_with_all_tags([n['tag'], 'notestop'])
+        #     # delete notestop sign if the new note starts at the same time as the end time of another note
+        #     if EQUALS(comp_end, note_start) and note['hand'] == n['hand'] and not note['tag'] == 'notecursor':
+        #         io['editor'].delete_if_with_all_tags([n['tag'], 'notestop'])
         
-        # notestop sign:
-        if stopflag and not note['tag'] == 'notecursor':
-            x = io['calc'].pitch2x_editor(note['pitch'])
-            y = io['calc'].tick2y_editor(note['time']+note['duration'])
+        # # notestop sign:
+        # if stopflag and not note['tag'] == 'notecursor':
+        #     x = io['calc'].pitch2x_editor(note['pitch'])
+        #     y = io['calc'].tick2y_editor(note['time']+note['duration'])
 
-            if io['score']['properties']['stop_sign_style'] == 'Klavarskribo':
-                # traditional stop sign:
-                io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
-                    x, y,
-                    tag=[note['tag'], 'notestop'],
-                    width=2,
-                    color=color)
-                io['editor'].new_line(x, y,
-                    x+(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
-                    tag=[note['tag'], 'notestop'],
-                    width=2,
-                    color=color)
-            elif io['score']['properties']['stop_sign_style'] == 'PianoScript':
-                # experimental stopsign:
-                points = [(x, y-(STAFF_X_UNIT_EDITOR)), (x+(STAFF_X_UNIT_EDITOR/2), y), (x-(STAFF_X_UNIT_EDITOR/2), y)]
-                io['editor'].new_polygon(points,
-                    tag=[note['tag'], 'notestop'],
-                    width=0,
-                    fill_color=color)
-            io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
-                tag=[note['tag'], 'notestop'],
-                width=.75,
-                dash=[3, 3],
-                color=color)
+        #     if io['score']['properties']['stop_sign_style'] == 'Klavarskribo':
+        #         # traditional stop sign:
+        #         io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
+        #             x, y,
+        #             tag=[note['tag'], 'notestop'],
+        #             width=2,
+        #             color=color)
+        #         io['editor'].new_line(x, y,
+        #             x+(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
+        #             tag=[note['tag'], 'notestop'],
+        #             width=2,
+        #             color=color)
+        #     elif io['score']['properties']['stop_sign_style'] == 'PianoScript':
+        #         # experimental stopsign:
+        #         points = [(x, y-(STAFF_X_UNIT_EDITOR)), (x+(STAFF_X_UNIT_EDITOR/2), y), (x-(STAFF_X_UNIT_EDITOR/2), y)]
+        #         io['editor'].new_polygon(points,
+        #             tag=[note['tag'], 'notestop'],
+        #             width=0,
+        #             fill_color=color)
+        #     io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
+        #         tag=[note['tag'], 'notestop'],
+        #         width=.75,
+        #         dash=[3, 3],
+        #         color=color)
         
         # draw notehead
         x = io['calc'].pitch2x_editor(note['pitch'])
@@ -402,31 +405,37 @@ class Note:
         
         # delete from file and editor
         io['score']['events']['note'].remove(note)
+        if note in io['viewport']['events']['note']:
+            io['viewport']['events']['note'].remove(note)
         io['editor'].delete_with_tag([note['tag']])
-        if note['tag'] in io['drawn_obj']:
-            io['drawn_obj'].remove(note['tag'])
         
-        # check for notes to be drawn again for correcting the stop sign
-        note_start = note['time']
-        note_end = note['time']+note['duration']
-        for n in io['score']['events']['note']:
-            comp_start = n['time']
-            comp_end = n['time']+n['duration']
+        # # check for notes to be drawn again for correcting the stop sign
+        # note_start = note['time']
+        # note_end = note['time']+note['duration']
+        # for n in io['viewport']['events']['note']: #TODO: change folder structure in measures
+        #     comp_start = n['time']
+        #     comp_end = n['time']+n['duration']
 
-            if EQUALS(n['time']+n['duration'], note['time']) and n['hand'] == note['hand']:
-                io['drawn_obj'].remove(n['tag'])
+        #     if EQUALS(n['time']+n['duration'], note['time']) and n['hand'] == note['hand']:
+        #         if n['tag'] in io['drawn_obj']: 
+        #             io['drawn_obj'].remove(n['tag'])
+        #         io['viewport']['events']['note'].remove(n)
 
-            # check if there is another note thats one semitone hgher or lower then the removed
-            if note['pitch'] in [n['pitch']-1, n['pitch']+1] and n['pitch'] in BLACK_KEYS:
-                # check if start of the note is in between a note
-                if GREATER(note_start, comp_start) and LESS(note_start, comp_end):
-                    io['drawn_obj'].remove(n['tag']) # redraw this note
+        #     # check if there is another note thats one semitone hgher or lower then the removed
+        #     if note['pitch'] in [n['pitch']-1, n['pitch']+1] and n['pitch'] in BLACK_KEYS:
+        #         # check if start of the note is in between a note
+        #         if GREATER(note_start, comp_start) and LESS(note_start, comp_end):
+        #             if note['tag'] in io['drawn_obj']: 
+        #                 io['drawn_obj'].remove(n['tag']) # redraw this note
+        #             io['viewport']['events']['note'].remove(n)
                 
-                # check if note start is equal to the removed note
-                if EQUALS(note_start, comp_start):
-                    io['drawn_obj'].remove(n['tag']) # redraw ...
+        #         # check if note start is equal to the removed note
+        #         if EQUALS(note_start, comp_start):
+        #             if note['tag'] in io['drawn_obj']: 
+        #                 io['drawn_obj'].remove(n['tag']) # redraw ...
+        #             io['viewport']['events']['note'].remove(n)
         
-        io['maineditor'].draw_viewport()
+        # io['maineditor'].draw_viewport()
             
 
 
@@ -445,3 +454,55 @@ class Note:
     def draw_engraver(io, note):
 
         ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

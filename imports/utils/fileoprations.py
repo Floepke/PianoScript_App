@@ -36,8 +36,8 @@ class FileOperations:
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        #self.io['score'] = json.load(open('pianoscriptfiles/moonlight3.pianoscript', 'r'))
-        self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
+        self.io['score'] = json.load(open('pianoscriptfiles/moonlight1.pianoscript', 'r'))
+        #self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags
         self.io['calc'].renumber_tags()
@@ -47,6 +47,9 @@ class FileOperations:
 
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz()
+
+        # update page dimensions in the printview
+        self.io['gui'].print_view.update_page_dimensions()
 
     def save_check(self):
 
@@ -85,6 +88,17 @@ class FileOperations:
 
             # reset the ctlz buffer
             self.io['ctlz'].reset_ctlz()
+
+            # reset the saved flag
+            self.io['saved'] = True
+
+            # reset the selection
+            self.io['selection']['active'] = False
+            self.io['selection']['rectangle_on'] = False
+            self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
+
+            # update page dimensions in the printview
+            self.io['gui'].print_view.update_page_dimensions()
 
     def save(self):
         if self.savepath:

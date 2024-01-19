@@ -66,8 +66,8 @@ class SelectOperations:
                 if event_type in self.io['selection']['transpose_types']:
                     event['pitch'] += 1
                     if event['pitch'] > 88: event['pitch'] = 88
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 
@@ -82,8 +82,8 @@ class SelectOperations:
                 if event_type in self.io['selection']['transpose_types']:
                     event['pitch'] -= 1
                     if event['pitch'] < 1: event['pitch'] = 1
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 
@@ -97,8 +97,8 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 if event_type in self.io['selection']['move_types']:
                     event['time'] += self.io['snap_grid']
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 
@@ -112,8 +112,8 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 if event_type in self.io['selection']['move_types']:
                     event['time'] -= self.io['snap_grid']
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 
@@ -127,8 +127,8 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 if event_type in self.io['selection']['hand_types']:
                     event['hand'] = 'l'
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 
@@ -142,8 +142,8 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 if event_type in self.io['selection']['hand_types']:
                     event['hand'] = 'r'
-                    if event['tag'] in self.io['drawn_obj']:
-                        self.io['drawn_obj'].remove(event['tag'])
+                    if event in self.io['viewport']['events'][event_type]:
+                        self.io['viewport']['events'][event_type].remove(event)
 
         self.io['maineditor'].redraw_editor()
 

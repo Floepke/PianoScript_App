@@ -23,7 +23,29 @@ class SaveFileStructureSource:
             'startrepeat':[],
             'endrepeat':[],
             'starthook':[],
-            'endhook':[]
+            'endhook':[],
+            'stop':[],
+            'dot':[],
+        }
+    
+    def new_events_folder_viewport():
+        '''returns the structure of the events folder in a score file'''
+        return {
+            'note':[],
+            'linebreak':[],
+            'gracenote':[],
+            'text':[],
+            'beam':[],
+            'slur':[],
+            'pedal':[],
+            'countline':[],
+            'staffsizer':[],
+            'startrepeat':[],
+            'endrepeat':[],
+            'starthook':[],
+            'endhook':[],
+            'dot':[],
+            'stop':[],
         }
 
     def new_note(
@@ -82,17 +104,33 @@ class SaveFileStructureSource:
     def new_linebreak(
             tag: str, # linebreak+tagnumber to make tag unique
             time: float, # in linear time in pianoticks 0 to infinity
-            staff1_lr_margins: Tuple[float, float] = (10.0, 10.0), # tuple with two values: (leftmargin, rightmargin) in mm
-            staff2_lr_margins: Tuple[float, float] = (10.0, 10.0), # ...
-            staff3_lr_margins: Tuple[float, float] = (10.0, 10.0), 
-            staff4_lr_margins: Tuple[float, float] = (10.0, 10.0), 
+            staff1_lr_margins: list = [10.0, 10.0], # list with two values: (leftmargin, rightmargin) in mm
+            staff2_lr_margins: list = [10.0, 10.0], # ...
+            staff3_lr_margins: list = [10.0, 10.0], 
+            staff4_lr_margins: list = [10.0, 10.0],
+            staff1_range: list or str = 'auto', # list with two values: (lowestnote, highestnote) or string 'auto'
+            staff2_range: list or str = 'auto', # ...
+            staff3_range: list or str = 'auto',
+            staff4_range: list or str = 'auto'
             ):
         '''The linebreak event structure.'''
         return {
             'tag':tag,
             'time':time,
-            'staff1_lr_margins': staff1_lr_margins,
-            'staff2_lr_margins': staff2_lr_margins,
-            'staff3_lr_margins': staff3_lr_margins,
-            'staff4_lr_margins': staff4_lr_margins
+            'staff1':{
+                'margins':staff1_lr_margins,
+                'range':staff1_range
+            },
+            'staff2':{
+                'margins':staff2_lr_margins,
+                'range':staff2_range
+            },
+            'staff3':{
+                'margins':staff3_lr_margins,
+                'range':staff3_range
+            },
+            'staff4':{
+                'margins':staff4_lr_margins,
+                'range':staff4_range
+            }
         }

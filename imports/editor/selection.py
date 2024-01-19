@@ -46,12 +46,12 @@ class Selection:
 
             # disable the selection rectangle
             io['selection']['rectangle_on'] = False
-            io['selection']['x1'] = None
-            io['selection']['y1'] = None
-            io['selection']['x2'] = None
-            io['selection']['y2'] = None
+            io['selection']['x1'] = 0
+            io['selection']['y1'] = 0
+            io['selection']['x2'] = 0
+            io['selection']['y2'] = 0
 
-        io['maineditor'].draw_viewport()
+        #io['maineditor'].draw_viewport()
 
     @staticmethod
     def organize_selection_add(io, selected):
@@ -64,8 +64,8 @@ class Selection:
             for event in selected:
                 if event_type in event['tag']:
                     selection[event_type].append(event)
-                    if event['tag'] in io['drawn_obj']:
-                        io['drawn_obj'].remove(event['tag'])
+                    if event in io['viewport']['events'][event_type]:
+                        io['viewport']['events'][event_type].remove(event)
 
         return selection
     
@@ -77,8 +77,8 @@ class Selection:
         # delete all drawn_obj that where in the previous selection (selection_buffer)
         for event_type in io['selection']['selection_buffer'].keys():
             for event in io['selection']['selection_buffer'][event_type]:
-                if event['tag'] in io['drawn_obj']:
-                    io['drawn_obj'].remove(event['tag'])
+                if event in io['viewport']['events'][event_type]:
+                    io['viewport']['events'][event_type].remove(event) # TODO check if I can use new_events_folder() here instead
 
     @staticmethod
     def draw_selection_rectangle(io, x, y):
@@ -112,6 +112,8 @@ class Selection:
                                    dash=(6,6))
         io['editor'].tag_raise(['selectionrectangle'])
 
+        io['editor'].tag_raise(['selectionrectangle'])
+
     @staticmethod
     def detect_selection(io):
         '''detects if an object is in the selection rectangle'''
@@ -141,8 +143,8 @@ class Selection:
                 if event['pitch'] < note_min or event['pitch'] > note_max:
                     continue
                 io['selection']['selection_buffer'][evt_type].append(event)
-                if event['tag'] in io['drawn_obj']:
-                    io['drawn_obj'].remove(event['tag'])
+                if event in io['viewport']['events'][evt_type]:
+                    io['viewport']['events'][evt_type].remove(event)
 
 
 
