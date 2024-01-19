@@ -6,7 +6,6 @@ import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui.gui import Gui
 from imports.gui.style import stylesheet
-from PySide6.QtGui import Qt
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
@@ -91,7 +90,8 @@ class PianoScript():
             'viewport':{
                 'toptick':0,
                 'bottomtick':0,
-                'events':SaveFileStructureSource.new_events_folder()
+                'events':SaveFileStructureSource.new_events_folder_viewport(),
+                'already_drawn':[]
             },
 
             # total ticks

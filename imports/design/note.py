@@ -43,7 +43,7 @@ class Note:
                     duration=io['snap_grid'],
                     pitch=io['calc'].x2pitch_editor(x),
                     hand=io['hand'],
-                    staff=1,
+                    staff=0,
                     attached=''
                 )
                 Note.draw_editor(io, io['edit_obj'])
@@ -182,18 +182,18 @@ class Note:
 
         unit = STAFF_X_UNIT_EDITOR / 2
             
-        # # draw the stem
-        # thickness = 5
-        # if note['hand'] == 'l':
-        #     io['editor'].new_line(x, y, x - (unit * 5), y,
-        #                         tag=[note['tag'], 'stem'],
-        #                         width=thickness,
-        #                         color=color)
-        # elif note['hand'] == 'r':
-        #     io['editor'].new_line(x, y, x + (unit * 5), y,
-        #                         tag=[note['tag'], 'stem'],
-        #                         width=thickness,
-        #                         color=color)
+        # draw the stem
+        thickness = 5
+        if note['hand'] == 'l':
+            io['editor'].new_line(x, y, x - (unit * 5), y,
+                                tag=[note['tag'], 'stem'],
+                                width=thickness,
+                                color=color)
+        elif note['hand'] == 'r':
+            io['editor'].new_line(x, y, x + (unit * 5), y,
+                                tag=[note['tag'], 'stem'],
+                                width=thickness,
+                                color=color)
             
         # draw the midi note
         if note['tag'] == 'edit_obj':

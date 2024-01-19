@@ -40,7 +40,7 @@
         "accidental_onoff": true,
         "soundingdot_onoff": true,
         "leftdot_onoff": true,
-        "staffs": (
+        "staffs": [
             {
                 "onoff": true,
                 "name": "Staff 1",
@@ -61,7 +61,7 @@
                 "name": "Staff 4",
                 "scale": 1.0
             }
-        )
+        ]
     },
     "events": {
         "grid": [

@@ -70,17 +70,17 @@ class LineBreak:
             color='blue'
 
         # add the new linebreak
-        io['editor'].new_rectangle(RIGHT - (EDITOR_MARGIN/2), y, RIGHT - (EDITOR_MARGIN/4), y+height,
+        io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/2), y, EDITOR_RIGHT - (EDITOR_MARGIN/4), y+height,
                             tag=[linebreak['tag'], 'linebreak'],
                             fill_color='#00008833',
                             outline_color=color,
                             width=3)
-        io['editor'].new_text(RIGHT - (EDITOR_MARGIN/4*1.5), y+(height*.5), 'B',
+        io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*1.5), y+(height*.5), 'B',
                             tag=[linebreak['tag'], 'linebreak'],
                             font='Courier New',
                             size=32,
                             color=color)
-        io['editor'].new_line(RIGHT - EDITOR_MARGIN, y, RIGHT - (EDITOR_MARGIN/3), y,
+        io['editor'].new_line(EDITOR_RIGHT - EDITOR_MARGIN, y, EDITOR_RIGHT - (EDITOR_MARGIN/3), y,
                             tag=[linebreak['tag'], 'linebreak'],
                             color=color,
                             dash=(2,2),

@@ -69,7 +69,7 @@ class CalcTools:
         
         # evaluate pitch (between 1 and 88) and create initial x position 
         pitch = max(1, min(88, pitch))
-        x = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
+        x = EDITOR_LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
         
         # 21 is A0, 109 is C8 (based on midi note numbers); 12 is octave, 0 is C, 5 is F
         for n in range(1, 89):
@@ -85,7 +85,7 @@ class CalcTools:
 
         # make a list of all x key center positions
         x_positions = []
-        x_pos = LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
+        x_pos = EDITOR_LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
         for n in range(1, 89):
             x_pos += STAFF_X_UNIT_EDITOR if n % 12 in [4, 9] else STAFF_X_UNIT_EDITOR / 2
             x_positions.append(x_pos)

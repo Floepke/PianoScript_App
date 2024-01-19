@@ -20,6 +20,7 @@ FRACTION = 0.0000001
 # if we write a property in the blueprint that is not in the score, it will be added to the score by the
 # FixScore() class based on this blueprint. TODO: Create a FixScore class
 import datetime
+from imports.utils.savefilestructure import SaveFileStructureSource
 SCORE_TEMPLATE = {
     'header':{
         'title':'Untitled',
@@ -32,7 +33,8 @@ SCORE_TEMPLATE = {
         'comment':''
     },
     'properties':{
-        'page_orientation':'portrait', # portait or landscape
+        'page_width':210, # all measurements are in millimeters
+        'page_height':297,
         'page_margin_left':10,
         'page_margin_right':10,
         'page_margin_up':10,
@@ -106,32 +108,15 @@ SCORE_TEMPLATE = {
     'note':[],
     'countline':[],
     'linebreak':[
-        {
-                "tag": "lockedlinebreak",
-                "time": -FRACTION,
-                "staff1_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff2_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff3_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff4_lr_margins": [
-                    10.0,
-                    10.0
-                ]
-            }
+        SaveFileStructureSource.new_linebreak('lockedlinebreak', 0)
     ],
     'staffsizer':[],
     'startrepeat':[],
     'endrepeat':[],
     'starthook':[],
-    'endhook':[]
+    'endhook':[],
+    'dot':[],
+    'stop':[],
   }
 }
 
@@ -159,31 +144,27 @@ def GREATER(a, b):
 # ----------editor and printview dimensions for easy calculations (all pixel values get's scaled by the QGraphicView)----------
 
 # the width of the QGraphicView
-WIDTH = 1024
+EDITOR_WIDTH = 1024
 
 # the margin of the QGraphicView
-EDITOR_MARGIN = WIDTH / 6
-
-# the height of the QGraphicView (only used in the printview)
-import math
-HEIGHT = WIDTH * math.sqrt(2)
+EDITOR_MARGIN = EDITOR_WIDTH / 6
 
 # the right side position of the QGraphicView
-RIGHT = WIDTH / 2
+EDITOR_RIGHT = EDITOR_WIDTH / 2
 
 # the left side position of the QGraphicView
-LEFT = -RIGHT
+EDITOR_LEFT = -EDITOR_RIGHT
 
 # the top side position of the QGraphicView
-TOP = 0
-
-# the bottom side position of the QGraphicView (only used in the printview)
-BOTTOM = HEIGHT
+EDITOR_TOP = 0
 
 # the x unit is the distance between (for example) the c# and d# stafflines.
 # 49 is the sum of units of a full piano keyboard if we count the units from key 2 to 87,
 # which are the outer sides of the staff in the editor.
-STAFF_X_UNIT_EDITOR = (WIDTH - (EDITOR_MARGIN * 2)) / 49
+STAFF_X_UNIT_EDITOR = (EDITOR_WIDTH - (EDITOR_MARGIN * 2)) / 49
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
+# this is the staff x unit but in relation to mm. So the size in mm of the distance 
+# between the c# and d# stafflines (if the draw_scale is set to 1.0).
+PITCH_UNIT = 1

@@ -11,7 +11,7 @@ class GraphicsViewEngraver(QGraphicsView):
 
     def __init__(self, scene, io, parent=None):
         super().__init__(scene, parent)
-        self.standard_width = WIDTH
+        self.standard_width = EDITOR_WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resetTransform()
         scale_factor = self.width() / self.standard_width
@@ -21,6 +21,7 @@ class GraphicsViewEngraver(QGraphicsView):
 
         # Enable antialiasing
         self.setRenderHint(QPainter.Antialiasing)
+        self.setOptimizationFlag(QGraphicsView.DontAdjustForAntialiasing)
 
         self.io = io
 
@@ -66,3 +67,8 @@ class GraphicsViewEngraver(QGraphicsView):
         elif event.button() == Qt.MiddleButton:
             print('Middle button released')
         print('Mouse position:', event.pos())
+
+    def update_page_dimensions(self):
+        self.standard_width = self.io['score']['properties']['page_width']
+        self.resizeEvent(None)
+        

@@ -4,6 +4,8 @@ import threading, traceback
 from imports.engraver.engravercalc import *
 from imports.utils.constants import *
 
+from pprint import pprint
+
 '''
     The Renderer is a really long script. I chose to write it only in functions because 
     I like to program that way. I try to program it in a steps way. First we pre_calculate() 
@@ -14,6 +16,17 @@ from imports.utils.constants import *
 '''
 
 def render(io, render_type='default'): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
+
+    # set scene dimensions
+    if render_type == 'default':
+        scene_width = io['score']['properties']['page_width']
+        scene_height = io['score']['properties']['page_height']
+    else:
+        scene_width = io['score']['properties']['page_width']
+        scene_height = 0 # TODO: calculate the height of the entire score by counting the pages
+
+    # set scene rectangle
+    io['gui'].print_scene.setSceneRect(0, 0, scene_width, scene_height) # TODO: check if it looks ok
 
     def pre_calculate(io):
         
@@ -56,18 +69,16 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
         staff_widths = []
         
         # page dimentions
-        page_orientation = io['score']['properties']['page_orientation']
         page_margin_left = io['score']['properties']['page_margin_left']
         page_margin_right = io['score']['properties']['page_margin_right']
         page_margin_top = io['score']['properties']['page_margin_up']
         page_margin_bottom = io['score']['properties']['page_margin_down']
+        page_width = io['score']['properties']['page_width']
+        page_height = io['score']['properties']['page_height']
+
+        # staff dimentions
         draw_scale = io['score']['properties']['draw_scale']
-        if page_orientation in ['portrait', 'p'] or not page_orientation:
-            page_width = WIDTH
-            page_height = HEIGHT
-        elif page_orientation in ['landscape', 'l']:
-            page_width = HEIGHT
-            page_height = WIDTH
+        linebreaks = sorted(io['score']['events']['linebreak'], key=lambda y: y['time'])
 
         '''
         first we add all types of events:
@@ -132,14 +143,16 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
         
         # now we sort the events on time-key
         DOC = sorted(DOC, key=lambda y: y['time'])
-            
 
-        '''organizing all events in lists of lines'''
+
+        '''
+            organizing all events in lists of lines:
+        '''
+
         # make a list of tuples for each line: (start_time, end_time)
         linebreak_time_sets = []
-        score_linebreak = sorted(io['score']['events']['linebreak'], key=lambda y: y['time'])
-        for idx, lb in enumerate(sorted(score_linebreak, key=lambda y: y['time'])):
-            try: nxt = score_linebreak[idx+1]['time']
+        for idx, lb in enumerate(sorted(linebreaks, key=lambda y: y['time'])):
+            try: nxt = linebreaks[idx+1]['time']
             except IndexError: nxt = float('inf')
             linebreak_time_sets.append((lb['time'], nxt))
         
@@ -173,10 +186,45 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
             organizing all lines in lists of pages. We do this 
             by pre calculating the width and margins of every 
             staff and test if the line fit on the page. If it
-            doesn't fit we add it to the next page and so on.
+            doesn't fit we add it to the next page and so on:
         '''
 
-        # pre calculate the width and margins of every staff
+        # get the line width of every line [[widthstaff1, widthstaff2, widthstaff3, widthstaff4], ...]]
+        line_widths = []
+        for lb, line in zip(linebreaks, DOC):
+
+            staff1_width = 0
+            staff2_width = 0
+            staff3_width = 0
+            staff4_width = 0
+
+            # get the highest and lowest pitch of every staff
+            range_every_staff = range_staffs(io, line, lb)
+
+            # calculate the width of every staff
+            for idx, res in enumerate(range_every_staff):
+                if idx == 0:
+                    staff1_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                elif idx == 1:
+                    staff2_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                elif idx == 2:
+                    staff3_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                elif idx == 3:
+                    staff4_width += calculate_staff_width(res[0], res[1]) * draw_scale
+
+            # add the margins to the staff width
+            if staff1_width: staff1_width += (lb['staff1']['margins'][0] + lb['staff1']['margins'][1]) * draw_scale
+            if staff2_width: staff2_width += (lb['staff2']['margins'][0] + lb['staff2']['margins'][1]) * draw_scale
+            if staff3_width: staff3_width += (lb['staff3']['margins'][0] + lb['staff3']['margins'][1]) * draw_scale
+            if staff4_width: staff4_width += (lb['staff4']['margins'][0] + lb['staff4']['margins'][1]) * draw_scale
+
+            line_widths.append([staff1_width, staff2_width, staff3_width, staff4_width])
+        
+        print(line_widths)
+
+
+        # for linebreak in io['score']['events']['linebreak']:
+        #     pprint(linebreak)
 
 
         

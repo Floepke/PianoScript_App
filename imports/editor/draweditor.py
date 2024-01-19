@@ -10,19 +10,19 @@ class DrawEditor:
         '''Draws the title and composer name of the score file on the topleft corner of the editor'''
 
         # draw title background
-        io['editor'].new_rectangle(LEFT, TOP, RIGHT, EDITOR_MARGIN,
+        io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
                                       fill_color='#fee', 
                                       outline_color='#fee',
                                       tag=['titlebackground'])
         
         # draw bottom background to hide the stafflines
-        io['editor'].new_rectangle(LEFT, TOP, RIGHT, EDITOR_MARGIN,
+        io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
                                       fill_color='#fee', 
                                       outline_color='#fee',
                                       tag=['titlebackground'])
 
         title = "'" + io['score']['header']['title'] + "'" + ' by composer: ' + io['score']['header']['composer']
-        io['editor'].new_text(LEFT, 0, title, 
+        io['editor'].new_text(EDITOR_LEFT, 0, title, 
                               tag=['titletext'], 
                               anchor='nw', 
                               size=20, 
@@ -34,10 +34,10 @@ class DrawEditor:
         
         # calculating staff length
         editor_zoom = io['score']['properties']['editor_zoom']
-        staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)+EDITOR_MARGIN+EDITOR_MARGIN
+        staff_length = io['total_ticks'] * (editor_zoom / QUARTER_PIANOTICK)
         # get the total screen height of the pc
 
-        x_curs = LEFT + EDITOR_MARGIN
+        x_curs = EDITOR_LEFT + EDITOR_MARGIN
 
         # draw the A#0 staffline
         io['editor'].new_line(x_curs,
@@ -83,7 +83,7 @@ class DrawEditor:
         '''Draws the barlines, grid, timesignature and measure numbers'''
 
         # calculating dimensions
-        staff_width = WIDTH - (EDITOR_MARGIN * 2)
+        staff_width = EDITOR_WIDTH - (EDITOR_MARGIN * 2)
         editor_zoom = io['score']['properties']['editor_zoom']
 
         y_cursor = EDITOR_MARGIN
@@ -93,29 +93,29 @@ class DrawEditor:
             io['editor'].delete_with_tag(['barline', 'timesignature', 'measurenumber', 'gridline'])
 
             # draw the timesignature indicator
-            io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), 
+            io['editor'].new_text(EDITOR_LEFT + (EDITOR_MARGIN / 2), 
                                   y_cursor,
                                   str(gr['numerator']), 
                                   tag=['timesignature'], 
                                   anchor='s', 
                                   size=40, 
                                   font='Courier New')
-            io['editor'].new_line(LEFT + EDITOR_MARGIN - (EDITOR_MARGIN / 3), 
+            io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN - (EDITOR_MARGIN / 3), 
                                   y_cursor, 
-                                  LEFT + (EDITOR_MARGIN / 3), 
+                                  EDITOR_LEFT + (EDITOR_MARGIN / 3), 
                                   y_cursor, 
                                   width=6, 
                                   tag=['timesignature'], 
                                   color='black')
-            io['editor'].new_line(LEFT + EDITOR_MARGIN, 
+            io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN, 
                                   y_cursor, 
-                                  LEFT + (EDITOR_MARGIN / 3), 
+                                  EDITOR_LEFT + (EDITOR_MARGIN / 3), 
                                   y_cursor,
                                   width=2,
                                   tag=['timesignature'],
                                   color='black',
                                   dash=(2, 4))
-            io['editor'].new_text(LEFT + (EDITOR_MARGIN / 2), 
+            io['editor'].new_text(EDITOR_LEFT + (EDITOR_MARGIN / 2), 
                                   y_cursor, 
                                   str(gr['denominator']),
                                   tag=['timesignature'], 
@@ -134,16 +134,16 @@ class DrawEditor:
                 if y_cursor > top-1000 and y_cursor < bttm+1000:
                 
                     # draw the barline
-                    io['editor'].new_line(LEFT + EDITOR_MARGIN,
+                    io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN,
                                         y_cursor,
-                                        RIGHT - EDITOR_MARGIN,
+                                        EDITOR_RIGHT - EDITOR_MARGIN,
                                         y_cursor,
                                         width=2,
                                         tag=['barline'],
                                         color='black')
                     
                     # draw the measure number
-                    io['editor'].new_text(LEFT,
+                    io['editor'].new_text(EDITOR_LEFT,
                                         y_cursor,
                                         str(measure_numbering),
                                         tag=['measurenumber'],
@@ -154,9 +154,9 @@ class DrawEditor:
                     # draw the gridlines
                     for tick in gr['grid']:
                         tick *= (editor_zoom / QUARTER_PIANOTICK)
-                        io['editor'].new_line(LEFT + EDITOR_MARGIN,
+                        io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN,
                                             y_cursor + tick,
-                                            LEFT + EDITOR_MARGIN + staff_width,
+                                            EDITOR_LEFT + EDITOR_MARGIN + staff_width,
                                             y_cursor + tick,
                                             width=0.5,
                                             tag=['gridline'],
@@ -168,9 +168,9 @@ class DrawEditor:
 
                 # if this is the last iteration and last iteration from gr: draw the endline
                 if _ == amount - 1 and gr == io['score']['events']['grid'][-1]:
-                    io['editor'].new_line(LEFT + EDITOR_MARGIN,
+                    io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN,
                                           y_cursor,
-                                          LEFT + EDITOR_MARGIN + staff_width,
+                                          EDITOR_LEFT + EDITOR_MARGIN + staff_width,
                                           y_cursor,
                                           width=4,
                                           tag=['barline'],
@@ -187,12 +187,12 @@ class DrawEditor:
         y = io['calc'].tick2y_editor(y)
 
         # draw the new cursor
-        io['editor'].new_line(LEFT, y, LEFT+EDITOR_MARGIN, y,
+        io['editor'].new_line(EDITOR_LEFT, y, EDITOR_LEFT+EDITOR_MARGIN, y,
                               width=2, 
                               tag=['cursor'], 
                               color='black',
                               dash=(4,4))
-        io['editor'].new_line(RIGHT-EDITOR_MARGIN, y, RIGHT, y,
+        io['editor'].new_line(EDITOR_RIGHT-EDITOR_MARGIN, y, EDITOR_RIGHT, y,
                               width=2, 
                               tag=['cursor'], 
                               color='black',
@@ -219,46 +219,31 @@ class DrawEditor:
     
     
     @staticmethod
-    def update_soundingdots_and_stopsigns(io):
+    def add_soundingdots_and_stopsigns_to_viewport(io):
         '''updates the soundingdots and stopsings'''
-        print('----------start----------')
-        for i in io['viewport']['events']['note']:
-            print(i)
 
         # delete the old soundingdots and stopsings
-        io['editor'].delete_with_tag(['soundingdot', 'notestop', 'connectstem'])
+        io['editor'].delete_with_tag(['notestop', 'connectstem'])
 
         unit = STAFF_X_UNIT_EDITOR / 2
         color = '#000000'
 
         for note in io['viewport']['events']['note']:
-
+            
             note_start = note['time']
             note_end = note['time']+note['duration']
             stopflag = True
 
-            # draw the sounding dot
-            def sounding_dot(x, y, n=None, fcolor='black'):
-                if n:
-                    tag = [n['tag'], note['tag'], 'soundingdot']
-                else:
-                    tag = [note['tag'], 'soundingdot']
-                if io['score']['properties']['continuation_dot_style'] == 'Klavarskribo':
-                    # Klavarskribo continuation dot
-                    io['editor'].new_oval(x-(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR /4),
-                        x+(STAFF_X_UNIT_EDITOR/4),y+(STAFF_X_UNIT_EDITOR/4*3),
-                        outline_color='black',
-                        fill_color='#000000',
-                        tag=tag)
-                elif io['score']['properties']['continuation_dot_style'] == 'PianoScript':
-                    # experimantal continuation symbol
-                    points = [(x-unit,y), (x,y+unit+unit), (x+unit,y)]
-                    io['editor'].new_polygon(points, fill_color='black', outline_color='', tag=tag)
-                io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
-                        tag=tag,
-                        width=.75,
-                        dash=[3, 3],
-                        color=color)
+            # add the sounding dot to the drawing queue
+            def sounding_dot(time, pitch, n):
+                tag = [n['tag'], note['tag'], 'soundingdot']
+                dot = {
+                    'tag': tag,
+                    'time':time,
+                    'pitch':pitch,
+                }
+                if not dot in io['viewport']['events']['dot']:
+                    io['viewport']['events']['dot'].append(dot)
 
             for n in io['viewport']['events']['note']: # N == THE COMPARED NOTE TODO: change folder structure in measures
                 # connect chords (if two or more notes start at the same time)
@@ -279,34 +264,21 @@ class DrawEditor:
                 comp_start = n['time']
                 comp_end = n['time']+n['duration']
                 # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
-                if not note['tag'] == 'notecursor':
-                    if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']: 
-                        x = io['calc'].pitch2x_editor(note['pitch'])
-                        y = io['calc'].tick2y_editor(n['time']+n['duration'])
-                        sounding_dot(x, y, n)
+                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
+                    sounding_dot(n['time']+n['duration'], note['pitch'], n)
 
-                    if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
-                        x = io['calc'].pitch2x_editor(n['pitch'])
-                        y = io['calc'].tick2y_editor(note['time']+note['duration'])
-                        sounding_dot(x, y, n)
+                if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
+                    sounding_dot(note['time']+note['duration'], n['pitch'], n)
 
-                    if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
-                        x = io['calc'].pitch2x_editor(n['pitch'])
-                        y = io['calc'].tick2y_editor(note['time'])
-                        sounding_dot(x, y, n)
+                if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
+                    sounding_dot(note['time'], n['pitch'], n)
 
-                    if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
-                        x = io['calc'].pitch2x_editor(note['pitch'])
-                        y = io['calc'].tick2y_editor(n['time'])
-                        sounding_dot(x, y, n)
+                if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
+                    sounding_dot(n['time'], note['pitch'], n)
 
                 # stop sign desicion:
                 if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
                     stopflag = False
-
-                # delete notestop sign if the new note starts at the same time as the end time of another note
-                if EQUALS(comp_end, note_start) and note['hand'] == n['hand'] and not note['tag'] == 'notecursor':
-                    io['editor'].delete_if_with_all_tags([n['tag'], 'notestop'])
             
             # notestop sign:
             if stopflag and not note['tag'] == 'notecursor':
@@ -337,3 +309,22 @@ class DrawEditor:
                     width=.75,
                     dash=[3, 3],
                     color=color)
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
