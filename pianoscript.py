@@ -106,7 +106,8 @@ class PianoScript():
             # edit_obj == the object that is being edited
             'edit_obj':None,
 
-            # handle
+            # selected page number for the engraver
+            'selected_page':0
         }
 
         # setup

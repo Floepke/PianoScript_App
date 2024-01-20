@@ -77,7 +77,7 @@ def calculate_staff_width(key_min, key_max):
 
     # calculate the width
     width = 0
-    for n in range(key_min, key_max):
+    for n in range(key_min-1, key_max+1): # NOTE: not sure about the +1 and -1
         width += PITCH_UNIT * 2 if ((n-1)%12)+1 in [4, 9] and not n == key_min else PITCH_UNIT
     return width
 
@@ -103,8 +103,8 @@ def range_staffs(io, line, linebreak):
 
     for i in range(4):
         if io['score']['properties']['staffs'][i]['onoff']:
-            pitches[0][0] = 40
-            pitches[0][1] = 44
+            pitches[i][0] = 40
+            pitches[i][1] = 44
 
     for idx, range1 in enumerate(ranges):
         if range1 == 'auto': 
@@ -126,8 +126,80 @@ def range_staffs(io, line, linebreak):
         [min(pitches[3]), max(pitches[3])]
     ]
     return out
-        
 
+
+def draw_staff(x_cursor: float, 
+               y_cursor: float, 
+               key_min: int, 
+               key_max: int, 
+               io: dict, 
+               staff_length: float):
+
+    # if there is no key_min and key_max return 0
+    if key_min == 0 and key_max == 0:
+        return 0
+    
+    # trim the key_min, key_max to force the range to be at the outer sides of the staff
+    # we draw the staff from the outer left position to the outer right position
+    key_min, key_max = min(key_min, 40), max(key_max, 44)
+    mn_offset = {4:0, 5:-1, 6:-2, 7:-3, 8:-4, 9:0, 10:-1, 11:-2, 12:-3, 1:-4, 2:-5, 3:-6}
+    mx_offset = {4:4, 5:3, 6:2, 7:1, 8:0, 9:6, 10:5, 11:4, 12:3, 1:2, 2:1, 3:0}
+    key_min += mn_offset[((key_min-1)%12)+1]
+    key_max += mx_offset[((key_max-1)%12)+1]
+    key_min, key_max = max(key_min, 1), min(key_max, 88)
+
+    # draw the staff
+    for n in range(key_min, key_max):
+        remainder = ((n-1)%12)+1
+        scale = io['score']['properties']['draw_scale']
+        x_cursor += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * scale
+        if remainder in [5, 7]: # if it's one of the c# d# keys
+            # draw line thin for the group of two
+            if n in [41, 43]:
+                # dashed clef lines, the central lines of the staff
+                io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
+                                width=.2, 
+                                color='#000000',
+                                dash=[5, 5])
+            else:
+                # normal group of two lines
+                io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
+                                width=.2, 
+                                color='#000000')
+        elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
+            # draw line thick for the group of three
+            io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
+                                width=.4, 
+                                color='#000000')
+            
+
+def get_system_ticks(io):
+
+    linebreaks = io['score']['events']['linebreak'] # get all linebreaks
+    linebreaks = sorted(linebreaks, key=lambda x: x['time']) # sort the linebreaks on time
+    linebreaks = [lb['time'] for lb in linebreaks] # get only the times of the linebreaks
+    last_tick = io['calc'].get_total_score_ticks()
+
+    # get the system ticks
+    system_ticks = []
+    for idx, lb in enumerate(linebreaks):
+        system_ticks.append([lb, last_tick if idx == len(linebreaks)-1 else linebreaks[idx+1]])
+    
+    return system_ticks
+
+
+def tick2y_view(time: float, io: dict, staff_height: float, line_number: int):
+    '''
+        time2y_view converts a time value to a y value in the print view.
+    '''
+
+    system_ticks = get_system_ticks(io)
+    line_ticks = system_ticks[line_number]
+    
+    # claculate the y from the staff_height
+    y = staff_height * (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0])
+    
+    return y
 
 
 

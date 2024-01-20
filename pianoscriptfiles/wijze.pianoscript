@@ -5,7 +5,7 @@
         "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
         "app_name": "pianoscript",
         "app_version": 1.0,
-        "timestamp": "10-01-2024_18:18:04",
+        "timestamp": "20-01-2024_00:11:38",
         "genre": "",
         "comment": ""
     },
@@ -16,15 +16,16 @@
         "page_margin_right": 10,
         "page_margin_up": 10,
         "page_margin_down": 10,
-        "draw_scale": 1,
+        "draw_scale": 0.75,
         "header_height": 10,
         "footer_height": 10,
         "color_right_midinote": "#c8c8c8",
         "color_left_midinote": "#c8c8c8",
-        "editor_zoom": 110,
+        "editor_zoom": 80,
         "black_note_rule": "OnlyChordUp",
         "threeline_scale": 1,
         "stop_sign_style": "PianoScript",
+        "continuation_dot_style": "Klavarskribo",
         "staff_onoff": true,
         "minipiano_onoff": true,
         "stem_onoff": true,
@@ -40,29 +41,28 @@
         "accidental_onoff": true,
         "soundingdot_onoff": true,
         "leftdot_onoff": true,
-        "staffs": {
-            "1": {
+        "staffs": [
+            {
                 "onoff": true,
-                "staff_number": 0,
+                "name": "Staff 1",
                 "staff_scale": 1.0
             },
-            "2": {
+            {
                 "onoff": false,
-                "staff_number": 1,
+                "name": "Staff 2",
                 "staff_scale": 1.0
             },
-            "3": {
+            {
                 "onoff": false,
-                "staff_number": 2,
+                "name": "Staff 3",
                 "staff_scale": 1.0
             },
-            "4": {
+            {
                 "onoff": false,
                 "name": "Staff 4",
-                "staff_number": 3,
                 "staff_scale": 1.0
             }
-        }
+        ]
     },
     "events": {
         "grid": [
@@ -88,7 +88,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note3",
@@ -98,7 +99,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note4",
@@ -108,7 +110,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note5",
@@ -118,7 +121,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note6",
@@ -128,7 +132,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note7",
@@ -138,7 +143,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note8",
@@ -148,7 +154,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note9",
@@ -158,7 +165,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note10",
@@ -168,7 +176,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note11",
@@ -178,7 +187,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note12",
@@ -188,7 +198,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note13",
@@ -198,7 +209,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note14",
@@ -208,7 +220,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note15",
@@ -218,7 +231,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note16",
@@ -228,7 +242,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note17",
@@ -238,7 +253,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note18",
@@ -248,7 +264,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note19",
@@ -258,7 +275,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note20",
@@ -268,7 +286,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note21",
@@ -278,7 +297,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note22",
@@ -288,7 +308,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note23",
@@ -298,7 +319,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note24",
@@ -308,7 +330,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note25",
@@ -318,7 +341,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note26",
@@ -328,7 +352,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note27",
@@ -338,7 +363,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note28",
@@ -348,7 +374,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note29",
@@ -358,7 +385,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note30",
@@ -368,7 +396,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note31",
@@ -378,7 +407,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note32",
@@ -388,7 +418,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note33",
@@ -398,7 +429,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note34",
@@ -408,7 +440,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note35",
@@ -418,7 +451,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note36",
@@ -428,7 +462,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note37",
@@ -438,7 +473,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note38",
@@ -448,7 +484,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note39",
@@ -458,7 +495,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note40",
@@ -468,7 +506,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note41",
@@ -478,7 +517,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note42",
@@ -488,7 +528,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note43",
@@ -498,7 +539,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note44",
@@ -508,7 +550,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note45",
@@ -518,7 +561,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note46",
@@ -528,7 +572,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note47",
@@ -538,7 +583,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note48",
@@ -548,7 +594,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note49",
@@ -558,7 +605,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note50",
@@ -568,7 +616,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note51",
@@ -578,7 +627,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note52",
@@ -588,7 +638,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note53",
@@ -598,7 +649,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note54",
@@ -608,7 +660,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note55",
@@ -618,7 +671,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note56",
@@ -628,7 +682,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note57",
@@ -638,7 +693,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note58",
@@ -648,7 +704,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note59",
@@ -658,7 +715,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note60",
@@ -668,7 +726,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note61",
@@ -678,7 +737,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note62",
@@ -688,7 +748,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note63",
@@ -698,7 +759,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note64",
@@ -708,7 +770,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note65",
@@ -718,7 +781,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note66",
@@ -728,7 +792,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note67",
@@ -738,7 +803,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note68",
@@ -748,7 +814,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note69",
@@ -758,7 +825,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note70",
@@ -768,7 +836,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note71",
@@ -778,7 +847,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note72",
@@ -788,7 +858,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note73",
@@ -798,7 +869,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note74",
@@ -808,7 +880,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note75",
@@ -818,7 +891,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note76",
@@ -828,7 +902,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note77",
@@ -838,7 +913,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note78",
@@ -848,7 +924,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note79",
@@ -858,7 +935,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note80",
@@ -868,7 +946,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note81",
@@ -878,7 +957,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note82",
@@ -888,7 +968,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note83",
@@ -898,7 +979,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note84",
@@ -908,7 +990,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note85",
@@ -918,7 +1001,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note86",
@@ -928,7 +1012,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note87",
@@ -938,7 +1023,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note88",
@@ -948,7 +1034,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note89",
@@ -958,7 +1045,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note90",
@@ -968,7 +1056,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note91",
@@ -978,7 +1067,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note92",
@@ -988,7 +1078,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note93",
@@ -998,7 +1089,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note94",
@@ -1008,7 +1100,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note95",
@@ -1018,7 +1111,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note96",
@@ -1028,7 +1122,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note97",
@@ -1038,7 +1133,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note98",
@@ -1048,7 +1144,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note99",
@@ -1058,7 +1155,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note100",
@@ -1068,7 +1166,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note101",
@@ -1078,7 +1177,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note102",
@@ -1088,7 +1188,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note103",
@@ -1098,7 +1199,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note104",
@@ -1108,7 +1210,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note105",
@@ -1118,7 +1221,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note106",
@@ -1128,7 +1232,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note107",
@@ -1138,7 +1243,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note108",
@@ -1148,7 +1254,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note109",
@@ -1158,7 +1265,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note110",
@@ -1168,7 +1276,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note111",
@@ -1178,7 +1287,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note112",
@@ -1188,7 +1298,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note113",
@@ -1198,7 +1309,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note114",
@@ -1208,7 +1320,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note115",
@@ -1218,7 +1331,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note116",
@@ -1228,7 +1342,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note117",
@@ -1238,7 +1353,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note118",
@@ -1248,7 +1364,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note119",
@@ -1258,7 +1375,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note120",
@@ -1268,7 +1386,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note121",
@@ -1278,7 +1397,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note122",
@@ -1288,7 +1408,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note123",
@@ -1298,7 +1419,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note124",
@@ -1308,7 +1430,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note125",
@@ -1318,7 +1441,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note126",
@@ -1328,7 +1452,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note127",
@@ -1338,7 +1463,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note128",
@@ -1348,7 +1474,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note129",
@@ -1358,7 +1485,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note130",
@@ -1368,7 +1496,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note131",
@@ -1378,7 +1507,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note132",
@@ -1388,7 +1518,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note133",
@@ -1398,7 +1529,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note134",
@@ -1408,7 +1540,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note135",
@@ -1418,7 +1551,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note136",
@@ -1428,7 +1562,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note137",
@@ -1438,7 +1573,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note138",
@@ -1448,7 +1584,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note139",
@@ -1458,7 +1595,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note140",
@@ -1468,7 +1606,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note141",
@@ -1478,7 +1617,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note142",
@@ -1488,7 +1628,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note143",
@@ -1498,7 +1639,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note144",
@@ -1508,7 +1650,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note145",
@@ -1518,7 +1661,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note146",
@@ -1528,7 +1672,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note147",
@@ -1538,7 +1683,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note148",
@@ -1548,7 +1694,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note149",
@@ -1558,7 +1705,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note150",
@@ -1568,7 +1716,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note151",
@@ -1578,7 +1727,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note152",
@@ -1588,7 +1738,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note153",
@@ -1598,7 +1749,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note154",
@@ -1608,7 +1760,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note155",
@@ -1618,7 +1771,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note156",
@@ -1628,7 +1782,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note157",
@@ -1638,7 +1793,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note158",
@@ -1648,7 +1804,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note159",
@@ -1658,7 +1815,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note160",
@@ -1668,7 +1826,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note161",
@@ -1678,7 +1837,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note162",
@@ -1688,7 +1848,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note163",
@@ -1698,7 +1859,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note164",
@@ -1708,7 +1870,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note165",
@@ -1718,7 +1881,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note166",
@@ -1728,7 +1892,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note167",
@@ -1738,7 +1903,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note168",
@@ -1748,7 +1914,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note169",
@@ -1758,7 +1925,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note170",
@@ -1768,7 +1936,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note171",
@@ -1778,7 +1947,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note172",
@@ -1788,7 +1958,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note173",
@@ -1798,7 +1969,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note174",
@@ -1808,7 +1980,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note175",
@@ -1818,7 +1991,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note176",
@@ -1828,7 +2002,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note177",
@@ -1838,7 +2013,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note178",
@@ -1848,7 +2024,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note179",
@@ -1858,7 +2035,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note180",
@@ -1868,7 +2046,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note181",
@@ -1878,7 +2057,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note182",
@@ -1888,7 +2068,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note183",
@@ -1898,7 +2079,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note184",
@@ -1908,7 +2090,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note185",
@@ -1918,7 +2101,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note186",
@@ -1928,7 +2112,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note187",
@@ -1938,7 +2123,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note188",
@@ -1948,7 +2134,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note189",
@@ -1958,7 +2145,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note190",
@@ -1968,7 +2156,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note191",
@@ -1978,7 +2167,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note192",
@@ -1988,7 +2178,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note193",
@@ -1998,7 +2189,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note194",
@@ -2008,7 +2200,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note195",
@@ -2018,7 +2211,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note196",
@@ -2028,7 +2222,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note197",
@@ -2038,7 +2233,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note198",
@@ -2048,7 +2244,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note199",
@@ -2058,7 +2255,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note200",
@@ -2068,7 +2266,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note201",
@@ -2078,7 +2277,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note202",
@@ -2088,7 +2288,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note203",
@@ -2098,7 +2299,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note204",
@@ -2108,7 +2310,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note205",
@@ -2118,7 +2321,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note206",
@@ -2128,7 +2332,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note207",
@@ -2138,7 +2343,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note208",
@@ -2148,7 +2354,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note209",
@@ -2158,7 +2365,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note210",
@@ -2168,7 +2376,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note211",
@@ -2178,7 +2387,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note212",
@@ -2188,7 +2398,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note213",
@@ -2198,7 +2409,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note214",
@@ -2208,7 +2420,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note215",
@@ -2218,7 +2431,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note216",
@@ -2228,7 +2442,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note217",
@@ -2238,7 +2453,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note218",
@@ -2248,7 +2464,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note219",
@@ -2258,7 +2475,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note220",
@@ -2268,7 +2486,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note221",
@@ -2278,7 +2497,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note222",
@@ -2288,7 +2508,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note223",
@@ -2298,7 +2519,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note224",
@@ -2308,7 +2530,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note225",
@@ -2318,7 +2541,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note226",
@@ -2328,7 +2552,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note227",
@@ -2338,7 +2563,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note228",
@@ -2348,7 +2574,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note229",
@@ -2358,7 +2585,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note230",
@@ -2368,7 +2596,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note231",
@@ -2378,7 +2607,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note232",
@@ -2388,7 +2618,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note233",
@@ -2398,7 +2629,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note234",
@@ -2408,7 +2640,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note235",
@@ -2418,7 +2651,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note236",
@@ -2428,7 +2662,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note237",
@@ -2438,7 +2673,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note238",
@@ -2448,7 +2684,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note239",
@@ -2458,7 +2695,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note240",
@@ -2468,7 +2706,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note241",
@@ -2478,7 +2717,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note242",
@@ -2488,7 +2728,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note243",
@@ -2498,7 +2739,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note244",
@@ -2508,7 +2750,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note245",
@@ -2518,7 +2761,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note246",
@@ -2528,7 +2772,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note247",
@@ -2538,7 +2783,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note248",
@@ -2548,7 +2794,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note249",
@@ -2558,7 +2805,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note250",
@@ -2568,7 +2816,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note251",
@@ -2578,7 +2827,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note252",
@@ -2588,7 +2838,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note253",
@@ -2598,7 +2849,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note254",
@@ -2608,7 +2860,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note255",
@@ -2618,7 +2871,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note256",
@@ -2628,7 +2882,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note257",
@@ -2638,7 +2893,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note258",
@@ -2648,7 +2904,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note259",
@@ -2658,7 +2915,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note260",
@@ -2668,7 +2926,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note261",
@@ -2678,7 +2937,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note262",
@@ -2688,7 +2948,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note263",
@@ -2698,7 +2959,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note264",
@@ -2708,7 +2970,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note265",
@@ -2718,7 +2981,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note266",
@@ -2728,7 +2992,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note267",
@@ -2738,7 +3003,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note268",
@@ -2748,7 +3014,8 @@
                 "hand": "r",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note269",
@@ -2758,7 +3025,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note270",
@@ -2768,7 +3036,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note271",
@@ -2778,7 +3047,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note272",
@@ -2788,7 +3058,8 @@
                 "hand": "l",
                 "stem-visible": true,
                 "accidental": 0,
-                "staff": 1
+                "staff": 1,
+                "type": "note"
             },
             {
                 "tag": "note273",
@@ -2797,7 +3068,8 @@
                 "duration": 256,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note274",
@@ -2806,7 +3078,8 @@
                 "duration": 256,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note275",
@@ -2815,7 +3088,8 @@
                 "duration": 256,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note276",
@@ -2824,7 +3098,8 @@
                 "duration": 64.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note277",
@@ -2833,7 +3108,8 @@
                 "duration": 64.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note278",
@@ -2842,7 +3118,8 @@
                 "duration": 64.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note279",
@@ -2851,7 +3128,8 @@
                 "duration": 64.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note280",
@@ -2860,7 +3138,8 @@
                 "duration": 64.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note281",
@@ -2869,7 +3148,8 @@
                 "duration": 64.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note282",
@@ -2878,7 +3158,8 @@
                 "duration": 64.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note283",
@@ -2887,7 +3168,8 @@
                 "duration": 64.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note284",
@@ -2896,7 +3178,8 @@
                 "duration": 128.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note285",
@@ -2905,7 +3188,8 @@
                 "duration": 128.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note286",
@@ -2914,7 +3198,8 @@
                 "duration": 128.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note287",
@@ -2923,7 +3208,8 @@
                 "duration": 128.0,
                 "hand": "r",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note288",
@@ -2932,7 +3218,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note289",
@@ -2941,7 +3228,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note290",
@@ -2950,7 +3238,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note291",
@@ -2959,7 +3248,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note292",
@@ -2968,7 +3258,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note293",
@@ -2977,7 +3268,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note294",
@@ -2986,7 +3278,8 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             },
             {
                 "tag": "note295",
@@ -2995,14 +3288,243 @@
                 "duration": 128.0,
                 "hand": "l",
                 "staff": 1,
-                "attached": ""
+                "attached": "",
+                "type": "note"
             }
         ],
         "countline": [],
+        "linebreak": [
+            {
+                "tag": "lockedlinebreak",
+                "time": 0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak296",
+                "time": 2048,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak297",
+                "time": 4096,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak298",
+                "time": 6144,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak299",
+                "time": 8192,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak300",
+                "time": 10240,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak301",
+                "time": 13312,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            }
+        ],
         "staffsizer": [],
         "startrepeat": [],
         "endrepeat": [],
         "starthook": [],
-        "endhook": []
+        "endhook": [],
+        "dot": [],
+        "stop": []
     }
 }

@@ -17,6 +17,8 @@ from PySide6.QtGui import QIcon
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
+from imports.engraver.pdfexport import printer
+
 class Gui():
     def __init__(self, main, io):
         self.io = io
@@ -91,7 +93,11 @@ class Gui():
         self.menu_bar.addMenu(self.help_menu)
         self.score_options_dialog_action = QAction('Score Options', self.main)
         self.score_options_dialog_action.triggered.connect(lambda: ScoreOptionsDialog().exec())
+        # add test function action
+        self.test_function_action = QAction('Test Function', self.main)
+        self.test_function_action.triggered.connect(lambda: printer(self.io))
         self.help_menu.addAction(self.score_options_dialog_action)
+        self.help_menu.addAction(self.test_function_action)
 
 
         #end menu--------------------------------------------------------------------

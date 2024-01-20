@@ -66,7 +66,7 @@ class DrawUtil:
         - delete_with_tag(); delete all items with the given tag or tags
             * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
         - delete_all(); delete all items
-        - find_with_tag() (not yet implemented); find all items with the given tag or tags and return a list of items
+        - find_with_tag(); find all items with the given tag or tags and return a list of items
             * tag: tag or tuple of tags (e.g. 'line1' or ('line1', 'line2'))
         - tag_raise(); raise items with the given tag or tags to the top of the scene
             * tag: list of tags (e.g. ['line1'] or ['line1', 'line2', ...])
@@ -88,7 +88,6 @@ class DrawUtil:
             * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
         - get_viewport(); get the viewport coordinates
         
-
         '''
     
     
@@ -177,7 +176,11 @@ class DrawUtil:
             pen.setDashPattern([])
 
         brush = self.brush
-        brush.setColor(QColor(fill_color))  
+        if fill_color:
+            brush.setColor(QColor(fill_color))
+            brush.setStyle(Qt.SolidPattern)
+        else:
+            brush.setStyle(Qt.NoBrush)
 
         # Add the rectangle to the scene
         rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, brush)
@@ -230,7 +233,7 @@ class DrawUtil:
                     width: float = 1.0,
                     outline_color: str = '#000000ff',
                     fill_color: str = '#000000ff',
-                    tag: dict = {}):
+                    tag: list = []):
         '''Add a polygon to the scene.'''
         
         # Create a polygon from the given points

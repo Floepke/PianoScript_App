@@ -1,8 +1,10 @@
 import threading, traceback
 
 # we genereally import everything from this file for usage in the engraver, later we add the engraver specific imports here
-from imports.engraver.engravercalc import *
+from imports.engraver.engraverstorage import *
 from imports.utils.constants import *
+from PySide6.QtCore import QThread, QMetaObject, Qt
+
 
 from pprint import pprint
 
@@ -15,7 +17,7 @@ from pprint import pprint
     We need to first pre calculate how the music will fit on the page. Then we can draw it.
 '''
 
-def render(io, render_type='default'): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
+def render(io, render_type='default', pageno=0): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
 
     # set scene dimensions
     if render_type == 'default':
@@ -28,7 +30,20 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
     # set scene rectangle
     io['gui'].print_scene.setSceneRect(0, 0, scene_width, scene_height) # TODO: check if it looks ok
 
+    # page dimentions
+    page_margin_left = io['score']['properties']['page_margin_left']
+    page_margin_right = io['score']['properties']['page_margin_right']
+    page_margin_top = io['score']['properties']['page_margin_up']
+    page_margin_bottom = io['score']['properties']['page_margin_down']
+    page_width = io['score']['properties']['page_width']
+    page_height = io['score']['properties']['page_height']
+
+    # staff dimentions
+    draw_scale = io['score']['properties']['draw_scale']
+    linebreaks = sorted(io['score']['events']['linebreak'], key=lambda y: y['time'])
+
     def pre_calculate(io):
+        print('-------------------------START-------------------------')
         
         #--------------------------------------------------------------------------------------------------------------------------------------
         # DOC structure:
@@ -65,20 +80,8 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
         DOC = []
 
         # data to collect
-        page_spacing = []
+        leftover_page_space = []
         staff_widths = []
-        
-        # page dimentions
-        page_margin_left = io['score']['properties']['page_margin_left']
-        page_margin_right = io['score']['properties']['page_margin_right']
-        page_margin_top = io['score']['properties']['page_margin_up']
-        page_margin_bottom = io['score']['properties']['page_margin_down']
-        page_width = io['score']['properties']['page_width']
-        page_height = io['score']['properties']['page_height']
-
-        # staff dimentions
-        draw_scale = io['score']['properties']['draw_scale']
-        linebreaks = sorted(io['score']['events']['linebreak'], key=lambda y: y['time'])
 
         '''
         first we add all types of events:
@@ -190,60 +193,280 @@ def render(io, render_type='default'): # render_type = 'default' (render only th
         '''
 
         # get the line width of every line [[widthstaff1, widthstaff2, widthstaff3, widthstaff4], ...]]
-        line_widths = []
+        # if a staff is off the width is zero
+        staff_widths = []
+        staff_ranges = []
         for lb, line in zip(linebreaks, DOC):
 
-            staff1_width = 0
-            staff2_width = 0
-            staff3_width = 0
-            staff4_width = 0
+            staff1_width = {}
+            staff2_width = {}
+            staff3_width = {}
+            staff4_width = {}
 
             # get the highest and lowest pitch of every staff
             range_every_staff = range_staffs(io, line, lb)
+            staff_ranges.append(range_every_staff)
 
             # calculate the width of every staff
             for idx, res in enumerate(range_every_staff):
                 if idx == 0:
-                    staff1_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                    staff1_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
                 elif idx == 1:
-                    staff2_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                    staff2_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
                 elif idx == 2:
-                    staff3_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                    staff3_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
                 elif idx == 3:
-                    staff4_width += calculate_staff_width(res[0], res[1]) * draw_scale
+                    staff4_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
 
-            # add the margins to the staff width
-            if staff1_width: staff1_width += (lb['staff1']['margins'][0] + lb['staff1']['margins'][1]) * draw_scale
-            if staff2_width: staff2_width += (lb['staff2']['margins'][0] + lb['staff2']['margins'][1]) * draw_scale
-            if staff3_width: staff3_width += (lb['staff3']['margins'][0] + lb['staff3']['margins'][1]) * draw_scale
-            if staff4_width: staff4_width += (lb['staff4']['margins'][0] + lb['staff4']['margins'][1]) * draw_scale
+            # add the margins to the staff width if the staff is on
+            if staff1_width['staff_width']: 
+                staff1_width['margin_left'] = (lb['staff1']['margins'][0]) * draw_scale
+                staff1_width['margin_right'] = (lb['staff1']['margins'][1]) * draw_scale
+            else:
+                staff1_width['margin_left'] = 0
+                staff1_width['margin_right'] = 0
+            if staff2_width['staff_width']: 
+                staff2_width['margin_left'] = (lb['staff2']['margins'][0]) * draw_scale
+                staff2_width['margin_right'] = (lb['staff2']['margins'][1]) * draw_scale
+            else:
+                staff2_width['margin_left'] = 0
+                staff2_width['margin_right'] = 0
+            if staff3_width['staff_width']: 
+                staff3_width['margin_left'] = (lb['staff3']['margins'][0]) * draw_scale
+                staff3_width['margin_right'] = (lb['staff3']['margins'][1]) * draw_scale
+            else:
+                staff3_width['margin_left'] = 0
+                staff3_width['margin_right'] = 0
+            if staff4_width['staff_width']: 
+                staff4_width['margin_left'] = (lb['staff4']['margins'][0]) * draw_scale
+                staff4_width['margin_right'] = (lb['staff4']['margins'][1]) * draw_scale
+            else:
+                staff4_width['margin_left'] = 0
+                staff4_width['margin_right'] = 0
 
-            line_widths.append([staff1_width, staff2_width, staff3_width, staff4_width])
+            staff_widths.append([staff1_width, staff2_width, staff3_width, staff4_width])
         
-        print(line_widths)
+        # calculate how many lines will fit on the page / split the line list in parts of pages:
+        doc = []
+        page = []
+        leftover_page_space = []
+        remaining_space = 0
+        x_cursor = 0
+        total_print_width = page_width - page_margin_left - page_margin_right
+        for idx, lw, line in zip(range(len(staff_widths)), staff_widths, DOC):
+            # calculate the total width of the line
+            total_line_width = 0
+            for width in lw:
+                total_line_width += width['staff_width'] + width['margin_left'] + width['margin_right']
 
+            # update the x_cursor
+            x_cursor += total_line_width
+            
+            # if the line fits on paper:
+            if x_cursor <= total_print_width:
+                page.append(line)
+                remaining_space = total_print_width - x_cursor
+            # if the line does NOT fit on paper:
+            else:
+                x_cursor = total_line_width
+                doc.append(page)
+                page = []
+                page.append(line)
+                leftover_page_space.append(remaining_space)
+                remaining_space = total_print_width - x_cursor
+            # if this is the last line:
+            if idx == len(DOC)-1:
+                doc.append(page)
+                leftover_page_space.append(remaining_space)
 
-        # for linebreak in io['score']['events']['linebreak']:
-        #     pprint(linebreak)
+        '''
+            FINALLY: place the now structured data in a structured dictionary
+            we have now: [pages[lines[events]lines]pages]
+        '''
 
-
+        DOC = doc
         
         # print('-------------------------START-------------------------')
-        # for ln in DOC:
-        #     print('new line:')
-        #     for evt in ln:
-        #         print(evt)
+        # for idxpg, pg in enumerate(DOC):
+        #     print('new page:', idxpg+1)
+        #     for idxln, ln in enumerate(pg):
+        #         print('new line:', idxln+1)
+        #         for evt in ln:
+        #             ...#print(evt)
         # print('--------------------------END--------------------------')
-        return DOC
+        return DOC, leftover_page_space, staff_widths, staff_ranges
 
+    DOC, leftover_page_space, staff_widths, staff_ranges = pre_calculate(io)
 
+    # NOTE: leftover_page_space = page
+    # NOTE: staff_widths = line
+    # NOTE: staff_ranges = line
+
+    print(len(leftover_page_space), len(staff_widths), len(staff_ranges))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     def draw(io):
+
+        # delete old drawing
+        io['view'].delete_all()
+
+        # define the page dimensions
+        page_margin_left = io['score']['properties']['page_margin_left']
+        page_margin_right = io['score']['properties']['page_margin_right']
+        page_margin_top = io['score']['properties']['page_margin_up']
+        page_margin_bottom = io['score']['properties']['page_margin_down']
+        page_width = io['score']['properties']['page_width']
+        page_height = io['score']['properties']['page_height']
+
+        Left = 0
+        Right = page_width
+        Top = 0
+        Bottom = page_height
         
-        ...
+        # draw test margin rectangle
+        io['view'].new_rectangle(Left, 
+                                 Top, 
+                                 Right, 
+                                 Bottom,
+                                 fill_color='white',
+                                 width=.2,
+                                 tag=['paper'])
+        
+        # draw margin
+        io['view'].new_rectangle(Left + page_margin_left, 
+                                 Top + page_margin_top, 
+                                 Right - page_margin_right, 
+                                 Bottom - page_margin_bottom,
+                                 outline_color='#0000ff',
+                                 fill_color='',
+                                 width=.2,
+                                 tag=['margin'])
+        
+        
+        # looping trough the DOC structure and drawing the events:
+        x_cursor = 0
+        y_cursor = 0
+        idx_line = 0
+        for idx_page, page, leftover in zip(range(len(DOC)), DOC, leftover_page_space):
+            if idx_page != pageno:
+                continue
+            print('new page:', leftover)
+
+            # update the cursors
+            x_cursor = page_margin_left
+            y_cursor = page_margin_top
+
+            # check if this is the frst page; if so we draw the title and composer header
+            if idx_page == 0:
+                # draw the title
+                io['view'].new_text(page_margin_left, 
+                                    y_cursor, 
+                                    io['score']['header']['title'],
+                                    size=8,
+                                    tag=['title'],
+                                    font='Courier new',
+                                    anchor='nw')
+                # draw the composer
+                io['view'].new_text(Right-page_margin_right, 
+                                    y_cursor,
+                                    io['score']['header']['composer'],
+                                    size=4,
+                                    tag=['composer'],
+                                    font='Courier new',
+                                    anchor='ne')
+                
+                staff_length = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
+                
+                y_cursor += io['score']['properties']['header_height']
+
+            else:
+                staff_length = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
+
+            for line, staff_width, staff_range in zip(page, staff_widths, staff_ranges):
+                print('new line:', staff_width, staff_range)
+
+                # draw the staffs
+                for idx_staff, width in enumerate(staff_width):
+                    
+                    if width['staff_width']:
+                        
+                        # update the x_cursor
+                        enabled_staffs = 0
+                        for w in staff_width:
+                            if w['staff_width']:
+                                enabled_staffs += 1
+                        x_cursor += width['margin_left'] + (leftover / (len(page)*enabled_staffs+1))
+
+                        # draw the staff
+                        draw_staff(x_cursor, 
+                                   y_cursor, 
+                                   staff_range[idx_staff][0], 
+                                   staff_range[idx_staff][1], 
+                                   io, 
+                                   staff_length=staff_length)
+
+                    for evt in line:
+                        # print(evt, staff_width)
+
+                        if idx_staff == 0:
+                            # draw the stafflines
+                            if evt['type'] == 'barline':
+                                x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
+                                x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
+                                y = tick2y_view(evt['time'], io, staff_length, idx_line)
+                                io['view'].new_line(x1,
+                                                    y_cursor+y,
+                                                    x2,
+                                                    y_cursor+y,
+                                                    width=0.5,
+                                                    color='black',
+                                                    tag=['barline'])
+                                print('barline', x1, x2, x2-x1)
+                            
+                            # draw the gridlines
+                            elif evt['type'] == 'gridline':
+                                x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
+                                x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
+                                y = tick2y_view(evt['time'], io, staff_length, idx_line)
+                                io['view'].new_line(x1,
+                                                    y_cursor+y,
+                                                    x2,
+                                                    y_cursor+y,
+                                                    width=.1,
+                                                    color='black',
+                                                    dash=[5, 5],
+                                                    tag=['gridline'])
+
+                    x_cursor += width['staff_width'] + width['margin_right']
+
+                idx_line += 1
 
     # running the pre_calculate() and draw() functions
-    DOC = pre_calculate(io)
     draw(io)
+
+# class Engraver(QThread):
+#     def __init__(self, io):
+#         super().__init__()
+#         self.io = io
+
+#     def run(self):
+#         try:
+#             render(self.io)
+#         except Exception:
+#             traceback.print_exc()
+
+#     def do_engrave(self):
+#         if not self.isRunning():
+#             self.start()
 
 class Engraver:
     '''
@@ -279,4 +502,72 @@ class Engraver:
         finally:
             self.render_in_progress = False
             if self.latest_request:
-                self.do_eng
+                self.do_engrave()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -25,6 +25,9 @@ class GraphicsViewEngraver(QGraphicsView):
 
         self.io = io
 
+        # don't show scrollbar
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
     def resizeEvent(self, event):
         # get the old scroll position and maximum
         vbar = self.verticalScrollBar()
