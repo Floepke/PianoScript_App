@@ -50,42 +50,17 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
         # the events are the literal dicts of the json score file like:
         # {"tag": "note6", "pitch": 56, "time": 1024.0, "duration": 256.0, "hand": "r", "staff": 1, "attached": "."}
         # so the DOC list is a structured list of pages and lines within that page and events within that line.
-        # below a detailed description of the structure.
-        DOC = [
-            { # page1
-                'left_over_space': 100, # the space thats leftover on the page if we write all lines with the reserved margins
-                0:{ # line1
-                    'staff_widths': [120, 80, 0, 0], # this list gives the staff_width for each staff, if zero the staff is off
-                    'start_tick': 0, # the tick where the line starts
-                    'end_tick': 4096, # the tick where the line ends
-                    'system_width': 200, # the width of the entire line including all 4 staffs and margins
-                    'events': [
-                        {"tag": "note6", "pitch": 56, "time": 1024.0, "duration": 256.0, "hand": "r", "staff": 1, "attached": "."}, # event1
-                        # event2...
-                        # event3...
-                        # etc
-                    ]
-                },
-                # line2...1:{}
-                # line3...2:{}
-                # etc...
-            },
-            # page2...
-            # page3...
-            # etc
-        ]
-        #--------------------------------------------------------------------------------------------------------------------------------------
 
         # the doc we need to fill
         DOC = []
 
         # data to collect
         leftover_page_space = []
-        staff_widths = []
+        staff_dimensions = []
 
         '''
         first we add all types of events:
-            - barlines with numbering
+            - barlines
             - gridlines
             - timesignature changes
             - notes and split them if they are crossing a new line point
@@ -194,7 +169,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
 
         # get the line width of every line [[widthstaff1, widthstaff2, widthstaff3, widthstaff4], ...]]
         # if a staff is off the width is zero
-        staff_widths = []
+        staff_dimensions = []
         staff_ranges = []
         for lb, line in zip(linebreaks, DOC):
 
@@ -244,7 +219,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                 staff4_width['margin_left'] = 0
                 staff4_width['margin_right'] = 0
 
-            staff_widths.append([staff1_width, staff2_width, staff3_width, staff4_width])
+            staff_dimensions.append([staff1_width, staff2_width, staff3_width, staff4_width])
         
         # calculate how many lines will fit on the page / split the line list in parts of pages:
         doc = []
@@ -253,7 +228,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
         remaining_space = 0
         x_cursor = 0
         total_print_width = page_width - page_margin_left - page_margin_right
-        for idx, lw, line in zip(range(len(staff_widths)), staff_widths, DOC):
+        for idx, lw, line in zip(range(len(staff_dimensions)), staff_dimensions, DOC):
             # calculate the total width of the line
             total_line_width = 0
             for width in lw:
@@ -294,15 +269,13 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
         #         for evt in ln:
         #             ...#print(evt)
         # print('--------------------------END--------------------------')
-        return DOC, leftover_page_space, staff_widths, staff_ranges
+        return DOC, leftover_page_space, staff_dimensions, staff_ranges
 
-    DOC, leftover_page_space, staff_widths, staff_ranges = pre_calculate(io)
+    DOC, leftover_page_space, staff_dimensions, staff_ranges = pre_calculate(io)
 
     # NOTE: leftover_page_space = page
     # NOTE: staff_widths = line
     # NOTE: staff_ranges = line
-
-    print(len(leftover_page_space), len(staff_widths), len(staff_ranges))
     
     
     
@@ -391,7 +364,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
             else:
                 staff_length = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
-            for line, staff_width, staff_range in zip(page, staff_widths, staff_ranges):
+            for line, staff_width, staff_range in zip(page, staff_dimensions, staff_ranges):
                 print('new line:', staff_width, staff_range)
 
                 # draw the staffs
@@ -404,7 +377,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                         for w in staff_width:
                             if w['staff_width']:
                                 enabled_staffs += 1
-                        x_cursor += width['margin_left'] + (leftover / (len(page)*enabled_staffs+1))
+                        x_cursor += width['margin_left'] + (leftover / (len(page) * enabled_staffs + 1))
 
                         # draw the staff
                         draw_staff(x_cursor, 
@@ -417,7 +390,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                     for evt in line:
                         # print(evt, staff_width)
 
-                        if idx_staff == 0:
+                        if width['staff_width']:
                             # draw the stafflines
                             if evt['type'] == 'barline':
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
@@ -427,13 +400,14 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     y_cursor+y,
                                                     x2,
                                                     y_cursor+y,
-                                                    width=0.5,
+                                                    width=0.2,
                                                     color='black',
                                                     tag=['barline'])
                                 print('barline', x1, x2, x2-x1)
-                            
+                        
+                        if width['staff_width']:
                             # draw the gridlines
-                            elif evt['type'] == 'gridline':
+                            if evt['type'] == 'gridline':
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
                                 y = tick2y_view(evt['time'], io, staff_length, idx_line)
@@ -450,7 +424,6 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
 
                 idx_line += 1
 
-    # running the pre_calculate() and draw() functions
     draw(io)
 
 # class Engraver(QThread):
