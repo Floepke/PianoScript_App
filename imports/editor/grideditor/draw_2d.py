@@ -120,6 +120,7 @@ class Draw2d:
         """ initialize the class """
 
         self.scene = scene
+        self._background_color = 'white'
 
     # basic shapes
     def create_line(self,
@@ -407,3 +408,8 @@ class Draw2d:
         """
 
         return self.scene.sceneRect()
+
+    def background(self, color: str):
+        """ set the background color """
+
+        self.scene.setBackgroundBrush(QColor(color))
