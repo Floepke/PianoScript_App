@@ -218,6 +218,9 @@ class PianoScript():
             nr = self.io['calc'].add_and_return_tag()
             dct['tag'] = f'grid{nr}'
             dct['grid'] = [x * 256 for x in range(1, item.numerator)]
+            dct.pop('start', None)
+            dct.pop('option', None)
+            dct.pop('hidden', None)
             result.append(dct)
 
         self.io['score']['events']['grid'] = result
