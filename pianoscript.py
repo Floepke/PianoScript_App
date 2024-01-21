@@ -215,6 +215,8 @@ class PianoScript():
         result = []
         for item in grids:
             dct = item.to_dict()
+            nr = self.io['calc'].add_and_return_tag()
+            dct['tag'] = f'grid{nr}'
             dct['grid'] = [x * 256 for x in range(1, item.numerator)]
             result.append(dct)
 
