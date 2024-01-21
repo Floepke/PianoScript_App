@@ -442,13 +442,24 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 print(staff_range[idx_staff][0], staff_range[idx_staff][1])
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
-                                io['view'].new_oval(x-PITCH_UNIT,
+                                
+                                if evt['pitch'] in BLACK_KEYS:
+                                    io['view'].new_oval(x-PITCH_UNIT,
                                                     y_cursor+y,
                                                     x+PITCH_UNIT,
                                                     y_cursor+y+(PITCH_UNIT*2),
                                                     fill_color='#000000',
                                                     outline_color='#000000',
-                                                    outline_width=-.2,
+                                                    outline_width=.5,
+                                                    tag=['note'])
+                                else:
+                                    io['view'].new_oval(x-PITCH_UNIT,
+                                                    y_cursor+y,
+                                                    x+PITCH_UNIT,
+                                                    y_cursor+y+(PITCH_UNIT*2),
+                                                    fill_color='#ffffff',
+                                                    outline_color='#000000',
+                                                    outline_width=.5,
                                                     tag=['note'])
 
                     x_cursor += width['staff_width'] + width['margin_right']
