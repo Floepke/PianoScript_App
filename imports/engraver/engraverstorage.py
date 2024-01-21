@@ -105,7 +105,7 @@ def range_staffs(io, line, linebreak):
         if io['score']['properties']['staffs'][i]['onoff']:
             pitches[i][0] = 40
             pitches[i][1] = 44
-
+    
     for idx, range1 in enumerate(ranges):
         if range1 == 'auto': 
             ...
@@ -113,7 +113,6 @@ def range_staffs(io, line, linebreak):
             # a custom range is set; we have to calculate the width of the staff with it.
             pitches[idx].append(range1[0])
             pitches[idx].append(range1[1])
-            
     
     for evt in line:
         if 'pitch' in evt and 'staff' in evt:
@@ -128,19 +127,15 @@ def range_staffs(io, line, linebreak):
     return out
 
 
-def draw_staff(x_cursor: float, 
-               y_cursor: float, 
-               key_min: int, 
-               key_max: int, 
-               io: dict, 
-               staff_length: float):
+def trim_key_to_outer_sides_staff(key_min, key_max):
 
     # if there is no key_min and key_max return 0
-    if key_min == 0 and key_max == 0:
+    if not key_min and not key_max:
+        print('no key_min and key_max')
         return 0
-    
+
     # trim the key_min, key_max to force the range to be at the outer sides of the staff
-    # we draw the staff from the outer left position to the outer right position
+    # we measure the width of the staff from the outer left position to the outer right position
     key_min, key_max = min(key_min, 40), max(key_max, 44)
     mn_offset = {4:0, 5:-1, 6:-2, 7:-3, 8:-4, 9:0, 10:-1, 11:-2, 12:-3, 1:-4, 2:-5, 3:-6}
     mx_offset = {4:4, 5:3, 6:2, 7:1, 8:0, 9:6, 10:5, 11:4, 12:3, 1:2, 2:1, 3:0}
@@ -148,11 +143,27 @@ def draw_staff(x_cursor: float,
     key_max += mx_offset[((key_max-1)%12)+1]
     key_min, key_max = max(key_min, 1), min(key_max, 88)
 
+    return key_min, key_max
+
+
+def draw_staff(x_cursor: float, 
+               y_cursor: float, 
+               staff_min: int, 
+               staff_max: int,
+               draw_min: int, 
+               draw_max: int,
+               io: dict, 
+               staff_length: float):
+
+    staff_min, staff_max = trim_key_to_outer_sides_staff(staff_min, staff_max)
+    if not staff_min and not staff_max:
+        draw_min, draw_max = staff_min, staff_max
+
     # draw the staff
-    for n in range(key_min, key_max):
+    for n in range(staff_min, staff_max):
         remainder = ((n-1)%12)+1
         scale = io['score']['properties']['draw_scale']
-        x_cursor += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * scale
+        x_cursor += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == staff_min else PITCH_UNIT * scale
         if remainder in [5, 7]: # if it's one of the c# d# keys
             # draw line thin for the group of two
             if n in [41, 43]:
@@ -200,6 +211,32 @@ def tick2y_view(time: float, io: dict, staff_height: float, line_number: int):
     y = staff_height * (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0])
     
     return y
+
+
+def pitch2x_view(pitch: int, staff_range: list, scale: float, x_cursor: float):
+    '''
+        pitch2x_view converts a pitch value to a x value in the print view.
+    '''
+
+    key_min = staff_range[0]
+    key_max = staff_range[1]
+
+    key_min, key_max = trim_key_to_outer_sides_staff(key_min, key_max)
+
+    # calculate the x position
+    x = x_cursor
+    for n in range(key_min, key_max+1):
+        remainder = ((n-1)%12)+1
+        x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * 2 * scale / 2
+        if n == pitch:
+            break
+    
+    return x
+
+
+
+
+
 
 
 

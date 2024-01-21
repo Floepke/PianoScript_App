@@ -40,7 +40,7 @@ SCORE_TEMPLATE = {
         'page_margin_up':10,
         'page_margin_down':10,
         'draw_scale':1,
-        'header_height':10,
+        'header_height':20,
         'footer_height':10,
         'color_right_midinote':'#c8c8c8',
         'color_left_midinote':'#c8c8c8',

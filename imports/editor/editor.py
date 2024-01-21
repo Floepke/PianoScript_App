@@ -58,8 +58,9 @@ class Editor:
         if event_type in ['resize', 'scroll']:
             self.draw_viewport()
 
-        if event_type in ['zoom', 'loadfile', 'grid_edit']:
+        if event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz']:
             self.redraw_editor()
+            render(self.io)
 
         # draw the cursor
         if event_type == 'move' or 'move' in event_type:
@@ -67,7 +68,7 @@ class Editor:
 
         # TODO: check if undo update is working, currenyly it checks if the score changed since the last edit action
         if self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index]:
-            # self.io['engraver'].do_engrave()
+            #self.io['engraver'].do_engrave()
             render(self.io)
         
         # add to ctlz stack (in this function we check if there is indeed a change in the score)

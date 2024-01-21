@@ -357,12 +357,12 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                     font='Courier new',
                                     anchor='ne')
                 
-                staff_length = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
+                staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 
                 y_cursor += io['score']['properties']['header_height']
 
             else:
-                staff_length = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
+                staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
             for line, staff_width, staff_range in zip(page, staff_dimensions, staff_ranges):
                 print('new line:', staff_width, staff_range)
@@ -370,32 +370,49 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                 # draw the staffs
                 for idx_staff, width in enumerate(staff_width):
                     
+                    enabled_staffs = 0
+                    
                     if width['staff_width']:
                         
                         # update the x_cursor
-                        enabled_staffs = 0
                         for w in staff_width:
                             if w['staff_width']:
                                 enabled_staffs += 1
                         x_cursor += width['margin_left'] + (leftover / (len(page) * enabled_staffs + 1))
 
                         # draw the staff
+                        if linebreaks[idx_line][f'staff{idx_staff+1}']['range'] == 'auto':
+                            draw_start = None
+                            draw_end = None
+                        else:
+                            draw_start = staff_range[idx_staff][0]
+                            draw_end = staff_range[idx_staff][1]
                         draw_staff(x_cursor, 
                                    y_cursor, 
                                    staff_range[idx_staff][0], 
-                                   staff_range[idx_staff][1], 
+                                   staff_range[idx_staff][1],
+                                   draw_start,
+                                   draw_end,
                                    io, 
-                                   staff_length=staff_length)
+                                   staff_length=staff_height)
 
                     for evt in line:
                         # print(evt, staff_width)
 
-                        if width['staff_width']:
+                        if idx_staff == 0:
                             # draw the stafflines
                             if evt['type'] == 'barline':
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
-                                x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
-                                y = tick2y_view(evt['time'], io, staff_length, idx_line)
+                                x2 = x_cursor
+                                last_r_marg = 0
+                                for i, w in enumerate(staff_width):
+                                    if w['staff_width']:
+                                        if i > 0: 
+                                            x2 += w['margin_left']
+                                        x2 += w['staff_width'] + w['margin_right'] + (leftover / (len(page) * enabled_staffs + 1))
+                                        last_r_marg = w['margin_right']
+                                x2 -= last_r_marg + (leftover / (len(page) * enabled_staffs + 1)) + (PITCH_UNIT * 2 * draw_scale)
+                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 io['view'].new_line(x1,
                                                     y_cursor+y,
                                                     x2,
@@ -410,7 +427,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                             if evt['type'] == 'gridline':
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
-                                y = tick2y_view(evt['time'], io, staff_length, idx_line)
+                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 io['view'].new_line(x1,
                                                     y_cursor+y,
                                                     x2,
@@ -419,6 +436,21 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     color='black',
                                                     dash=[5, 5],
                                                     tag=['gridline'])
+                        
+                        # draw the notes
+                        if evt['type'] == 'note':
+                            if idx_staff == evt['staff']:
+                                print(staff_range[idx_staff][0], staff_range[idx_staff][1])
+                                x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                io['view'].new_oval(x-PITCH_UNIT,
+                                                    y_cursor+y,
+                                                    x+PITCH_UNIT,
+                                                    y_cursor+y+(PITCH_UNIT*2),
+                                                    fill_color='#000000',
+                                                    outline_color='#000000',
+                                                    outline_width=-.2,
+                                                    tag=['note'])
 
                     x_cursor += width['staff_width'] + width['margin_right']
 

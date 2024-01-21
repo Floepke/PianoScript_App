@@ -17,7 +17,7 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 Note.delete_editor(self.io, event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('cut')
 
@@ -41,7 +41,7 @@ class SelectOperations:
                 new['tag'] = event_type + str(self.io['calc'].add_and_return_tag())
                 self.io['score']['events'][event_type].append(new)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('paste')
 
@@ -53,7 +53,7 @@ class SelectOperations:
             for event in self.io['selection']['selection_buffer'][event_type]:
                 Note.delete_editor(self.io, event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('delete')
 
@@ -69,7 +69,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('transpose up')
 
@@ -85,7 +85,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('transpose down')
 
@@ -100,7 +100,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('move forward')
 
@@ -115,7 +115,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('move backward')
 
@@ -130,7 +130,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('hand to left')
 
@@ -145,7 +145,7 @@ class SelectOperations:
                     if event in self.io['viewport']['events'][event_type]:
                         self.io['viewport']['events'][event_type].remove(event)
 
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('keyedit')
 
         print('hand to right')
 

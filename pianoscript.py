@@ -18,6 +18,14 @@ from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
 
+# disable debug messages that contain 'move' to bluck unwanted debug messages
+from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+def handler(msg_type, context, msg):
+    if "move" in msg:
+        return
+qInstallMessageHandler(handler)
+
+
 class PianoScript():
 
     def __init__(self):

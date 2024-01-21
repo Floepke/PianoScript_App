@@ -44,7 +44,7 @@ class CtlZ:
         self.io['score'] = copy.deepcopy(self.buffer[self.index])
 
         # update editor and engraver
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('ctlz')
         #self.io['engraver'].trigger_render()
 
     def redo(self):
@@ -57,5 +57,5 @@ class CtlZ:
         self.io['score'] = copy.deepcopy(self.buffer[self.index])
 
         # update editor and engraver
-        self.io['maineditor'].redraw_editor()
+        self.io['maineditor'].update('ctlz')
         #self.io['engraver'].trigger_render()
