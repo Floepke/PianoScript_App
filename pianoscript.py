@@ -220,7 +220,7 @@ class PianoScript():
 
         self.io['score']['events']['grid'] = result
         self.editor_dialog = None
-        # the refresh of the editor is missing here
+        self.io['maineditor'].update('grid_editor')
 
 
 if __name__ == '__main__':

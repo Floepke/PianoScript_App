@@ -58,7 +58,7 @@ class Editor:
         if event_type in ['resize', 'scroll']:
             self.draw_viewport()
 
-        if event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz']:
+        if event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz', 'grid_editor']:
             self.redraw_editor()
             render(self.io)
 

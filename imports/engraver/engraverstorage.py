@@ -176,17 +176,20 @@ def draw_staff(x_cursor: float,
                     io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
                                     width=.2, 
                                     color='#000000',
-                                    dash=[5, 5])
+                                    dash=[5, 5],
+                                    tag=['staffline'])
                 else:
                     # normal group of two lines
                     io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
                                     width=.2, 
-                                    color='#000000')
+                                    color='#000000',
+                                    tag=['staffline'])
             elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
                 # draw line thick for the group of three
                 io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
                                     width=.4, 
-                                    color='#000000')
+                                    color='#000000',
+                                    tag=['staffline'])
             
 
 def get_system_ticks(io):

@@ -400,7 +400,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                         # print(evt, staff_width)
 
                         if idx_staff == 0:
-                            # draw the stafflines
+                            # draw the barlines
                             if evt['type'] == 'barline':
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor
@@ -441,32 +441,79 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                             if idx_staff == evt['staff']:
                                 print(staff_range[idx_staff][0], staff_range[idx_staff][1])
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
-                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                y1 = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                y2 = tick2y_view(evt['time']+evt['duration'], io, staff_height, idx_line)
                                 
                                 if evt['pitch'] in BLACK_KEYS:
-                                    io['view'].new_oval(x-PITCH_UNIT,
-                                                    y_cursor+y,
-                                                    x+PITCH_UNIT,
-                                                    y_cursor+y+(PITCH_UNIT*2),
+                                    io['view'].new_oval(x-PITCH_UNIT*draw_scale,
+                                                    y_cursor+y1,
+                                                    x+PITCH_UNIT*draw_scale,
+                                                    y_cursor+y1+(PITCH_UNIT*2*draw_scale),
                                                     fill_color='#000000',
                                                     outline_color='#000000',
                                                     outline_width=.5,
-                                                    tag=['note'])
+                                                    tag=['noteheadblack'])
                                 else:
-                                    io['view'].new_oval(x-PITCH_UNIT,
-                                                    y_cursor+y,
-                                                    x+PITCH_UNIT,
-                                                    y_cursor+y+(PITCH_UNIT*2),
+                                    io['view'].new_oval(x-PITCH_UNIT*draw_scale,
+                                                    y_cursor+y1,
+                                                    x+PITCH_UNIT*draw_scale,
+                                                    y_cursor+y1+(PITCH_UNIT*2*draw_scale),
                                                     fill_color='#ffffff',
                                                     outline_color='#000000',
                                                     outline_width=.5,
-                                                    tag=['note'])
+                                                    tag=['noteheadwhite'])
+                                
+                                # draw midinote
+                                io['view'].new_polygon([(x, y_cursor+y1),
+                                                        (x+PITCH_UNIT, y_cursor+y1+PITCH_UNIT*draw_scale),
+                                                        (x+PITCH_UNIT, y_cursor+y2),
+                                                        (x-PITCH_UNIT, y_cursor+y2),
+                                                        (x-PITCH_UNIT, y_cursor+y1+PITCH_UNIT*draw_scale)],
+                                                        fill_color='#bbb',
+                                                        outline_color='',
+                                                        tag=['midinote']),
 
                     x_cursor += width['staff_width'] + width['margin_right']
 
                 idx_line += 1
 
     draw(io)
+
+    # update drawing order
+    def drawing_order():
+        '''
+            set drawing order on tags. the tags are hardcoded in the draweditor class
+            they are background, staffline, titletext, barline, etc...
+        '''
+
+        drawing_order = [
+            'background',
+            'midinote', 
+            'staffline',
+            'titlebackground',
+            'titletext',
+            'barline', 
+            'gridline', 
+            'barnumbering',
+            'stem',
+            'soundingdot',
+            'connectstem',
+            'noteheadwhite',
+            'leftdotwhite',
+            'noteheadblack',
+            'leftdotblack',
+            'timesignature', 
+            'measurenumber',
+            'selectionrectangle',
+            'notestop',
+            'cursor',
+            'countline',
+            'handle',
+            'linebreak'
+        ]
+        io['view'].tag_raise(drawing_order)
+    
+    drawing_order()
 
 # class Engraver(QThread):
 #     def __init__(self, io):
