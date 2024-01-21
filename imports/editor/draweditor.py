@@ -11,14 +11,14 @@ class DrawEditor:
 
         # draw title background
         io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
-                                      fill_color='#fee', 
-                                      outline_color='#fee',
+                                      fill_color=BACKGROUND_COLOR, 
+                                      outline_color=BACKGROUND_COLOR,
                                       tag=['titlebackground'])
         
         # draw bottom background to hide the stafflines
         io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
-                                      fill_color='#fee', 
-                                      outline_color='#fee',
+                                      fill_color=BACKGROUND_COLOR, 
+                                      outline_color=BACKGROUND_COLOR,
                                       tag=['titlebackground'])
 
         title = "'" + io['score']['header']['title'] + "'" + ' by composer: ' + io['score']['header']['composer']
@@ -81,7 +81,7 @@ class DrawEditor:
     @staticmethod
     def draw_barlines_grid_timesignature_and_measurenumbers(io:dict, top, bttm):
         '''Draws the barlines, grid, timesignature and measure numbers'''
-
+        print('---------------START DRAW BARLINES GRID TIMESIGNATURE AND MEASURENUMBERS---------------')
         # calculating dimensions
         staff_width = EDITOR_WIDTH - (EDITOR_MARGIN * 2)
         editor_zoom = io['score']['properties']['editor_zoom']
@@ -89,9 +89,10 @@ class DrawEditor:
         y_cursor = EDITOR_MARGIN
         measure_numbering = 0
 
-        for gr in io['score']['events']['grid']:
-            io['editor'].delete_with_tag(['barline', 'timesignature', 'measurenumber', 'gridline'])
+        io['editor'].delete_with_tag(['barline', 'timesignature', 'measurenumber', 'gridline'])
 
+        for gr in io['score']['events']['grid']:
+            print(gr)
             # draw the timesignature indicator
             io['editor'].new_text(EDITOR_LEFT + (EDITOR_MARGIN / 2), 
                                   y_cursor,
@@ -130,7 +131,7 @@ class DrawEditor:
             for _ in range(amount):
 
                 measure_numbering += 1
-
+                
                 if y_cursor > top-1000 and y_cursor < bttm+1000:
                 
                     # draw the barline
@@ -165,6 +166,7 @@ class DrawEditor:
                 
                 # move the y_curs
                 y_cursor += measure_length * (editor_zoom / QUARTER_PIANOTICK)
+                print('y_cursor', y_cursor, 'measure length', measure_length)
 
                 # if this is the last iteration and last iteration from gr: draw the endline
                 if _ == amount - 1 and gr == io['score']['events']['grid'][-1]:
