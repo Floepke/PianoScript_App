@@ -157,7 +157,7 @@ def draw_staff(x_cursor: float,
     staff_min, staff_max = trim_key_to_outer_sides_staff(staff_min, staff_max)
     if not staff_min and not staff_max:
         draw_min, draw_max = staff_min, staff_max
-        draw_min, draw_max = trim_key_to_outer_sides_staff(draw_min, draw_max)
+    draw_min, draw_max = trim_key_to_outer_sides_staff(draw_min, draw_max)
 
     # draw the staff
     x = x_cursor
