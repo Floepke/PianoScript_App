@@ -4,7 +4,7 @@
     that they are constants.
 '''
 # the background color of the editor and print view
-BACKGROUND_COLOR = '#fee'
+BACKGROUND_COLOR = '#ffe'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -35,10 +35,10 @@ SCORE_TEMPLATE = {
     'properties':{
         'page_width':210, # all measurements are in millimeters
         'page_height':297,
-        'page_margin_left':10,
-        'page_margin_right':10,
-        'page_margin_up':10,
-        'page_margin_down':10,
+        'page_margin_left':5,
+        'page_margin_right':5,
+        'page_margin_up':5,
+        'page_margin_down':5,
         'draw_scale':1,
         'header_height':20,
         'footer_height':10,

@@ -65,8 +65,9 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
             - timesignature changes
             - notes and split them if they are crossing a new line point
         '''
-
+        
         # time signature, barlines and grid
+        time = 0
         for gr in io['score']['events']['grid']:
             # calculate the length of one measure based on the numerator and denominator.
             numerator = gr['numerator']
@@ -74,28 +75,34 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
             measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
             grid = gr['grid']
+            tsig_length = 0
             
             # add barlines and gridlines
             for m in range(amount):
                 # add barlines
                 DOC.append({
                     'type': 'barline',
-                    'time': measure_length * m
+                    'time': time + measure_length * m
                 })
                 DOC.append({
                     'type': 'barline',
-                    'time': measure_length * m - FRACTION
+                    'time': time + measure_length * m - FRACTION
                 })
                 for g in grid:
                     # add gridlines
                     DOC.append({
                         'type': 'gridline',
-                        'time': measure_length * m + g
+                        'time': time + measure_length * m + g
                     })
                     DOC.append({
                         'type': 'gridline',
-                        'time': measure_length * m + g - FRACTION
+                        'time': time + measure_length * m + g - FRACTION
                     })
+                
+                tsig_length += measure_length
+
+            time += tsig_length
+            
         
         # add endbarline event
         DOC.append({'type': 'endbarline', 'time': io['calc'].get_total_score_ticks()-FRACTION})

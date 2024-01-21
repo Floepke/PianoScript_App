@@ -53,6 +53,7 @@ class GraphicsViewEngraver(QGraphicsView):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             print('Left button pressed')
+            
         elif event.button() == Qt.RightButton:
             print('Right button pressed')
         elif event.button() == Qt.MiddleButton:
