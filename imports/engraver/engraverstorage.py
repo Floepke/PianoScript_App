@@ -135,7 +135,6 @@ def trim_key_to_outer_sides_staff(key_min, key_max):
         return 0
 
     # trim the key_min, key_max to force the range to be at the outer sides of the staff
-    # we measure the width of the staff from the outer left position to the outer right position
     key_min, key_max = min(key_min, 40), max(key_max, 44)
     mn_offset = {4:0, 5:-1, 6:-2, 7:-3, 8:-4, 9:0, 10:-1, 11:-2, 12:-3, 1:-4, 2:-5, 3:-6}
     mx_offset = {4:4, 5:3, 6:2, 7:1, 8:0, 9:6, 10:5, 11:4, 12:3, 1:2, 2:1, 3:0}
@@ -158,30 +157,36 @@ def draw_staff(x_cursor: float,
     staff_min, staff_max = trim_key_to_outer_sides_staff(staff_min, staff_max)
     if not staff_min and not staff_max:
         draw_min, draw_max = staff_min, staff_max
+        draw_min, draw_max = trim_key_to_outer_sides_staff(draw_min, draw_max)
 
     # draw the staff
-    for n in range(staff_min, staff_max):
+    x = x_cursor
+    for n in range(staff_min, draw_max+1):
+        
+        # calculate the new x_cursor
         remainder = ((n-1)%12)+1
         scale = io['score']['properties']['draw_scale']
-        x_cursor += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == staff_min else PITCH_UNIT * scale
-        if remainder in [5, 7]: # if it's one of the c# d# keys
-            # draw line thin for the group of two
-            if n in [41, 43]:
-                # dashed clef lines, the central lines of the staff
-                io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
-                                width=.2, 
-                                color='#000000',
-                                dash=[5, 5])
-            else:
-                # normal group of two lines
-                io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
-                                width=.2, 
-                                color='#000000')
-        elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
-            # draw line thick for the group of three
-            io['view'].new_line(x_cursor, y_cursor, x_cursor, y_cursor+staff_length, 
-                                width=.4, 
-                                color='#000000')
+        x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == staff_min else PITCH_UNIT * scale
+        
+        if n >= draw_min and n <= draw_max:
+            if remainder in [5, 7]: # if it's one of the c# d# keys
+                # draw line thin for the group of two
+                if n in [41, 43]:
+                    # dashed clef lines, the central lines of the staff
+                    io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
+                                    width=.2, 
+                                    color='#000000',
+                                    dash=[5, 5])
+                else:
+                    # normal group of two lines
+                    io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
+                                    width=.2, 
+                                    color='#000000')
+            elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
+                # draw line thick for the group of three
+                io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
+                                    width=.4, 
+                                    color='#000000')
             
 
 def get_system_ticks(io):

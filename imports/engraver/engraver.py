@@ -382,11 +382,11 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
 
                         # draw the staff
                         if linebreaks[idx_line][f'staff{idx_staff+1}']['range'] == 'auto':
-                            draw_start = None
-                            draw_end = None
-                        else:
                             draw_start = staff_range[idx_staff][0]
                             draw_end = staff_range[idx_staff][1]
+                        else:
+                            draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0]
+                            draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
                         draw_staff(x_cursor, 
                                    y_cursor, 
                                    staff_range[idx_staff][0], 
@@ -420,7 +420,6 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     width=0.2,
                                                     color='black',
                                                     tag=['barline'])
-                                print('barline', x1, x2, x2-x1)
                         
                         if width['staff_width']:
                             # draw the gridlines
