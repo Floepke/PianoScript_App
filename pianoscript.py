@@ -1,4 +1,4 @@
-# 
+#
 from imports.utils.constants import *
 
 # pyside6 imports
@@ -20,6 +20,13 @@ from imports.engraver.engraver import Engraver
 
 # disable debug messages that contain 'move' to bluck unwanted debug messages
 from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+
+from copy import deepcopy
+from imports.editor.grideditor.dialog_result import DialogResult
+from imports.editor.grideditor.grid_editor_dialog import GridDialog
+from imports.editor.grideditor.grid import Grid
+
+
 def handler(msg_type, context, msg):
     if "move" in msg:
         return
@@ -34,10 +41,10 @@ class PianoScript():
         self.io = {
             # save file json structure loaded here
             'score':{},
-            
+
             # new_tag; counter to keep track of new tags for notation elements
             'new_tag':0,
-            
+
             # everything about the selection:
             'selection':{
                 # True if there is a selection rectangle drawn on the editor
@@ -63,7 +70,7 @@ class PianoScript():
                 # all event types that have the hand property
                 'hand_types':['note', 'gracenote', 'beam']
             },
-            
+
             # all info for the mouse:
             'mouse':{
                 'x':0, # x position of the mouse in the editor view
@@ -136,13 +143,16 @@ class PianoScript():
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = FileOperations(self.io)
-        
+
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
         self.gui.load_action.triggered.connect(self.io['fileoperations'].load)
         self.gui.save_action.triggered.connect(self.io['fileoperations'].save)
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
+
+        self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
+
         self.gui.exit_action.triggered.connect(self.root.close)
 
         # shortcuts
@@ -178,6 +188,40 @@ class PianoScript():
 
         # run the application
         sys.exit(self.app.exec())
+
+    def open_grid_editor(self):
+        """ open the Grid Editor """
+
+        # grid.grid has changed from a number to the array of count lines
+        # a way around this for the moment
+        # it will be fixed in the next iteration
+        dcts = deepcopy(self.io['score']['events']['grid'])
+        for idx, dct in enumerate(dcts, 1):
+            dct['grid'] = idx
+            dct['hidden'] = []
+
+        grids = [Grid(**dct) for dct in dcts]
+        self.editor_dialog = GridDialog(parent=None,
+                                        grids=grids)
+        self.editor_dialog.set_close_event(self.dialog_close_callback)
+        self.editor_dialog.show()
+
+    def dialog_close_callback(self, result: DialogResult, grids: [Grid]):
+        """ the dialog has closed """
+
+        # we have to restore the grid.grid to the array of count lines
+        # because there is no support for count lines in the grid editor yet
+        # we ar switching on all count lines
+        result = []
+        for item in grids:
+            dct = item.to_dict()
+            dct['grid'] = [x * 256 for x in range(1, item.numerator)]
+            result.append(dct)
+
+        self.io['score']['events']['grid'] = result
+        self.editor_dialog = None
+        # the refresh of the editor is missing here
+
 
 if __name__ == '__main__':
     PianoScript()

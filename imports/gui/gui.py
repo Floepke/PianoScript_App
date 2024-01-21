@@ -23,7 +23,7 @@ class Gui():
     def __init__(self, main, io):
         self.io = io
         self.main = main
-        
+
         # Set window properties
         self.main.setWindowTitle('PianoScript')
         self.main.setGeometry(250, 200, 2000, 1000)
@@ -58,6 +58,10 @@ class Gui():
         self.saveas_action = QAction('Save As', self.main)
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
+
+        self.grid_edit_action = QAction('Grid Editor', self.main)
+        self.file_menu.addAction(self.grid_edit_action)
+
         self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)
         self.exit_action.setShortcut('Ctrl+Q')
@@ -141,7 +145,7 @@ class Gui():
 
         # create a layout in the dockable widget
         self.gs_dock_layout = QVBoxLayout()
-        
+
         # Create a QWidget, set the layout on it
         self.gs_dock = QWidget()
         self.gs_dock.setLayout(self.gs_dock_layout)
@@ -195,7 +199,7 @@ class Gui():
         self.gs_dock_layout.addWidget(self.Xlabel, 0)
         self.gs_dock_layout.addWidget(self.multiply_spin_box, 0)
 
-        
+
         # Create a second dockable widget on the left side
         self.tool_dock = QDockWidget('Tool', self.main)
         self.tool_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
@@ -212,7 +216,7 @@ class Gui():
         # create label in the dockable widget
         self.tool_label = QLabel('Tool: note')
         self.tool_label.setToolTip('Select the tool you want to use.')
-        
+
         # Create a QTreeView and set the model (create_tree_model is defined below)
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.create_tree_model())
@@ -243,7 +247,7 @@ class Gui():
         '''
             creates a tree model for the tool selector.
             the tree model is a dictionary where the keys are the folders/category and the values are lists of tools.
-            the for loop tries to load an icon from the imports/icons folder with the name of the tool.    
+            the for loop tries to load an icon from the imports/icons folder with the name of the tool.
         '''
 
         # Create a QStandardItemModel
@@ -282,11 +286,11 @@ class Gui():
                 parent.appendRow(child)
 
         return model
-    
+
     def on_tree_view_clicked(self, index):
-        if self.tree_view.model().hasChildren(index): 
+        if self.tree_view.model().hasChildren(index):
             # if it's a parent
-            if self.last_selected_child.parent() == index: 
+            if self.last_selected_child.parent() == index:
                 # if the last selected child is a child of the clicked parent
                 if self.tree_view.isExpanded(index):
                     self.tree_view.collapse(index)
@@ -295,7 +299,7 @@ class Gui():
                     self.tree_view.expand(index)
                     self.tree_view.setCurrentIndex(self.last_selected_child)
                     return
-            else: 
+            else:
                 # if the last selected child is not a child of the clicked parent
                 if self.tree_view.isExpanded(index):
                     self.tree_view.collapse(index)
@@ -303,10 +307,9 @@ class Gui():
                     self.tree_view.expand(index)
                 self.tree_view.setCurrentIndex(self.last_selected_child)
                 return
-        
+
         # if index is a child
         else:
             self.last_selected_child = index
             self.io['maineditor'].select_tool(index.data())
 
-    
