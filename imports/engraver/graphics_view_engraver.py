@@ -53,9 +53,12 @@ class GraphicsViewEngraver(QGraphicsView):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             print('Left button pressed')
-            
+            self.io['selected_page'] -= 1
+            self.io['maineditor'].update('page_change')
         elif event.button() == Qt.RightButton:
             print('Right button pressed')
+            self.io['selected_page'] += 1
+            self.io['maineditor'].update('page_change')
         elif event.button() == Qt.MiddleButton:
             print('Middle button pressed')
         print('Mouse position:', event.pos())

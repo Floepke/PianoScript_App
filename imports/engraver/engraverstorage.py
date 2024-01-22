@@ -214,9 +214,12 @@ def tick2y_view(time: float, io: dict, staff_height: float, line_number: int):
 
     system_ticks = get_system_ticks(io)
     line_ticks = system_ticks[line_number]
+    print('line_number:', line_number, 'line_ticks:', line_ticks)
     
     # claculate the y from the staff_height
     y = staff_height * (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0])
+
+    print(y, (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0]))
     
     return y
 
@@ -240,6 +243,22 @@ def pitch2x_view(pitch: int, staff_range: list, scale: float, x_cursor: float):
             break
     
     return x
+
+
+def update_barnumber(DOC, idx_page):
+
+    # calculate the barnumber
+    barnumber = 1
+    for idx, page in enumerate(DOC):
+        if idx == idx_page:
+            break
+        for line in page:
+            for evt in line:
+                if evt['type'] == 'barline':
+                    if float(evt['time']).is_integer():
+                        barnumber += 1
+
+    return barnumber
 
 
 

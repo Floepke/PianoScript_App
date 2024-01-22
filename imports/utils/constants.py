@@ -4,7 +4,7 @@
     that they are constants.
 '''
 # the background color of the editor and print view
-BACKGROUND_COLOR = '#ffe'
+BACKGROUND_COLOR = '#ffffff'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -41,7 +41,7 @@ SCORE_TEMPLATE = {
         'page_margin_down':5,
         'draw_scale':1,
         'header_height':20,
-        'footer_height':10,
+        'footer_height':12.5,
         'color_right_midinote':'#c8c8c8',
         'color_left_midinote':'#c8c8c8',
         'editor_zoom':80, # size in pixels per quarter note

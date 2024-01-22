@@ -60,7 +60,10 @@ class Editor:
 
         if event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz', 'grid_editor']:
             self.redraw_editor()
-            render(self.io)
+            render(self.io, pageno=self.io['selected_page'])
+
+        if event_type in ['page_change']:
+            render(self.io, pageno=self.io['selected_page'])
 
         # draw the cursor
         if event_type == 'move' or 'move' in event_type:
