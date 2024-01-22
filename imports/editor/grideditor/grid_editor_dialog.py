@@ -63,12 +63,21 @@ class GridDialog(QDialog):
 
     def __init__(self,
                  parent,
-                 grids: [Grid]):
+                 grid_dct: [Grid]):
         """ initialize the class """
 
         super().__init__(parent)
 
-        self.grids = grids
+        # grid.grid has changed from a number to the array of count lines
+        # a way around this for the moment
+        # it will be fixed in the next iteration
+
+        self.grids = []
+        for idx, dct in enumerate(deepcopy(grid_dct), 1):
+            dct['grid'] = idx
+            dct['hidden'] = []
+            self.grids.append(Grid(**dct))
+
         self.selected_grid = 0
 
         self.controls = GridControls()
@@ -628,7 +637,20 @@ class GridDialog(QDialog):
         """ execute the callback when it's implemented """
 
         if self.close_callback:
-            self.close_callback(self.dialog_result, self.grids)
+
+            # we have to restore the grid.grid to the array of count lines
+            # because there is no support for count lines in the grid editor yet
+            # we ar switching on all count lines
+            grid_dct = []
+            for item in self.grids:
+                dct = item.to_dict()
+                dct['grid'] = [x * 256 for x in range(1, item.numerator)]
+                dct.pop('start', None)
+                dct.pop('option', None)
+                dct.pop('hidden', None)
+                grid_dct.append(dct)
+
+            self.close_callback(result=self.dialog_result, grids=grid_dct)
 
     @property
     def is_popup_allowed(self):
