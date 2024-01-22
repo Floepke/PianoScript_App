@@ -641,14 +641,28 @@ class GridDialog(QDialog):
             # we have to restore the grid.grid to the array of count lines
             # because there is no support for count lines in the grid editor yet
             # we ar switching on all count lines
+            base = {
+                1: 1024,
+                2: 512,
+                4: 256,
+                8: 64,
+                16: 32,
+                32: 16,
+                64: 8,
+                128: 1
+            }
+
             grid_dct = []
             for item in self.grids:
                 dct = item.to_dict()
-                dct['grid'] = [x * 256 for x in range(1, item.numerator)]
+                num = item.numerator
+                step = base.get(item.denominator, 1)
+                dct['grid'] = [x * step for x in range(1, num)]
                 dct.pop('start', None)
                 dct.pop('option', None)
                 dct.pop('hidden', None)
                 grid_dct.append(dct)
+                print(str(dct))
 
             self.close_callback(result=self.dialog_result, grids=grid_dct)
 
