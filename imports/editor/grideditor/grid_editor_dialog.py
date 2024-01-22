@@ -111,6 +111,9 @@ class GridDialog(QDialog):
         self.start = current.start
         self.popup = None
 
+        # when mute is True, no data should be updated
+        self.mute = False
+
     @property
     def grid(self) -> Grid:
         """ returns the current grid """
@@ -128,6 +131,7 @@ class GridDialog(QDialog):
     def grid(self, value: Grid) -> None:
         """ set the current grid """
 
+        self.mute = True
         self.selected_grid = value.grid
         self.start = value.start
         self.selected = f'grid {value.grid}'
@@ -135,6 +139,7 @@ class GridDialog(QDialog):
         self.amount = value.amount
         self.numerator = value.numerator
         self.denominator = value.denominator
+        self.mute = False
 
     def update_measure_view(self):
         """ updates the measure view """
@@ -393,10 +398,12 @@ class GridDialog(QDialog):
 
         value = self.visible
         idx = self.grid.grid - 1
-        self.grids[idx].visible = self.visible
         text = GridDialog.visible_text(value)
-        self.update_value(row=idx, name='visible', value=text)
         self.update_measure_view()
+
+        if not self.mute:
+            self.update_value(row=idx, name='visible', value=text)
+            self.grids[idx].visible = value
 
     def _create_signature(self,
                           box: QGroupBox,
@@ -483,14 +490,14 @@ class GridDialog(QDialog):
         row = self.grid.grid - 1
         num = self.spin_numerator.value()
         den = self.combo_denominator.currentText()
-        self.note = f'Signature changed {num}/{den}'
-
-        self.grids[row].denominator = int(den)
-        self.update_value(row=row, name='denominator', value=den)
-
-        self.grids[row].numerator = num
-        self.update_value(row=row, name='numerator', value=str(num))
+        self.note = f'Signature changed {num}/{den}, mute= {self.mute}'
         self.update_measure_view()
+
+        if not self.mute:
+            self.update_value(row=row, name='denominator', value=den)
+            self.grids[row].denominator = int(den)
+            self.update_value(row=row, name='numerator', value=str(num))
+            self.grids[row].numerator = int(num)
 
     def _yorn_box(self,
                   box: QGroupBox,
@@ -601,11 +608,14 @@ class GridDialog(QDialog):
     def amount_changed(self) -> None:
         """ the amount value has changed """
 
+        amount = self.amount
         row = self.grid.grid - 1
-        self.grids[row].amount = amount = self.amount
-        self.update_value(row=row, name='amount', value=str(amount))
         self._renumber_grids()
         self.note = f'amount changed {self.amount}'
+
+        if not self.mute:
+            self.update_value(row=row, name='amount', value=str(amount))
+            self.grids[row].amount = amount
 
     def _renumber_grids(self) -> None:
         """
