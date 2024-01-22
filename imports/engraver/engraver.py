@@ -20,12 +20,8 @@ from pprint import pprint
 def render(io, render_type='default', pageno=0): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
 
     # set scene dimensions
-    if render_type == 'default':
-        scene_width = io['score']['properties']['page_width']
-        scene_height = io['score']['properties']['page_height']
-    else:
-        scene_width = io['score']['properties']['page_width']
-        scene_height = 0 # TODO: calculate the height of the entire score by counting the pages
+    scene_width = io['score']['properties']['page_width']
+    scene_height = io['score']['properties']['page_height']
 
     # set scene rectangle
     io['gui'].print_scene.setSceneRect(0, 0, scene_width, scene_height) # TODO: check if it looks ok
@@ -85,7 +81,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                     'time': time + measure_length * m
                 })
                 DOC.append({
-                    'type': 'barline',
+                    'type': 'barlinedouble',
                     'time': time + measure_length * m - FRACTION
                 })
                 for g in grid:
@@ -95,7 +91,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                         'time': time + measure_length * m + g
                     })
                     DOC.append({
-                        'type': 'gridline',
+                        'type': 'gridlinedouble',
                         'time': time + measure_length * m + g - FRACTION
                     })
                 
@@ -283,6 +279,9 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     # NOTE: leftover_page_space = page
     # NOTE: staff_widths = line
     # NOTE: staff_ranges = line
+
+    # set pageno
+    pageno = pageno % len(DOC)
     
     
     
@@ -312,33 +311,28 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
         Top = 0
         Bottom = page_height
         
-        # draw test margin rectangle
-        io['view'].new_rectangle(Left, 
-                                 Top, 
-                                 Right, 
-                                 Bottom,
-                                 fill_color='white',
-                                 width=.2,
-                                 tag=['paper'])
-        
-        # draw margin
-        io['view'].new_rectangle(Left + page_margin_left, 
-                                 Top + page_margin_top, 
-                                 Right - page_margin_right, 
-                                 Bottom - page_margin_bottom,
-                                 outline_color='#0000ff',
-                                 fill_color='',
-                                 width=.2,
-                                 tag=['margin'])
-        
+        if render_type == 'default':
+            # draw test margin rectangle
+            io['view'].new_rectangle(Left, 
+                                    Top, 
+                                    Right, 
+                                    Bottom,
+                                    fill_color='white',
+                                    outline_color='black',
+                                    width=.2,
+                                    tag=['paper'])
         
         # looping trough the DOC structure and drawing the events:
         x_cursor = 0
         y_cursor = 0
         idx_line = 0
+        barnumber = 1
         for idx_page, page, leftover in zip(range(len(DOC)), DOC, leftover_page_space):
             if idx_page != pageno:
+                idx_line += len(DOC[idx_page])
+                barnumber = update_barnumber(DOC, idx_page+1)
                 continue
+                
             print('new page:', leftover)
 
             # update the cursors
@@ -362,15 +356,22 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                     size=4,
                                     tag=['composer'],
                                     font='Courier new',
-                                    anchor='ne')
+                                    anchor='ne') 
                 
                 staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
-                
                 y_cursor += io['score']['properties']['header_height']
-
             else:
                 staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
-
+            
+            # draw footer copyright pagenumbering and title
+            io['view'].new_text(page_margin_left,
+                                page_height-page_margin_bottom,
+                                f'page {idx_page+1} of {len(DOC)} - '+io['score']['header']['copyright'],
+                                size=4,
+                                tag=['copyright'],
+                                font='Courier new',
+                                anchor='sw')
+            
             for line, staff_width, staff_range in zip(page, staff_dimensions, staff_ranges):
                 print('new line:', staff_width, staff_range)
 
@@ -404,11 +405,10 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                    staff_length=staff_height)
 
                     for evt in line:
-                        # print(evt, staff_width)
 
                         if idx_staff == 0:
-                            # draw the barlines
-                            if evt['type'] == 'barline':
+                            # draw the barlines or endbarline
+                            if evt['type'] in ['barline', 'endbarline', 'barlinedouble']:
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor
                                 last_r_marg = 0
@@ -419,18 +419,32 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                         x2 += w['staff_width'] + w['margin_right'] + (leftover / (len(page) * enabled_staffs + 1))
                                         last_r_marg = w['margin_right']
                                 x2 -= last_r_marg + (leftover / (len(page) * enabled_staffs + 1)) + (PITCH_UNIT * 2 * draw_scale)
+                                x2 += 10
+                                if evt['type'] == 'barlinedouble': x2 -= last_r_marg
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                if evt['type'] in ['barline', 'barlinedouble']: w = 0.2
+                                else: w = 1
                                 io['view'].new_line(x1,
                                                     y_cursor+y,
                                                     x2,
                                                     y_cursor+y,
-                                                    width=0.2,
+                                                    width=w,
                                                     color='black',
                                                     tag=['barline'])
+                                # draw barnumbering
+                                if float(evt['time']).is_integer():
+                                    io['view'].new_text(x2-2, 
+                                                    y_cursor+y-4, 
+                                                    str(barnumber),
+                                                    size=4,
+                                                    tag=['barnumbering'],
+                                                    font='Courier new',
+                                                    anchor='nw')
+                                    barnumber += 1
                         
                         if width['staff_width']:
                             # draw the gridlines
-                            if evt['type'] == 'gridline':
+                            if evt['type'] in ['gridline', 'gridlinedouble']:
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor + width['staff_width'] - (PITCH_UNIT * 2 * draw_scale)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
@@ -440,22 +454,22 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     y_cursor+y,
                                                     width=.1,
                                                     color='black',
-                                                    dash=[5, 5],
+                                                    dash=[7.5, 7.5],
                                                     tag=['gridline'])
                         
                         # draw the notes
                         if evt['type'] == 'note':
+
                             if idx_staff == evt['staff']:
-                                print(staff_range[idx_staff][0], staff_range[idx_staff][1])
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y1 = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 y2 = tick2y_view(evt['time']+evt['duration'], io, staff_height, idx_line)
                                 
                                 if evt['pitch'] in BLACK_KEYS:
-                                    io['view'].new_oval(x-PITCH_UNIT*draw_scale,
+                                    io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
                                                     y_cursor+y1,
-                                                    x+PITCH_UNIT*draw_scale,
-                                                    y_cursor+y1+(PITCH_UNIT*2*draw_scale),
+                                                    x+PITCH_UNIT*.75*draw_scale,
+                                                    y_cursor+y1-(PITCH_UNIT*2*draw_scale),
                                                     fill_color='#000000',
                                                     outline_color='#000000',
                                                     outline_width=.5,
@@ -479,6 +493,22 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                         fill_color='#bbb',
                                                         outline_color='',
                                                         tag=['midinote']),
+                    
+                                # draw stem
+                                if evt['hand'] == 'r': 
+                                    io['view'].new_line(x,
+                                                    y_cursor+y1,
+                                                    x+PITCH_UNIT*5*draw_scale,
+                                                    y_cursor+y1,
+                                                    width=.75,
+                                                    tag=['stem'])
+                                else:
+                                    io['view'].new_line(x,
+                                                    y_cursor+y1,
+                                                    x-PITCH_UNIT*5*draw_scale,
+                                                    y_cursor+y1,
+                                                    width=.75,
+                                                    tag=['stem'])
 
                     x_cursor += width['staff_width'] + width['margin_right']
 

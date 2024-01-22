@@ -81,7 +81,6 @@ class DrawEditor:
     @staticmethod
     def draw_barlines_grid_timesignature_and_measurenumbers(io:dict, top, bttm):
         '''Draws the barlines, grid, timesignature and measure numbers'''
-        print('---------------START DRAW BARLINES GRID TIMESIGNATURE AND MEASURENUMBERS---------------')
         # calculating dimensions
         staff_width = EDITOR_WIDTH - (EDITOR_MARGIN * 2)
         editor_zoom = io['score']['properties']['editor_zoom']
@@ -92,7 +91,6 @@ class DrawEditor:
         io['editor'].delete_with_tag(['barline', 'timesignature', 'measurenumber', 'gridline'])
 
         for gr in io['score']['events']['grid']:
-            print(gr)
             # draw the timesignature indicator
             io['editor'].new_text(EDITOR_LEFT + (EDITOR_MARGIN / 2), 
                                   y_cursor,
@@ -166,7 +164,6 @@ class DrawEditor:
                 
                 # move the y_curs
                 y_cursor += measure_length * (editor_zoom / QUARTER_PIANOTICK)
-                print('y_cursor', y_cursor, 'measure length', measure_length)
 
                 # if this is the last iteration and last iteration from gr: draw the endline
                 if _ == amount - 1 and gr == io['score']['events']['grid'][-1]:
