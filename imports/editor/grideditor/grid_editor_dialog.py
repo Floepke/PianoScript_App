@@ -373,16 +373,16 @@ class GridDialog(QDialog):
     def _on_add(self):
         """ add the same grid """
 
-        row = self.grid.nr - 1
+        row = self.cur_grid.nr - 1
         self.note = f'add grid after grid={row + 1}'
-        self.grids.insert(row, deepcopy(self.grid))
+        self.grids.insert(row, deepcopy(self.cur_grid))
         self._renumber_grids()
         self._populate()
 
     def _on_del(self):
         """ delete this grid """
 
-        row = self.grid.nr - 1
+        row = self.cur_grid.nr - 1
         self.note = f'pop grid {row}'
         self.grids.pop(row)
         self._renumber_grids()
