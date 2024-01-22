@@ -143,7 +143,7 @@ class PianoScript():
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = FileOperations(self.io)
-
+        self.editor_dialog = None
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -192,38 +192,21 @@ class PianoScript():
     def open_grid_editor(self):
         """ open the Grid Editor """
 
-        # grid.grid has changed from a number to the array of count lines
-        # a way around this for the moment
-        # it will be fixed in the next iteration
-        dcts = deepcopy(self.io['score']['events']['grid'])
-        for idx, dct in enumerate(dcts, 1):
-            dct['grid'] = idx
-            dct['hidden'] = []
+        grid_dct = self.io['score']['events']['grid']
 
-        grids = [Grid(**dct) for dct in dcts]
         self.editor_dialog = GridDialog(parent=None,
-                                        grids=grids)
+                                        grid_dct=grid_dct)
         self.editor_dialog.set_close_event(self.dialog_close_callback)
         self.editor_dialog.show()
 
-    def dialog_close_callback(self, result: DialogResult, grids: [Grid]):
+    def dialog_close_callback(self, result: DialogResult, grids: [dict]):
         """ the dialog has closed """
 
-        # we have to restore the grid.grid to the array of count lines
-        # because there is no support for count lines in the grid editor yet
-        # we ar switching on all count lines
-        result = []
         for item in grids:
-            dct = item.to_dict()
             nr = self.io['calc'].add_and_return_tag()
-            dct['tag'] = f'grid{nr}'
-            dct['grid'] = [x * 256 for x in range(1, item.numerator)]
-            dct.pop('start', None)
-            dct.pop('option', None)
-            dct.pop('hidden', None)
-            result.append(dct)
+            item['tag'] = f'grid{nr}'
 
-        self.io['score']['events']['grid'] = result
+        self.io['score']['events']['grid'] = grids
         self.editor_dialog = None
         self.io['maineditor'].update('grid_editor')
 
