@@ -36,12 +36,12 @@ class Grid:
     def __init__(self, **kwargs):
         """ initialize the class """
 
-        self.grid: int = int(kwargs.get('grid', -1))
+        self.nr: int = int(kwargs.get('nr', -1))
         self.start: int = int(kwargs.get('start', 1))
         self.amount: int = int(kwargs.get('amount', 1))
         self.numerator: int = int(kwargs.get('numerator', 4))
         self.denominator: int = int(kwargs.get('denominator', 4))
-        self.hidden: [] = kwargs.get('hidden', [])
+        self.grid: [int] = kwargs.get('grid', [])
         self.option: str = kwargs.get('option', '')
         self.visible: bool = bool(kwargs.get('visible', True))
 
@@ -49,16 +49,16 @@ class Grid:
         """ convert back to dictionary """
 
         return {
-            'grid': self.grid,
-            'tag': f'grid{self.grid - 1}',
+            'nr': self.nr,
+            'tag': f'grid{self.nr - 1}',
             'start': self.start,
             'amount': self.amount,
             'numerator': self.numerator,
             'denominator': self.denominator,
             'option': self.option,
-            'hidden': self.hidden,
+            'grid': self.grid,
             'visible': self.visible
         }
 
     def __eq__(self, other):
-        return self.grid == other.grid
+        return self.nr == other.nr

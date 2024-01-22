@@ -8,6 +8,7 @@ __copyright__ = '© Sihir 2024-2024 all rights reserved'
 
 from typing import Optional
 from typing import Any
+from typing import List
 
 from copy import deepcopy
 
@@ -39,6 +40,8 @@ from imports.editor.grideditor.grid_treeview import GridTreeView
 
 from imports.editor.grideditor.measure_view import MeasureView
 
+from imports.editor.grideditor.lines_view import LinesView
+
 from imports.editor.grideditor.popup import Popup
 
 
@@ -68,17 +71,19 @@ class GridDialog(QDialog):
 
         super().__init__(parent)
 
+        self.setMinimumSize(610, 410)
+        self.setMaximumSize(610, 410)
+
         # grid.grid has changed from a number to the array of count lines
         # a way around this for the moment
         # it will be fixed in the next iteration
 
         self.grids = []
         for idx, dct in enumerate(deepcopy(grid_dct), 1):
-            dct['grid'] = idx
-            dct['hidden'] = []
+            dct['nr'] = idx
             self.grids.append(Grid(**dct))
 
-        self.selected_grid = 0
+        self.nr = 0
 
         self.controls = GridControls()
         self.setWindowTitle('Current Grid')
@@ -88,6 +93,8 @@ class GridDialog(QDialog):
         self.combo_denominator: Optional[QComboBox] = None
         self.tree_view: Optional[GridTreeView] = None
         self.measure_view: Optional[MeasureView] = None
+        self.line_view: Optional[LinesView] = None
+        self.grid: Optional[List[int]] = None
 
         dialog_layout = QGridLayout()
 
@@ -106,8 +113,8 @@ class GridDialog(QDialog):
 
         self.dialog_result = DialogResult.CLOSE_WINDOW
 
-        current = self.grids[self.selected_grid]
-        self.selected_grid = current.grid
+        current = self.grids[self.nr]
+        self.nr = current.nr
         self.start = current.start
         self.popup = None
 
@@ -115,54 +122,63 @@ class GridDialog(QDialog):
         self.mute = False
 
     @property
-    def grid(self) -> Grid:
+    def cur_grid(self) -> Grid:
         """ returns the current grid """
 
         value = Grid(
-            grid=self.selected_grid,
+            nr=self.nr,
             start=self.start,
             visible=self.visible,
             amount=self.amount,
             numerator=self.numerator,
+            grid=self.grid,
             denominator=self.denominator)
         return value
 
-    @grid.setter
-    def grid(self, value: Grid) -> None:
+    @cur_grid.setter
+    def cur_grid(self, value: Grid) -> None:
         """ set the current grid """
 
         self.mute = True
-        self.selected_grid = value.grid
+        self.nr = value.nr
         self.start = value.start
-        self.selected = f'grid {value.grid}'
+        self.selected = f'grid {value.nr}'
         self.visible = value.visible
         self.amount = value.amount
         self.numerator = value.numerator
         self.denominator = value.denominator
+        self.grid = value.grid
         self.mute = False
 
     def update_measure_view(self):
         """ updates the measure view """
 
-        self.measure_view.draw_measure(visible=self.grid.visible,
-                                       numerator=self.grid.numerator,
+        self.measure_view.draw_measure(visible=self.cur_grid.visible,
+                                       numerator=self.cur_grid.numerator,
                                        hidden=[])
 
     def editbox(self) -> QGroupBox:
         """ the grid editor box """
 
         edit_box = QGroupBox()
-        edit_box.setMaximumSize(QSize(1000, 400))
+        edit_box.setMaximumSize(QSize(600, 400))
+        edit_box.setMinimumSize(QSize(600, 400))
+
         edit_layout = QGridLayout()
 
         self.tree_view = GridTreeView(box=edit_box,
                                       layout=edit_layout,
                                       row=0,
                                       col=0,
-                                      span=6,
+                                      span=5,
                                       on_selection_changed=self._on_selection_changed)
 
         self._populate()
+
+        self._lines_view(box=edit_box,
+                         layout=edit_layout,
+                         row=0,
+                         col=5)
 
         self.create_measure_view(box=edit_box,
                                  layout=edit_layout,
@@ -191,7 +207,18 @@ class GridDialog(QDialog):
 
         self._yorn_box(box=edit_box,
                        layout=edit_layout,
-                       row=6)
+                       col=5,
+                       row=5,
+                       colspan=3)
+
+        # Set the column stretch for the three columns
+        edit_layout.setColumnStretch(0, 0.25)
+        edit_layout.setColumnStretch(1, 0.25)
+        edit_layout.setColumnStretch(2, 0.25)
+        edit_layout.setColumnStretch(3, 0.25)
+        edit_layout.setColumnStretch(4, 0.25)
+        edit_layout.setColumnStretch(5, 1.00)
+        edit_layout.setColumnStretch(6, 0.25)
 
         return edit_box
 
@@ -211,7 +238,7 @@ class GridDialog(QDialog):
 
         start = 1
         for nr, grd in enumerate(self.grids, 1):
-            grd.grid = nr
+            grd.nr = nr
             grd.start = start
             start += grd.amount
 
@@ -221,13 +248,14 @@ class GridDialog(QDialog):
         for grd in self.grids:
             value = GridDialog.visible_text(grd.visible)
             dct = {
-                'parent': f'grid{grd.grid}',
+                'parent': f'grid{grd.nr}',
                 'children': {
                     'start': str(grd.start),
                     'visible': value,
                     'amount': str(grd.amount),
                     'numerator': str(grd.numerator),
                     'denominator': str(grd.denominator),
+                    'grid': ','.join([str(pos) for pos in grd.grid]),
                 },
                 'parent.readonly': True,
                 'child1.readonly': True,
@@ -249,8 +277,9 @@ class GridDialog(QDialog):
             self.note = f'selected child row {row} col {col} of parent on row {parent.row()}'
             row = parent.row()
 
-        self.grid = self.grids[row]
+        self.cur_grid = self.grids[row]
         self.update_measure_view()
+        self._update_grids_view()
 
     def _create_selected(self,
                          box: QGroupBox,
@@ -308,7 +337,7 @@ class GridDialog(QDialog):
 
         spin_amount = QSpinBox(parent=box)
         spin_amount.setMinimum(1)
-        spin_amount.setMaximum(200)
+        spin_amount.setMaximum(10000)
         spin_amount.setValue(0)
         spin_amount.valueChanged.connect(self.amount_changed)
         self.spin_amount = spin_amount
@@ -344,7 +373,7 @@ class GridDialog(QDialog):
     def _on_add(self):
         """ add the same grid """
 
-        row = self.grid.grid - 1
+        row = self.grid.nr - 1
         self.note = f'add grid after grid={row + 1}'
         self.grids.insert(row, deepcopy(self.grid))
         self._renumber_grids()
@@ -353,23 +382,11 @@ class GridDialog(QDialog):
     def _on_del(self):
         """ delete this grid """
 
-        row = self.grid.grid - 1
+        row = self.grid.nr - 1
         self.note = f'pop grid {row}'
         self.grids.pop(row)
         self._renumber_grids()
         self._populate()
-
-    # def _on_prev(self):
-    #     """ delete this grid """
-    #
-    #     assert self
-    #     print('prev grid')
-    #
-    # def _on_next(self):
-    #     """ delete this grid """
-    #
-    #     assert self
-    #     print('next grid')
 
     def _on_ok(self):
         """ the OK button was clicked """
@@ -397,7 +414,7 @@ class GridDialog(QDialog):
         """ grid visible changed """
 
         value = self.visible
-        idx = self.grid.grid - 1
+        idx = self.cur_grid.nr - 1
         text = GridDialog.visible_text(value)
         self.update_measure_view()
 
@@ -487,11 +504,12 @@ class GridDialog(QDialog):
     def signature_changed(self):
         """ the signature changed """
 
-        row = self.grid.grid - 1
+        row = self.cur_grid.nr - 1
         num = self.spin_numerator.value()
         den = self.combo_denominator.currentText()
         self.note = f'Signature changed {num}/{den}, mute= {self.mute}'
         self.update_measure_view()
+        self._update_grids_view()
 
         if not self.mute:
             self.update_value(row=row, name='denominator', value=den)
@@ -502,24 +520,31 @@ class GridDialog(QDialog):
     def _yorn_box(self,
                   box: QGroupBox,
                   layout: QGridLayout,
-                  row: int):
+                  row: int = 0,
+                  col: int = 0,
+                  rowspan:int = 1,
+                  colspan:int = 1):
         """ OK or Cancel """
+
+        yorn_layout = QGridLayout()
 
         ok_button = QPushButton(parent=box)
         ok_button.setText('OK')
         ok_button.clicked.connect(self._on_ok)
-        layout.addWidget(ok_button, row, 0)
+        yorn_layout.addWidget(ok_button, 0, 0, 1, 1)
 
         self.popup_check = QCheckBox(parent=box)
         self.popup_check.setText('Logging')
         self.popup_check.setChecked(False)
         self.popup_check.stateChanged.connect(self.popup_check_changed)
-        layout.addWidget(self.popup_check, row, 2)
+        yorn_layout.addWidget(self.popup_check, 0, 1, 1, 1)
 
         cancel_button = QPushButton(parent=box)
         cancel_button.setText('Cancel')
         cancel_button.clicked.connect(self._on_cancel)
-        layout.addWidget(cancel_button, row, 4)
+        yorn_layout.addWidget(cancel_button, 0, 2, 1, 1)
+
+        layout.addLayout(yorn_layout, row, col, rowspan, colspan)
 
     def popup_check_changed(self, state: int):
         """ show or hide the popup """
@@ -609,7 +634,7 @@ class GridDialog(QDialog):
         """ the amount value has changed """
 
         amount = self.amount
-        row = self.grid.grid - 1
+        row = self.cur_grid.nr - 1
         self._renumber_grids()
         self.note = f'amount changed {self.amount}'
 
@@ -628,6 +653,32 @@ class GridDialog(QDialog):
             grid.start = start
             self.update_value(row=row, name='start', value=str(start))
             start += grid.amount
+
+    def _lines_view(self,
+                    box: QGroupBox,
+                    layout: QGridLayout,
+                    row: int,
+                    col: int):
+        """ grid lines view """
+
+        self.line_view = LinesView(box=box,
+                                   layout=layout,
+                                   width=100,
+                                   row=row,
+                                   col=col,
+                                   colspan=1,
+                                   rowspan=1)
+
+    def _update_grids_view(self):
+        """ update the view of the grid in the measure """
+
+        if self.mute:
+            return
+
+        lines = self.cur_grid.grid
+        columns = ['Lines']
+        data = [str(pos) for pos in lines]
+        self.line_view.populate(columns=columns, data=data)
 
     def set_close_event(self, close_callback) -> None:
         """ set the callback on close """
