@@ -3,7 +3,7 @@ import threading, traceback
 # we genereally import everything from this file for usage in the engraver, later we add the engraver specific imports here
 from imports.engraver.engraverstorage import *
 from imports.utils.constants import *
-from PySide6.QtCore import QThread, QMetaObject, Qt
+from PySide6.QtCore import QThread, Signal, QObject
 
 
 from pprint import pprint
@@ -110,7 +110,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                     new = evt
                     new['type'] = key
                     if key == 'note':
-                        new = note_split_processor(io, evt)
+                        new = note_processor(io, evt)
                         for note in new:
                             DOC.append(note)
                     elif evt['type'] in ['endrepeat', 'endsection']:
@@ -281,7 +281,9 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     # NOTE: staff_ranges = line
 
     # set pageno
-    pageno = pageno % len(DOC)
+    pageno = io['selected_page'] % len(DOC)
+
+    print(staff_ranges)
     
     
     
@@ -372,29 +374,30 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 font='Courier new',
                                 anchor='sw')
             
-            for line, staff_width, staff_range in zip(page, staff_dimensions, staff_ranges):
-                print('new line:', staff_width, staff_range)
+            for line, dimensions, staff_range in zip(page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
+                print('new line:', dimensions, staff_range)
 
                 # draw the staffs
-                for idx_staff, width in enumerate(staff_width):
+                for idx_staff, width in enumerate(dimensions):
                     
                     enabled_staffs = 0
                     
                     if width['staff_width']:
                         
                         # update the x_cursor
-                        for w in staff_width:
+                        for w in dimensions:
                             if w['staff_width']:
                                 enabled_staffs += 1
                         x_cursor += width['margin_left'] + (leftover / (len(page) * enabled_staffs + 1))
 
                         # draw the staff
                         if linebreaks[idx_line][f'staff{idx_staff+1}']['range'] == 'auto':
-                            draw_start = staff_range[idx_staff][0]
+                            draw_start = staff_range[idx_staff][0] # calculated in pre_calculate
                             draw_end = staff_range[idx_staff][1]
                         else:
-                            draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0]
+                            draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0] # given in file
                             draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
+                        print('idx_line:', idx_line, f'staff{idx_staff+1} range:', draw_start, draw_end)
                         draw_staff(x_cursor, 
                                    y_cursor, 
                                    staff_range[idx_staff][0], 
@@ -403,6 +406,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                    draw_end,
                                    io, 
                                    staff_length=staff_height)
+                        print(f'staff{idx_staff+1}: {draw_start} - {draw_end}', staff_range[idx_staff][0], staff_range[idx_staff][1])
 
                     for evt in line:
 
@@ -412,7 +416,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale)
                                 x2 = x_cursor
                                 last_r_marg = 0
-                                for i, w in enumerate(staff_width):
+                                for i, w in enumerate(dimensions):
                                     if w['staff_width']:
                                         if i > 0: 
                                             x2 += w['margin_left']
@@ -467,9 +471,9 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 
                                 if evt['pitch'] in BLACK_KEYS:
                                     io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
-                                                    y_cursor+y1,
-                                                    x+PITCH_UNIT*.75*draw_scale,
                                                     y_cursor+y1-(PITCH_UNIT*2*draw_scale),
+                                                    x+PITCH_UNIT*.75*draw_scale,
+                                                    y_cursor+y1,
                                                     fill_color='#000000',
                                                     outline_color='#000000',
                                                     outline_width=.5,
@@ -552,6 +556,45 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     
     drawing_order()
 
+    io['total_pages'] = len(DOC)
+
+
+def test_render(io):
+
+    io['view'].new_line(100, 100, 200, 200, width=1, tag=['testline'])
+
+# class RenderWorker(QObject):
+#     render_complete = Signal()  # Signal to indicate render completion
+
+#     def render_contents(self, io):
+#         try:
+#             test_render(io) # call the render function with the provided io
+#         except Exception:
+#             traceback.print_exc()
+
+#         # Emit signal to indicate render completion
+#         self.render_complete.emit()
+
+# class Engraver(QThread):
+#     def __init__(self, io):
+#         super().__init__()
+#         self.io = io
+#         self.worker = RenderWorker()
+#         self.worker.moveToThread(self)
+
+#         # Connect the signal to the render_contents method
+#         self.worker.render_complete.connect(self.handle_render_complete)
+
+#     def run(self):
+#         self.worker.render_contents(self.io)
+
+#     def handle_render_complete(self):
+#         print("Rendering complete")
+
+#     def do_engrave(self):
+#         if not self.isRunning():
+#             self.start()
+
 # class Engraver(QThread):
 #     def __init__(self, io):
 #         super().__init__()
@@ -596,6 +639,7 @@ class Engraver:
     def renderer(self):
         try:
             render(self.io)
+            self.io['gui'].print_view.update()
         except Exception:
             traceback.print_exc()
         finally:

@@ -5,7 +5,7 @@
 '''
 from imports.utils.constants import *
 
-def note_split_processor(io, note):
+def note_processor(io, note):
     '''
         note_split_processor splits a note message into different parts
         if the note is crossing a linebreak point. This is neccesary because
@@ -124,6 +124,7 @@ def range_staffs(io, line, linebreak):
         [min(pitches[2]), max(pitches[2])],
         [min(pitches[3]), max(pitches[3])]
     ]
+
     return out
 
 
@@ -214,12 +215,9 @@ def tick2y_view(time: float, io: dict, staff_height: float, line_number: int):
 
     system_ticks = get_system_ticks(io)
     line_ticks = system_ticks[line_number]
-    print('line_number:', line_number, 'line_ticks:', line_ticks)
     
     # claculate the y from the staff_height
     y = staff_height * (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0])
-
-    print(y, (time - line_ticks[0]) / (line_ticks[1] - line_ticks[0]))
     
     return y
 
