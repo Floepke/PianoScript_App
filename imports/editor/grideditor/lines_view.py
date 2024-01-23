@@ -1,7 +1,7 @@
 #! python3.11
 # coding: utf8
 
-""" the Grid Editor dialog """
+""" the lines treeview """
 
 __author__ = 'Sihir'
 __copyright__ = '© Sihir 2024-2024 all rights reserved'
@@ -15,11 +15,14 @@ from PySide6.QtWidgets import QTreeView
 from PySide6.QtWidgets import QAbstractItemView
 from PySide6.QtWidgets import QHeaderView
 
+from PySide6.QtCore import QModelIndex
+from PySide6.QtCore import Qt
+
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtGui import QStandardItem
-
-from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
+
+from imports.editor.grideditor.my_treeview import MyTreeView
 
 
 class LinesView:
@@ -30,13 +33,17 @@ class LinesView:
                  row: int,
                  col: int = 0,
                  width: int = 100,
-                 rowspan: int = 1,
-                 colspan: int = 1,
-                 on_selection_changed: Callable = None):
+                 row_span: int = 1,
+                 col_span: int = 1,
+                 on_selection_changed: Callable = None,
+                 on_value_changed: Callable = None):
         """ create a TreeView """
 
         self._on_selection_changed = on_selection_changed
-        self.view = view = QTreeView(parent=box)
+        self._on_value_changed = on_value_changed
+        self.mute = False
+
+        self.view = view = MyTreeView(parent=box)
 
         view.setColumnWidth(0, width)
         view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -48,22 +55,38 @@ class LinesView:
 
         # load these items in the edit controls
         view.clicked.connect(self._on_tree_view_clicked)
+        model.dataChanged.connect(self._on_data_changed)
 
-        layout.addWidget(view, row, col, rowspan, colspan)
+        layout.addWidget(view, row, col, row_span, col_span)
+
+    def get_item(self, index: QModelIndex) -> tuple:
+        """ convert index to item """
+
+        item = self.model.itemFromIndex(index)
+        return item.row(), item.column(), item.parent(), item.data(Qt.DisplayRole)
+
+    def _on_data_changed(self, top_left_index: QModelIndex, bottom_right_index: QModelIndex):
+        """ some items changed """
+
+        if self._on_value_changed and not self.mute:
+            self._on_value_changed(top_left=self.get_item(top_left_index),
+                                   bottom_right=self.get_item(bottom_right_index))
 
     def _on_tree_view_clicked(self, index):
         """ the tree was clicked changed """
 
         # print('on_tree_view_clicked')
         if self._on_selection_changed is not None:
-            item = self.model.itemFromIndex(index)
-            self._on_selection_changed(item.row(), item.column(), item.parent())
+            self._on_selection_changed(changed=self.get_item(index))
 
     def populate(self, columns: list, data: list):
         """ populate the view """
 
+        self.mute = True
         view = self.view
+
         model = self.model
+
         model.clear()
 
         model.setHorizontalHeaderLabels(columns)
@@ -71,11 +94,9 @@ class LinesView:
         # populate data
         for i, item in enumerate(data):
             parent = QStandardItem(str(item))
-            # if item['parent.readonly']:
-            #    parent.setFlags(parent.flags() ^ Qt.ItemIsEditable)
             model.appendRow(parent)
-            # span container columns
-            # view.setFirstColumnSpanned(i, view.rootIndex(), True)
+
+        self.mute = False
 
         # Set the header to resize column 0
         header = view.header()

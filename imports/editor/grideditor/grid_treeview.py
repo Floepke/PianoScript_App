@@ -20,6 +20,8 @@ from PySide6.QtGui import QStandardItem
 from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
+from imports.editor.grideditor.my_treeview import MyTreeView
+
 
 class GridTreeView:
 
@@ -33,7 +35,7 @@ class GridTreeView:
         """ create a TreeView """
 
         self._on_selection_changed = on_selection_changed
-        self.view = view = QTreeView(parent=box)
+        self.view = view = MyTreeView(parent=box)
         view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.model = model = QStandardItemModel()
@@ -58,6 +60,13 @@ class GridTreeView:
         """ populate the view """
 
         view = self.view
+        indices = view.get_parent_row_indices()
+        for index in indices:
+            print(f'grid index row {index.row()} col {index.column()}')
+
+        expanded = view.get_expanded_rows()
+        print(f'expanded rows {expanded}')
+
         model = self.model
         model.clear()
 
@@ -84,11 +93,16 @@ class GridTreeView:
             # span container columns
             view.setFirstColumnSpanned(i, view.rootIndex(), True)
 
+        parent_indices = view.get_parent_row_indices()
+        for nr, index in enumerate(parent_indices):
+            print(f'row {nr} {index.row()}')
+        # view.restore_expanded_items(expanded)
+
     def set_value(self, row, name: str, value: str = ''):
         """ change a value in model row """
 
         item = self.model.item(row)
-        for idx in range(5):
+        for idx in range(item.rowCount()):
             try:
                 child1 = item.child(idx, 0)
                 child2 = item.child(idx, 1)

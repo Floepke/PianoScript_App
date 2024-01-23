@@ -14,6 +14,8 @@ from copy import deepcopy
 
 from dataclasses import dataclass
 
+from collections import namedtuple
+
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QDialog
 from PySide6.QtWidgets import QGroupBox
@@ -29,6 +31,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtGui import QAction
 
 from PySide6.QtCore import QSize
+from PySide6.QtCore import QModelIndex
 from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
@@ -672,8 +675,34 @@ class GridDialog(QDialog):
                                    width=100,
                                    row=row,
                                    col=col,
-                                   colspan=1,
-                                   rowspan=1)
+                                   col_span=1,
+                                   row_span=1,
+                                   on_selection_changed=self._lines_on_selection_changed,
+                                   on_value_changed=self._lines_on_value_changed)
+
+    def _lines_on_selection_changed(self, changed: namedtuple):
+        """ an item was selected """
+
+        row, col, par, data = changed
+        self.note = f'selection:     row {row} col {col} parent {par} data {data}'
+
+    def _lines_on_value_changed(self,
+                                top_left: namedtuple,
+                                bottom_right: namedtuple):
+        """ value in the tree changed"""
+
+        assert bottom_right
+
+        row, col, par, data = top_left
+        self.note = f'index: row {row} col {col} parent {par} data {data}'
+
+        if data is None:
+            return
+
+        self.cur_grid.grid[row] = int(data)
+        value = ','.join([str(line) for line in self.cur_grid.grid])
+        nr = self.cur_grid.nr - 1
+        self.tree_view.set_value(row=nr, name='grid', value=value)
 
     def _lines_func(self,
                     box: QGroupBox,
