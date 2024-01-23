@@ -757,7 +757,9 @@ class GridDialog(QDialog):
 
         step = self.base.get(den, 1)
         lines = [x * step for x in range(1, num)]
-        self.cur_grid.grid = lines
+        idx = self.cur_grid.nr - 1
+        self.grids[idx].grid = lines
+        self.cur_grid = self.grids[idx]
         self.update_lines()
         self._update_grids_view()
 
