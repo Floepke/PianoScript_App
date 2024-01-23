@@ -9,6 +9,7 @@ __copyright__ = '© Sihir 2024-2024 all rights reserved'
 from typing import Optional
 from typing import Any
 from typing import List
+from typing import Dict
 
 from copy import deepcopy
 
@@ -700,6 +701,11 @@ class GridDialog(QDialog):
             return
 
         self.cur_grid.grid[row] = int(data)
+        self.update_lines()
+
+    def update_lines(self):
+        """ update the grid lines """
+
         value = ','.join([str(line) for line in self.cur_grid.grid])
         nr = self.cur_grid.nr - 1
         self.tree_view.set_value(row=nr, name='grid', value=value)
@@ -746,6 +752,14 @@ class GridDialog(QDialog):
         """ reset lines to default """
 
         self.note = 'reset lines to default'
+        num = self.numerator
+        den = self.denominator
+
+        step = self.base.get(den, 1)
+        lines = [x * step for x in range(1, num)]
+        self.cur_grid.grid = lines
+        self.update_lines()
+        self._update_grids_view()
 
     def _update_grids_view(self):
         """ update the view of the grid in the measure """
@@ -772,6 +786,22 @@ class GridDialog(QDialog):
         self.do_callback()
         event.accept()
 
+    @property
+    def base(self) -> Dict:
+        """ eh, the base """
+
+        assert self  # @property and @staticmethod don't go together
+        return {
+            1: 1024,
+            2: 512,
+            4: 256,
+            8: 64,
+            16: 32,
+            32: 16,
+            64: 8,
+            128: 1
+        }
+
     def do_callback(self):
         """ execute the callback when it's implemented """
 
@@ -780,22 +810,12 @@ class GridDialog(QDialog):
             # we have to restore the grid.grid to the array of count lines
             # because there is no support for count lines in the grid editor yet
             # we ar switching on all count lines
-            base = {
-                1: 1024,
-                2: 512,
-                4: 256,
-                8: 64,
-                16: 32,
-                32: 16,
-                64: 8,
-                128: 1
-            }
 
             grid_dct = []
             for item in self.grids:
                 dct = item.to_dict()
                 num = item.numerator
-                step = base.get(item.denominator, 1)
+                step = self.base.get(item.denominator, 1)
                 dct['grid'] = [x * step for x in range(1, num)]
                 dct.pop('start', None)
                 dct.pop('option', None)
