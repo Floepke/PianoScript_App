@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import QDialog
 
 from PySide6.QtCore import Qt
+from PySide6.QtCore import QRect
 # pylint: enable=no-name-in-module
 
 from imports.editor.grideditor.dialog_result import DialogResult
@@ -35,6 +36,7 @@ class GridInterface(QDialog):
 
         self.editor_dialog = None
         self.io = {'score': {'events': {'grid': self.example_grids()}}}
+        self.setWindowTitle('Stub')
         self.show()
         self.lower()
 
@@ -74,6 +76,8 @@ class GridInterface(QDialog):
         self.editor_dialog.setWindowFlags(Qt.Tool)
         self.editor_dialog.set_close_event(self.dialog_close_callback)
         self.editor_dialog.show()
+
+        self.setGeometry(50, 50, 50, 50)
 
     def dialog_close_callback(self, result: DialogResult, grids: [Grid]):
         """ the dialog has closed """

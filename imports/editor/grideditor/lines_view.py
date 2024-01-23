@@ -79,7 +79,7 @@ class LinesView:
 
         # Set the header to resize column 0
         header = view.header()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
 
         # Set the column 0 to resize to its contents
         view.resizeColumnToContents(0)

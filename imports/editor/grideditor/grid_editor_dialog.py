@@ -86,7 +86,7 @@ class GridDialog(QDialog):
         self.nr = 0
 
         self.controls = GridControls()
-        self.setWindowTitle('Current Grid')
+        self.setWindowTitle('Grid definitions')
         self.check_visible: Optional[QCheckBox] = None
         self.spin_amount: Optional[QSpinBox] = None
         self.spin_numerator: Optional[QSpinBox] = None
@@ -180,30 +180,37 @@ class GridDialog(QDialog):
                          row=0,
                          col=5)
 
+        self._lines_func(box=edit_box,
+                         layout=edit_layout,
+                         row=1,
+                         col=5,
+                         rowspan=1,
+                         colspan=3)
+
         self.create_measure_view(box=edit_box,
                                  layout=edit_layout,
                                  row=0,
                                  column=6)
 
+        self._create_toolbar(box=edit_box,
+                             layout=edit_layout,
+                             row=1)
+
         self._create_selected(box=edit_box,
                               layout=edit_layout,
-                              row=1)
+                              row=2)
 
         self._create_start(box=edit_box,
                            layout=edit_layout,
-                           row=2)
+                           row=3)
 
         self._create_amount(box=edit_box,
                             layout=edit_layout,
-                            row=3)
+                            row=4)
 
         self._create_signature(box=edit_box,
                                layout=edit_layout,
-                               row=4)
-
-        self._create_toolbar(box=edit_box,
-                             layout=edit_layout,
-                             row=5)
+                               row=5)
 
         self._yorn_box(box=edit_box,
                        layout=edit_layout,
@@ -355,15 +362,14 @@ class GridDialog(QDialog):
         tb_layout.addWidget(toolbar, row, 1)
 
         action_add = QAction('Add', self)
-        action_add.setStatusTip('Add same Grid')
+        action_add.setToolTip('Add same Grid')
         action_add.triggered.connect(self._on_add)
         toolbar.addAction(action_add)
 
         action_del = QAction('Del', self)
-        action_del.setStatusTip('Delete Grid')
+        action_del.setToolTip('Delete Grid')
         action_del.triggered.connect(self._on_del)
         toolbar.addAction(action_del)
-        toolbar.addSeparator()
 
         for idx in range(tb_layout.count()):
             tb_layout.itemAt(idx).setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -668,6 +674,49 @@ class GridDialog(QDialog):
                                    col=col,
                                    colspan=1,
                                    rowspan=1)
+
+    def _lines_func(self,
+                    box: QGroupBox,
+                    layout: QGridLayout,
+                    row: int,
+                    col: int,
+                    rowspan:int = 1,
+                    colspan:int = 1):
+        """ grid lines functions """
+
+        toolbar = QToolBar(parent=box)
+
+        action_add = QAction('Add', self)
+        action_add.setToolTip('Add same line')
+        action_add.triggered.connect(self._on_line_add)
+        toolbar.addAction(action_add)
+
+        action_del = QAction('Del', self)
+        action_del.setToolTip('Delete line')
+        action_del.triggered.connect(self._on_line_del)
+        toolbar.addAction(action_del)
+
+        action_reset = QAction('Reset', self)
+        action_reset.setStatusTip('Reset to default')
+        action_reset.triggered.connect(self._on_line_reset)
+        toolbar.addAction(action_reset)
+
+        layout.addWidget(toolbar, row, col, rowspan, colspan)
+
+    def _on_line_add(self):
+        """ add a line in the measure """
+
+        self.note = 'add a line'
+
+    def _on_line_del(self):
+        """ delete a line in the measure """
+
+        self.note = 'delete a line'
+
+    def _on_line_reset(self):
+        """ reset lines to default """
+
+        self.note = 'reset lines to default'
 
     def _update_grids_view(self):
         """ update the view of the grid in the measure """
