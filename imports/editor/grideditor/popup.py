@@ -25,14 +25,15 @@ class Popup(QDialog):
 
     def __init__(self,
                  message: str,
-                 text_size: tuple = (400, 200),
-                 max_lines: int = 12,
+                 text_size: tuple = (400, 240),
+                 max_lines: int = 16,
                  result_callback: Callable = None):
         """ initialize the class """
 
         super().__init__(parent=None)
 
         self.result = DialogResult.CLOSE_WINDOW
+        self.size = text_size
         self.callback = result_callback
         self.max_lines = max_lines
 
@@ -107,7 +108,7 @@ class Popup(QDialog):
 
         builder = StringBuilder()
         popup_list = self.text.split('\n') + text.split('\n')
-        for line in popup_list[-13:]:
+        for line in popup_list[-self.max_lines:]:
             if line:
                 builder.append_line(line)
 

@@ -875,8 +875,7 @@ class GridDialog(QDialog):
             for item in self.grids:
                 dct = item.to_dict()
                 num = item.numerator
-                step = Grid.base(item.denominator)
-                dct['grid'] = [x * step for x in range(1, num)]
+                dct['grid'] = item.grid
                 dct.pop('start', None)
                 dct.pop('option', None)
                 dct.pop('hidden', None)
