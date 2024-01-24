@@ -202,13 +202,15 @@ class PianoScript():
     def dialog_close_callback(self, result: DialogResult, grids: [dict]):
         """ the dialog has closed """
 
-        for item in grids:
-            nr = self.io['calc'].add_and_return_tag()
-            item['tag'] = f'grid{nr}'
-
-        self.io['score']['events']['grid'] = grids
         self.editor_dialog = None
-        self.io['maineditor'].update('grid_editor')
+
+        if result == DialogResult.OK:
+            for item in grids:
+                nr = self.io['calc'].add_and_return_tag()
+                item['tag'] = f'grid{nr}'
+
+            self.io['score']['events']['grid'] = grids
+            self.io['maineditor'].update('grid_editor')
 
 
 if __name__ == '__main__':
