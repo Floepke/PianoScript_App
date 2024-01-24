@@ -102,11 +102,12 @@ class GridTreeView:
         """ change a value in model row """
 
         item = self.model.item(row)
+        if item is None:
+            return
+
         for idx in range(item.rowCount()):
-            try:
-                child1 = item.child(idx, 0)
-                child2 = item.child(idx, 1)
-                if child1.text() == name:
-                    child2.setText(value)
-            except:
-                pass
+            child1 = item.child(idx, 0)
+            child2 = item.child(idx, 1)
+            if child1.text() == name:
+                child2.setText(value)
+                return

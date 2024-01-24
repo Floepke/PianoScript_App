@@ -12,6 +12,9 @@ from PySide6.QtWidgets import QGraphicsView
 from imports.editor.grideditor.draw_2d import Draw2d
 from imports.utils.constants import BACKGROUND_COLOR
 
+from imports.editor.grideditor.grid import Grid
+
+
 class MeasureView():
     """ display a measure """
 
@@ -35,13 +38,10 @@ class MeasureView():
 
     # pylint: disable=too-many-locals
     def draw_measure(self,
-                     visible: bool,
-                     numerator: int,
-                     hidden: list = None):
+                     data: Grid):
         """ draw the measure counting lines """
 
-        if hidden is None:
-            hidden = []
+        count_lines = [] if data.grid is None else data.grid
 
         drawer = self._drawer
         drawer.delete_all()
@@ -51,7 +51,7 @@ class MeasureView():
         bottom = rect.height()
         margin = 3
 
-        if visible:
+        if data.visible:
             # draw the lines for the bar
             for x_pos, mode in [
                 (25, 1), (35, 1),
@@ -83,17 +83,37 @@ class MeasureView():
 
         lines = [(margin, 2, right), (bottom - margin, 2, right)]
 
-        if visible:
-            step = bottom / numerator
+        if data.visible:
+            scale = Grid.base(data.denominator)
+            step = bottom / data.numerator
+
+            # for 3/4 we get 0, 256, 512
+            # [1]  0    is not drawn
+            # [2]  256  on bottom / 3
+            # [3]  512  on bottom * 2 / 3
+            # step = bottom / 3 (the numerator)
+            # scale = 256 (from denominator)
+
+            # for 4/4 we get 0, 256, 512, 1024, bottom is 1024
+            # [1]  0    is not drawn
+            # [2]  256  on bottom / 4
+            # [3]  512  on bottom * 2 / 4
+            # [4]  768  on bottom * 3 /4
+            # step = bottom / 4 (the numerator)
+            # scale = 256 (from denominator)
+
+            # 256 / scale * step -> step
+            # 512 / scale * step -> 2 * step
+            # 768 / scale * step -> 3 * step
+
             font_size = max(min(step - 6, 12), 4)
 
-            pos = step
-            for meas_line in range(1, numerator):
-                size = 30 if meas_line + 1 in hidden else right
-                lines.append((pos, 1, size))
-                pos += step
+            for count_line in count_lines:
+                # size = 30 if meas_line + 1 in hidden else right
+                y_pos = int(float(count_line) / scale * step)
+                lines.append((y_pos, 1, right))
 
-            for idx in range(0, numerator):
+            for idx in range(0, data.numerator):
                 y_pos = 8 + idx * step
                 x_pos = 10
                 drawer.create_text(x=x_pos,

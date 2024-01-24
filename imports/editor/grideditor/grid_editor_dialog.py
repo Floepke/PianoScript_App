@@ -9,7 +9,6 @@ __copyright__ = '© Sihir 2024-2024 all rights reserved'
 from typing import Optional
 from typing import Any
 from typing import List
-from typing import Dict
 
 from copy import deepcopy
 
@@ -21,18 +20,17 @@ from collections import namedtuple
 from PySide6.QtWidgets import QDialog
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QGridLayout
-from PySide6.QtWidgets import QSpinBox
 from PySide6.QtWidgets import QCheckBox
 from PySide6.QtWidgets import QComboBox
 from PySide6.QtWidgets import QToolBar
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QSpinBox
 
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QAction
 
 from PySide6.QtCore import QSize
-from PySide6.QtCore import QModelIndex
 from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
@@ -47,6 +45,8 @@ from imports.editor.grideditor.measure_view import MeasureView
 from imports.editor.grideditor.lines_view import LinesView
 
 from imports.editor.grideditor.popup import Popup
+
+from imports.editor.grideditor.string_builder import StringBuilder
 
 
 @dataclass
@@ -74,7 +74,12 @@ class GridDialog(QDialog):
         """ initialize the class """
 
         super().__init__(parent)
-
+        self.setWindowFlags(
+            Qt.Window
+            | Qt.CustomizeWindowHint
+            | Qt.WindowTitleHint
+            | Qt.WindowMinimizeButtonHint
+        )
         self.setMinimumSize(610, 410)
         self.setMaximumSize(610, 410)
 
@@ -121,9 +126,29 @@ class GridDialog(QDialog):
         self.nr = current.nr
         self.start = current.start
         self.popup = None
+        self.line_proposal = ''
+        self.current_line = -1
 
         # when mute is True, no data should be updated
         self.mute = False
+        self._want_to_close = False
+
+    def keyPressEvent(self, event):
+        """ a key was pressed """
+
+        if event.key() in [Qt.Key_Enter, Qt.Key_Return]:
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
+
+    def closeEvent(self, event):
+        """ dialog wants to close, do we allow that? """
+
+        if self._want_to_close:
+            super(GridDialog, self).closeEvent(event)
+        else:
+            event.ignore()
 
     @property
     def cur_grid(self) -> Grid:
@@ -154,12 +179,10 @@ class GridDialog(QDialog):
         self.grid = value.grid
         self.mute = False
 
-    def update_measure_view(self):
+    def _update_measure_view(self):
         """ updates the measure view """
 
-        self.measure_view.draw_measure(visible=self.cur_grid.visible,
-                                       numerator=self.cur_grid.numerator,
-                                       hidden=[])
+        self.measure_view.draw_measure(data=self.cur_grid)
 
     def editbox(self) -> QGroupBox:
         """ the grid editor box """
@@ -188,8 +211,8 @@ class GridDialog(QDialog):
                          layout=edit_layout,
                          row=1,
                          col=5,
-                         rowspan=1,
-                         colspan=3)
+                         row_span=1,
+                         col_span=3)
 
         self.create_measure_view(box=edit_box,
                                  layout=edit_layout,
@@ -279,17 +302,14 @@ class GridDialog(QDialog):
     def _on_selection_changed(self, row: int, col: int, parent: Any):
         """ the selection in the QTreeView changed """
 
-        if parent is None:
-            # a parent row was clicked, the row of the parent is given
-            self.note = f'selected row {row}'
-        else:
+        if parent is not None:
             # here, a child was clicked, now the row is the child's row
             # and the parent has a value. Now get the row of the parent
-            self.note = f'selected child row {row} col {col} of parent on row {parent.row()}'
+            # self.note = f'selected child row {row} col {col} of parent on row {parent.row()}'
             row = parent.row()
 
         self.cur_grid = self.grids[row]
-        self.update_measure_view()
+        self._update_measure_view()
         self._update_grids_view()
 
     def _create_selected(self,
@@ -384,7 +404,7 @@ class GridDialog(QDialog):
         """ add the same grid """
 
         row = self.cur_grid.nr - 1
-        self.note = f'add grid after grid={row + 1}'
+        # self.note = f'add grid after grid={row + 1}'
         self.grids.insert(row, deepcopy(self.cur_grid))
         self._renumber_grids()
         self._populate()
@@ -393,7 +413,7 @@ class GridDialog(QDialog):
         """ delete this grid """
 
         row = self.cur_grid.nr - 1
-        self.note = f'pop grid {row}'
+        # self.note = f'pop grid {row}'
         self.grids.pop(row)
         self._renumber_grids()
         self._populate()
@@ -401,12 +421,14 @@ class GridDialog(QDialog):
     def _on_ok(self):
         """ the OK button was clicked """
 
+        self._want_to_close = True
         self.dialog_result = DialogResult.OK
         self.close()
 
     def _on_cancel(self):
         """ the cancel button was clicked """
 
+        self._want_to_close = True
         self.dialog_result = DialogResult.CANCEL
         self.close()
 
@@ -426,7 +448,7 @@ class GridDialog(QDialog):
         value = self.visible
         idx = self.cur_grid.nr - 1
         text = GridDialog.visible_text(value)
-        self.update_measure_view()
+        self._update_measure_view()
 
         if not self.mute:
             self.update_value(row=idx, name='visible', value=text)
@@ -517,8 +539,8 @@ class GridDialog(QDialog):
         row = self.cur_grid.nr - 1
         num = self.spin_numerator.value()
         den = self.combo_denominator.currentText()
-        self.note = f'Signature changed {num}/{den}, mute= {self.mute}'
-        self.update_measure_view()
+        # self.note = f'Signature changed {num}/{den}, mute= {self.mute}'
+        self._update_measure_view()
         self._update_grids_view()
 
         if not self.mute:
@@ -539,34 +561,51 @@ class GridDialog(QDialog):
         yorn_layout = QGridLayout()
 
         ok_button = QPushButton(parent=box)
+        ok_button.setDefault(False)
         ok_button.setText('OK')
         ok_button.clicked.connect(self._on_ok)
         yorn_layout.addWidget(ok_button, 0, 0, 1, 1)
 
-        self.popup_check = QCheckBox(parent=box)
-        self.popup_check.setText('Logging')
-        self.popup_check.setChecked(False)
-        self.popup_check.stateChanged.connect(self.popup_check_changed)
-        yorn_layout.addWidget(self.popup_check, 0, 1, 1, 1)
+        help_button = QPushButton(parent=box)
+        help_button.setText('Help')
+        help_button.clicked.connect(self._on_help)
+        yorn_layout.addWidget(help_button, 0, 1, 1, 1)
 
         cancel_button = QPushButton(parent=box)
+        cancel_button.setDefault(False)
         cancel_button.setText('Cancel')
         cancel_button.clicked.connect(self._on_cancel)
         yorn_layout.addWidget(cancel_button, 0, 2, 1, 1)
 
         layout.addLayout(yorn_layout, row, col, rowspan, colspan)
 
-    def popup_check_changed(self, state: int):
+    def _on_help(self):
         """ show or hide the popup """
 
-        assert state
-        if self.is_popup_allowed:
-            if not self.popup:
-                self.create_popup()
-        else:
-            if self.popup:
-                self.popup.close()
-                self.popup = None
+        if not self.popup:
+            self.create_popup()
+
+        builder = StringBuilder()
+        self.note = '[CLEAR]'
+        builder.append_line('Brief Help for the grid editor')
+        builder.append_line(' ')
+        builder.append_line('Select one of the grids on the left by clicking on the grid name')
+        builder.append_line('Edit the values with the controls on the left side')
+        builder.append_line('Create an empty measure by deselecting the "visible" check box')
+        builder.append_line('Add or delete the definition with the "Add" and "Del" button')
+        builder.append_line('Edit the count lines in the tree in the column in the middle')
+        builder.append_line('Select a location of a new line with the spin box below that column')
+        builder.append_line('The step for the location of the line is 64, equivalent to a 1/16 note')
+        builder.append_line('Add the location to the list of lines with the "Add" button on the right')
+        builder.append_line('Delete the current location with the "Del" button on the right')
+        builder.append_line('Reset the lines to the default with the "Reset" button')
+        builder.append_line('Also use the "Reset" button after changing the Signature')
+        builder.append_line('A preview is drawn on the right column')
+        self.note = builder.to_string()
+
+        # 256 quarter
+        # 128 eights
+        # 64 sixteenth
 
     @property
     def selected(self) -> str:
@@ -646,7 +685,7 @@ class GridDialog(QDialog):
         amount = self.amount
         row = self.cur_grid.nr - 1
         self._renumber_grids()
-        self.note = f'amount changed {self.amount}'
+        # self.note = f'amount changed {self.amount}'
 
         if not self.mute:
             self.update_value(row=row, name='amount', value=str(amount))
@@ -685,7 +724,8 @@ class GridDialog(QDialog):
         """ an item was selected """
 
         row, col, par, data = changed
-        self.note = f'selection:     row {row} col {col} parent {par} data {data}'
+        self.current_line = row
+        # self.note = f'selection:     row {row} col {col} parent {par} data {data}'
 
     def _lines_on_value_changed(self,
                                 top_left: namedtuple,
@@ -695,15 +735,16 @@ class GridDialog(QDialog):
         assert bottom_right
 
         row, col, par, data = top_left
-        self.note = f'index: row {row} col {col} parent {par} data {data}'
+        # self.note = f'index: row {row} col {col} parent {par} data {data}'
 
         if data is None:
             return
 
-        self.cur_grid.grid[row] = int(data)
-        self.update_lines()
+        proposal = self.cur_grid.grid
+        proposal[row] = int(data)
+        self.new_lines(proposal)
 
-    def update_lines(self):
+    def _update_lines_view(self):
         """ update the grid lines """
 
         value = ','.join([str(line) for line in self.cur_grid.grid])
@@ -715,16 +756,25 @@ class GridDialog(QDialog):
                     layout: QGridLayout,
                     row: int,
                     col: int,
-                    rowspan:int = 1,
-                    colspan:int = 1):
+                    row_span:int = 1,
+                    col_span:int = 1):
         """ grid lines functions """
 
         toolbar = QToolBar(parent=box)
 
-        action_add = QAction('Add', self)
-        action_add.setToolTip('Add same line')
+        action_add = QAction('Add:', self)
+        action_add.setToolTip('Add line')
         action_add.triggered.connect(self._on_line_add)
         toolbar.addAction(action_add)
+
+        size = QSize(40, 16)
+        self.line_spin = line_spin = QSpinBox()
+        line_spin.setMinimum(0)
+        line_spin.setMaximum(9999)
+        line_spin.setValue(0)
+        line_spin.setSingleStep(64)
+        line_spin.valueChanged.connect(self.line_spin_changed)
+        toolbar.addWidget(line_spin)
 
         action_del = QAction('Del', self)
         action_del.setToolTip('Delete line')
@@ -736,32 +786,60 @@ class GridDialog(QDialog):
         action_reset.triggered.connect(self._on_line_reset)
         toolbar.addAction(action_reset)
 
-        layout.addWidget(toolbar, row, col, rowspan, colspan)
+        layout.addWidget(toolbar, row, col, row_span, col_span)
+
+    def line_spin_changed(self, value):
+        """ the value of the line_edit changed """
+
+        self.line_proposal = int(value)
 
     def _on_line_add(self):
         """ add a line in the measure """
 
-        self.note = 'add a line'
+        cur = self.cur_grid
+        if cur.nr == 0 or cur.grid is None:
+            return
+
+        proposal = cur.grid
+        proposal.append(self.line_proposal)
+        self.new_lines(proposal)
 
     def _on_line_del(self):
         """ delete a line in the measure """
 
-        self.note = 'delete a line'
+        proposal = self.cur_grid.grid
+        if 0 <= self.current_line < len(proposal):
+            proposal.pop(self.current_line)
+            self.new_lines(proposal)
 
     def _on_line_reset(self):
         """ reset lines to default """
 
-        self.note = 'reset lines to default'
+        # self.note = 'reset lines to default'
         num = self.numerator
         den = self.denominator
 
-        step = self.base.get(den, 1)
+        step = Grid.base(den)
         lines = [x * step for x in range(1, num)]
+        self.new_lines(lines)
+
+    def new_lines(self, lines: List):
+        """ updated grid lines """
+
+        # sort and make unique
+        lines = sorted(set(lines))
+        num = self.cur_grid.numerator
+        den = self.cur_grid.denominator
+        step = Grid.base(den)
+        max_line = num * step
+        lines = [line for line in lines if line < max_line]
+
         idx = self.cur_grid.nr - 1
         self.grids[idx].grid = lines
         self.cur_grid = self.grids[idx]
-        self.update_lines()
+        self._update_lines_view()
         self._update_grids_view()
+        self._update_measure_view()
 
     def _update_grids_view(self):
         """ update the view of the grid in the measure """
@@ -782,30 +860,10 @@ class GridDialog(QDialog):
     def dialog_closes(self, event):
         """ this dialog closes """
 
-        if self.popup:
-            self.popup.close()
-
-        self.do_callback()
         event.accept()
 
-    @property
-    def base(self) -> Dict:
-        """ eh, the base """
-
-        assert self  # @property and @staticmethod don't go together
-        return {
-            1: 1024,
-            2: 512,
-            4: 256,
-            8: 64,
-            16: 32,
-            32: 16,
-            64: 8,
-            128: 1
-        }
-
-    def do_callback(self):
-        """ execute the callback when it's implemented """
+        if self.popup:
+            self.popup.close()
 
         if self.close_callback:
 
@@ -817,7 +875,7 @@ class GridDialog(QDialog):
             for item in self.grids:
                 dct = item.to_dict()
                 num = item.numerator
-                step = self.base.get(item.denominator, 1)
+                step = Grid.base(item.denominator)
                 dct['grid'] = [x * step for x in range(1, num)]
                 dct.pop('start', None)
                 dct.pop('option', None)
@@ -826,12 +884,6 @@ class GridDialog(QDialog):
                 print(str(dct))
 
             self.close_callback(result=self.dialog_result, grids=grid_dct)
-
-    @property
-    def is_popup_allowed(self):
-        """Return True if popup is allowed, False if denied."""
-
-        return self.popup_check.checkState() == Qt.CheckState.Checked
 
     @property
     def note(self) -> str:
@@ -845,10 +897,9 @@ class GridDialog(QDialog):
             :param str value: the text to be added to the label
         """
 
-        if self.is_popup_allowed:
-            if self.popup is None:
-                self.create_popup()
-            self.popup.append(value)
+        if self.popup is None:
+            self.create_popup()
+        self.popup.append(value)
 
     def create_popup(self):
         """Create the popup dialog."""

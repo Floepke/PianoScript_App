@@ -25,6 +25,8 @@ __copyright__ = '© Sihir 2023-2024 all rights reserved'  # noqa
 #        1 =======    (bar)
 # ],
 
+from typing import Dict
+
 from dataclasses import dataclass
 
 
@@ -62,3 +64,19 @@ class Grid:
 
     def __eq__(self, other):
         return self.nr == other.nr
+
+    @staticmethod
+    def base(denominator: int) -> int:
+        """ base scales note length """
+
+        dct = {
+            1: 1024,
+            2: 512,
+            4: 256,
+            8: 64,
+            16: 32,
+            32: 16,
+            64: 8,
+            128: 1
+        }
+        return dct.get(denominator, 1)

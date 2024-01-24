@@ -50,6 +50,7 @@ class Popup(QDialog):
         self.lbl_message = lbl_message
 
         ok_button = QPushButton('OK')
+        # when this is True, entering a new line position
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._ok_click)
         ok_button.setMinimumSize(60, 24)
