@@ -67,16 +67,23 @@ class LineBreakDialog(QDialog):
         self.controls = [
             LineBreakControl(layout=layout,
                              row=1,
-                             parent=self),
+                             parent=self,
+                             has_label=True),
+
             LineBreakControl(layout=layout,
                              row=2,
-                             parent=self),
+                             parent=self,
+                             has_label=False),
+
             LineBreakControl(layout=layout,
                              row=3,
-                             parent=self),
+                             parent=self,
+                             has_label=False),
+
             LineBreakControl(layout=layout,
                              row=4,
-                             parent=self),
+                             parent=self,
+                             has_label=False),
         ]
 
         ok_cancel = QGroupBox()

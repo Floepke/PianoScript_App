@@ -63,7 +63,8 @@ class LineBreakControl:
     def __init__(self,
                  layout: QGridLayout,
                  row: int,
-                 parent: Any):
+                 parent: Any,
+                 has_label: bool = True):
         """ initialize the class """
 
         self._line_break = LineBreak(
@@ -78,7 +79,8 @@ class LineBreakControl:
 
         group_margin, group_staff = self._create_group_boxes(parent=parent,
                                                              layout=layout,
-                                                             row=row)
+                                                             row=row,
+                                                             has_label=has_label)
 
         # --- MARGIN ---
         self._create_margin_left(parent=parent,
@@ -88,7 +90,7 @@ class LineBreakControl:
                                   group=group_margin)
 
         #  --- STAFF ---
-        note_size = QSize(12, 16)
+        note_size = QSize(16, 16)
 
         self._create_staff_start(parent=parent,
                                  group_staff=group_staff,
@@ -127,14 +129,17 @@ class LineBreakControl:
     def _create_group_boxes(self,
                             parent: Any,
                             layout: QGridLayout,
-                            row: int):
+                            row: int,
+                            has_label: bool):
         """ create the group boxes for this dialog """
 
-        group_margin = QGroupBox('Left           Right', parent=parent)
+        label = 'Left           Right' if has_label else ''
+        group_margin = QGroupBox(label, parent=parent)
         layout.addWidget(group_margin, row, 0, 1, 1)
         group_margin.setLayout(QGridLayout())
 
-        group_staff = QGroupBox('Start                    Finish', parent=parent)
+        label = 'Start                    Finish' if has_label else ''
+        group_staff = QGroupBox(label, parent=parent)
         layout.addWidget(group_staff, row, 1, 1, 1)
         group_staff.setLayout(QGridLayout())
 
