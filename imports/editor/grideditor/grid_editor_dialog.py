@@ -12,8 +12,6 @@ from typing import List
 
 from copy import deepcopy
 
-from dataclasses import dataclass
-
 from collections import namedtuple
 
 # pylint: disable=no-name-in-module
@@ -49,22 +47,6 @@ from imports.editor.grideditor.popup import Popup
 from imports.editor.grideditor.string_builder import StringBuilder
 
 
-@dataclass
-class GridControls:
-    """ the controls used in the dialog """
-
-    def __init__(self):
-        """ initialize the class """
-
-        self.selected_lbl: Optional[QLabel] = None
-        self.spin_start: Optional[QSpinBox] = None
-        self.check_visible: Optional[QCheckBox] = None
-        self.spin_amount: Optional[QSpinBox] = None
-        self.spin_numerator: Optional[QSpinBox] = None
-        self.combo_denominator: Optional[QComboBox] = None
-        self.note_lbl: Optional[QLabel] = None
-
-
 class GridDialog(QDialog):
     """ the Grid editor dialog """
 
@@ -94,9 +76,9 @@ class GridDialog(QDialog):
 
         self.nr = 0
 
-        self.controls = GridControls()
         self.setWindowTitle('Grid definitions')
         self.check_visible: Optional[QCheckBox] = None
+        self.spin_start: Optional[QSpinBox] = None
         self.spin_amount: Optional[QSpinBox] = None
         self.spin_numerator: Optional[QSpinBox] = None
         self.combo_denominator: Optional[QComboBox] = None
@@ -243,7 +225,7 @@ class GridDialog(QDialog):
                        layout=edit_layout,
                        col=5,
                        row=5,
-                       colspan=3)
+                       col_span=3)
 
         # Set the column stretch for the three columns
         edit_layout.setColumnStretch(0, 0.25)
@@ -302,10 +284,11 @@ class GridDialog(QDialog):
     def _on_selection_changed(self, row: int, col: int, parent: Any):
         """ the selection in the QTreeView changed """
 
+        assert col
         if parent is not None:
             # here, a child was clicked, now the row is the child's row
             # and the parent has a value. Now get the row of the parent
-            # self.note = f'selected child row {row} col {col} of parent on row {parent.row()}'
+            # self.note = f 'selected child row {row} col {col} of parent on row {parent.row()}'
             row = parent.row()
 
         self.cur_grid = self.grids[row]
@@ -325,7 +308,7 @@ class GridDialog(QDialog):
 
         selected_lbl = QLabel(parent=box)
         selected_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self.controls.selected_lbl = selected_lbl
+        self.selected_lbl = selected_lbl
 
         layout.addWidget(selected_lbl, row, 1)
         box.setLayout(layout)
@@ -345,7 +328,7 @@ class GridDialog(QDialog):
         spin_start.setMaximum(200)
         spin_start.setValue(0)
         spin_start.setEnabled(False)
-        self.controls.spin_start = spin_start
+        self.spin_start = spin_start
 
         layout.addWidget(spin_start, row, 1)
 
@@ -404,7 +387,7 @@ class GridDialog(QDialog):
         """ add the same grid """
 
         row = self.cur_grid.nr - 1
-        # self.note = f'add grid after grid={row + 1}'
+        # self.note = f 'add grid after grid={row + 1}'
         self.grids.insert(row, deepcopy(self.cur_grid))
         self._renumber_grids()
         self._populate()
@@ -413,7 +396,7 @@ class GridDialog(QDialog):
         """ delete this grid """
 
         row = self.cur_grid.nr - 1
-        # self.note = f'pop grid {row}'
+        # self.note = f 'pop grid {row}'
         self.grids.pop(row)
         self._renumber_grids()
         self._populate()
@@ -554,8 +537,8 @@ class GridDialog(QDialog):
                   layout: QGridLayout,
                   row: int = 0,
                   col: int = 0,
-                  rowspan:int = 1,
-                  colspan:int = 1):
+                  row_span: int = 1,
+                  col_span: int = 1):
         """ OK or Cancel """
 
         yorn_layout = QGridLayout()
@@ -577,7 +560,7 @@ class GridDialog(QDialog):
         cancel_button.clicked.connect(self._on_cancel)
         yorn_layout.addWidget(cancel_button, 0, 2, 1, 1)
 
-        layout.addLayout(yorn_layout, row, col, rowspan, colspan)
+        layout.addLayout(yorn_layout, row, col, row_span, col_span)
 
     def _on_help(self):
         """ show or hide the popup """
@@ -611,37 +594,37 @@ class GridDialog(QDialog):
     def selected(self) -> str:
         """ selected grid sequence name """
 
-        return self.controls.selected_lbl.text()
+        return self.selected_lbl.text()
 
     @selected.setter
     def selected(self, value: str):
         """ set the selected grid """
 
-        self.controls.selected_lbl.setText(value)
+        self.selected_lbl.setText(value)
 
     @property
     def start(self) -> int:
         """ get start grid """
 
-        return self.controls.spin_start.value()
+        return self.spin_start.value()
 
     @start.setter
     def start(self, value: int):
         """ set start grid """
 
-        self.controls.spin_start.setValue(value)
+        self.spin_start.setValue(value)
 
     @property
     def start_max(self) -> int:
         """ get maximum start+_max """
 
-        return self.controls.spin_start.maximum()
+        return self.spin_start.maximum()
 
     @start_max.setter
     def start_max(self, value: int):
         """ set maximum start+_max """
 
-        self.controls.spin_start.setMaximum(value)
+        self.spin_start.setMaximum(value)
 
     @property
     def visible(self) -> bool:
@@ -685,7 +668,7 @@ class GridDialog(QDialog):
         amount = self.amount
         row = self.cur_grid.nr - 1
         self._renumber_grids()
-        # self.note = f'amount changed {self.amount}'
+        # self.note = f 'amount changed {self.amount}'
 
         if not self.mute:
             self.update_value(row=row, name='amount', value=str(amount))
@@ -725,7 +708,7 @@ class GridDialog(QDialog):
 
         row, col, par, data = changed
         self.current_line = row
-        # self.note = f'selection:     row {row} col {col} parent {par} data {data}'
+        # self.note = f 'selection:     row {row} col {col} parent {par} data {data}'
 
     def _lines_on_value_changed(self,
                                 top_left: namedtuple,
@@ -735,7 +718,7 @@ class GridDialog(QDialog):
         assert bottom_right
 
         row, col, par, data = top_left
-        # self.note = f'index: row {row} col {col} parent {par} data {data}'
+        # self.note = f 'index: row {row} col {col} parent {par} data {data}'
 
         if data is None:
             return
@@ -756,8 +739,8 @@ class GridDialog(QDialog):
                     layout: QGridLayout,
                     row: int,
                     col: int,
-                    row_span:int = 1,
-                    col_span:int = 1):
+                    row_span: int = 1,
+                    col_span: int = 1):
         """ grid lines functions """
 
         toolbar = QToolBar(parent=box)
@@ -767,7 +750,6 @@ class GridDialog(QDialog):
         action_add.triggered.connect(self._on_line_add)
         toolbar.addAction(action_add)
 
-        size = QSize(40, 16)
         self.line_spin = line_spin = QSpinBox()
         line_spin.setMinimum(0)
         line_spin.setMaximum(9999)
@@ -874,7 +856,7 @@ class GridDialog(QDialog):
             grid_dct = []
             for item in self.grids:
                 dct = item.to_dict()
-                num = item.numerator
+                # num = item.numerator
                 dct['grid'] = item.grid
                 dct.pop('start', None)
                 dct.pop('option', None)
