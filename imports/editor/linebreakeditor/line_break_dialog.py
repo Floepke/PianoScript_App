@@ -17,16 +17,17 @@ from typing import Any
 from typing import List
 from typing import Callable
 
+# pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QDialog
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QLabel
 
-from PySide6.QtGui import QIcon
 from PySide6.QtGui import QPixmap
 
 from PySide6.QtCore import Qt
+# pylint: enable=no-name-in-module
 
 from imports.editor.linebreakeditor.line_break import LineBreak
 from imports.editor.linebreakeditor.line_break_control import LineBreakControl
@@ -66,19 +67,15 @@ class LineBreakDialog(QDialog):
         self.controls = [
             LineBreakControl(layout=layout,
                              row=1,
-                             span=2,
                              parent=self),
             LineBreakControl(layout=layout,
                              row=2,
-                             span=2,
                              parent=self),
             LineBreakControl(layout=layout,
                              row=3,
-                             span=2,
                              parent=self),
             LineBreakControl(layout=layout,
                              row=4,
-                             span=2,
                              parent=self),
         ]
 
@@ -132,9 +129,11 @@ class LineBreakDialog(QDialog):
         self.result = DialogResult.CANCEL
         self.close()
 
+    # pylint: disable=invalid-name
     def closeEvent(self, event):
         """ the close window control 'x' is clicked"""
 
+        event.accept()
         line_breaks = []
         if self.result == DialogResult.OK:
             line_breaks = [
@@ -146,3 +145,5 @@ class LineBreakDialog(QDialog):
 
         if self.callback is not None:
             self.callback(self.result, line_breaks)
+
+    # pylint: enable=invalid-name

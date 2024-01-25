@@ -16,12 +16,14 @@ __copyright__ = '© Sihir 2023-2024 all rights reserved'
 # middle C is note #60 (known as C3 in MIDI terminology).
 
 from sys import argv
+from sys import exit as _exit
 
 from copy import deepcopy
 
+# pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
-
 from PySide6.QtWidgets import QApplication
+# pylint: enable=no-name-in-module
 
 from imports.editor.linebreakeditor.line_break import LineBreak
 from imports.editor.linebreakeditor.line_break_control import LineBreakControl
@@ -30,6 +32,7 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 
 def test_0():
+    """ test for the translate_note function """
     for index in range(128):
         name = LineBreakControl.translate_note(midi_note=index)
         print(f'{index:<3} {name}')
@@ -80,8 +83,6 @@ def test1_callback(result: DialogResult,
 def main() -> int:
     """ main test function """
 
-    from sys import argv
-
     if len(argv) < 2:
         test_0()
         return 0
@@ -97,5 +98,4 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    from sys import exit as _exit
     _exit(main())

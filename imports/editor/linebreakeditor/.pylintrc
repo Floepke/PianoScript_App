@@ -1,4 +1,2 @@
 [MASTER]
 init-hook='import sys; sys.path.append('..')'
-[FORMAT]
-good-names=g,r,t,i,k
