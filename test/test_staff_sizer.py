@@ -25,16 +25,16 @@ from PySide6.QtWidgets import QGridLayout
 from PySide6.QtWidgets import QApplication
 # pylint: enable=no-name-in-module
 
-from imports.editor.linebreakeditor.line_break import LineBreak
-from imports.editor.linebreakeditor.line_break_control import LineBreakControl
-from imports.editor.linebreakeditor.line_break_dialog import LineBreakDialog
+from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
+from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
+from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.editor.grideditor.dialog_result import DialogResult
 
 
 def test_0():
     """ test for the translate_note function """
     for index in range(128):
-        name = LineBreakControl.translate_note(midi_note=index)
+        name = StaffSizerControl.translate_note(midi_note=index)
         print(f'{index:<3} {name}')
 
 
@@ -42,24 +42,24 @@ def test_1():
     """ test the dialog with four line breaks """
 
     app = QApplication(argv)
-    lbrk = LineBreakDialog(callback=test1_callback)
+    lbrk = StaffSizerDialog(callback=test1_callback)
 
-    mine = LineBreak(margin_left=10,
-                     margin_right=12,
-                     staff_start=48,
-                     staff_finish=79)
+    sizer = StaffSizer(margin_left=10,
+                       margin_right=12,
+                       staff_start=48,
+                       staff_finish=79)
 
-    linebreaks = [deepcopy(mine),
-                  deepcopy(mine),
-                  deepcopy(mine),
-                  deepcopy(mine)]
+    sizers = [deepcopy(sizer),
+              deepcopy(sizer),
+              deepcopy(sizer),
+              deepcopy(sizer)]
 
-    linebreaks[0].margin_left = 10
-    linebreaks[1].margin_left = 20
-    linebreaks[2].margin_left = 30
-    linebreaks[3].margin_left = 40
+    sizers[0].margin_left = 10
+    sizers[1].margin_left = 20
+    sizers[2].margin_left = 30
+    sizers[3].margin_left = 40
 
-    lbrk.linebreaks = linebreaks
+    lbrk.staff_sizers = sizers
     layout = QGridLayout()
     layout.addWidget(lbrk, 0, 0, 1, 1)
     lbrk.show()
@@ -68,7 +68,7 @@ def test_1():
 
 
 def test1_callback(result: DialogResult,
-                   line_breaks: [LineBreak]):
+                   line_breaks: [StaffSizer]):
     """ callback for results  """
 
     print(f'{result}')

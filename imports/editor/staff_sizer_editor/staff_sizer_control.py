@@ -28,10 +28,10 @@ from PySide6.QtWidgets import QGroupBox
 from PySide6.QtCore import QSize
 # pylint: enable=no-name-in-module
 
-from imports.editor.linebreakeditor.line_break import LineBreak
+from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 
 
-class LineBreakControl:
+class StaffSizerControl:
     """ controls for one linebreak """
 
     _note_names = ['C ', 'C#', 'D ', 'D#',
@@ -67,7 +67,7 @@ class LineBreakControl:
                  has_label: bool = True):
         """ initialize the class """
 
-        self._line_break = LineBreak(
+        self._staff_sizer = StaffSizer(
             margin_left=10,
             margin_right=20,
             staff_start=0,
@@ -75,7 +75,7 @@ class LineBreakControl:
         )
 
         # save a reference to the controls in this class
-        self.gui_data = LineBreakControl.GuiData()
+        self.gui_data = StaffSizerControl.GuiData()
 
         group_margin, group_staff = self._create_group_boxes(parent=parent,
                                                              layout=layout,
@@ -103,16 +103,16 @@ class LineBreakControl:
         self._connect()
 
     @property
-    def line_break(self) -> LineBreak:
-        """ get the line break value """
+    def staff_sizer(self) -> StaffSizer:
+        """ get the staff sizer values """
 
-        return self._line_break
+        return self._staff_sizer
 
-    @line_break.setter
-    def line_break(self, value: LineBreak):
-        """ set the line break value """
+    @staff_sizer.setter
+    def staff_sizer(self, value: StaffSizer):
+        """ set the staff sizer values """
 
-        self._line_break = value
+        self._staff_sizer = value
         self.gui_data.margin_left.setValue(value.margin_left)
         self.gui_data.margin_right.setValue(value.margin_right)
         self.gui_data.staff_start.setValue(value.staff_start)
@@ -123,7 +123,7 @@ class LineBreakControl:
         """ translate the number to a note name """
 
         octave, note = divmod(midi_note, 12)
-        name = LineBreakControl._note_names[note]
+        name = StaffSizerControl._note_names[note]
         return name, octave - 2
 
     def _create_group_boxes(self,
@@ -176,8 +176,8 @@ class LineBreakControl:
         """ create the start group """
 
         # default data
-        start = self._line_break.staff_start
-        name, octave = LineBreakControl.translate_note(start)
+        start = self._staff_sizer.staff_start
+        name, octave = StaffSizerControl.translate_note(start)
 
         #  --- START ---
         staff_start = QSpinBox(parent=parent)
@@ -210,8 +210,8 @@ class LineBreakControl:
         """ create the finish group """
 
         # default data
-        finish = self._line_break.staff_finish
-        name, octave = LineBreakControl.translate_note(finish)
+        finish = self._staff_sizer.staff_finish
+        name, octave = StaffSizerControl.translate_note(finish)
 
         # FINISH
         staff_finish = QSpinBox(parent=parent)
@@ -247,25 +247,25 @@ class LineBreakControl:
     def _margin_left_changed(self, value: int):
         """ margin on the left changed """
 
-        self._line_break.margin_left = value
+        self._staff_sizer.margin_left = value
 
     def _margin_right_changed(self, value: int):
         """ margin on the right changed """
 
-        self._line_break.margin_right = value
+        self._staff_sizer.margin_right = value
 
     def _staff_start_changed(self, value: int):
         """ staff start changed """
 
-        self._line_break.staff_start = value
-        name, octave = LineBreakControl.translate_note(value)
+        self._staff_sizer.staff_start = value
+        name, octave = StaffSizerControl.translate_note(value)
         self.gui_data.start_label.setText(name)
         self.gui_data.start_octave.setText(str(octave))
 
     def _staff_finish_changed(self, value: int):
         """ staff start changed """
 
-        self._line_break.staff_finish = int(value)
-        name, octave = LineBreakControl.translate_note(value)
+        self._staff_sizer.staff_finish = int(value)
+        name, octave = StaffSizerControl.translate_note(value)
         self.gui_data.finish_label.setText(name)
         self.gui_data.finish_octave.setText(str(octave))

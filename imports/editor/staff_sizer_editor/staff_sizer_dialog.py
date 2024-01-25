@@ -29,12 +29,12 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
-from imports.editor.linebreakeditor.line_break import LineBreak
-from imports.editor.linebreakeditor.line_break_control import LineBreakControl
+from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
+from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
 from imports.editor.grideditor.dialog_result import DialogResult
 
 
-class LineBreakDialog(QDialog):
+class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
 
     def __init__(self,
@@ -50,7 +50,7 @@ class LineBreakDialog(QDialog):
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
 
-        self.setWindowTitle('Line Breaks')
+        self.setWindowTitle('Staff Sizer')
 
         layout = QGridLayout()
 
@@ -65,25 +65,25 @@ class LineBreakDialog(QDialog):
         layout.addWidget(label_right, 0, 1, 1, 1)
 
         self.controls = [
-            LineBreakControl(layout=layout,
-                             row=1,
-                             parent=self,
-                             has_label=True),
+            StaffSizerControl(layout=layout,
+                              row=1,
+                              parent=self,
+                              has_label=True),
 
-            LineBreakControl(layout=layout,
-                             row=2,
-                             parent=self,
-                             has_label=False),
+            StaffSizerControl(layout=layout,
+                              row=2,
+                              parent=self,
+                              has_label=False),
 
-            LineBreakControl(layout=layout,
-                             row=3,
-                             parent=self,
-                             has_label=False),
+            StaffSizerControl(layout=layout,
+                              row=3,
+                              parent=self,
+                              has_label=False),
 
-            LineBreakControl(layout=layout,
-                             row=4,
-                             parent=self,
-                             has_label=False),
+            StaffSizerControl(layout=layout,
+                              row=4,
+                              parent=self,
+                              has_label=False),
         ]
 
         ok_cancel = QGroupBox()
@@ -105,24 +105,24 @@ class LineBreakDialog(QDialog):
         self.setLayout(layout)
 
     @property
-    def linebreaks(self) -> List:
+    def staff_sizers(self) -> List:
         """ get the values """
 
         return [
-            self.controls[0].line_break,
-            self.controls[1].line_break,
-            self.controls[2].line_break,
-            self.controls[3].line_break,
+            self.controls[0].staff_sizer,
+            self.controls[1].staff_sizer,
+            self.controls[2].staff_sizer,
+            self.controls[3].staff_sizer,
             ]
 
-    @linebreaks.setter
-    def linebreaks(self, value: [LineBreak]):
+    @staff_sizers.setter
+    def staff_sizers(self, value: [StaffSizer]):
         """ set the value """
 
-        self.controls[0].line_break = value[0]
-        self.controls[1].line_break = value[1]
-        self.controls[2].line_break = value[2]
-        self.controls[3].line_break = value[3]
+        self.controls[0].staff_sizer = value[0]
+        self.controls[1].staff_sizer = value[1]
+        self.controls[2].staff_sizer = value[2]
+        self.controls[3].staff_sizer = value[3]
 
     def _on_ok(self):
         """ OK clicked """
@@ -144,10 +144,10 @@ class LineBreakDialog(QDialog):
         line_breaks = []
         if self.result == DialogResult.OK:
             line_breaks = [
-                self.controls[0].line_break,
-                self.controls[1].line_break,
-                self.controls[2].line_break,
-                self.controls[3].line_break,
+                self.controls[0].staff_sizer,
+                self.controls[1].staff_sizer,
+                self.controls[2].staff_sizer,
+                self.controls[3].staff_sizer,
             ]
 
         if self.callback is not None:

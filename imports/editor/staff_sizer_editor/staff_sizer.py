@@ -17,7 +17,7 @@ from dataclasses import dataclass
 # staff range toets x tot y(staff1-4)
 
 @dataclass
-class LineBreak:
+class StaffSizer:
     """ controls for one linebreak """
 
     def __init__(self, **kwargs):
