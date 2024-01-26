@@ -73,16 +73,14 @@ def test_1():
 
 
 def test1_callback(result: DialogResult,
-                   line_breaks: [StaffSizer]):
+                   staffs: [StaffSizer]):
     """ callback for results  """
 
     print(f'{result}')
-    for idx, line_break in enumerate(line_breaks):
-        dct = line_break.to_dict()
-        print('---------')
-        print(f'{"LineBreak": <12} {idx + 1}')
-        for key, value in dct.items():
-            print(f'{key: <12} {value}')
+    output = StaffIo.export_staffs(staffs=staffs)
+
+    ppr = pprint.PrettyPrinter(indent=4)
+    ppr.pprint(output)
 
 
 def test_2():
