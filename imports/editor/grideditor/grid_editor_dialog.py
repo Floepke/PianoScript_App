@@ -281,10 +281,9 @@ class GridDialog(QDialog):
 
         self.tree_view.populate(columns=columns, data=data)
 
-    def _on_selection_changed(self, row: int, col: int, parent: Any):
+    def _on_selection_changed(self, row: int, _: int, parent: Any):
         """ the selection in the QTreeView changed """
 
-        assert col
         if parent is not None:
             # here, a child was clicked, now the row is the child's row
             # and the parent has a value. Now get the row of the parent
@@ -829,7 +828,7 @@ class GridDialog(QDialog):
         if self.mute:
             return
 
-        lines = self.cur_grid.grid
+        lines = self.cur_grid.grid or []
         columns = ['Lines']
         data = [str(pos) for pos in lines]
         self.line_view.populate(columns=columns, data=data)

@@ -65,7 +65,7 @@ class GridTreeView:
             print(f'grid index row {index.row()} col {index.column()}')
 
         expanded = view.get_expanded_rows()
-        print(f'expanded rows {expanded}')
+        # print(f'expanded rows {expanded}')
 
         model = self.model
         model.clear()
