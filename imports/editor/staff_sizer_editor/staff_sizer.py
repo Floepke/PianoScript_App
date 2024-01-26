@@ -7,14 +7,10 @@ __author__ = 'Sihir'
 __copyright__ = '© Sihir 2023-2024 all rights reserved'
 
 from typing import Dict
+from typing import List
 
 from dataclasses import dataclass
 
-# Ik denk een dialoogje wanneer je op de linebreak marker klikt met de linker
-# muisknop waar de volgende eigenschapen in te stellen zijn:
-# margin left (staff1-4),
-# margin right(staff1-4),
-# staff range toets x tot y(staff1-4)
 
 @dataclass
 class StaffSizer:
@@ -26,12 +22,40 @@ class StaffSizer:
         self.margin_left = kwargs.get('margin_left', 0)
         self.margin_right = kwargs.get('margin_right', 0)
         self.staff_start = kwargs.get('staff_start', 0)
-        self.staff_finish = kwargs.get('staff_finish', 0)
+        self.staff_finish = kwargs.get('staff_finish', 127)
+        self.staff_auto = kwargs.get('staff_auto', True)
 
-    def to_dict(self) -> Dict:
+    @classmethod
+    def import_sizer(cls, dct: Dict):
+        """ import from the program """
+
+        margin_left, margin_right = dct.get('margins', [0, 0])
+        value = dct.get('range', None)
+
+        if isinstance(value, List):
+            staff_auto = False
+            staff_start, staff_finish = tuple(value)
+        else:
+            staff_start = 0
+            staff_finish = 127
+            staff_auto = True
+
+        return StaffSizer(margin_left=margin_left,
+                          margin_right=margin_right,
+                          staff_start=staff_start,
+                          staff_finish=staff_finish,
+                          staff_auto=staff_auto)
+
+    def export_sizer(self) -> Dict:
         """ convert to dictionary """
 
-        return {'margin_left': self.margin_left,
-                'margin_right': self.margin_right,
-                'staff_start': self.staff_start,
-                'staff_finish': self.staff_finish}
+        if self.staff_auto:
+            staff_range = 'auto'
+        else:
+            staff_range = [self.staff_start, self.staff_finish]
+
+        return {
+            'margins': [self.margin_left, self.margin_right],
+            'range': staff_range
+        }
+

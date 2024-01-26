@@ -154,3 +154,4 @@ class StaffSizerDialog(QDialog):
             self.callback(self.result, line_breaks)
 
     # pylint: enable=invalid-name
+

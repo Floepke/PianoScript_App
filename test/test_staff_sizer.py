@@ -20,6 +20,8 @@ from sys import exit as _exit
 
 from copy import deepcopy
 
+import pprint
+
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
 from PySide6.QtWidgets import QApplication
@@ -28,6 +30,8 @@ from PySide6.QtWidgets import QApplication
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.editor.staff_sizer_editor.staff_io import StaffIo
+
 from imports.editor.grideditor.dialog_result import DialogResult
 
 
@@ -47,7 +51,8 @@ def test_1():
     sizer = StaffSizer(margin_left=10,
                        margin_right=12,
                        staff_start=48,
-                       staff_finish=79)
+                       staff_finish=79,
+                       staff_auto=False)
 
     sizers = [deepcopy(sizer),
               deepcopy(sizer),
@@ -80,6 +85,43 @@ def test1_callback(result: DialogResult,
             print(f'{key: <12} {value}')
 
 
+def test_2():
+    """ test 3"""
+
+    data = {
+        'tag': 'sizer123',
+        'time': 12345,
+        'staff1': {
+            'margins': [10, 12],
+            'range': [48, 79]
+        },
+        'staff2': {
+            'margins': [11, 13],
+            'range': [49, 80]
+        },
+        'staff3': {
+            'margins': [12, 14],
+            'range': [50, 81]
+        },
+        'staff4': {
+            'margins': [13, 15],
+            'range': 'auto'
+        }
+    }
+
+    input = StaffIo.import_staffs(data=data)
+    output = StaffIo.export_staffs(staffs=input)
+
+    ppr = pprint.PrettyPrinter(indent=4)
+
+    print('input:')
+    for item in input:
+        ppr.pprint(item.__dict__)
+
+    print('output:')
+    ppr.pprint(output)
+
+
 def main() -> int:
     """ main test function """
 
@@ -93,9 +135,20 @@ def main() -> int:
                 test_0()
             case 1:
                 test_1()
+            case 2:
+                test_2()
 
     return 0
 
 
 if __name__ == '__main__':
     _exit(main())
+
+
+
+
+
+stuff = ['spam', 'eggs', 'lumberjack', 'knights', 'ni']
+
+stuff.insert(0, stuff[:])
+
