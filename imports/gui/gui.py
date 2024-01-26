@@ -125,7 +125,7 @@ class Gui():
         self.splitter.setHandleWidth(20)
 
         # Set the initial sizes of the widgets in the splitter
-        self.splitter.setSizes([10, self.splitter.width()])
+        self.splitter.setSizes([10, 290])
         # set the minimum width of the splitter
         self.splitter.setMinimumWidth(500)
 

@@ -125,7 +125,10 @@ class PianoScript():
             'selected_page':0,
 
             # keep track of the total page numbers
-            'total_pages':0
+            'total_pages':0,
+
+            # keep track of the number of pages in the document
+            'num_pages':0
         }
 
         # setup

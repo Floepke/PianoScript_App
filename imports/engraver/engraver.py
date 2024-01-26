@@ -283,7 +283,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     # set pageno
     pageno = io['selected_page'] % len(DOC)
 
-    print(staff_ranges)
+    io['num_pages'] = len(DOC)
     
     
     
@@ -335,7 +335,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                 barnumber = update_barnumber(DOC, idx_page+1)
                 continue
                 
-            print('new page:', leftover)
+            print('new page:')
 
             # update the cursors
             x_cursor = page_margin_left
@@ -375,7 +375,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 anchor='sw')
             
             for line, dimensions, staff_range in zip(page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
-                print('new line:', dimensions, staff_range)
+                print('new line:')
 
                 # draw the staffs
                 for idx_staff, width in enumerate(dimensions):
@@ -397,7 +397,6 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                         else:
                             draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0] # given in file
                             draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
-                        print('idx_line:', idx_line, f'staff{idx_staff+1} range:', draw_start, draw_end)
                         draw_staff(x_cursor, 
                                    y_cursor, 
                                    staff_range[idx_staff][0], 
@@ -406,7 +405,6 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                    draw_end,
                                    io, 
                                    staff_length=staff_height)
-                        print(f'staff{idx_staff+1}: {draw_start} - {draw_end}', staff_range[idx_staff][0], staff_range[idx_staff][1])
 
                     for evt in line:
 
@@ -423,8 +421,8 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                         x2 += w['staff_width'] + w['margin_right'] + (leftover / (len(page) * enabled_staffs + 1))
                                         last_r_marg = w['margin_right']
                                 x2 -= last_r_marg + (leftover / (len(page) * enabled_staffs + 1)) + (PITCH_UNIT * 2 * draw_scale)
-                                x2 += 10
-                                if evt['type'] == 'barlinedouble': x2 -= last_r_marg
+                                #x2 += 10 # overlapping barlines
+                                #if evt['type'] == 'barlinedouble': x2 -= last_r_marg
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if evt['type'] in ['barline', 'barlinedouble']: w = 0.2
                                 else: w = 1
@@ -458,35 +456,71 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     y_cursor+y,
                                                     width=.1,
                                                     color='black',
-                                                    dash=[7.5, 7.5],
+                                                    dash=[14, 20],
                                                     tag=['gridline'])
                         
                         # draw the notes
-                        if evt['type'] == 'note':
+                        if evt['type'] in ['note', 'notesplit']:
 
                             if idx_staff == evt['staff']:
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y1 = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 y2 = tick2y_view(evt['time']+evt['duration'], io, staff_height, idx_line)
                                 
-                                if evt['pitch'] in BLACK_KEYS:
-                                    io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
-                                                    y_cursor+y1-(PITCH_UNIT*2*draw_scale),
-                                                    x+PITCH_UNIT*.75*draw_scale,
-                                                    y_cursor+y1,
-                                                    fill_color='#000000',
-                                                    outline_color='#000000',
-                                                    outline_width=.5,
-                                                    tag=['noteheadblack'])
-                                else:
-                                    io['view'].new_oval(x-PITCH_UNIT*draw_scale,
-                                                    y_cursor+y1,
-                                                    x+PITCH_UNIT*draw_scale,
-                                                    y_cursor+y1+(PITCH_UNIT*2*draw_scale),
-                                                    fill_color='#ffffff',
-                                                    outline_color='#000000',
-                                                    outline_width=.5,
-                                                    tag=['noteheadwhite'])
+                                if evt['type'] == 'note':
+                                    if evt['pitch'] in BLACK_KEYS:
+                                        io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
+                                                        y_cursor+y1,
+                                                        x+PITCH_UNIT*.75*draw_scale,
+                                                        y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
+                                                        fill_color='#000000',
+                                                        outline_color='#000000',
+                                                        outline_width=.4,
+                                                        tag=['noteheadblack'])
+                                    else:
+                                        io['view'].new_oval(x-PITCH_UNIT*draw_scale,
+                                                        y_cursor+y1,
+                                                        x+PITCH_UNIT*draw_scale,
+                                                        y_cursor+y1+(PITCH_UNIT*2.25*draw_scale),
+                                                        fill_color='#ffffff',
+                                                        outline_color='#000000',
+                                                        outline_width=.4,
+                                                        tag=['noteheadwhite'])
+                                        
+                                    # left hand dot
+                                    if evt['hand'] == 'l':
+                                        if not evt['pitch'] in BLACK_KEYS:
+                                            io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
+                                                        y_cursor+y1+(PITCH_UNIT*(2.25/2-.25)*draw_scale),
+                                                        x+PITCH_UNIT*.25*draw_scale,
+                                                        y_cursor+y1+(PITCH_UNIT*(2.25/2+.25)*draw_scale),
+                                                        fill_color='#000000',
+                                                        outline_color='',
+                                                        tag=['leftdotwhite'])
+                                        else:
+                                            io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
+                                                        y_cursor+y1+(PITCH_UNIT*(2.25/2-.25)*draw_scale),
+                                                        x+PITCH_UNIT*.25*draw_scale,
+                                                        y_cursor+y1+(PITCH_UNIT*(2.25/2+.25)*draw_scale),
+                                                        fill_color='#ffffff',
+                                                        outline_color='',
+                                                        tag=['leftdotblack'])
+                                    
+                                    # draw stem
+                                    if evt['hand'] == 'r': 
+                                        io['view'].new_line(x,
+                                                        y_cursor+y1,
+                                                        x+PITCH_UNIT*5*draw_scale,
+                                                        y_cursor+y1,
+                                                        width=.6,
+                                                        tag=['stem'])
+                                    else:
+                                        io['view'].new_line(x,
+                                                        y_cursor+y1,
+                                                        x-PITCH_UNIT*5*draw_scale,
+                                                        y_cursor+y1,
+                                                        width=.6,
+                                                        tag=['stem'])
                                 
                                 # draw midinote
                                 io['view'].new_polygon([(x, y_cursor+y1),
@@ -494,25 +528,49 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                         (x+PITCH_UNIT, y_cursor+y2),
                                                         (x-PITCH_UNIT, y_cursor+y2),
                                                         (x-PITCH_UNIT, y_cursor+y1+PITCH_UNIT*draw_scale)],
-                                                        fill_color='#bbb',
+                                                        fill_color='#aaa',
                                                         outline_color='',
+                                                        width=0,
                                                         tag=['midinote']),
-                    
-                                # draw stem
-                                if evt['hand'] == 'r': 
-                                    io['view'].new_line(x,
-                                                    y_cursor+y1,
-                                                    x+PITCH_UNIT*5*draw_scale,
-                                                    y_cursor+y1,
-                                                    width=.75,
-                                                    tag=['stem'])
-                                else:
-                                    io['view'].new_line(x,
-                                                    y_cursor+y1,
-                                                    x-PITCH_UNIT*5*draw_scale,
-                                                    y_cursor+y1,
-                                                    width=.75,
-                                                    tag=['stem'])
+                        
+                        if evt['type'] == 'notestop':
+                            if idx_staff == evt['staff']:
+                                x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                io['view'].new_polygon([(x, y_cursor+y-PITCH_UNIT*2*draw_scale), 
+                                                        (x+PITCH_UNIT*draw_scale, y_cursor+y),
+                                                        (x-PITCH_UNIT*draw_scale, y_cursor+y)],
+                                                    fill_color='#000000',
+                                                    outline_color='',
+                                                    tag=['notestop'])
+
+                                    
+                        # draw continuation dot
+                        if evt['type'] == 'continuationdot':
+                            if idx_staff == evt['staff']:
+                                x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                io['view'].new_oval(x-PITCH_UNIT*.5*draw_scale,
+                                                    y_cursor+y+(PITCH_UNIT*.5*draw_scale),
+                                                    x+PITCH_UNIT*.5*draw_scale,
+                                                    y_cursor+y+(PITCH_UNIT*1.5*draw_scale),
+                                                    fill_color='#000000',
+                                                    outline_color='',
+                                                    tag=['continuationdot'])
+                        
+                        # connect stem
+                        if evt['type'] == 'connectstem':
+                            if idx_staff == evt['staff']:
+                                x1 = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y1 = tick2y_view(evt['time'], io, staff_height, idx_line)
+                                x2 = pitch2x_view(evt['pitch2'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y2 = tick2y_view(evt['time2'], io, staff_height, idx_line)
+                                io['view'].new_line(x1, y_cursor+y1, 
+                                                    x2, y_cursor+y2,
+                                                    color='#000000',
+                                                    width=.6, 
+                                                    tag=['connectstem'])
+                                
 
                     x_cursor += width['staff_width'] + width['margin_right']
 
@@ -529,7 +587,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
 
         drawing_order = [
             'background',
-            'midinote', 
+            'midinote',
             'staffline',
             'titlebackground',
             'titletext',
@@ -537,7 +595,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
             'gridline', 
             'barnumbering',
             'stem',
-            'soundingdot',
+            'continuationdot',
             'connectstem',
             'noteheadwhite',
             'leftdotwhite',

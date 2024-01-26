@@ -7,50 +7,117 @@ from imports.utils.constants import *
 
 def note_processor(io, note):
     '''
-        note_split_processor splits a note message into different parts
-        if the note is crossing a linebreak point. This is neccesary because
-        we have to draw the note in two parts in this case.
+        note_processor processes the notes in such way that it generates a list of neccesary 
+        note, notesplit, continuationdot, notestop events that are ready for being drawn.
     '''
 
+    # the output list of draw events
     output = []
-    n_start = note['time']
-    n_end = note['time']+note['duration']
 
-    # create list with all linebreak times
-    linebreak_times = []
-    for lb in io['score']['events']['linebreak']:
-        linebreak_times.append(lb['time'])
+    # variables for calculations
+    unit = STAFF_X_UNIT_EDITOR / 2
+    color = '#000000'
+    note_start = note['time']
+    note_end = note['time']+note['duration']
+    stopflag = True
+
+    # add the continuation dot
+    def continuation_dot(time, pitch):
+        dot = {
+            'time':time,
+            'pitch':pitch,
+            'type':'continuationdot',
+            'staff':note['staff']
+        }
+        output.append(dot)
     
-    # check if there is a linebreak in between n_start and n_end
-    nb_times = []
-    for lb in linebreak_times:
-        if n_start < lb < n_end:
-            nb_times.append(lb)
+    def stop_sign(time, pitch):
+        stop = {
+            'time':time,
+            'pitch':pitch,
+            'type':'notestop',
+            'staff': note['staff']
+        }
+        output.append(stop)
+
+    for n in io['score']['events']['note']: # N == THE COMPARED NOTE TODO: change folder structure in measures
+        # connect chords (if two or more notes start at the same time)
+        if note['hand'] == n['hand'] and EQUALS(n['time'], note['time']):
+            connect = {
+                'time':n['time'],
+                'pitch':n['pitch'],
+                'time2':note['time'],
+                'pitch2':note['pitch'],
+                'type':'connectstem',
+                'staff':n['staff']
+            }
+            output.append(connect)
+        
+        # continuation dot:
+        # there are 5 possible situations where we have to draw a continuation dot
+        # if we draw one, we have also to check if this continuation dot is on the 
+        # same hand as the note and if the pitch is one semitone higher or lower, 
+        # so that we can draw the notehead upwards further in the code.
+        comp_start = n['time']
+        comp_end = n['time']+n['duration']
+        # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
+        if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
+            continuation_dot(n['time']+n['duration'], note['pitch'])
+
+        if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
+            continuation_dot(note['time']+note['duration'], n['pitch'])
+
+        if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
+            continuation_dot(note['time'], n['pitch'])
+
+        if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
+            continuation_dot(n['time'], note['pitch'])
+
+        # stop sign desicion:
+        if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
+            stopflag = False
     
-    # if there is no linebreak in between n_start and n_end
-    if not nb_times:
+    # notestop sign:
+    if stopflag:
+        stop_sign(note['time']+note['duration'], note['pitch'])
+
+    note_start = note['time']
+    note_end = note['time']+note['duration']
+
+    # create list with all barline times
+    barline_times = io['calc'].get_barline_ticks()
+    
+    # check if there is a barline in between n_start and n_end
+    bl_times = []
+    for bl in barline_times:
+        if note_start < bl < note_end:
+            bl_times.append(bl)
+            continuation_dot(bl, note['pitch'])
+    
+    # if there is no barline in between n_start and n_end
+    if not bl_times:
         note['type'] = 'note'
         output.append(note)
         return output
     
-    # process the linebreaks
+    # process the barlines
     first = True
-    for nb in nb_times:
+    for bl in bl_times:
         new = dict(note)
-        new['duration'] = nb - n_start
-        new['time'] = n_start
+        new['duration'] = bl - note_start
+        new['time'] = note_start
         if first:
             new['type'] = 'note'
         else:
             new['type'] = 'notesplit'
         output.append(new)
-        n_start = nb
+        note_start = bl
         first = False
 
     # add the last split note
     new = dict(note)
-    new['duration'] = n_end - n_start
-    new['time'] = n_start
+    new['duration'] = note_end - note_start
+    new['time'] = note_start
     new['type'] = 'notesplit'
     output.append(new)
 
@@ -188,7 +255,7 @@ def draw_staff(x_cursor: float,
             elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
                 # draw line thick for the group of three
                 io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.4, 
+                                    width=.6, 
                                     color='#000000',
                                     tag=['staffline'])
             

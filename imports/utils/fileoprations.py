@@ -36,8 +36,8 @@ class FileOperations:
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        self.io['score'] = json.load(open('pianoscriptfiles/test.pianoscript', 'r'))
-        self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
+        self.io['score'] = json.load(open('pianoscriptfiles/kaarsmid.pianoscript', 'r'))
+        #self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags
         self.io['calc'].renumber_tags()
@@ -124,19 +124,20 @@ class FileOperations:
         if self.savepath:
             with open(self.savepath, 'r') as file:
                 if json.load(file) != self.io['score']:
-                    # check if we want to save the current score
-                    yesnocancel = QMessageBox()
-                    yesnocancel.setText("Do you wish to save the file?")
-                    yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-                    yesnocancel.setDefaultButton(QMessageBox.Yes)
-                    response = yesnocancel.exec()
-                    if response == QMessageBox.Yes:
-                        self.save()
-                        return True
-                    elif response == QMessageBox.No:
-                        return True
-                    elif response == QMessageBox.Cancel:
-                        return False
+                    ...
+        # check if we want to save the current score
+        yesnocancel = QMessageBox()
+        yesnocancel.setText("Do you wish to save the file?")
+        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        yesnocancel.setDefaultButton(QMessageBox.Yes)
+        response = yesnocancel.exec()
+        if response == QMessageBox.Yes:
+            self.save()
+            return True
+        elif response == QMessageBox.No:
+            return True
+        elif response == QMessageBox.Cancel:
+            return False
 
 
 
