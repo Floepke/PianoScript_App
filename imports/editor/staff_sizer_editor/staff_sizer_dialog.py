@@ -141,9 +141,9 @@ class StaffSizerDialog(QDialog):
         """ the close window control 'x' is clicked"""
 
         event.accept()
-        line_breaks = []
+        staff_sizers = []
         if self.result == DialogResult.OK:
-            line_breaks = [
+            staff_sizers = [
                 self.controls[0].staff_sizer,
                 self.controls[1].staff_sizer,
                 self.controls[2].staff_sizer,
@@ -151,7 +151,7 @@ class StaffSizerDialog(QDialog):
             ]
 
         if self.callback is not None:
-            self.callback(self.result, line_breaks)
+            self.callback(self.result, staff_sizers)
 
     # pylint: enable=invalid-name
 

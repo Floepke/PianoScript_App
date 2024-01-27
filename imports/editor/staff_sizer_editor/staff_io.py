@@ -74,10 +74,10 @@ class StaffIo:
     def export_staffs(staffs: List[StaffSizer]) -> Dict:
         """ import from the program """
 
-        result = {
-            'tag': '',
-            'time': 0.0,
-        }
+        result = {}
+        if staffs:
+            result['tag'] = ''
+            result['time'] = 0.0
 
         for idx, staff in enumerate(staffs, 1):
             staff_margin = [staff.margin_left, staff.margin_right]

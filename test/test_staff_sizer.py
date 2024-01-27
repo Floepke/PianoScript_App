@@ -63,6 +63,7 @@ def test_1():
     sizers[1].margin_left = 20
     sizers[2].margin_left = 30
     sizers[3].margin_left = 40
+    sizers[3].staff_auto = True
 
     lbrk.staff_sizers = sizers
     layout = QGridLayout()
@@ -141,12 +142,3 @@ def main() -> int:
 
 if __name__ == '__main__':
     _exit(main())
-
-
-
-
-
-stuff = ['spam', 'eggs', 'lumberjack', 'knights', 'ni']
-
-stuff.insert(0, stuff[:])
-

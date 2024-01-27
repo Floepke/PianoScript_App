@@ -127,6 +127,9 @@ class StaffSizerControl:
         self.gui_data.staff_start.setValue(value.staff_start)
         self.gui_data.staff_finish.setValue(value.staff_finish)
 
+        self.gui_data.staff_start.setEnabled(not value.staff_auto)
+        self.gui_data.staff_finish.setEnabled(not value.staff_auto)
+
     @staticmethod
     def translate_note(midi_note: int) -> tuple:
         """ translate the number to a note name """
@@ -147,7 +150,7 @@ class StaffSizerControl:
         layout.addWidget(group_margin, row, 0, 1, 1)
         group_margin.setLayout(QGridLayout())
 
-        label = 'Auto   Start                   Finish' if has_label else ''
+        label = 'Auto     Start                     Finish' if has_label else ''
         group_staff = QGroupBox(label, parent=parent)
         layout.addWidget(group_staff, row, 1, 1, 1)
         group_staff.setLayout(QGridLayout())
@@ -282,9 +285,6 @@ class StaffSizerControl:
         """ auto checkbox changed """
 
         auto = state == 2
-        # print(f'Qt.Checked type: {type(Qt.Checked)} auto: {auto} type {type(auto)}')
-        # print(f'Event: {state}, type: {type(state)}')
-
         self._staff_sizer.staff_auto = auto
         self.gui_data.staff_start.setEnabled(not auto)
         self.gui_data.staff_finish.setEnabled(not auto)
