@@ -3,7 +3,7 @@ import threading, traceback
 # we genereally import everything from this file for usage in the engraver, later we add the engraver specific imports here
 from imports.engraver.engraverstorage import *
 from imports.utils.constants import *
-from PySide6.QtCore import QThread, Signal, QObject
+from PySide6.QtCore import QThread, Signal, QObject, Slot
 
 
 from pprint import pprint
@@ -17,7 +17,7 @@ from pprint import pprint
     We need to first pre calculate how the music will fit on the page. Then we can draw it.
 '''
 
-def render(io, render_type='default', pageno=0): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
+def pre_render(io, render_type='default'): # render_type = 'default' (render only the current page) | 'export' (render all pages for exporting to pdf)
 
     # set scene dimensions
     scene_width = io['score']['properties']['page_width']
@@ -109,22 +109,25 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                 for evt in io['score']['events'][key]:
                     new = evt
                     new['type'] = key
-                    if key == 'note':
-                        new = note_processor(io, evt)
-                        for note in new:
-                            DOC.append(note)
-                    elif evt['type'] in ['endrepeat', 'endsection']:
+                    if evt['type'] in ['endrepeat', 'endsection']:
                         # for certain kinds of objects like end repeat and end section
                         # we need to set the time a fraction earlier because otherwise they
                         # appear at the start of a line while they should appear at the end.
                         new['time'] -= FRACTION
                         DOC.append(new)
+                    elif key == 'note':
+                        new = note_processor(io, evt)
+                        for note in new:
+                            DOC.append(note)
                     else:
                         DOC.append(new)
         
+
+        # process the notes for creating continuation dots and stopsigns
+        DOC = continuation_dot_and_stopsign_processor(io, DOC)
+
         # now we sort the events on time-key
         DOC = sorted(DOC, key=lambda y: y['time'])
-
 
         '''
             organizing all events in lists of lines:
@@ -276,14 +279,12 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
 
     DOC, leftover_page_space, staff_dimensions, staff_ranges = pre_calculate(io)
 
-    # NOTE: leftover_page_space = page
-    # NOTE: staff_widths = line
-    # NOTE: staff_ranges = line
-
     # set pageno
     pageno = io['selected_page'] % len(DOC)
 
     io['num_pages'] = len(DOC)
+
+    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale
     
     
     
@@ -292,7 +293,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     
     
     
-    
+def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale):
     
     
     def draw(io):
@@ -312,17 +313,6 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
         Right = page_width
         Top = 0
         Bottom = page_height
-        
-        if render_type == 'default':
-            # draw test margin rectangle
-            io['view'].new_rectangle(Left, 
-                                    Top, 
-                                    Right, 
-                                    Bottom,
-                                    fill_color='white',
-                                    outline_color='black',
-                                    width=.2,
-                                    tag=['paper'])
         
         # looping trough the DOC structure and drawing the events:
         x_cursor = 0
@@ -424,8 +414,8 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 #x2 += 10 # overlapping barlines
                                 #if evt['type'] == 'barlinedouble': x2 -= last_r_marg
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
-                                if evt['type'] in ['barline', 'barlinedouble']: w = 0.2
-                                else: w = 1
+                                if evt['type'] in ['barline', 'barlinedouble']: w = 0.2*draw_scale
+                                else: w = 1*draw_scale
                                 io['view'].new_line(x1,
                                                     y_cursor+y,
                                                     x2,
@@ -454,7 +444,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                     y_cursor+y,
                                                     x2,
                                                     y_cursor+y,
-                                                    width=.1,
+                                                    width=.1*draw_scale,
                                                     color='black',
                                                     dash=[14, 20],
                                                     tag=['gridline'])
@@ -475,7 +465,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                         y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
                                                         fill_color='#000000',
                                                         outline_color='#000000',
-                                                        outline_width=.4,
+                                                        outline_width=.4*draw_scale,
                                                         tag=['noteheadblack'])
                                     else:
                                         io['view'].new_oval(x-PITCH_UNIT*draw_scale,
@@ -484,7 +474,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                         y_cursor+y1+(PITCH_UNIT*2.25*draw_scale),
                                                         fill_color='#ffffff',
                                                         outline_color='#000000',
-                                                        outline_width=.4,
+                                                        outline_width=.4*draw_scale,
                                                         tag=['noteheadwhite'])
                                         
                                     # left hand dot
@@ -512,22 +502,22 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                                         y_cursor+y1,
                                                         x+PITCH_UNIT*5*draw_scale,
                                                         y_cursor+y1,
-                                                        width=.6,
+                                                        width=.6*draw_scale,
                                                         tag=['stem'])
                                     else:
                                         io['view'].new_line(x,
                                                         y_cursor+y1,
                                                         x-PITCH_UNIT*5*draw_scale,
                                                         y_cursor+y1,
-                                                        width=.6,
+                                                        width=.6*draw_scale,
                                                         tag=['stem'])
                                 
                                 # draw midinote
                                 io['view'].new_polygon([(x, y_cursor+y1),
-                                                        (x+PITCH_UNIT, y_cursor+y1+PITCH_UNIT*draw_scale),
-                                                        (x+PITCH_UNIT, y_cursor+y2),
-                                                        (x-PITCH_UNIT, y_cursor+y2),
-                                                        (x-PITCH_UNIT, y_cursor+y1+PITCH_UNIT*draw_scale)],
+                                                        (x+PITCH_UNIT*draw_scale, y_cursor+y1+PITCH_UNIT*draw_scale),
+                                                        (x+PITCH_UNIT*draw_scale, y_cursor+y2),
+                                                        (x-PITCH_UNIT*draw_scale, y_cursor+y2),
+                                                        (x-PITCH_UNIT*draw_scale, y_cursor+y1+PITCH_UNIT*draw_scale)],
                                                         fill_color='#aaa',
                                                         outline_color='',
                                                         width=0,
@@ -568,7 +558,7 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
                                 io['view'].new_line(x1, y_cursor+y1, 
                                                     x2, y_cursor+y2,
                                                     color='#000000',
-                                                    width=.6, 
+                                                    width=.6*draw_scale, 
                                                     tag=['connectstem'])
                                 
 
@@ -617,93 +607,38 @@ def render(io, render_type='default', pageno=0): # render_type = 'default' (rend
     io['total_pages'] = len(DOC)
 
 
-def test_render(io):
+from PySide6.QtCore import QThread, Signal
 
-    io['view'].new_line(100, 100, 200, 200, width=1, tag=['testline'])
+class Worker(QThread):
+    pre_render_finished = Signal(tuple)
 
-# class RenderWorker(QObject):
-#     render_complete = Signal()  # Signal to indicate render completion
-
-#     def render_contents(self, io):
-#         try:
-#             test_render(io) # call the render function with the provided io
-#         except Exception:
-#             traceback.print_exc()
-
-#         # Emit signal to indicate render completion
-#         self.render_complete.emit()
-
-# class Engraver(QThread):
-#     def __init__(self, io):
-#         super().__init__()
-#         self.io = io
-#         self.worker = RenderWorker()
-#         self.worker.moveToThread(self)
-
-#         # Connect the signal to the render_contents method
-#         self.worker.render_complete.connect(self.handle_render_complete)
-
-#     def run(self):
-#         self.worker.render_contents(self.io)
-
-#     def handle_render_complete(self):
-#         print("Rendering complete")
-
-#     def do_engrave(self):
-#         if not self.isRunning():
-#             self.start()
-
-# class Engraver(QThread):
-#     def __init__(self, io):
-#         super().__init__()
-#         self.io = io
-
-#     def run(self):
-#         try:
-#             render(self.io)
-#         except Exception:
-#             traceback.print_exc()
-
-#     def do_engrave(self):
-#         if not self.isRunning():
-#             self.start()
-
-class Engraver:
-    '''
-        This class cares for handling rendering requests. it prevents 
-        unnecessary rendering. It checks if the previous request is 
-        still in progress and runs after finishing the latest request.
-        The requests are handled by a thread.
-    '''
-    
     def __init__(self, io):
-        self.lock = threading.Lock()
-        self.thread = None
-        self.render_in_progress = False
-        self.latest_request = False
+        super().__init__()
         self.io = io
 
-    def do_engrave(self):
-        with self.lock:
-            if self.render_in_progress:
-                # Another render request is already in progress. Ignoring the current request.
-                self.latest_request = True
-                return
-            self.latest_request = False
-            self.render_in_progress = True
-            self.thread = threading.Thread(target=self.renderer)
-            self.thread.start()
+    def run(self):
+        result = pre_render(self.io)
+        self.pre_render_finished.emit(result)
 
-    def renderer(self):
-        try:
-            render(self.io)
-            self.io['gui'].print_view.update()
-        except Exception:
-            traceback.print_exc()
-        finally:
-            self.render_in_progress = False
-            if self.latest_request:
-                self.do_engrave()
+class Engraver:
+    def __init__(self, io):
+        self.io = io
+        self.worker = Worker(self.io)
+        self.worker.pre_render_finished.connect(self.render_start)
+
+    def pre_render_start(self):
+        self.worker.start()
+
+    def render_start(self, result):
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = result
+        render(self.io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
+
+    def do_engrave(self):
+        self.pre_render_start()
+
+
+
+
 
 
 

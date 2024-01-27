@@ -10,13 +10,13 @@
         "comment": ""
     },
     "properties": {
-        "page_width": 420,
-        "page_height": 594,
+        "page_width": 210,
+        "page_height": 297,
         "page_margin_left": 5,
         "page_margin_right": 5,
         "page_margin_up": 10,
         "page_margin_down": 5,
-        "draw_scale": 1.4,
+        "draw_scale": 0.9,
         "header_height": 20,
         "footer_height": 12.5,
         "color_right_midinote": "#c8c8c8",

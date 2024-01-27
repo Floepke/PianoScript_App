@@ -4,83 +4,77 @@
     problems but for the engraver.
 '''
 from imports.utils.constants import *
+import copy
 
-def note_processor(io, note):
+def continuation_dot(time, pitch, note):
+    return {
+        'time':time,
+        'pitch':pitch,
+        'type':'continuationdot',
+        'staff':note['staff']
+    }
+
+def stop_sign(time, pitch, note):
+    return {
+        'time':time,
+        'pitch':pitch,
+        'type':'notestop',
+        'staff': note['staff']
+    }
+
+def continuation_dot_and_stopsign_processor(io, DOC):
     '''
         note_processor processes the notes in such way that it generates a list of neccesary 
         note, notesplit, continuationdot, notestop events that are ready for being drawn.
     '''
 
-    # the output list of draw events
+    stop_flag = False
+
+    # making a list of noteon and noteoff messages like a linear midi file
+    note_on_off = []
+    for note in io['score']['events']['note']:
+        evt = copy.deepcopy(note)
+        note_on_off.append(copy.deepcopy(evt))
+        evt['type'] = 'noteoff'
+        evt['time'] = evt['time'] + evt['duration']
+        note_on_off.append(copy.deepcopy(evt))
+    note_on_off = sorted(note_on_off, key=lambda y: y['time'])
+
+    # we add the notestop and continuationdot events
+    active_notes = []
+    last_note_off = None
+    last_note_on = None
+    for note in note_on_off:
+        if note['type'] == 'note':
+            last_note_on = note
+            active_notes.append(note)
+        elif note['type'] == 'noteoff':
+            last_note_off = note
+            for n in active_notes:
+                if n['duration'] == note['duration'] and n['pitch'] == note['pitch'] and n['staff'] == note['staff'] and n['hand'] == note['hand']:
+                    active_notes.remove(n)
+                    break
+
+        for n in active_notes:
+            # continuation dots:
+            if not EQUALS(note['time'], n['time']) and not EQUALS(n['time']+n['duration'], note['time']) and note['staff'] == n['staff'] and note['hand'] == n['hand']:
+                DOC.append(continuation_dot(note['time'], n['pitch'], note))
+
+            # stop signs:
+            ...
+
+    # # notestop sign:
+    # if stop_flag:
+    #     DOC.append(stop_sign(note['time']+note['duration'], note['pitch'], note))
+    
+    return DOC
+    
+
+def note_processor(io, note):
+
     output = []
 
-    # variables for calculations
-    unit = STAFF_X_UNIT_EDITOR / 2
-    color = '#000000'
-    note_start = note['time']
-    note_end = note['time']+note['duration']
-    stopflag = True
-
-    # add the continuation dot
-    def continuation_dot(time, pitch):
-        dot = {
-            'time':time,
-            'pitch':pitch,
-            'type':'continuationdot',
-            'staff':note['staff']
-        }
-        output.append(dot)
-    
-    def stop_sign(time, pitch):
-        stop = {
-            'time':time,
-            'pitch':pitch,
-            'type':'notestop',
-            'staff': note['staff']
-        }
-        output.append(stop)
-
-    for n in io['score']['events']['note']: # N == THE COMPARED NOTE TODO: change folder structure in measures
-        # connect chords (if two or more notes start at the same time)
-        if note['hand'] == n['hand'] and EQUALS(n['time'], note['time']):
-            connect = {
-                'time':n['time'],
-                'pitch':n['pitch'],
-                'time2':note['time'],
-                'pitch2':note['pitch'],
-                'type':'connectstem',
-                'staff':n['staff']
-            }
-            output.append(connect)
-        
-        # continuation dot:
-        # there are 5 possible situations where we have to draw a continuation dot
-        # if we draw one, we have also to check if this continuation dot is on the 
-        # same hand as the note and if the pitch is one semitone higher or lower, 
-        # so that we can draw the notehead upwards further in the code.
-        comp_start = n['time']
-        comp_end = n['time']+n['duration']
-        # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
-        if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
-            continuation_dot(n['time']+n['duration'], note['pitch'])
-
-        if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
-            continuation_dot(note['time']+note['duration'], n['pitch'])
-
-        if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
-            continuation_dot(note['time'], n['pitch'])
-
-        if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
-            continuation_dot(n['time'], note['pitch'])
-
-        # stop sign desicion:
-        if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
-            stopflag = False
-    
-    # notestop sign:
-    if stopflag:
-        stop_sign(note['time']+note['duration'], note['pitch'])
-
+    # split notes on barlines
     note_start = note['time']
     note_end = note['time']+note['duration']
 
@@ -92,7 +86,8 @@ def note_processor(io, note):
     for bl in barline_times:
         if note_start < bl < note_end:
             bl_times.append(bl)
-            continuation_dot(bl, note['pitch'])
+            output.append(continuation_dot(bl, note['pitch'], note))
+
     
     # if there is no barline in between n_start and n_end
     if not bl_times:
@@ -242,20 +237,20 @@ def draw_staff(x_cursor: float,
                 if n in [41, 43]:
                     # dashed clef lines, the central lines of the staff
                     io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.2, 
+                                    width=.2*scale, 
                                     color='#000000',
                                     dash=[5, 5],
                                     tag=['staffline'])
                 else:
                     # normal group of two lines
                     io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.2, 
+                                    width=.2*scale, 
                                     color='#000000',
                                     tag=['staffline'])
             elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
                 # draw line thick for the group of three
                 io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.6, 
+                                    width=.6*scale, 
                                     color='#000000',
                                     tag=['staffline'])
             
@@ -324,6 +319,52 @@ def update_barnumber(DOC, idx_page):
                         barnumber += 1
 
     return barnumber
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
