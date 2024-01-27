@@ -27,10 +27,10 @@ from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.grid import Grid
 
 
-def handler(msg_type, context, msg):
-    if "move" in msg:
-        return
-qInstallMessageHandler(handler)
+# def handler(msg_type, context, msg):
+#     if "move" in msg:
+#         return
+# qInstallMessageHandler(handler)
 
 
 class PianoScript():
@@ -122,7 +122,13 @@ class PianoScript():
             'edit_obj':None,
 
             # selected page number for the engraver
-            'selected_page':0
+            'selected_page':0,
+
+            # keep track of the total page numbers
+            'total_pages':0,
+
+            # keep track of the number of pages in the document
+            'num_pages':0
         }
 
         # setup

@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPointF, QThread, Signal
 from PySide6.QtGui import QPen, QBrush, QColor
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsItem
 from PySide6.QtGui import QPolygonF, QFont
@@ -8,6 +8,16 @@ import sys, re, time
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtCore import QRectF
+
+
+
+class Worker(QThread):
+    draw_line_signal = Signal(QPointF, QPointF)
+
+    def run(self):
+        # Emit signal to draw line from (0, 0) to (100, 100)
+        self.draw_line_signal.emit(QPointF(0, 0), QPointF(100, 100))
+
 
 class DrawUtil:
     '''
@@ -90,27 +100,10 @@ class DrawUtil:
         
         '''
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     def __init__(self, canvas: QGraphicsScene):
         self.canvas = canvas
 
-        # Create a pen
+        # Create a pen & brush object
         self.pen = QPen()
         self.brush = QBrush()
         self.brush.setColor(QColor('#00008833'))
@@ -504,3 +497,33 @@ class DrawUtil:
     def get_viewport_coords(self):
         '''Get the viewport coordinates.'''
         return self.canvas.sceneRect()
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

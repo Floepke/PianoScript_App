@@ -36,7 +36,7 @@ class FileOperations:
         
         # load the score into the editor
         # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        self.io['score'] = json.load(open('pianoscriptfiles/test.pianoscript', 'r'))
+        self.io['score'] = json.load(open('pianoscriptfiles/kaarsmid.pianoscript', 'r'))
         #self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
 
         # renumber tags
@@ -51,21 +51,9 @@ class FileOperations:
         # update page dimensions in the printview
         self.io['gui'].print_view.update_page_dimensions()
 
-    def save_check(self):
+        # set save path to None
+        self.savepath = None
 
-        # check if we want to save the current score
-        yesnocancel = QMessageBox()
-        yesnocancel.setText("Do you wish to save the file?")
-        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        yesnocancel.setDefaultButton(QMessageBox.Yes)
-        response = yesnocancel.exec()
-        if response == QMessageBox.Yes:
-            self.save()
-            return True
-        elif response == QMessageBox.No:
-            return True
-        elif response == QMessageBox.Cancel:
-            return False
 
     def load(self):
         
@@ -100,6 +88,12 @@ class FileOperations:
             # update page dimensions in the printview
             self.io['gui'].print_view.update_page_dimensions()
 
+            # set save path
+            self.savepath = file_path
+
+            # set window title
+            self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
+
     def save(self):
         if self.savepath:
             with open(self.savepath, 'w') as file:
@@ -113,6 +107,9 @@ class FileOperations:
         if file_path:
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)
+            self.savepath = file_path
+            # set window title
+            self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
 
     def quit(self):
         
@@ -121,6 +118,26 @@ class FileOperations:
         
         self.io['root'].close()
 
+    def save_check(self):
+
+        # check if current file was changed
+        if self.savepath:
+            with open(self.savepath, 'r') as file:
+                if json.load(file) != self.io['score']:
+                    ...
+        # check if we want to save the current score
+        yesnocancel = QMessageBox()
+        yesnocancel.setText("Do you wish to save the file?")
+        yesnocancel.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        yesnocancel.setDefaultButton(QMessageBox.Yes)
+        response = yesnocancel.exec()
+        if response == QMessageBox.Yes:
+            self.save()
+            return True
+        elif response == QMessageBox.No:
+            return True
+        elif response == QMessageBox.Cancel:
+            return False
 
 
 
