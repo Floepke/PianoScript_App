@@ -18,7 +18,7 @@ class StaffIo:
     # def new_linebreak(
     #         tag: str,  # linebreak+tagnumber to make tag unique
     #         time: float,  # in linear time in pianoticks 0 to infinity
-    #         staff1_lr_margins: list = [10.0, 10.0],  # list with two values: (leftmargin, rightmargin) in mm
+    #         staff1_lr_margins: list = [10.0, 10.0],  # two values: [left, right] in mm
     #         staff2_lr_margins: list = [10.0, 10.0],  # ...
     #         staff3_lr_margins: list = [10.0, 10.0],
     #         staff4_lr_margins: list = [10.0, 10.0],
@@ -54,8 +54,8 @@ class StaffIo:
     def import_staffs(data: Dict):
         """ import tag, time and staff definitions """
 
-        tag = data.get('tag', '')
-        time = data.get('time', 0.0)
+        _ = data.get('tag', '')
+        _ = data.get('time', 0.0)
         staff1 = data.get('staff1', {})
         staff2 = data.get('staff2', {})
         staff3 = data.get('staff3', {})
@@ -80,6 +80,7 @@ class StaffIo:
             result['time'] = 0.0
 
         for idx, staff in enumerate(staffs, 1):
+
             staff_margin = [staff.margin_left, staff.margin_right]
             if staff.staff_auto:
                 staff_range = 'auto'

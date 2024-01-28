@@ -6,8 +6,6 @@
 __author__ = 'Sihir'
 __copyright__ = '© Sihir 2023-2024 all rights reserved'
 
-from dataclasses import dataclass
-
 # Ik denk een dialoogje wanneer je op de linebreak marker klikt met de linker
 # muisknop waar de volgende eigenschapen in te stellen zijn:
 # margin left(staff1-4),
@@ -18,258 +16,308 @@ from dataclasses import dataclass
 # middle C is note #60 (known as C3 in MIDI terminology).
 
 from typing import Any
+from typing import List
 from typing import Optional
+
+from dataclasses import dataclass
 
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QSpinBox
-from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QCheckBox
-
+from PySide6.QtWidgets import QGroupBox
 from PySide6.QtCore import QSize
-from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 
 
+@dataclass
+class PianoNotes:
+    """ conversion from piano key number to name and octave """
+
+    _note_names = [
+        'C ', 'C#', 'D ', 'D#',
+        'E ', 'F ', 'F#', 'G ',
+        'G#', 'A ', 'A#', 'B '
+    ]
+
+    @staticmethod
+    def translate_note(piano_note: int) -> tuple:
+        """ translate the number to a note name """
+
+        octave, note = divmod(piano_note + 9, 12)
+        name = PianoNotes._note_names[note]
+        return name, octave
+
+
 class StaffSizerControl:
     """ controls for one linebreak """
 
-    _note_names = ['C ', 'C#', 'D ', 'D#',
-                   'E ', 'F ', 'F#', 'G ',
-                   'G#', 'A ', 'A#', 'B ']
-
-    # I won't split this up even more
     # pylint: disable=too-many-instance-attributes
-    @dataclass
-    class GuiData:
-        """ storage for gui controls """
-
-        def __init__(self):
-            """ the GUI controls """
-
-            self.margin_left: Optional[QSpinBox] = None
-            self.margin_right: Optional[QSpinBox] = None
-
-            self.staff_auto: Optional[QCheckBox] = None
-
-            self.staff_start: Optional[QSpinBox] = None
-            self.start_label: Optional[QLabel] = None
-            self.start_octave: Optional[QLabel] = None
-
-            self.staff_finish: Optional[QSpinBox] = None
-            self.finish_label: Optional[QLabel] = None
-            self.finish_octave: Optional[QLabel] = None
-
-    # pylint: enable=too-many-instance-attributes
-
+    # pylint: disable=too-few-public-methods
     def __init__(self,
                  layout: QGridLayout,
                  row: int,
-                 parent: Any,
-                 has_label: bool = True):
+                 parent: Any):
         """ initialize the class """
 
-        self._staff_sizer = StaffSizer(
-            margin_left=10,
-            margin_right=20,
-            staff_start=0,
-            staff_finish=127
-        )
+        self._staff_index = 0
+        self._staff_sizers: [
+            StaffSizer(margin_left=0,
+                       margin_right=0,
+                       staff_auto=True,
+                       staff_start=1,
+                       staff_finish=88)
+        ]
 
-        # save a reference to the controls in this class
-        self.gui_data = StaffSizerControl.GuiData()
-
-        group_margin, group_staff = self._create_group_boxes(parent=parent,
-                                                             layout=layout,
-                                                             row=row,
-                                                             has_label=has_label)
+        left_group = QGroupBox('Margins')
+        left_group.setLayout(QGridLayout())
+        layout.addWidget(left_group, row, 0, 1, 1)
 
         # --- MARGIN ---
-        self._create_margin_left(parent=parent,
-                                 group=group_margin)
+        label_blank = QLabel()
+        label_blank.setText('  ')
+        left_group.layout().addWidget(label_blank,
+                                      row, 0, 1, 1)
 
-        self._create_margin_right(parent=parent,
-                                  group=group_margin)
+        self._margin_left = self._create_margin_left(
+            parent=parent,
+            layout=left_group.layout(),
+            row=1,
+            col=0)
+
+        self._margin_right = self._create_margin_right(
+            parent=parent,
+            layout=left_group.layout(),
+            row=2,
+            col=0)
+
+        right_group = QGroupBox('Staff')
+        right_group.setLayout(QGridLayout())
+        layout.addWidget(right_group, row, 1, 1, 1)
 
         #  --- STAFF ---
         note_size = QSize(16, 16)
+        self._staff_auto = self._create_staff_auto(
+            parent=parent,
+            layout=right_group.layout(),
+            row=0,
+            col=0)
 
-        self._create_staff_auto(parent=parent,
-                                group_staff=group_staff)
+        self._staff_start, \
+            self._start_label, \
+            self._start_octave = self._create_staff_start(
+            parent=parent,
+            layout=right_group.layout(),
+            note_size=note_size,
+            row=1,
+            col=0)
 
-        self._create_staff_start(parent=parent,
-                                 group_staff=group_staff,
-                                 note_size=note_size)
+        self._staff_finish, \
+            self._finish_label, \
+            self._finish_octave = self._create_staff_finish(
+            parent=parent,
+            layout=right_group.layout(),
+            note_size=note_size,
+            row=2,
+            col=0)
 
-        self._create_staff_finish(parent=parent,
-                                  group_staff=group_staff,
-                                  note_size=note_size)
+        self._create_radio(parent=parent,
+                           layout=layout,
+                           row=2,
+                           col=0)
 
         self._connect()
 
     @property
-    def staff_sizer(self) -> StaffSizer:
+    def _staff_sizer(self) -> StaffSizer:
         """ get the staff sizer values """
 
-        return self._staff_sizer
+        assert self._staff_sizers
+        assert self._staff_index is not None
+        return self._staff_sizers[self._staff_index]
 
-    @staff_sizer.setter
-    def staff_sizer(self, value: StaffSizer):
+    @_staff_sizer.setter
+    def _staff_sizer(self, value: StaffSizer):
         """ set the staff sizer values """
 
-        self._staff_sizer = value
-        self.gui_data.staff_auto.setChecked(value.staff_auto)
-        self.gui_data.margin_left.setValue(value.margin_left)
-        self.gui_data.margin_right.setValue(value.margin_right)
-        self.gui_data.staff_start.setValue(value.staff_start)
-        self.gui_data.staff_finish.setValue(value.staff_finish)
+        assert value is not None
+        assert self._staff_index is not None
+        self.staff_sizers[self._staff_index] = value
 
-        self.gui_data.staff_start.setEnabled(not value.staff_auto)
-        self.gui_data.staff_finish.setEnabled(not value.staff_auto)
+        self._margin_left.setValue(value.margin_left)
+        self._margin_right.setValue(value.margin_right)
 
-    @staticmethod
-    def translate_note(midi_note: int) -> tuple:
-        """ translate the number to a note name """
+        self._staff_auto.setChecked(value.staff_auto)
+        self._staff_start.setValue(value.staff_start)
+        self._staff_finish.setValue(value.staff_finish)
 
-        octave, note = divmod(midi_note, 12)
-        name = StaffSizerControl._note_names[note]
-        return name, octave - 2
+        self._staff_start.setEnabled(not value.staff_auto)
+        self._staff_finish.setEnabled(not value.staff_auto)
 
-    def _create_group_boxes(self,
-                            parent: Any,
-                            layout: QGridLayout,
-                            row: int,
-                            has_label: bool):
-        """ create the group boxes for this dialog """
+    @property
+    def staff_sizers(self) -> List[StaffSizer]:  # noqa
+        """ get all staff_sizers """
 
-        label = 'Left           Right' if has_label else ''
-        group_margin = QGroupBox(label, parent=parent)
-        layout.addWidget(group_margin, row, 0, 1, 1)
-        group_margin.setLayout(QGridLayout())
+        return self._staff_sizers  # noqa
 
-        label = 'Auto     Start                     Finish' if has_label else ''
-        group_staff = QGroupBox(label, parent=parent)
-        layout.addWidget(group_staff, row, 1, 1, 1)
-        group_staff.setLayout(QGridLayout())
+    @staff_sizers.setter
+    def staff_sizers(self, value: List[StaffSizer]):  # noqa
+        """ set all staff_sizers and activate 0"""
 
-        return group_margin, group_staff
+        self._staff_sizers = value  # noqa
+        self._staff_index = 0
+        self._staff_sizer = self._staff_sizers[self._staff_index]
 
     def _create_margin_left(self,
                             parent: Any,
-                            group: QGroupBox):
+                            layout: QGridLayout,
+                            row: int,
+                            col: int) -> QSpinBox:
         """ the left margin control """
+
+        label = QLabel()
+        label.setText('Left')
+        layout.addWidget(label, row, col, 1, 1)
 
         margin_left = QSpinBox(parent=parent)
         margin_left.setMinimum(0)
         margin_left.setMaximum(1000)
-        group.layout().addWidget(margin_left, 0, 0, 1, 1)
-
-        self.gui_data.margin_left = margin_left
+        layout.addWidget(margin_left, row, col + 1, 1, 1)
+        return margin_left
 
     def _create_margin_right(self,
                              parent: Any,
-                             group: QGroupBox):
+                             layout: QGridLayout,
+                             row: int,
+                             col: int) -> QSpinBox:
         """ the right margin control """
+
+        label = QLabel()
+        label.setText('Right')
+        layout.addWidget(label, row, col, 1, 1)
 
         margin_right = QSpinBox(parent=parent)
         margin_right.setMinimum(0)
         margin_right.setMaximum(1000)
-        group.layout().addWidget(margin_right, 0, 1, 1, 1)
-
-        self.gui_data.margin_right = margin_right
+        layout.addWidget(margin_right, row, col + 1, 1, 1)
+        return margin_right
 
     def _create_staff_auto(self,
                            parent: Any,
-                           group_staff: QGroupBox):
+                           layout: QGridLayout,
+                           row: int,
+                           col: int) -> QCheckBox:
+
         """ checkbox for auto """
+        lbl_auto = QLabel()
+        lbl_auto.setText('Auto')
+        layout.addWidget(lbl_auto, row, col, 1, 1)
 
         check_auto = QCheckBox(parent=parent)
         check_size = QSize(32, 16)
         check_auto.setMinimumSize(check_size)
         check_auto.setMaximumSize(check_size)
-        check_auto.setChecked(self._staff_sizer.staff_auto)
 
-        group_staff.layout().addWidget(check_auto, 0, 0, 1, 1)
-        self.gui_data.staff_auto = check_auto
+        layout.addWidget(check_auto, row, col + 1, 1, 1)
+        return check_auto
 
-    def _create_staff_start(self,
-                            parent: Any,
-                            group_staff: QGroupBox,
-                            note_size: QSize):
+    def _create_staff_start(self, **kwargs) -> tuple:
         """ create the start group """
 
-        # default data
-        start = self._staff_sizer.staff_start
-        name, octave = StaffSizerControl.translate_note(start)
+        layout = kwargs.get('layout', Optional[QGridLayout])
+        note_size = kwargs.get('note_size', Optional[QSize])
+        row = kwargs.get('row', 0)
+        col = kwargs.get('col', 0)
+        parent = kwargs.get('parent', None)
+
+        lbl_start = QLabel()
+        lbl_start.setText('Start')
+        layout.addWidget(lbl_start, row, col, 1, 1)
 
         #  --- START ---
-        staff_start = QSpinBox(parent=parent)
-        staff_start.setMinimum(0)  # C-1
-        staff_start.setMaximum(127)  # G9
-        staff_start.setValue(start)
+        staff_start = QSpinBox(parent=kwargs.get('parent', None))
+        staff_start.setMinimum(1)  # A0
+        staff_start.setMaximum(88)  # G8
+        staff_start.setValue(1)
 
-        group_staff.layout().addWidget(staff_start, 0, 1, 1, 1)
+        layout.addWidget(staff_start, row, col + 1, 1, 1)
 
         start_label = QLabel(parent=parent)
-        start_label.setText(name)
+        start_label.setText('A')
         start_label.setMinimumSize(note_size)
         start_label.setMaximumSize(note_size)
-        group_staff.layout().addWidget(start_label, 0, 2, 1, 1)
+        layout.addWidget(start_label, row, col + 2, 1, 1)
 
         start_octave = QLabel(parent=parent)
-        start_octave.setText(str(octave))
+        start_octave.setText('0')
         start_octave.setMinimumSize(note_size)
         start_octave.setMaximumSize(note_size)
-        group_staff.layout().addWidget(start_octave, 0, 3, 1, 1)
+        layout.addWidget(start_octave, row, col + 3, 1, 1)
 
-        self.gui_data.staff_start = staff_start
-        self.gui_data.start_label = start_label
-        self.gui_data.start_octave = start_octave
+        return staff_start, start_label, start_octave
 
-    def _create_staff_finish(self,
-                             parent: Any,
-                             group_staff: QGroupBox,
-                             note_size: QSize):
+    def _create_staff_finish(self, **kwargs) -> tuple:
         """ create the finish group """
 
-        # default data
-        finish = self._staff_sizer.staff_finish
-        name, octave = StaffSizerControl.translate_note(finish)
+        layout = kwargs.get('layout', Optional[QGridLayout])
+        note_size = kwargs.get('note_size', Optional[QSize])
+        row = kwargs.get('row', 0)
+        col = kwargs.get('col', 0)
+        parent = kwargs.get('parent', None)
+
+        lbl_start = QLabel()
+        lbl_start.setText('Finish')
+        layout.addWidget(lbl_start, row, col, 1, 1)
 
         # FINISH
         staff_finish = QSpinBox(parent=parent)
-        staff_finish.setMinimum(0)  # C2
-        staff_finish.setMaximum(127)  # G8
-        staff_finish.setValue(finish)
-        group_staff.layout().addWidget(staff_finish, 0, 4, 1, 1)
+        staff_finish.setMinimum(1)  # A0
+        staff_finish.setMaximum(88)  # G8
+        staff_finish.setValue(88)
+        layout.addWidget(staff_finish, row, col + 1, 1, 1)
 
         finish_label = QLabel(parent=parent)
-        finish_label.setText(name)
+        finish_label.setText('G')
         finish_label.setMinimumSize(note_size)
         finish_label.setMaximumSize(note_size)
-        group_staff.layout().addWidget(finish_label, 0, 5, 1, 1)
+        layout.addWidget(finish_label, row, col + 2, 1, 1)
 
         finish_octave = QLabel(parent=parent)
-        finish_octave.setText(str(octave))
+        finish_octave.setText('8')
         finish_octave.setMinimumSize(note_size)
         finish_octave.setMaximumSize(note_size)
-        group_staff.layout().addWidget(finish_octave, 0, 6, 1, 1)
+        layout.addWidget(finish_octave, row, col + 3, 1, 1)
 
-        self.gui_data.staff_finish = staff_finish
-        self.gui_data.finish_label = finish_label
-        self.gui_data.finish_octave = finish_octave
+        return staff_finish, finish_label, finish_octave
+
+    def _create_radio(self,
+                      layout: QGridLayout,
+                      parent: Any,
+                      row: int,
+                      col: int):
+        """ the radio buttons for selecting the staff sizer """
+
+        sizers_group = QGroupBox('Staff sizers')
+        layout.addWidget(sizers_group, row, col, 1, 2)
+        sizers_group.setLayout(QGridLayout())
+
+        temp_label = QLabel(parent=parent)
+        temp_label.setText('Dummy')
+        sizers_group.layout().addWidget(temp_label,
+                                        0, 0, 1, 1)
 
     def _connect(self):
         """ bypass too-many-statements """
 
-        self.gui_data.margin_left.valueChanged.connect(self._margin_left_changed)
-        self.gui_data.margin_right.valueChanged.connect(self._margin_right_changed)
-        self.gui_data.staff_auto.stateChanged.connect(self._staff_auto_changed)
-        self.gui_data.staff_start.valueChanged.connect(self._staff_start_changed)
-        self.gui_data.staff_finish.valueChanged.connect(self._staff_finish_changed)
+        # save a reference to the controls in this class
+        self._margin_left.valueChanged.connect(self._margin_left_changed)
+        self._margin_right.valueChanged.connect(self._margin_right_changed)
+        self._staff_auto.stateChanged.connect(self._staff_auto_changed)
+        self._staff_start.valueChanged.connect(self._staff_start_changed)
+        self._staff_finish.valueChanged.connect(self._staff_finish_changed)
 
     def _margin_left_changed(self, value: int):
         """ margin on the left changed """
@@ -286,21 +334,21 @@ class StaffSizerControl:
 
         auto = state == 2
         self._staff_sizer.staff_auto = auto
-        self.gui_data.staff_start.setEnabled(not auto)
-        self.gui_data.staff_finish.setEnabled(not auto)
+        self._staff_start.setEnabled(not auto)
+        self._staff_finish.setEnabled(not auto)
 
     def _staff_start_changed(self, value: int):
         """ staff start changed """
 
         self._staff_sizer.staff_start = value
-        name, octave = StaffSizerControl.translate_note(value)
-        self.gui_data.start_label.setText(name)
-        self.gui_data.start_octave.setText(str(octave))
+        name, octave = PianoNotes.translate_note(value)
+        self._start_label.setText(name)
+        self._start_octave.setText(str(octave))
 
     def _staff_finish_changed(self, value: int):
         """ staff start changed """
 
         self._staff_sizer.staff_finish = int(value)
-        name, octave = StaffSizerControl.translate_note(value)
-        self.gui_data.finish_label.setText(name)
-        self.gui_data.finish_octave.setText(str(octave))
+        name, octave = PianoNotes.translate_note(value)
+        self._finish_label.setText(name)
+        self._finish_octave.setText(str(octave))
