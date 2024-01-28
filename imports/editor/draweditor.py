@@ -9,18 +9,6 @@ class DrawEditor:
     def draw_titles(io:dict):
         '''Draws the title and composer name of the score file on the topleft corner of the editor'''
 
-        # draw title background
-        io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
-                                      fill_color=BACKGROUND_COLOR, 
-                                      outline_color=BACKGROUND_COLOR,
-                                      tag=['titlebackground'])
-        
-        # draw bottom background to hide the stafflines
-        io['editor'].new_rectangle(EDITOR_LEFT, EDITOR_TOP, EDITOR_RIGHT, EDITOR_MARGIN,
-                                      fill_color=BACKGROUND_COLOR, 
-                                      outline_color=BACKGROUND_COLOR,
-                                      tag=['titlebackground'])
-
         title = "'" + io['score']['header']['title'] + "'" + ' by composer: ' + io['score']['header']['composer']
         io['editor'].new_text(EDITOR_LEFT, 0, title, 
                               tag=['titletext'], 
