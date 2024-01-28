@@ -1,6 +1,6 @@
 astroid==3.0.2
 colorama==0.4.6
-dill==0.3.7
+dill==0.3.8
 isort==5.13.2
 jsons==1.6.3
 mccabe==0.7.0
