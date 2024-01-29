@@ -101,9 +101,18 @@ class StaffSizerControl:
                        staff_finish=88)
         ]
 
-        left_group = QGroupBox('Margins')
+        self._radios, staff_group = self._create_radio(
+            parent=parent,
+            layout=layout,
+            row=row,
+            col=0
+        )
+
+        row = 1
+
+        left_group = QGroupBox('Margin')
         left_group.setLayout(QGridLayout())
-        layout.addWidget(left_group, row, 0, 1, 1)
+        staff_group.layout().addWidget(left_group, row, 0, 1, 1)
 
         # --- MARGIN ---
         label_blank = QLabel()
@@ -125,7 +134,7 @@ class StaffSizerControl:
 
         right_group = QGroupBox('Staff')
         right_group.setLayout(QGridLayout())
-        layout.addWidget(right_group, row, 1, 1, 1)
+        staff_group.layout().addWidget(right_group, row, 1, 1, 1)
 
         #  --- STAFF ---
         note_size = QSize(16, 16)
@@ -150,12 +159,6 @@ class StaffSizerControl:
             parent=parent,
             layout=right_group.layout(),
             note_size=note_size,
-            row=2,
-            col=0)
-
-        self._radios = self._create_radio(
-            parent=parent,
-            layout=layout,
             row=2,
             col=0)
 
@@ -267,7 +270,7 @@ class StaffSizerControl:
         parent = kwargs.get('parent', None)
 
         lbl_start = QLabel()
-        lbl_start.setText('Start')
+        lbl_start.setText('Min')
         layout.addWidget(lbl_start, row, col, 1, 1)
 
         #  --- START ---
@@ -303,7 +306,7 @@ class StaffSizerControl:
         parent = kwargs.get('parent', None)
 
         lbl_start = QLabel()
-        lbl_start.setText('Finish')
+        lbl_start.setText('Max')
         layout.addWidget(lbl_start, row, col, 1, 1)
 
         # FINISH
@@ -331,31 +334,35 @@ class StaffSizerControl:
                       layout: QGridLayout,
                       parent: Any,
                       row: int,
-                      col: int) -> List:
+                      col: int) -> tuple:
         """ the radio buttons for selecting the staff sizer """
 
-        sizers_group = QGroupBox('Staff sizers')
-        layout.addWidget(sizers_group, row, col, 1, 2)
-        sizers_group.setLayout(QGridLayout())
+        staff_group = QGroupBox('Staff')
+        layout.addWidget(staff_group, row, col, 1, 3)
+        staff_group.setLayout(QGridLayout())
+
+        radio_layout = QGridLayout()
+        staff_group.layout().addLayout(radio_layout, 0, 0, 1, 3)
 
         radio_1 = QRadioButton('1', parent=parent)
+
         radio_1.setChecked(True)
-        sizers_group.layout().addWidget(radio_1,
+        radio_layout.addWidget(radio_1,
                                         0, 0, 1, 1)
         radio_2 = QRadioButton('2', parent=parent)
         radio_2.setChecked(False)
-        sizers_group.layout().addWidget(radio_2,
+        radio_layout.addWidget(radio_2,
                                         0, 1, 1, 1)
         radio_3 = QRadioButton('3', parent=parent)
         radio_3.setChecked(False)
-        sizers_group.layout().addWidget(radio_3,
+        radio_layout.addWidget(radio_3,
                                         0, 2, 1, 1)
         radio_4 = QRadioButton('4', parent=parent)
         radio_4.setChecked(False)
-        sizers_group.layout().addWidget(radio_4,
+        radio_layout.addWidget(radio_4,
                                         0, 3, 1, 1)
 
-        return [radio_1, radio_2, radio_3, radio_4]
+        return [radio_1, radio_2, radio_3, radio_4], staff_group
 
     def _connect(self):
         """ bypass too-many-statements """

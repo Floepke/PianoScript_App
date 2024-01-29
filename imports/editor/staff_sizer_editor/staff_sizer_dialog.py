@@ -48,7 +48,7 @@ class StaffSizerDialog(QDialog):
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
 
-        self.setWindowTitle('Staff Sizer')
+        self.setWindowTitle('Line Preferences')
 
         layout = QGridLayout()
 
@@ -58,7 +58,7 @@ class StaffSizerDialog(QDialog):
             parent=self)
 
         ok_cancel = QGroupBox()
-        layout.addWidget(ok_cancel, 6, 0, 1, 2)
+        layout.addWidget(ok_cancel, 6, 0, 1, 3)
 
         ok_cancel.setLayout(QGridLayout())
         ok_button = QPushButton(parent=parent)
