@@ -30,55 +30,13 @@ from PySide6.QtWidgets import QSpinBox
 from PySide6.QtWidgets import QCheckBox
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QRadioButton
+from PySide6.QtWidgets import QComboBox
 
 from PySide6.QtCore import QSize
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-
-
-@dataclass
-class PianoNotes:
-    """ conversion from piano key number to name and octave """
-
-    _note_names = [
-        'C ', 'C#', 'D ', 'D#',
-        'E ', 'F ', 'F#', 'G ',
-        'G#', 'A ', 'A#', 'B '
-    ]
-
-    @staticmethod
-    def translate_note(piano_note: int) -> tuple:
-        """ translate the number to a note name """
-
-        octave, note = divmod(piano_note + 9, 12)
-        name = PianoNotes._note_names[note]
-        return name, octave
-
-    @staticmethod
-    def start_notes():
-        """ possible start notes for the staff """
-
-        return [
-            3, 8,
-            15, 20,
-            27, 32,
-            39, 44,
-            51, 56,
-            63, 68,
-            75]
-
-    @staticmethod
-    def finish_notes():
-        """ possible start notes for the staff """
-
-        return [
-            19, 26,
-            31, 38,
-            43, 50,
-            55, 62,
-            67, 74,
-            79, 86]
+from imports.editor.staff_sizer_editor.pianonotes import PianoNotes
 
 
 class StaffSizerControl:
@@ -97,7 +55,7 @@ class StaffSizerControl:
             StaffSizer(margin_left=0,
                        margin_right=0,
                        staff_auto=True,
-                       staff_start=1,
+                       staff_start=3,
                        staff_finish=88)
         ]
 
@@ -132,7 +90,7 @@ class StaffSizerControl:
             row=2,
             col=0)
 
-        right_group = QGroupBox('Staff')
+        right_group = QGroupBox('Range')
         right_group.setLayout(QGridLayout())
         staff_group.layout().addWidget(right_group, row, 1, 1, 1)
 
@@ -144,18 +102,14 @@ class StaffSizerControl:
             row=0,
             col=0)
 
-        self._staff_start, \
-            self._start_label, \
-            self._start_octave = self._create_staff_start(
+        self._staff_start, self._start_label = self._create_staff_start(
             parent=parent,
             layout=right_group.layout(),
             note_size=note_size,
             row=1,
             col=0)
 
-        self._staff_finish, \
-            self._finish_label, \
-            self._finish_octave = self._create_staff_finish(
+        self._staff_finish, self._finish_label = self._create_staff_finish(
             parent=parent,
             layout=right_group.layout(),
             note_size=note_size,
@@ -184,11 +138,31 @@ class StaffSizerControl:
         self._margin_right.setValue(value.margin_right)
 
         self._staff_auto.setChecked(value.staff_auto)
-        self._staff_start.setValue(value.staff_start)
-        self._staff_finish.setValue(value.staff_finish)
+
+        start = value.staff_start
+        self._staff_start.setCurrentText(str(start))
+        self._staff_start_note_name(start)
+
+        finish = value.staff_finish
+        self._staff_finish.setCurrentText(str(finish))
+        self._staff_finish_note_name(finish)
 
         self._staff_start.setEnabled(not value.staff_auto)
         self._staff_finish.setEnabled(not value.staff_auto)
+
+    def _staff_start_note_name(self, value: int):
+        """ fill in name and octave """
+
+        *_, note = PianoNotes.translate_note(value)
+        # note = f'{name.strip()}{octave}'
+        self._start_label.setText(note)
+
+    def _staff_finish_note_name(self, value: int):
+        """ fill in name and octave """
+
+        *_, note = PianoNotes.translate_note(value)
+        # note = f'{name.strip()}{octave}'
+        self._finish_label.setText(note)
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
@@ -273,12 +247,10 @@ class StaffSizerControl:
         lbl_start.setText('Min')
         layout.addWidget(lbl_start, row, col, 1, 1)
 
-        #  --- START ---
-        staff_start = QSpinBox(parent=kwargs.get('parent', None))
-        staff_start.setMinimum(1)  # A0
-        staff_start.setMaximum(88)  # G8
-        staff_start.setValue(1)
-
+        staff_start = QComboBox(parent=kwargs.get('parent', None))
+        staff_start.setEditable(False)
+        for number in PianoNotes.start_notes():
+            staff_start.addItem(str(number))
         layout.addWidget(staff_start, row, col + 1, 1, 1)
 
         start_label = QLabel(parent=parent)
@@ -287,13 +259,7 @@ class StaffSizerControl:
         start_label.setMaximumSize(note_size)
         layout.addWidget(start_label, row, col + 2, 1, 1)
 
-        start_octave = QLabel(parent=parent)
-        start_octave.setText('0')
-        start_octave.setMinimumSize(note_size)
-        start_octave.setMaximumSize(note_size)
-        layout.addWidget(start_octave, row, col + 3, 1, 1)
-
-        return staff_start, start_label, start_octave
+        return staff_start, start_label
 
     def _create_staff_finish(self, **kwargs) -> tuple:
         """ create the finish group """
@@ -310,10 +276,10 @@ class StaffSizerControl:
         layout.addWidget(lbl_start, row, col, 1, 1)
 
         # FINISH
-        staff_finish = QSpinBox(parent=parent)
-        staff_finish.setMinimum(1)  # A0
-        staff_finish.setMaximum(88)  # G8
-        staff_finish.setValue(88)
+        staff_finish = QComboBox(parent=parent)
+        staff_finish.setEditable(False)
+        for number in PianoNotes.finish_notes():
+            staff_finish.addItem(str(number))
         layout.addWidget(staff_finish, row, col + 1, 1, 1)
 
         finish_label = QLabel(parent=parent)
@@ -322,13 +288,7 @@ class StaffSizerControl:
         finish_label.setMaximumSize(note_size)
         layout.addWidget(finish_label, row, col + 2, 1, 1)
 
-        finish_octave = QLabel(parent=parent)
-        finish_octave.setText('8')
-        finish_octave.setMinimumSize(note_size)
-        finish_octave.setMaximumSize(note_size)
-        layout.addWidget(finish_octave, row, col + 3, 1, 1)
-
-        return staff_finish, finish_label, finish_octave
+        return staff_finish, finish_label
 
     def _create_radio(self,
                       layout: QGridLayout,
@@ -371,8 +331,9 @@ class StaffSizerControl:
         self._margin_left.valueChanged.connect(self._margin_left_changed)
         self._margin_right.valueChanged.connect(self._margin_right_changed)
         self._staff_auto.stateChanged.connect(self._staff_auto_changed)
-        self._staff_start.valueChanged.connect(self._staff_start_changed)
-        self._staff_finish.valueChanged.connect(self._staff_finish_changed)
+        # self._staff_start.valueChanged.connect(self._staff_start_changed)
+        self._staff_start.currentIndexChanged.connect(self._staff_start_index_changed)
+        self._staff_finish.currentIndexChanged.connect(self._staff_finish_index_changed)
 
         for idx, radio in enumerate(self._radios, 0):
             radio.clicked.connect(partial(self._radio_changed, idx))
@@ -395,21 +356,21 @@ class StaffSizerControl:
         self._staff_start.setEnabled(not auto)
         self._staff_finish.setEnabled(not auto)
 
-    def _staff_start_changed(self, value: int):
-        """ staff start changed """
+    def _staff_start_index_changed(self, index: int):
+        """ index of the staff_start has changed """
 
+        assert index is not None
+        value = int(self._staff_start.currentText())
         self._staff_sizer.staff_start = value
-        name, octave = PianoNotes.translate_note(value)
-        self._start_label.setText(name)
-        self._start_octave.setText(str(octave))
+        self._staff_start_note_name(value)
 
-    def _staff_finish_changed(self, value: int):
-        """ staff start changed """
+    def _staff_finish_index_changed(self, index: int):
+        """ index of the staff_finish has changed """
 
-        self._staff_sizer.staff_finish = int(value)
-        name, octave = PianoNotes.translate_note(value)
-        self._finish_label.setText(name)
-        self._finish_octave.setText(str(octave))
+        assert index is not None
+        value = int(self._staff_finish.currentText())
+        self._staff_sizer.staff_finish = value
+        self._staff_finish_note_name(value)
 
     def _radio_changed(self, idx: int):
         """ one of the radio buttons was changed """

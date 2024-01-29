@@ -76,7 +76,7 @@ def test_1():
 
     sizer = StaffSizer(margin_left=10,
                        margin_right=12,
-                       staff_start=48,
+                       staff_start=8,
                        staff_finish=79,
                        staff_auto=False)
 
@@ -87,6 +87,7 @@ def test_1():
 
     sizers[0].margin_left = 10
     sizers[1].margin_left = 20
+    sizers[1].staff_start = 15
     sizers[2].margin_left = 30
     sizers[3].margin_left = 40
     sizers[3].staff_auto = True
@@ -119,15 +120,15 @@ def test_2():
         'time': 12345,
         'staff1': {
             'margins': [10, 12],
-            'range': [48, 79]
+            'range': [3, 79]
         },
         'staff2': {
             'margins': [11, 13],
-            'range': [49, 80]
+            'range': [8, 80]
         },
         'staff3': {
             'margins': [12, 14],
-            'range': [50, 81]
+            'range': [15, 81]
         },
         'staff4': {
             'margins': [13, 15],
