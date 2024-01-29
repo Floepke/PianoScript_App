@@ -74,20 +74,20 @@ class StaffSizerControl:
 
         # --- MARGIN ---
         label_blank = QLabel()
-        label_blank.setText('  ')
+        label_blank.setText(' ')
         left_group.layout().addWidget(label_blank,
                                       row, 0, 1, 1)
 
         self._margin_left = self._create_margin_left(
             parent=parent,
             layout=left_group.layout(),
-            row=1,
+            row=row + 1,
             col=0)
 
         self._margin_right = self._create_margin_right(
             parent=parent,
             layout=left_group.layout(),
-            row=2,
+            row=row + 2,
             col=0)
 
         right_group = QGroupBox('Range')
