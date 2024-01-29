@@ -22,6 +22,7 @@ def stop_sign(time, pitch, note):
         'staff': note['staff']
     }
 
+
 def continuation_dot_and_stopsign_processor(io, DOC):
     '''
         note_processor processes the notes in such way that it generates a list of neccesary 
@@ -34,11 +35,12 @@ def continuation_dot_and_stopsign_processor(io, DOC):
     note_on_off = []
     for note in io['score']['events']['note']:
         evt = copy.deepcopy(note)
+        evt['endtime'] = evt['time'] + evt['duration']
         note_on_off.append(copy.deepcopy(evt))
+        evt = copy.deepcopy(evt)
         evt['type'] = 'noteoff'
-        evt['time'] = evt['time'] + evt['duration']
         note_on_off.append(copy.deepcopy(evt))
-    note_on_off = sorted(note_on_off, key=lambda y: y['time'])
+    note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])  
 
     # we add the notestop and continuationdot events
     active_notes = []
@@ -46,10 +48,16 @@ def continuation_dot_and_stopsign_processor(io, DOC):
     last_note_on = None
     for note in note_on_off:
         if note['type'] == 'note':
-            last_note_on = note
             active_notes.append(note)
+            for n in active_notes:
+                # continuation dots:
+                if n != note:
+                    if (not EQUALS(n['time'], note['time']) and 
+                        note['staff'] == n['staff'] and
+                        note['hand'] == n['hand']):
+                        DOC.append(continuation_dot(note['time'], n['pitch'], note))
+        
         elif note['type'] == 'noteoff':
-            last_note_off = note
             for n in active_notes:
                 if (n['duration'] == note['duration'] and 
                     n['pitch'] == note['pitch'] and 
@@ -57,80 +65,16 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                     n['hand'] == note['hand']):
                     active_notes.remove(n)
                     break
-
-        for n in active_notes:
-            # continuation dots:
-            if (not EQUALS(note['time'], n['time']) and 
-                not EQUALS(n['time']+n['duration'], note['time']) and 
-                note['staff'] == n['staff'] and 
-                note['hand'] == n['hand']):
-                DOC.append(continuation_dot(note['time'], n['pitch'], note))
-
-            # stop signs:
-            ...
-
-    # # notestop sign:
-    # if stop_flag:
-    #     DOC.append(stop_sign(note['time']+note['duration'], note['pitch'], note))
+            
+            for n in active_notes:
+                # continuation dots:
+                if n != note:
+                    if (not EQUALS(n['endtime'], note['endtime']) and
+                        note['staff'] == n['staff'] and
+                        note['hand'] == n['hand']):
+                        DOC.append(continuation_dot(note['endtime'], n['pitch'], note))
     
     return DOC
-
-
-import copy
-
-# def continuation_dot_and_stopsign_processor(io, DOC):
-#     '''
-#         note_processor processes the notes in such way that it generates a list of neccesary 
-#         note, notesplit, continuationdot, notestop events that are ready for being drawn.
-#     '''
-
-#     stop_flag = False
-
-#     # making a list of noteon and noteoff messages like a linear midi file
-#     note_on_off = []
-#     for note in io['score']['events']['note']:
-#         evt = copy.deepcopy(note)
-#         evt['endtime'] = evt['time'] + evt['duration']
-#         note_on_off.append(copy.deepcopy(evt))
-#         evt['type'] = 'noteoff'
-#         note_on_off.append(copy.deepcopy(evt))
-#     note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])
-
-#     # we add the notestop and continuationdot events
-#     active_notes = []
-#     last_note_off = None
-#     last_note_on = None
-#     for note in note_on_off:
-#         if note['type'] == 'note':
-#             last_note_on = note
-#             active_notes.append(note)
-#         elif note['type'] == 'noteoff':
-#             last_note_off = note
-#             for n in active_notes:
-#                 if n['duration'] == note['duration'] and n['pitch'] == note['pitch'] and n['staff'] == note['staff'] and n['hand'] == note['hand']:
-#                     active_notes.remove(n)
-#                     break
-
-#         for n in active_notes:
-#             # continuation dots:
-#             if (not EQUALS(note['time'], n['time']) and 
-#                 not EQUALS(n['endtime'], note['time']) and 
-#                 note['staff'] == n['staff'] and 
-#                 note['hand'] == n['hand'] and
-#                 note['type'] == n['type']):
-#                 DOC.append(continuation_dot(note['time'], n['pitch'], note))
-
-#             # stop signs:
-#             ...
-
-#     # # notestop sign:
-#     # if stop_flag:
-#     #     DOC.append(stop_sign(note['time']+note['duration'], note['pitch'], note))
-
-#     return DOC
-
-
-
     
 
 def note_processor(io, note):
