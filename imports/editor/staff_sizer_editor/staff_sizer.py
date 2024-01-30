@@ -58,4 +58,3 @@ class StaffSizer:
             'margins': [self.margin_left, self.margin_right],
             'range': staff_range
         }
-

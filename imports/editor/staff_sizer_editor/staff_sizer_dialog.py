@@ -25,8 +25,6 @@ from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QLabel
 
 from PySide6.QtGui import QPixmap
-
-from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -50,44 +48,17 @@ class StaffSizerDialog(QDialog):
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
 
-        self.setWindowTitle('Staff Sizer')
+        self.setWindowTitle('Line Preferences')
 
         layout = QGridLayout()
 
-        label_left = QLabel()
-        label_left.setText('Margins')
-        label_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(label_left, 0, 0, 1, 1)
-
-        label_right = QLabel()
-        label_right.setText('Staff')
-        label_right.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(label_right, 0, 1, 1, 1)
-
-        self.controls = [
-            StaffSizerControl(layout=layout,
-                              row=1,
-                              parent=self,
-                              has_label=True),
-
-            StaffSizerControl(layout=layout,
-                              row=2,
-                              parent=self,
-                              has_label=False),
-
-            StaffSizerControl(layout=layout,
-                              row=3,
-                              parent=self,
-                              has_label=False),
-
-            StaffSizerControl(layout=layout,
-                              row=4,
-                              parent=self,
-                              has_label=False),
-        ]
+        self.control = StaffSizerControl(
+            layout=layout,
+            row=0,
+            parent=self)
 
         ok_cancel = QGroupBox()
-        layout.addWidget(ok_cancel, 5, 0, 1, 2)
+        layout.addWidget(ok_cancel, 6, 0, 1, 3)
 
         ok_cancel.setLayout(QGridLayout())
         ok_button = QPushButton(parent=parent)
@@ -105,24 +76,16 @@ class StaffSizerDialog(QDialog):
         self.setLayout(layout)
 
     @property
-    def staff_sizers(self) -> List:
+    def staff_sizers(self) -> List[StaffSizer]:  # noqa
         """ get the values """
 
-        return [
-            self.controls[0].staff_sizer,
-            self.controls[1].staff_sizer,
-            self.controls[2].staff_sizer,
-            self.controls[3].staff_sizer,
-            ]
+        return self.control.staff_sizers
 
     @staff_sizers.setter
-    def staff_sizers(self, value: [StaffSizer]):
+    def staff_sizers(self, value: List[StaffSizer]):  # noqa
         """ set the value """
 
-        self.controls[0].staff_sizer = value[0]
-        self.controls[1].staff_sizer = value[1]
-        self.controls[2].staff_sizer = value[2]
-        self.controls[3].staff_sizer = value[3]
+        self.control.staff_sizers = value  # noqa
 
     def _on_ok(self):
         """ OK clicked """
@@ -143,15 +106,9 @@ class StaffSizerDialog(QDialog):
         event.accept()
         staff_sizers = []
         if self.result == DialogResult.OK:
-            staff_sizers = [
-                self.controls[0].staff_sizer,
-                self.controls[1].staff_sizer,
-                self.controls[2].staff_sizer,
-                self.controls[3].staff_sizer,
-            ]
+            staff_sizers = self.staff_sizers
 
         if self.callback is not None:
             self.callback(self.result, staff_sizers)
 
     # pylint: enable=invalid-name
-
