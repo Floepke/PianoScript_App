@@ -183,4 +183,15 @@ class CalcTools:
             for i in range(grid['amount']):
                 barline_ticks.append(grid['numerator'] * ((QUARTER_PIANOTICK*4) / grid['denominator']) * i)
         return barline_ticks
-        
+    
+    def get_measure_number(self, time):
+        '''returns the measure number based on the time'''
+        barline_ticks = self.get_barline_ticks()
+        for i in barline_ticks:
+            if time < i:
+                return barline_ticks.index(i)
+
+
+
+
+
