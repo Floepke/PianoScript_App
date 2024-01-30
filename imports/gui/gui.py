@@ -93,7 +93,7 @@ class Gui():
         self.grid_edit_action = QAction('Grid Editor', self.main)
         self.settings_menu.addAction(self.grid_edit_action)
 
-        self.staff_sizer_action = QAction('Staff sizer', self.main)
+        self.staff_sizer_action = QAction('Line break Editor', self.main)
         self.settings_menu.addAction(self.staff_sizer_action)
 
         self.menu_bar.addMenu(self.settings_menu)
