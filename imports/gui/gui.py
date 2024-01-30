@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor, QBrush
 from imports.editor.graphicsview_editor import GraphicsViewEditor
-from imports.utils.fileoprations import FileOperations
+# from imports.utils.fileoprations import FileOperations
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 # import QIcon
 from PySide6.QtGui import QIcon
@@ -59,9 +59,6 @@ class Gui():
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
 
-        self.grid_edit_action = QAction('Grid Editor', self.main)
-        self.file_menu.addAction(self.grid_edit_action)
-
         self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)
         self.exit_action.setShortcut('Ctrl+Q')
@@ -91,6 +88,15 @@ class Gui():
         self.zoom_out_action = QAction('Zoom Out', self.main)
         self.view_menu.addAction(self.zoom_out_action)
         self.menu_bar.addMenu(self.view_menu)
+
+        self.settings_menu = QMenu('Settings', self.main)
+        self.grid_edit_action = QAction('Grid Editor', self.main)
+        self.settings_menu.addAction(self.grid_edit_action)
+
+        self.staff_sizer_action = QAction('Staff sizer', self.main)
+        self.settings_menu.addAction(self.staff_sizer_action)
+
+        self.menu_bar.addMenu(self.settings_menu)
 
         # Create a Help menu
         self.help_menu = QMenu('Help', self.main)
@@ -221,11 +227,11 @@ class Gui():
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.create_tree_model())
         self.tree_view.header().hide()
-        self.tree_view.setEditTriggers(QTreeView.NoEditTriggers)
+        self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
         # set indent size
         self.tree_view.setIndentation(0)
         # set single selection
-        self.tree_view.setSelectionMode(QTreeView.SingleSelection)
+        self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
         self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
         self.tree_view.expandAll()
         # set color of any selected item

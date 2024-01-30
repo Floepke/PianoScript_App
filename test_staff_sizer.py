@@ -52,8 +52,8 @@ def test_0():
     ]
     print('--- start notes --')
     for index in start_notes:
-        name, octave = PianoNotes.translate_note(piano_note=index)
-        print(f'{index:<3} {name.strip()}{octave}')
+        name, octave, note = PianoNotes.translate_note(piano_note=index)
+        print(f'{index:<3} {name.strip()}{octave} {note}')
 
     finish_notes = [
         19, 26,
