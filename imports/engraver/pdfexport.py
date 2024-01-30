@@ -1,6 +1,6 @@
 from PySide6.QtGui import QPainter
 from PySide6.QtPrintSupport import QPrinter
-from imports.engraver.engraver import pre_render
+from imports.engraver.engraver import pre_render, render
 # import QMarginsF
 from PySide6.QtCore import QMarginsF
 
@@ -21,7 +21,8 @@ def pdf_export(io):
     for page in range(io['total_pages']):
         io['selected_page'] = page
         if page > 0:printer.newPage()
-        pre_render(io, render_type='pdf')
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = pre_render(io, render_type='pdf')
+        render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
         io['gui'].print_scene.render(painter)
 
     # End the painter

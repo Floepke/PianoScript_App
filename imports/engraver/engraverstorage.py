@@ -29,7 +29,7 @@ def continuation_dot_and_stopsign_processor(io, DOC):
         note, notesplit, continuationdot, notestop events that are ready for being drawn.
     '''
 
-    stop_flag = False
+    stop_flag = True
 
     # making a list of noteon and noteoff messages like a linear midi file
     note_on_off = []
@@ -45,18 +45,18 @@ def continuation_dot_and_stopsign_processor(io, DOC):
     # we add the notestop and continuationdot events
     active_notes = []
     last_note_off = None
-    last_note_on = None
-    for note in note_on_off:
+    for idx, note in enumerate(note_on_off):
+    
         if note['type'] == 'note':
             active_notes.append(note)
             for n in active_notes:
-                # continuation dots:
+                # continuation dots for note start:
                 if n != note:
-                    if (not EQUALS(n['time'], note['time']) and 
+                    if (not EQUALS(n['endtime'], note['time']) and
                         note['staff'] == n['staff'] and
                         note['hand'] == n['hand']):
                         DOC.append(continuation_dot(note['time'], n['pitch'], note))
-        
+    
         elif note['type'] == 'noteoff':
             for n in active_notes:
                 if (n['duration'] == note['duration'] and 
@@ -67,13 +67,13 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                     break
             
             for n in active_notes:
-                # continuation dots:
+                # continuation dots for note end:
                 if n != note:
                     if (not EQUALS(n['endtime'], note['endtime']) and
                         note['staff'] == n['staff'] and
                         note['hand'] == n['hand']):
                         DOC.append(continuation_dot(note['endtime'], n['pitch'], note))
-    
+                        # DOC.append(stop_sign(note['time'], note['pitch'], note))
     return DOC
     
 
