@@ -222,7 +222,7 @@ class PianoScript():
 
     def open_staff_sizer_editor(self):
         """ """
-        popup = Popup(message='staff_sizer: not yet integrated',
+        popup = Popup(message='Line break Editor: not yet integrated',
                       max_lines=3,
                       text_size=(100, 21))
 
