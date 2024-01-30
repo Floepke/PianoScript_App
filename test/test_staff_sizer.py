@@ -125,7 +125,7 @@ def main() -> int:
     """ main test function """
 
     if len(argv) < 2:
-        test_0()
+        test_1()
         return 0
 
     for arg in argv[1:]:
