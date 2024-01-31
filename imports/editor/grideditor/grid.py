@@ -11,8 +11,8 @@ __copyright__ = '© Sihir 2023-2024 all rights reserved'  # noqa
 #         "amount":8,
 #         "numerator":5,
 #         "denominator":4,
-#         "grid":4,
-#         "hidden": [2, 4],
+#         "nr":1,
+#         "grid": [256, 512, 768],
 #         "visible":true
 #        }
 #
@@ -40,10 +40,10 @@ class Grid:
 
         self.nr: int = int(kwargs.get('nr', -1))
         self.start: int = int(kwargs.get('start', 1))
-        self.amount: int = int(kwargs.get('amount', 1))
+        self.amount: int = int(kwargs.get('amount', 8))
         self.numerator: int = int(kwargs.get('numerator', 4))
         self.denominator: int = int(kwargs.get('denominator', 4))
-        self.grid: [int] = kwargs.get('grid', [])
+        self.grid: [int] = kwargs.get('grid', [256, 512, 768])
         self.option: str = kwargs.get('option', '')
         self.visible: bool = bool(kwargs.get('visible', True))
 

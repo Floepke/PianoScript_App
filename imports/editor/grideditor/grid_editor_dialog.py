@@ -74,6 +74,9 @@ class GridDialog(QDialog):
             dct['nr'] = idx
             self.grids.append(Grid(**dct))
 
+        if len(self.grids) == 0:
+            self.grids.append(Grid())
+
         self.nr = 0
 
         self.setWindowTitle('Grid definitions')
@@ -851,6 +854,8 @@ class GridDialog(QDialog):
             # we have to restore the grid.grid to the array of count lines
             # because there is no support for count lines in the grid editor yet
             # we ar switching on all count lines
+            if len(self.grids) == 0:
+                self.grids.append(Grid())
 
             grid_dct = []
             for item in self.grids:
