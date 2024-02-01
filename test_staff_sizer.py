@@ -28,11 +28,11 @@ from PySide6.QtWidgets import QApplication
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-<<<<<<< HEAD
+
 from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
-=======
+
 from imports.editor.staff_sizer_editor.staff_sizer_control import PianoNotes
->>>>>>> origin/harm
+
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.editor.staff_sizer_editor.staff_io import StaffIo
 
@@ -41,61 +41,20 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 def test_0():
     """ test for the translate_note function """
-<<<<<<< HEAD
     for index in range(128):
         name = StaffSizerControl.translate_note(midi_note=index)
         print(f'{index:<3} {name}')
 
-=======
-    for index in range(89):
-        name = PianoNotes.translate_note(piano_note=index)
-        print(f'{index:<3} {name}')
-
-    start_notes = [
-        3, 8,
-        15, 20,
-        27, 32,
-        39, 44,
-        51, 56,
-        63, 68,
-        75
-    ]
-    print('--- start notes --')
-    for index in start_notes:
-        name, octave, note = PianoNotes.translate_note(piano_note=index)
-        print(f'{index:<3} {name.strip()}{octave} {note}')
-
-    finish_notes = [
-        19, 26,
-        31, 38,
-        43, 50,
-        55, 62,
-        67, 74,
-        79, 86
-    ]
-    print('--- finish notes --')
-    for index in finish_notes:
-        name, octave = PianoNotes.translate_note(piano_note=index)
-        print(f'{index:<3} {name.strip()}{octave}')
->>>>>>> origin/harm
 
 def test_1():
     """ test the dialog with four line breaks """
 
     app = QApplication(argv)
-<<<<<<< HEAD
     lbrk = StaffSizerDialog(callback=test1_callback)
 
     sizer = StaffSizer(margin_left=10,
                        margin_right=12,
                        staff_start=48,
-=======
-    dialog = StaffSizerDialog(callback=test1_callback)
-
-    sizer = StaffSizer(margin_left=10,
-                       margin_right=12,
-                       staff_start=8,
->>>>>>> origin/harm
                        staff_finish=79,
                        staff_auto=False)
 
@@ -106,26 +65,14 @@ def test_1():
 
     sizers[0].margin_left = 10
     sizers[1].margin_left = 20
-<<<<<<< HEAD
-=======
-    sizers[1].staff_start = 15
->>>>>>> origin/harm
     sizers[2].margin_left = 30
     sizers[3].margin_left = 40
     sizers[3].staff_auto = True
 
-<<<<<<< HEAD
     lbrk.staff_sizers = sizers
     layout = QGridLayout()
     layout.addWidget(lbrk, 0, 0, 1, 1)
     lbrk.show()
-=======
-    dialog.staff_sizers = sizers
-    layout = QGridLayout()
-    layout.addWidget(dialog, 0, 0, 1, 1)
-
-    dialog.show()
->>>>>>> origin/harm
 
     _exit(app.exec())
 
@@ -149,7 +96,6 @@ def test_2():
         'time': 12345,
         'staff1': {
             'margins': [10, 12],
-<<<<<<< HEAD
             'range': [48, 79]
         },
         'staff2': {
@@ -159,17 +105,6 @@ def test_2():
         'staff3': {
             'margins': [12, 14],
             'range': [50, 81]
-=======
-            'range': [3, 79]
-        },
-        'staff2': {
-            'margins': [11, 13],
-            'range': [8, 80]
-        },
-        'staff3': {
-            'margins': [12, 14],
-            'range': [15, 81]
->>>>>>> origin/harm
         },
         'staff4': {
             'margins': [13, 15],

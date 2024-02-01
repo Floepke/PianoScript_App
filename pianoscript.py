@@ -221,10 +221,7 @@ class PianoScript():
                 item['tag'] = f'grid{nr}'
 
             self.io['score']['events']['grid'] = grids
-<<<<<<< HEAD
             #self.io['maineditor'].update('grid_editor')
-=======
->>>>>>> origin/harm
 
     def open_staff_sizer_editor(self):
         """ """

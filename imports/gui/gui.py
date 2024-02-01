@@ -59,14 +59,12 @@ class Gui():
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
 
-<<<<<<< HEAD
+
         self.file_menu.addSeparator()
 
         self.grid_edit_action = QAction('Grid Editor', self.main)
         self.file_menu.addAction(self.grid_edit_action)
 
-=======
->>>>>>> origin/harm
         self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)
         self.exit_action.setShortcut('Ctrl+Q')
