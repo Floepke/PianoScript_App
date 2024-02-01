@@ -71,9 +71,11 @@ class Editor:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
         # TODO: check if undo update is working, currenyly it checks if the score changed since the last edit action
-        if self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index]:
+        if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and 
+            not event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
             self.io['engraver'].do_engrave()
-            #pre_render(self.io)
+            try: self.io['fileoperations'].auto_save()
+            except KeyError: ...
         
         # add to ctlz stack (in this function we check if there is indeed a change in the score)
         self.io['ctlz'].add_ctlz()

@@ -59,6 +59,8 @@ class Gui():
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
 
+        self.file_menu.addSeparator()
+
         self.grid_edit_action = QAction('Grid Editor', self.main)
         self.file_menu.addAction(self.grid_edit_action)
 
@@ -259,7 +261,6 @@ class Gui():
                 'gracenote',
                 ],
             'Layout':[
-                'staffsizer',
                 'beam',
                 'linebreak'
                 ],

@@ -128,7 +128,10 @@ class PianoScript():
             'total_pages':0,
 
             # keep track of the number of pages in the document
-            'num_pages':0
+            'num_pages':0,
+
+            # auto save onoff
+            'autosave':True
         }
 
         # setup
@@ -216,7 +219,7 @@ class PianoScript():
                 item['tag'] = f'grid{nr}'
 
             self.io['score']['events']['grid'] = grids
-            self.io['maineditor'].update('grid_editor')
+            #self.io['maineditor'].update('grid_editor')
 
 
 if __name__ == '__main__':

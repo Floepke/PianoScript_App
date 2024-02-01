@@ -29,7 +29,7 @@ def continuation_dot_and_stopsign_processor(io, DOC):
         note, notesplit, continuationdot, notestop events that are ready for being drawn.
     '''
 
-    stop_flag = True
+    stop_flag = False
 
     # making a list of noteon and noteoff messages like a linear midi file
     note_on_off = []
@@ -40,12 +40,14 @@ def continuation_dot_and_stopsign_processor(io, DOC):
         evt = copy.deepcopy(evt)
         evt['type'] = 'noteoff'
         note_on_off.append(copy.deepcopy(evt))
-    note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])  
+    note_on_off = sorted(note_on_off, key=lambda y: (y['time'] if y['type'] == 'note' else y['endtime'], y['type'] == 'noteoff'))  
 
     # we add the notestop and continuationdot events
     active_notes = []
     last_note_off = None
     for idx, note in enumerate(note_on_off):
+
+        stop_flag = False
     
         if note['type'] == 'note':
             active_notes.append(note)
@@ -65,6 +67,7 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                     n['hand'] == note['hand']):
                     active_notes.remove(n)
                     break
+
             
             for n in active_notes:
                 # continuation dots for note end:
@@ -73,7 +76,24 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                         note['staff'] == n['staff'] and
                         note['hand'] == n['hand']):
                         DOC.append(continuation_dot(note['endtime'], n['pitch'], note))
-                        # DOC.append(stop_sign(note['time'], note['pitch'], note))
+
+        # if last_note_off == None:
+        #     last_note_off = note
+        #     continue
+        # if last_note_off['time'] < note['time']:
+        #     continue
+        # last_note_off = note
+
+        # for n in active_notes:            
+        #     if (EQUALS(n['time'], note['endtime']) and
+        #         note['staff'] == n['staff'] and
+        #         note['hand'] == n['hand']):
+        #         stop_flag = True
+                
+        # if stop_flag: 
+        #     DOC.append(stop_sign(note['endtime'], note['pitch'], note))
+        #     stop_flag = False
+    
     return DOC
     
 

@@ -111,6 +111,11 @@ class FileOperations:
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
 
+    def auto_save(self):
+        if self.savepath and self.io['autosave']:
+            with open(self.savepath, 'w') as file:
+                json.dump(self.io['score'], file, indent=4)
+
     def quit(self):
         
         # if not self.save_check(): # TODO: uncomment on publish
