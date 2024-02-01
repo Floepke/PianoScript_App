@@ -21,10 +21,11 @@ from imports.engraver.engraver import Engraver
 # disable debug messages that contain 'move' to bluck unwanted debug messages
 from PySide6.QtCore import QtMsgType, qInstallMessageHandler
 
-from copy import deepcopy
+# from copy import deepcopy
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
-from imports.editor.grideditor.grid import Grid
+# from imports.editor.grideditor.grid import Grid
+from imports.editor.grideditor.popup import Popup
 
 
 # def handler(msg_type, context, msg):
@@ -161,6 +162,7 @@ class PianoScript():
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
 
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
+        self.gui.staff_sizer_action.triggered.connect(self.open_staff_sizer_editor)
 
         self.gui.exit_action.triggered.connect(self.root.close)
 
@@ -219,8 +221,16 @@ class PianoScript():
                 item['tag'] = f'grid{nr}'
 
             self.io['score']['events']['grid'] = grids
+<<<<<<< HEAD
             #self.io['maineditor'].update('grid_editor')
+=======
+>>>>>>> origin/harm
 
+    def open_staff_sizer_editor(self):
+        """ """
+        popup = Popup(message='Line break Editor: not yet integrated',
+                      max_lines=3,
+                      text_size=(100, 21))
 
 if __name__ == '__main__':
     PianoScript()
