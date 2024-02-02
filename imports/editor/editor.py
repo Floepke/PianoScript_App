@@ -58,30 +58,30 @@ class Editor:
         if event_type in ['resize', 'scroll']:
             self.draw_viewport()
 
-        if event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz', 'grid_editor']:
+        if event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor']:
             self.redraw_editor()
-            #pre_render(self.io)
             self.io['engraver'].do_engrave()
+            if self.io['autosave']:
+                try: self.io['fileoperations'].auto_save()
+                except KeyError: ...
 
         if event_type in ['page_change']:
             self.io['engraver'].do_engrave()
 
+        # save if there is a change in the score
+        if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and 
+            not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
+            self.io['engraver'].do_engrave()
+            if self.io['autosave']:
+                try: self.io['fileoperations'].auto_save()
+                except KeyError: ...
+        
         # draw the cursor
         if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
-        # TODO: check if undo update is working, currenyly it checks if the score changed since the last edit action
-        if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and 
-            not event_type in ['zoom', 'loadfile', 'grid_edit', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
-            self.io['engraver'].do_engrave()
-            try: self.io['fileoperations'].auto_save()
-            except KeyError: ...
-        
         # add to ctlz stack (in this function we check if there is indeed a change in the score)
         self.io['ctlz'].add_ctlz()
-
-        # sort the events on time
-        # self.io['score']['events']['note'] = sorted(self.io['score']['events']['note'], key=lambda y: y['time'])
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''

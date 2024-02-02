@@ -11,12 +11,11 @@ class LineBreak:
 
         # left mouse button handling:
         if event_type == 'leftclick':
-            # detect if we clicked on a note
+            # detect if we clicked on a linebreak
             detect = io['editor'].detect_item(io, float(x), float(y), event_type='linebreak')
 
             if detect:
-                # TODO: if we click on a linebreak we open a dialog to edit the margins
-                print('open dialog')
+                io['edit_obj'] = detect
             else:
                 # we add a new linebreak to the score and draw it
                 new = SaveFileStructureSource.new_linebreak(
@@ -28,10 +27,18 @@ class LineBreak:
             
 
         elif event_type == 'leftclick+move':
-            ...
+            if io['edit_obj']:
+                time = io['calc'].y2tick_editor(y, snap=True)
+                io['edit_obj']['time'] = time
+                LineBreak.draw_editor(io, io['edit_obj'])
+                for lb in io['score']['events']['linebreak']:
+                    if lb['tag'] == io['edit_obj']['tag']:
+                        lb = copy.deepcopy(io['edit_obj'])
+                        break
         
         elif event_type == 'leftrelease':
             ...
+            
 
         # middle mouse button handling:
         elif event_type == 'middleclick':

@@ -161,10 +161,10 @@ class PianoScript():
         self.gui.save_action.triggered.connect(self.io['fileoperations'].save)
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
 
-        self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
-        self.gui.staff_sizer_action.triggered.connect(self.open_staff_sizer_editor)
-
+        self.gui.autosave_action.triggered.connect(self.io['fileoperations'].toggle_autosave)
         self.gui.exit_action.triggered.connect(self.root.close)
+
+        self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
 
         # shortcuts
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
@@ -221,7 +221,7 @@ class PianoScript():
                 item['tag'] = f'grid{nr}'
 
             self.io['score']['events']['grid'] = grids
-            #self.io['maineditor'].update('grid_editor')
+            self.io['maineditor'].update('grid_editor')
 
     def open_staff_sizer_editor(self):
         """ """

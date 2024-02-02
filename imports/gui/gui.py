@@ -59,11 +59,12 @@ class Gui():
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
 
-
         self.file_menu.addSeparator()
 
-        self.grid_edit_action = QAction('Grid Editor', self.main)
-        self.file_menu.addAction(self.grid_edit_action)
+        self.autosave_action = QAction('Autosave', self.main)
+        self.autosave_action.setCheckable(True)
+        self.autosave_action.setChecked(True)
+        self.file_menu.addAction(self.autosave_action)
 
         self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)
@@ -95,13 +96,12 @@ class Gui():
         self.view_menu.addAction(self.zoom_out_action)
         self.menu_bar.addMenu(self.view_menu)
 
+        # Create a Settings menu
         self.settings_menu = QMenu('Settings', self.main)
         self.grid_edit_action = QAction('Grid Editor', self.main)
         self.settings_menu.addAction(self.grid_edit_action)
-
         self.staff_sizer_action = QAction('Line break Editor', self.main)
         self.settings_menu.addAction(self.staff_sizer_action)
-
         self.menu_bar.addMenu(self.settings_menu)
 
         # Create a Help menu
