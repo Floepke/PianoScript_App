@@ -134,3 +134,19 @@ class SaveFileStructureSource:
                 'range':staff4_range
             }
         }
+    
+    def new_beam(
+            tag: str, # beam+tagnumber to make tag unique
+            time: float, # in linear time in pianoticks 0 to infinity
+            duration: float, # in linear time in pianoticks 0 to infinity
+            hand: str, # 'l' or 'r'
+            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            ):
+        '''The beam event structure.'''
+        return {
+            'tag':tag,
+            'time':time,
+            'duration':duration,
+            'hand':hand,
+            'staff':staff
+        }

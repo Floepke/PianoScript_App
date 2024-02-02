@@ -100,3 +100,15 @@ class LineBreak:
         io['editor'].delete_with_tag([linebreak['tag']])
         if linebreak in io['viewport']['events']['linebreak']:
             io['viewport']['events']['linebreak'].remove(linebreak)
+
+
+
+
+
+
+
+
+
+
+
+

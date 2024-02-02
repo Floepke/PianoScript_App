@@ -117,6 +117,7 @@ SCORE_TEMPLATE = {
     'endhook':[],
     'dot':[],
     'stop':[],
+    'beam':[]
   }
 }
 

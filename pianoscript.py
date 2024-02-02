@@ -132,7 +132,10 @@ class PianoScript():
             'num_pages':0,
 
             # auto save onoff
-            'autosave':True
+            'autosave':True,
+
+            # current selected staff to edit
+            'selected_staff':0
         }
 
         # setup
@@ -231,6 +234,62 @@ class PianoScript():
 
 if __name__ == '__main__':
     PianoScript()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

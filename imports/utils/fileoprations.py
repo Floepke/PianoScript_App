@@ -42,6 +42,9 @@ class FileOperations:
         # renumber tags
         self.io['calc'].renumber_tags()
 
+        # set save path to None
+        self.savepath = None
+
         # redraw the editor
         self.io['maineditor'].update('loadfile')
 
@@ -50,9 +53,6 @@ class FileOperations:
 
         # update page dimensions in the printview
         self.io['gui'].print_view.update_page_dimensions()
-
-        # set save path to None
-        self.savepath = None
 
 
     def load(self):
@@ -66,7 +66,9 @@ class FileOperations:
             # load a score from a file into the score dict io['score']
             with open(file_path, 'r') as file:
                 self.io['score'] = json.load(file)
-            self.savepath = file_path
+            
+            # set to None to prevent auto save from overwriting the previously loaded file
+            self.savepath = None
 
             # renumber tags
             self.io['calc'].renumber_tags()

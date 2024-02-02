@@ -40,14 +40,12 @@ def continuation_dot_and_stopsign_processor(io, DOC):
         evt = copy.deepcopy(evt)
         evt['type'] = 'noteoff'
         note_on_off.append(copy.deepcopy(evt))
-    note_on_off = sorted(note_on_off, key=lambda y: (y['time'] if y['type'] == 'note' else y['endtime'], y['type'] == 'noteoff'))  
+    note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])  
 
     # we add the notestop and continuationdot events
     active_notes = []
     last_note_off = None
     for idx, note in enumerate(note_on_off):
-
-        stop_flag = False
     
         if note['type'] == 'note':
             active_notes.append(note)
@@ -69,7 +67,7 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                     break
 
             
-            for n in active_notes:
+            for idx_n, n in enumerate(active_notes):
                 # continuation dots for note end:
                 if n != note:
                     if (not EQUALS(n['endtime'], note['endtime']) and
@@ -77,23 +75,31 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                         note['hand'] == n['hand']):
                         DOC.append(continuation_dot(note['endtime'], n['pitch'], note))
 
-        # if last_note_off == None:
-        #     last_note_off = note
-        #     continue
-        # if last_note_off['time'] < note['time']:
-        #     continue
-        # last_note_off = note
+        if note['type'] == 'noteoff':
+            continue
+        
+        stop_flag = False
 
-        # for n in active_notes:            
-        #     if (EQUALS(n['time'], note['endtime']) and
-        #         note['staff'] == n['staff'] and
-        #         note['hand'] == n['hand']):
-        #         stop_flag = True
-                
-        # if stop_flag: 
-        #     DOC.append(stop_sign(note['endtime'], note['pitch'], note))
-        #     stop_flag = False
-    
+        # here we are going to check if the next note(on) is happening on the same time as the current noteoff
+        for n in note_on_off[idx+1:]:
+            if (n['type'] == 'note' and 
+                EQUALS(n['time'], note['time']+note['duration']) and 
+                n['staff'] == note['staff'] and 
+                n['hand'] == note['hand']):
+                break
+            if (n['type'] == 'note' and 
+                GREATER(n['time'], note['time']+note['duration']) and 
+                n['staff'] == note['staff'] and
+                n['hand'] == note['hand']):
+                stop_flag = True
+                break
+
+            if n == note_on_off[-1]:
+                stop_flag = True
+
+        if stop_flag:
+            DOC.append(stop_sign(note['time']+note['duration'], note['pitch'], note))
+            
     return DOC
     
 
@@ -346,31 +352,6 @@ def update_barnumber(DOC, idx_page):
                         barnumber += 1
 
     return barnumber
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

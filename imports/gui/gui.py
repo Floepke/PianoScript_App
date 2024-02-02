@@ -63,7 +63,7 @@ class Gui():
 
         self.autosave_action = QAction('Autosave', self.main)
         self.autosave_action.setCheckable(True)
-        self.autosave_action.setChecked(True)
+        self.autosave_action.setChecked(False)
         self.file_menu.addAction(self.autosave_action)
 
         self.file_menu.addSeparator()

@@ -10,7 +10,8 @@
         "comment": ""
     },
     "properties": {
-        "page_orientation": "portrait",
+        "page_width": 210,
+        "page_height": 297,
         "page_margin_left": 10,
         "page_margin_right": 10,
         "page_margin_up": 10,
@@ -1364,29 +1365,42 @@
         "linebreak": [
             {
                 "tag": "lockedlinebreak",
-                "time": -1e-07,
-                "staff1_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff2_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff3_lr_margins": [
-                    10.0,
-                    10.0
-                ],
-                "staff4_lr_margins": [
-                    10.0,
-                    10.0
-                ]
+                "time": 0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
             }
         ],
         "staffsizer": [],
         "startrepeat": [],
         "endrepeat": [],
         "starthook": [],
-        "endhook": []
+        "endhook": [],
+        "beam": []
     }
 }
