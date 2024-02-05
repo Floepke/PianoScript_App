@@ -117,7 +117,11 @@ SCORE_TEMPLATE = {
     'endhook':[],
     'dot':[],
     'stop':[],
-    'beam':[]
+    'beam':[],
+    'gracenote':[],
+    'text':[],
+    'pedal':[],
+    'slur':[]
   }
 }
 

@@ -1,6 +1,7 @@
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.utils.constants import *
 import copy
+from PySide6.QtCore import Qt
 
 class Beam:
 
@@ -10,8 +11,8 @@ class Beam:
 
         # left mouse button handling:
         if event_type == 'leftclick':
-            # detect if we clicked on a linebreak
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='linebreak')
+            # detect if we clicked on a beam
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='beam')
 
             if detect:
                 io['edit_obj'] = detect
@@ -21,22 +22,32 @@ class Beam:
                     hand = 'r'
                 else:
                     hand = 'l'
-                # we add a new linebreak to the score and draw it
+                # we add a new beam to the score and draw it
                 new = SaveFileStructureSource.new_beam(
                     tag='beam' + str(io['calc'].add_and_return_tag()),
                     time=time,
-                    duration=0,
+                    duration=io['snap_grid'],
                     hand=hand,
                     staff=io['selected_staff']
                 )
-                io['score']['events']['beam'].append(new)
-                Beam.draw_editor(io, new)
+                io['edit_obj'] = new
+                Beam.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftclick+move':
-            ...
+            if io['edit_obj']:
+                mouse_time = io['calc'].y2tick_editor(y, snap=True)
+                io['edit_obj']['duration'] = mouse_time - io['edit_obj']['time']
+                if io['edit_obj']['duration'] < 0:
+                    io['edit_obj']['duration'] = 0
+                Beam.draw_editor(io, io['edit_obj'])
         
         elif event_type == 'leftrelease':
-            ...
+            if io['edit_obj']:
+                io['score']['events']['beam'].append(copy.deepcopy(io['edit_obj']))
+                Beam.draw_editor(io, io['edit_obj'])
+                io['edit_obj'] = None
+            
+
 
         # middle mouse button handling:
         elif event_type == 'middleclick':
@@ -50,7 +61,12 @@ class Beam:
 
         # right mouse button handling:
         elif event_type == 'rightclick':
-            ...
+            # detect if we clicked on a beam
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='beam')
+
+            if detect:
+                io['score']['events']['beam'].remove(detect)
+                io['editor'].delete_with_tag([detect['tag']])
 
         elif event_type == 'rightclick+move':
             ...
@@ -65,20 +81,52 @@ class Beam:
         io['editor'].delete_with_tag([beam['tag']])
 
         # xy data
-        time = io['calc'].y2tick_editor(beam['time'])
-        time2 = io['calc'].y2tick_editor(beam['time']+beam['duration'])
+        time = io['calc'].tick2y_editor(beam['time'])
+        time2 = io['calc'].tick2y_editor(beam['time']+beam['duration'])
+
+        if beam['hand'] == 'r':
+            x = EDITOR_RIGHT-(EDITOR_MARGIN/3*2)
+        else:
+            x = EDITOR_LEFT+(EDITOR_MARGIN/3*2)
 
         # draw new beam
-        io['editor'].new_line(100, time,
-                              100, time+100,
+        io['editor'].new_line(x, time,
+                              x, time2,
                               tag=[beam['tag'], 'beam'],
-                              color='black',
-                              dash=(2,2),
-                              width=3)
+                              color='green',
+                              width=12,
+                              capstyle=Qt.FlatCap)
+        if beam['hand'] == 'r':
+            io['editor'].new_line(x, time,
+                              x-(EDITOR_MARGIN/3), time,
+                              tag=[beam['tag'], 'beam'],
+                              color='green',
+                              width=2)
+            io['editor'].new_line(x, time2,
+                              x-(EDITOR_MARGIN/3), time2,
+                              tag=[beam['tag'], 'beam'],
+                              color='green',
+                              width=2)
+        else:
+            io['editor'].new_line(x, time,
+                              x+(EDITOR_MARGIN/3), time,
+                              tag=[beam['tag'], 'beam'],
+                              color='green',
+                              width=2)
+            io['editor'].new_line(x, time2,
+                              x+(EDITOR_MARGIN/3), time2,
+                              tag=[beam['tag'], 'beam'],
+                              color='green',
+                              width=2)
+        if beam['duration'] == 0:
+            io['editor'].new_rectangle(x-5, time-5,
+                                       x+5, time+5,
+                                       tag=[beam['tag'], 'beam'],
+                                       fill_color='green')
         
         
 
-    def delete_editor(io, linebreak):
+    def delete_editor(io, beam):
         
         ...
 

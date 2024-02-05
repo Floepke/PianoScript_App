@@ -1,6 +1,7 @@
 # in HARDCODE.py you can find all constants that are used in the application along with the description.
 from imports.utils.constants import *
 from imports.design.note import Note
+import copy
 
 class DrawEditor:
     '''The DrawEditor class handles all the drawing parts for the editor'''
@@ -209,93 +210,114 @@ class DrawEditor:
     def add_soundingdots_and_stopsigns_to_viewport(io):
         '''updates the soundingdots and stopsings'''
 
+        def continuation_dot(time, pitch, note):
+            dot = {
+                'time':time,
+                'pitch':pitch,
+                'type':'continuationdot',
+                'staff':note['staff']
+            }
+            io['viewport']['events']['dot'].append(dot)
+
+        def stop_sign(time, pitch, note):
+            stop = {
+                'time':time,
+                'pitch':pitch,
+                'type':'notestop',
+                'staff': note['staff']
+            }
+            io['viewport']['events']['stop'].append(stop)
+
         # delete the old soundingdots and stopsings
         io['editor'].delete_with_tag(['notestop', 'connectstem'])
 
         unit = STAFF_X_UNIT_EDITOR / 2
-        color = '#000000'
 
+        # making a list of noteon and noteoff messages like a linear midi file
+        note_on_off = []
         for note in io['viewport']['events']['note']:
-            
-            note_start = note['time']
-            note_end = note['time']+note['duration']
-            stopflag = True
+            evt = copy.deepcopy(note)
+            evt['endtime'] = evt['time'] + evt['duration']
+            note_on_off.append(copy.deepcopy(evt))
+            evt = copy.deepcopy(evt)
+            evt['type'] = 'noteoff'
+            note_on_off.append(copy.deepcopy(evt))
+        note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])  
 
-            # add the sounding dot to the drawing queue
-            def sounding_dot(time, pitch, n):
-                tag = [n['tag'], note['tag'], 'soundingdot']
-                dot = {
-                    'tag': tag,
-                    'time':time,
-                    'pitch':pitch,
-                }
-                if not dot in io['viewport']['events']['dot']:
-                    io['viewport']['events']['dot'].append(dot)
+        # we add the notestop and continuationdot events
+        active_notes = []
+        for idx, note in enumerate(note_on_off):
+        
+            if note['type'] == 'note':
+                active_notes.append(note)
+                for n in active_notes:
+                    # continuation dots for note start:
+                    if n != note:
+                        if (not EQUALS(n['endtime'], note['time']) and
+                            note['staff'] == n['staff'] and
+                            note['hand'] == n['hand']):
+                            continuation_dot(note['time'], n['pitch'], note)
+                            print('!!!')
+        
+            elif note['type'] == 'noteoff':
+                for n in active_notes:
+                    if (n['duration'] == note['duration'] and 
+                        n['pitch'] == note['pitch'] and 
+                        n['staff'] == note['staff'] and 
+                        n['hand'] == note['hand']):
+                        active_notes.remove(n)
+                        break
 
-            for n in io['viewport']['events']['note']: # N == THE COMPARED NOTE TODO: change folder structure in measures
-                # connect chords (if two or more notes start at the same time)
-                if note['hand'] == n['hand'] and n['time'] == note['time'] and not note['tag'] == 'notecursor':
-                    x1 = io['calc'].pitch2x_editor(note['pitch'])
-                    x2 = io['calc'].pitch2x_editor(n['pitch'])
-                    y = io['calc'].tick2y_editor(note['time'])
-                    io['editor'].new_line(x1,y,x2,y,
-                        tag=[n['tag'], note['tag'], 'connectstem'],
-                        width=5,
-                        color='black')
                 
-                # continuation dot:
-                # there are 5 possible situations where we have to draw a continuation dot
-                # if we draw one, we have also to check if this continuation dot is on the 
-                # same hand as the note and if the pitch is one semitone higher or lower, 
-                # so that we can draw the notehead upwards further in the code.
-                comp_start = n['time']
-                comp_end = n['time']+n['duration']
-                # GREATER, LESS and EQUALS are defined in constants.py and applies a small treshold to the comparison
-                if GREATER(comp_end, note_start) and LESS(comp_end, note_end) and note['hand'] == n['hand']:
-                    sounding_dot(n['time']+n['duration'], note['pitch'], n)
+                for idx_n, n in enumerate(active_notes):
+                    # continuation dots for note end:
+                    if n != note:
+                        if (not EQUALS(n['endtime'], note['endtime']) and
+                            note['staff'] == n['staff'] and
+                            note['hand'] == n['hand']):
+                            continuation_dot(note['endtime'], n['pitch'], note)
 
-                if LESS(note_end, comp_end) and GREATER(note_end, comp_start) and note['hand'] == n['hand']:
-                    sounding_dot(note['time']+note['duration'], n['pitch'], n)
-
-                if GREATER(note_start, comp_start) and LESS(note_start, comp_end) and note['hand'] == n['hand']:
-                    sounding_dot(note['time'], n['pitch'], n)
-
-                if GREATER(comp_start, note_start) and LESS(comp_start, note_end) and note['hand'] == n['hand']:
-                    sounding_dot(n['time'], note['pitch'], n)
-
-                # stop sign desicion:
-                if EQUALS(comp_start, note_end) and note['hand'] == n['hand']:
-                    stopflag = False
+            if note['type'] == 'noteoff':
+                continue
             
-            # notestop sign:
-            if stopflag and not note['tag'] == 'notecursor':
-                x = io['calc'].pitch2x_editor(note['pitch'])
-                y = io['calc'].tick2y_editor(note['time']+note['duration'])
+            stop_flag = False
 
-                if io['score']['properties']['stop_sign_style'] == 'Klavarskribo':
-                    # traditional stop sign:
-                    io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
-                        x, y,
-                        tag=[note['tag'], 'notestop'],
-                        width=2,
-                        color=color)
-                    io['editor'].new_line(x, y,
-                        x+(STAFF_X_UNIT_EDITOR/2), y-(STAFF_X_UNIT_EDITOR),
-                        tag=[note['tag'], 'notestop'],
-                        width=2,
-                        color=color)
-                elif io['score']['properties']['stop_sign_style'] == 'PianoScript':
-                    # experimental stopsign:
-                    points = [(x, y-(STAFF_X_UNIT_EDITOR)), (x+(STAFF_X_UNIT_EDITOR/2), y), (x-(STAFF_X_UNIT_EDITOR/2), y)]
-                    io['editor'].new_polygon(points,
-                        tag=[note['tag'], 'notestop'],
-                        width=0,
-                        fill_color=color)
-                io['editor'].new_line(x-(STAFF_X_UNIT_EDITOR), y, x+(STAFF_X_UNIT_EDITOR), y,
-                    tag=[note['tag'], 'notestop'],
-                    width=.75,
-                    dash=[3, 3],
-                    color=color)
+            # stop sign:
+            for n in note_on_off[idx+1:]:
+                if (n['type'] == 'note' and 
+                    EQUALS(n['time'], note['time']+note['duration']) and 
+                    n['staff'] == note['staff'] and 
+                    n['hand'] == note['hand']):
+                    break
+                if (n['type'] == 'note' and 
+                    GREATER(n['time'], note['time']+note['duration']) and 
+                    n['staff'] == note['staff'] and
+                    n['hand'] == note['hand']):
+                    stop_flag = True
+                    break
+                if n == note_on_off[-1]:
+                    stop_flag = True
+
+            if stop_flag:
+                stop_sign(note['time']+note['duration']-FRACTION, note['pitch'], note)
+
+            # # connect stem
+            # for n in note_on_off[idx+1:]:
+            #     if (EQUALS(n['time'], note['time']) and
+            #         n['staff'] == note['staff'] and
+            #         n['hand'] == note['hand']):
+            #         DOC.append(
+            #             {
+            #                 'type': 'connectstem',
+            #                 'time': note['time'],
+            #                 'pitch': note['pitch'],
+            #                 'time2': note['time'],
+            #                 'pitch2': n['pitch'],
+            #                 'staff': note['staff']
+            #             }
+            #         )
+            #     if n['time'] > note['time']:
+            #         break
         
 
 

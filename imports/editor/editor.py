@@ -101,7 +101,7 @@ class Editor:
                 
                 if d: # event has a duration
                     # check if the event is in the viewports range being visible or not
-                    if tm >= top and tm <= bttm or tm + d >= top and tm + d <= bttm or tm <= top and tm + d >= bttm:
+                    if (tm >= top and tm <= bttm or tm + d >= top and tm + d <= bttm or tm <= top and tm + d >= bttm) and event['staff'] == io['selected_staff']:
                         return True
                 else: # event has no duration
                     if tm >= top and tm <= bttm:
@@ -109,7 +109,7 @@ class Editor:
                 
                 return False
            
-            for e_type in io['score']['events'].keys():
+            for e_type in io['viewport']['events'].keys():
                 if e_type in ['grid']: # skip all events that are not time based
                     continue
 
@@ -137,9 +137,9 @@ class Editor:
                             io['editor'].delete_with_tag([event['tag']])
                             io['viewport']['events'][e_type].remove(event)
 
-        draw_events(self.io)
-
         #DrawEditor.add_soundingdots_and_stopsigns_to_viewport(self.io)
+
+        draw_events(self.io)
 
         # draw the grid and barlines
         top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])

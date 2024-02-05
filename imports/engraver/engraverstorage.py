@@ -4,7 +4,8 @@
     problems but for the engraver.
 '''
 from imports.utils.constants import *
-import copy
+import copy, math
+from pprint import pprint
 
 def continuation_dot(time, pitch, note):
     return {
@@ -23,13 +24,12 @@ def stop_sign(time, pitch, note):
     }
 
 
-def continuation_dot_and_stopsign_processor(io, DOC):
+def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
     '''
         note_processor processes the notes in such way that it generates a list of neccesary 
-        note, notesplit, continuationdot, notestop events that are ready for being drawn.
+        note, notesplit, continuationdot, notestop and connectstem events that are then ready 
+        for being drawn.
     '''
-
-    stop_flag = False
 
     # making a list of noteon and noteoff messages like a linear midi file
     note_on_off = []
@@ -44,7 +44,6 @@ def continuation_dot_and_stopsign_processor(io, DOC):
 
     # we add the notestop and continuationdot events
     active_notes = []
-    last_note_off = None
     for idx, note in enumerate(note_on_off):
     
         if note['type'] == 'note':
@@ -80,7 +79,7 @@ def continuation_dot_and_stopsign_processor(io, DOC):
         
         stop_flag = False
 
-        # here we are going to check if the next note(on) is happening on the same time as the current noteoff
+        # stop sign:
         for n in note_on_off[idx+1:]:
             if (n['type'] == 'note' and 
                 EQUALS(n['time'], note['time']+note['duration']) and 
@@ -93,12 +92,30 @@ def continuation_dot_and_stopsign_processor(io, DOC):
                 n['hand'] == note['hand']):
                 stop_flag = True
                 break
-
             if n == note_on_off[-1]:
                 stop_flag = True
 
         if stop_flag:
-            DOC.append(stop_sign(note['time']+note['duration'], note['pitch'], note))
+            DOC.append(stop_sign(note['time']+note['duration']-FRACTION, note['pitch'], note))
+
+        # connect stem
+        for n in note_on_off[idx+1:]:
+            if (EQUALS(n['time'], note['time']) and
+                n['staff'] == note['staff'] and
+                n['hand'] == note['hand']):
+                DOC.append(
+                    {
+                        'type': 'connectstem',
+                        'time': note['time'],
+                        'pitch': note['pitch'],
+                        'time2': note['time'],
+                        'pitch2': n['pitch'],
+                        'staff': note['staff']
+                    }
+                )
+            if n['time'] > note['time']:
+                break
+
             
     return DOC
     
@@ -353,6 +370,93 @@ def update_barnumber(DOC, idx_page):
 
     return barnumber
 
+
+
+
+
+
+
+
+
+
+
+def beam_processor(io, DOC):
+
+    '''In this stage of preprocessing, the beam data is processed. We add
+    the beam data coords along with a time stamp in order for it to be properly
+    sorted into the lines and pages.'''
+
+    # get calculation data
+    system_ticks = get_system_ticks(io)
+    beams = io['score']['events']['beam']
+    left_beams = [beam for beam in beams if beam['hand'] == 'l']
+    right_beams = [beam for beam in beams if beam['hand'] == 'r']
+
+    left_beam_list = []
+    for idx_beam, beam in enumerate(left_beams):
+
+        try:
+            next_marker = left_beams[idx_beam+1]['time']
+        except IndexError:
+            next_marker = io['total_ticks']
+
+        size = beam['duration']
+        if not size:
+            amount = 0
+        else:
+            amount = int(math.ceil((next_marker - beam['time']) / size))
+        
+        time = beam['time']
+        for _ in range(amount):
+            bm = copy.deepcopy(beam)
+            bm['time'] = time
+            bm['notes'] = []
+            left_beam_list.append(bm)
+            time += size
+
+    
+    right_beam_list = []
+    for idx_beam, beam in enumerate(right_beams):
+
+        try:
+            next_marker = right_beams[idx_beam+1]['time']
+        except IndexError:
+            next_marker = io['total_ticks']
+
+        size = beam['duration']
+        if not size:
+            amount = 0
+        else:
+            amount = int(math.ceil((next_marker - beam['time']) / size))
+        
+        time = beam['time']
+        for _ in range(amount):
+            bm = copy.deepcopy(beam)
+            bm['time'] = time
+            bm['notes'] = []
+            right_beam_list.append(bm)
+            time += size
+
+    # filling the left beam list with attached notes
+    for idx_beam, beam in enumerate(left_beam_list + right_beam_list):
+
+        beam['notes'] = [note for note in io['score']['events']['note'] 
+                         if beam['time'] <= note['time'] < beam['time'] + beam['duration'] and 
+                         note['staff'] == beam['staff'] and 
+                         note['hand'] == beam['hand']]
+
+        beam['notes'] = sorted(beam['notes'], key=lambda y: y['time'])
+        
+        DOC.append(beam)
+
+    for i in io['score']['events']['beam']:
+        DOC.remove(i)
+
+    return DOC
+
+
+def normalize(x, y, z):
+    return (z - x) / (y - x)
 
 
 
