@@ -371,15 +371,6 @@ def update_barnumber(DOC, idx_page):
     return barnumber
 
 
-
-
-
-
-
-
-
-
-
 def beam_processor(io, DOC):
 
     '''In this stage of preprocessing, the beam data is processed. We add
@@ -388,7 +379,7 @@ def beam_processor(io, DOC):
 
     # get calculation data
     system_ticks = get_system_ticks(io)
-    beams = io['score']['events']['beam']
+    beams = sorted(io['score']['events']['beam'], key=lambda y: y['time'])
     left_beams = [beam for beam in beams if beam['hand'] == 'l']
     right_beams = [beam for beam in beams if beam['hand'] == 'r']
 

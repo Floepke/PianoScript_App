@@ -614,7 +614,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                         width=1*draw_scale, 
                                                         tag=['beam'])
                                     # connect the stems to the beam
-
                                     for n in notes:
                                         x1 = pitch2x_view(n['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                         y1 = tick2y_view(n['time'], io, staff_height, idx_line)
@@ -636,7 +635,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                         width=1*draw_scale, 
                                                         tag=['beam'])
                                     # connect the stems to the beam
-
                                     for n in notes:
                                         x1 = pitch2x_view(n['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                         y1 = tick2y_view(n['time'], io, staff_height, idx_line)
@@ -645,8 +643,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             color='black',
                                                             width=.6*draw_scale,
                                                             tag=['beam'])
-
-                                
                                 
                     x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']
 
@@ -714,7 +710,8 @@ class Engraver:
         self.worker.pre_render_finished.connect(self.render_start)
 
     def pre_render_start(self):
-        self.worker.start()
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = pre_render(self.io)
+        render(self.io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
 
     def render_start(self, result):
         DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = result
