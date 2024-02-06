@@ -34,6 +34,7 @@ class Note:
                 Note.delete_editor(io, detect)
                 io['edit_obj'] = copy.deepcopy(detect)
                 io['edit_obj']['hand'] = io['hand']
+                io['edit_obj']['staff'] = io['selected_staff']
                 io['edit_obj']['tag'] = 'edit_obj'
             else:
                 # we have to create a (new) edit_obj:
@@ -43,7 +44,7 @@ class Note:
                     duration=io['snap_grid'],
                     pitch=io['calc'].x2pitch_editor(x),
                     hand=io['hand'],
-                    staff=0,
+                    staff=io['selected_staff'],
                     attached=''
                 )
                 Note.draw_editor(io, io['edit_obj'])

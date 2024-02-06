@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu
 from PySide6.QtWidgets import QGraphicsScene
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
-from PySide6.QtWidgets import QSpinBox
+from PySide6.QtWidgets import QSpinBox, QToolButton, QComboBox
 from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QColor, QBrush
@@ -103,6 +103,40 @@ class Gui():
         self.staff_sizer_action = QAction('Line break Editor', self.main)
         self.settings_menu.addAction(self.staff_sizer_action)
         self.menu_bar.addMenu(self.settings_menu)
+
+        # Create a new menu
+        self.checkbox_menu = QMenu('Staff...')
+
+        # Create the actions
+        self.staff1_action = QAction('Staff 1', checkable=True)
+        self.staff1_action.setChecked(True)
+        self.staff2_action = QAction('Staff 2', checkable=True)
+        self.staff3_action = QAction('Staff 3', checkable=True)
+        self.staff4_action = QAction('Staff 4', checkable=True)
+
+        # Add the actions to the menu
+        self.checkbox_menu.addAction(self.staff1_action)
+        self.checkbox_menu.addAction(self.staff2_action)
+        self.checkbox_menu.addAction(self.staff3_action)
+        self.checkbox_menu.addAction(self.staff4_action)
+
+        # Connect the actions to a function that unchecks all other actions
+        def make_exclusive(checked_action):
+            checked_action.setChecked(True)
+            for idx, action in enumerate([self.staff1_action, self.staff2_action, self.staff3_action, self.staff4_action]):
+                if action != checked_action:
+                    action.setChecked(False)
+                if action == checked_action:
+                    self.io['selected_staff'] = idx
+                self.io['maineditor'].update('scroll')
+
+        self.staff1_action.triggered.connect(lambda: make_exclusive(self.staff1_action))
+        self.staff2_action.triggered.connect(lambda: make_exclusive(self.staff2_action))
+        self.staff3_action.triggered.connect(lambda: make_exclusive(self.staff3_action))
+        self.staff4_action.triggered.connect(lambda: make_exclusive(self.staff4_action))
+
+        # Add the menu to the menu bar
+        self.menu_bar.addMenu(self.checkbox_menu)
 
         # Create a Help menu
         self.help_menu = QMenu('Help', self.main)

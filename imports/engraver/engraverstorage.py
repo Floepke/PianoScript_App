@@ -387,8 +387,11 @@ def beam_processor(io, DOC):
     for idx_beam, beam in enumerate(left_beams):
 
         try:
-            next_marker = left_beams[idx_beam+1]['time']
-        except IndexError:
+            # Find the next beam with the same 'staff' value
+            next_beam = next(b for b in left_beams[idx_beam+1:] if b['staff'] == beam['staff'])
+            next_marker = next_beam['time']
+        except StopIteration:
+            # If no such beam is found, use 'total_ticks'
             next_marker = io['total_ticks']
 
         size = beam['duration']
@@ -404,14 +407,19 @@ def beam_processor(io, DOC):
             bm['notes'] = []
             left_beam_list.append(bm)
             time += size
+    for b in left_beam_list:
+        print(b)
 
     
     right_beam_list = []
     for idx_beam, beam in enumerate(right_beams):
 
         try:
-            next_marker = right_beams[idx_beam+1]['time']
-        except IndexError:
+            # Find the next beam with the same 'staff' value
+            next_beam = next(b for b in right_beams[idx_beam+1:] if b['staff'] == beam['staff'])
+            next_marker = next_beam['time']
+        except StopIteration:
+            # If no such beam is found, use 'total_ticks'
             next_marker = io['total_ticks']
 
         size = beam['duration']
