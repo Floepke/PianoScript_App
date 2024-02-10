@@ -300,7 +300,7 @@ def draw_staff(x_cursor: float,
             elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
                 # draw line thick for the group of three
                 io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.6*scale, 
+                                    width=.4*scale, 
                                     color='#000000',
                                     tag=['staffline'])
             
@@ -346,13 +346,41 @@ def pitch2x_view(pitch: int, staff_range: list, scale: float, x_cursor: float):
 
     # calculate the x position
     x = x_cursor
-    for n in range(key_min, key_max+1):
+    for n in range(1, key_min):
+        remainder = ((n-1)%12)+1
+        x -= PITCH_UNIT * 2 * scale if remainder in [4, 9] else PITCH_UNIT * 2 * scale / 2
+    for n in range(1, 88):
         remainder = ((n-1)%12)+1
         x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * 2 * scale / 2
         if n == pitch:
             break
     
     return x
+
+
+# def pitch2x_view_countline(pitch: int, staff_range: list, scale: float, x_cursor: float):
+#     '''
+#         pitch2x_view_countline converts a pitch value to a x value in the print view
+#         even if the position is not on the staff
+#     '''
+
+#     key_min = staff_range[0]
+#     key_max = staff_range[1]
+
+#     key_min, key_max = trim_key_to_outer_sides_staff(key_min, key_max)
+
+#     # calculate the x position
+#     x = x_cursor
+#     for n in range(1, key_min):
+#         remainder = ((n-1)%12)+1
+#         x -= PITCH_UNIT * 2 * scale if remainder in [4, 9] else PITCH_UNIT * 2 * scale / 2
+#     for n in range(1, 88):
+#         remainder = ((n-1)%12)+1
+#         x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * 2 * scale / 2
+#         if n == pitch:
+#             break
+    
+#     return x
 
 
 def update_barnumber(DOC, idx_page):
@@ -407,8 +435,6 @@ def beam_processor(io, DOC):
             bm['notes'] = []
             left_beam_list.append(bm)
             time += size
-    for b in left_beam_list:
-        print(b)
 
     
     right_beam_list = []
@@ -440,8 +466,8 @@ def beam_processor(io, DOC):
     for idx_beam, beam in enumerate(left_beam_list + right_beam_list):
 
         beam['notes'] = [note for note in io['score']['events']['note'] 
-                         if beam['time'] <= note['time'] < beam['time'] + beam['duration'] and 
-                         note['staff'] == beam['staff'] and 
+                         if beam['time'] <= note['time'] < beam['time'] + beam['duration'] and
+                         note['staff'] == beam['staff'] and
                          note['hand'] == beam['hand']]
 
         beam['notes'] = sorted(beam['notes'], key=lambda y: y['time'])

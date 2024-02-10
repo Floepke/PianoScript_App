@@ -67,6 +67,12 @@ class Gui():
         self.file_menu.addAction(self.autosave_action)
 
         self.file_menu.addSeparator()
+
+        self.pdf_export_action = QAction('Export PDF', self.main)
+        self.pdf_export_action.triggered.connect(lambda: pdf_export(self.io))
+        self.file_menu.addAction(self.pdf_export_action)
+
+        self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)
         self.exit_action.setShortcut('Ctrl+Q')
         self.file_menu.addAction(self.exit_action)
@@ -143,11 +149,8 @@ class Gui():
         self.menu_bar.addMenu(self.help_menu)
         self.score_options_dialog_action = QAction('Score Options', self.main)
         self.score_options_dialog_action.triggered.connect(lambda: ScoreOptionsDialog().exec())
-        # add test function action
-        self.test_function_action = QAction('Test Function', self.main)
-        self.test_function_action.triggered.connect(lambda: pdf_export(self.io))
         self.help_menu.addAction(self.score_options_dialog_action)
-        self.help_menu.addAction(self.test_function_action)
+        
 
 
         #end menu--------------------------------------------------------------------
@@ -309,10 +312,7 @@ class Gui():
                 'linebreak'
                 ],
             'Phrase':[
-                'countline',
-                'slur',
-                'arpeggio',
-                'trill'
+                'countline'
             ]
         }
         for folder in tree:
@@ -325,7 +325,7 @@ class Gui():
             for item in tree[folder]:
                 # Create a child item with an icon
                 icon = QIcon(f'imports/icons/{item}.png')
-                child = QStandardItem(icon, item)
+                child = QStandardItem(item)
                 child.setBackground(QBrush(QColor("white")))  # Set background color
                 child.setForeground(QBrush(QColor("black")))  # Set foreground (text) color
                 parent.appendRow(child)

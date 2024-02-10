@@ -1,0 +1,2675 @@
+{
+    "header": {
+        "title": "Goldberg",
+        "composer": "J.S. Bach",
+        "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
+        "app_name": "pianoscript",
+        "app_version": 1.0,
+        "timestamp": "08-02-2024_19:56:04",
+        "genre": "",
+        "comment": ""
+    },
+    "properties": {
+        "page_width": 210,
+        "page_height": 297,
+        "page_margin_left": 5,
+        "page_margin_right": 5,
+        "page_margin_up": 10,
+        "page_margin_down": 5,
+        "draw_scale": 0.75,
+        "header_height": 20,
+        "footer_height": 12.5,
+        "color_right_midinote": "#c8c8c8",
+        "color_left_midinote": "#c8c8c8",
+        "editor_zoom": 170,
+        "black_note_rule": "OnlyChordUp",
+        "threeline_scale": 1,
+        "stop_sign_style": "PianoScript",
+        "continuation_dot_style": "Klavarskribo",
+        "staff_onoff": true,
+        "minipiano_onoff": true,
+        "stem_onoff": true,
+        "beam_onoff": true,
+        "note_onoff": true,
+        "midinote_onoff": false,
+        "notestop_onoff": true,
+        "page_numbering_onoff": true,
+        "barlines_onoff": true,
+        "basegrid_onoff": true,
+        "countline_onoff": true,
+        "measure_numbering_onoff": true,
+        "accidental_onoff": true,
+        "soundingdot_onoff": true,
+        "leftdot_onoff": true,
+        "staffs": [
+            {
+                "onoff": true,
+                "name": "Staff 1",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 2",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 3",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 4",
+                "staff_scale": 1.0
+            }
+        ]
+    },
+    "events": {
+        "grid": [
+            {
+                "nr": 1,
+                "tag": "grid2",
+                "amount": 32,
+                "numerator": 3,
+                "denominator": 4,
+                "grid": [
+                    256,
+                    512
+                ],
+                "visible": true
+            }
+        ],
+        "note": [
+            {
+                "tag": "note3",
+                "pitch": 35,
+                "time": 0,
+                "duration": 768,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note4",
+                "pitch": 39,
+                "time": 256,
+                "duration": 512,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note5",
+                "pitch": 42,
+                "time": 512,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note6",
+                "pitch": 59,
+                "time": 0,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note7",
+                "pitch": 59,
+                "time": 256,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note8",
+                "pitch": 63,
+                "time": 704.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note9",
+                "pitch": 61,
+                "time": 768.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note10",
+                "pitch": 59,
+                "time": 896.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note11",
+                "pitch": 58,
+                "time": 960.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note12",
+                "pitch": 56,
+                "time": 1024.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note13",
+                "pitch": 54,
+                "time": 1088.0,
+                "duration": 448.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note14",
+                "pitch": 34,
+                "time": 768.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note15",
+                "pitch": 37,
+                "time": 1024.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note16",
+                "pitch": 42,
+                "time": 1280.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note17",
+                "pitch": 61,
+                "time": 512.0,
+                "duration": 192.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note18",
+                "pitch": 47,
+                "time": 1536.0,
+                "duration": 640.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note19",
+                "pitch": 46,
+                "time": 2176.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note20",
+                "pitch": 47,
+                "time": 2240.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note21",
+                "pitch": 49,
+                "time": 2304.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note22",
+                "pitch": 47,
+                "time": 2336.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note23",
+                "pitch": 46,
+                "time": 2368.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note24",
+                "pitch": 47,
+                "time": 2432.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note25",
+                "pitch": 46,
+                "time": 2464.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note26",
+                "pitch": 44,
+                "time": 2496.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note27",
+                "pitch": 44,
+                "time": 2560.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note28",
+                "pitch": 42,
+                "time": 2688.0,
+                "duration": 384.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note29",
+                "pitch": 32,
+                "time": 1536.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note30",
+                "pitch": 35,
+                "time": 1792.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note31",
+                "pitch": 41,
+                "time": 2048.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note32",
+                "pitch": 30,
+                "time": 2304.0,
+                "duration": 640.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note33",
+                "pitch": 28,
+                "time": 2944.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note34",
+                "pitch": 34,
+                "time": 2560.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note35",
+                "pitch": 37,
+                "time": 2816.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note36",
+                "pitch": 54,
+                "time": 3072,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note37",
+                "pitch": 54,
+                "time": 3328,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note38",
+                "pitch": 56,
+                "time": 3584.0,
+                "duration": 192.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note39",
+                "pitch": 57,
+                "time": 3776.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note40",
+                "pitch": 56,
+                "time": 3840.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note41",
+                "pitch": 54,
+                "time": 3968.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note42",
+                "pitch": 52,
+                "time": 4032.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note43",
+                "pitch": 51,
+                "time": 4096.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note44",
+                "pitch": 49,
+                "time": 4160.0,
+                "duration": 320.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note45",
+                "pitch": 59,
+                "time": 4480.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note46",
+                "pitch": 58,
+                "time": 4512.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note47",
+                "pitch": 56,
+                "time": 4544.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note48",
+                "pitch": 58,
+                "time": 4576.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note49",
+                "pitch": 59,
+                "time": 4608.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note50",
+                "pitch": 58,
+                "time": 4640.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note51",
+                "pitch": 61,
+                "time": 4736.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note52",
+                "pitch": 59,
+                "time": 4768.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note53",
+                "pitch": 58,
+                "time": 4864.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note54",
+                "pitch": 56,
+                "time": 4896.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note55",
+                "pitch": 54,
+                "time": 4992.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note56",
+                "pitch": 52,
+                "time": 5024.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note57",
+                "pitch": 52,
+                "time": 5120.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note58",
+                "pitch": 61,
+                "time": 5184.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note59",
+                "pitch": 52,
+                "time": 5312.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note60",
+                "pitch": 51,
+                "time": 5376.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note61",
+                "pitch": 47,
+                "time": 5408.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note62",
+                "pitch": 46,
+                "time": 5504.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note63",
+                "pitch": 46,
+                "time": 5632.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note64",
+                "pitch": 47,
+                "time": 5760.0,
+                "duration": 384.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note65",
+                "pitch": 27,
+                "time": 3072.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note66",
+                "pitch": 30,
+                "time": 3328.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note67",
+                "pitch": 35,
+                "time": 3584.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note68",
+                "pitch": 28,
+                "time": 3840.0,
+                "duration": 640.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note69",
+                "pitch": 30,
+                "time": 4480.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note70",
+                "pitch": 32,
+                "time": 4096.0,
+                "duration": 384.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note71",
+                "pitch": 37,
+                "time": 4352.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note72",
+                "pitch": 32,
+                "time": 4608.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note73",
+                "pitch": 28,
+                "time": 4736.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note74",
+                "pitch": 30,
+                "time": 4864.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note75",
+                "pitch": 40,
+                "time": 4736.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note76",
+                "pitch": 39,
+                "time": 4992.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note77",
+                "pitch": 37,
+                "time": 5056.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note78",
+                "pitch": 35,
+                "time": 5120.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note79",
+                "pitch": 34,
+                "time": 5184.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note80",
+                "pitch": 32,
+                "time": 5248.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note81",
+                "pitch": 34,
+                "time": 5312.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note82",
+                "pitch": 23,
+                "time": 5376.0,
+                "duration": 384.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note83",
+                "pitch": 30,
+                "time": 5760.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note84",
+                "pitch": 32,
+                "time": 5888.0,
+                "duration": 192.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note85",
+                "pitch": 34,
+                "time": 6080.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note86",
+                "pitch": 35,
+                "time": 5376.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note87",
+                "pitch": 37,
+                "time": 5504.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note88",
+                "pitch": 39,
+                "time": 5632.0,
+                "duration": 512.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note89",
+                "pitch": 39,
+                "time": 6400.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note90",
+                "pitch": 44,
+                "time": 6656.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note91",
+                "pitch": 35,
+                "time": 6144.0,
+                "duration": 1024.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note92",
+                "pitch": 37,
+                "time": 6912.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note93",
+                "pitch": 34,
+                "time": 7168.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note94",
+                "pitch": 32,
+                "time": 7296.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note95",
+                "pitch": 34,
+                "time": 7424.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note96",
+                "pitch": 39,
+                "time": 7552.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note97",
+                "pitch": 32,
+                "time": 7680.0,
+                "duration": 384.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note98",
+                "pitch": 39,
+                "time": 7808.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note99",
+                "pitch": 44,
+                "time": 7936.0,
+                "duration": 384.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note100",
+                "pitch": 42,
+                "time": 8320.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note101",
+                "pitch": 32,
+                "time": 8064.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note102",
+                "pitch": 34,
+                "time": 8192.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note103",
+                "pitch": 35,
+                "time": 8320.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note104",
+                "pitch": 37,
+                "time": 8448.0,
+                "duration": 384.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note105",
+                "pitch": 41,
+                "time": 8448.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note106",
+                "pitch": 42,
+                "time": 8576.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note107",
+                "pitch": 39,
+                "time": 8832.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note108",
+                "pitch": 37,
+                "time": 8960.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note109",
+                "pitch": 35,
+                "time": 9088.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note110",
+                "pitch": 51,
+                "time": 6144.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note111",
+                "pitch": 51,
+                "time": 6400.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note112",
+                "pitch": 53,
+                "time": 6656.0,
+                "duration": 192.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note113",
+                "pitch": 54,
+                "time": 6848.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note114",
+                "pitch": 54,
+                "time": 6912.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note115",
+                "pitch": 53,
+                "time": 6976.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note116",
+                "pitch": 51,
+                "time": 7040.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note117",
+                "pitch": 49,
+                "time": 7104.0,
+                "duration": 576.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note118",
+                "pitch": 54,
+                "time": 7168.0,
+                "duration": 512.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note119",
+                "pitch": 47,
+                "time": 7680.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note120",
+                "pitch": 51,
+                "time": 7701.333333333333,
+                "duration": 234.66666666666697,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note121",
+                "pitch": 56,
+                "time": 7722.666666666666,
+                "duration": 213.33333333333394,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note122",
+                "pitch": 59,
+                "time": 7744.0,
+                "duration": 192.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note123",
+                "pitch": 58,
+                "time": 8320.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note124",
+                "pitch": 59,
+                "time": 8384.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note125",
+                "pitch": 61,
+                "time": 7936.0,
+                "duration": 384.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note126",
+                "pitch": 59,
+                "time": 8448.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note127",
+                "pitch": 58,
+                "time": 8576.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note128",
+                "pitch": 56,
+                "time": 8640.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note129",
+                "pitch": 56,
+                "time": 9088.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note130",
+                "pitch": 54,
+                "time": 8704.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note131",
+                "pitch": 53,
+                "time": 8832.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note132",
+                "pitch": 34,
+                "time": 9216.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note133",
+                "pitch": 37,
+                "time": 9472.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note134",
+                "pitch": 42,
+                "time": 9728.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note135",
+                "pitch": 61,
+                "time": 9216.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note136",
+                "pitch": 59,
+                "time": 9280.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note137",
+                "pitch": 58,
+                "time": 9344.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note138",
+                "pitch": 56,
+                "time": 9408.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note139",
+                "pitch": 54,
+                "time": 9472.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note140",
+                "pitch": 49,
+                "time": 9600.0,
+                "duration": 288.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note141",
+                "pitch": 51,
+                "time": 9888.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note142",
+                "pitch": 52,
+                "time": 9920.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note143",
+                "pitch": 51,
+                "time": 9984.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note144",
+                "pitch": 49,
+                "time": 10048.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note145",
+                "pitch": 47,
+                "time": 10112.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note146",
+                "pitch": 46,
+                "time": 10176.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note147",
+                "pitch": 44,
+                "time": 10240.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note148",
+                "pitch": 54,
+                "time": 10368.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note149",
+                "pitch": 53,
+                "time": 10432.0,
+                "duration": 224.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note150",
+                "pitch": 54,
+                "time": 10656.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note151",
+                "pitch": 56,
+                "time": 10688.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note152",
+                "pitch": 54,
+                "time": 10752.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note153",
+                "pitch": 53,
+                "time": 10816.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note154",
+                "pitch": 51,
+                "time": 10880.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note155",
+                "pitch": 49,
+                "time": 10944.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note156",
+                "pitch": 59,
+                "time": 11008.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note157",
+                "pitch": 51,
+                "time": 11136.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note158",
+                "pitch": 53,
+                "time": 11392.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note159",
+                "pitch": 53,
+                "time": 11520.0,
+                "duration": 64.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note160",
+                "pitch": 54,
+                "time": 11584.0,
+                "duration": 96.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note161",
+                "pitch": 56,
+                "time": 11680.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note162",
+                "pitch": 54,
+                "time": 11712.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note163",
+                "pitch": 53,
+                "time": 11744.0,
+                "duration": 32.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note164",
+                "pitch": 53,
+                "time": 11776.0,
+                "duration": 128.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note165",
+                "pitch": 54,
+                "time": 11904.0,
+                "duration": 384.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note166",
+                "pitch": 46,
+                "time": 11776.0,
+                "duration": 512.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note167",
+                "pitch": 47,
+                "time": 11264.0,
+                "duration": 512.0,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note168",
+                "pitch": 35,
+                "time": 9984.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note169",
+                "pitch": 39,
+                "time": 10240.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note170",
+                "pitch": 44,
+                "time": 10496.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note171",
+                "pitch": 37,
+                "time": 10752.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note172",
+                "pitch": 46,
+                "time": 10752.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note173",
+                "pitch": 44,
+                "time": 11008.0,
+                "duration": 192.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note174",
+                "pitch": 46,
+                "time": 11200.0,
+                "duration": 64.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note175",
+                "pitch": 30,
+                "time": 11520.0,
+                "duration": 768.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note176",
+                "pitch": 37,
+                "time": 11904.0,
+                "duration": 128.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note177",
+                "pitch": 42,
+                "time": 12032.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            }
+        ],
+        "countline": [
+            {
+                "tag": "countline178",
+                "time": 1152,
+                "pitch1": 49,
+                "pitch2": 61,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline179",
+                "time": 1920,
+                "pitch1": 41,
+                "pitch2": 57,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline180",
+                "time": 2432,
+                "pitch1": 38,
+                "pitch2": 59,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline181",
+                "time": 3712,
+                "pitch1": 51,
+                "pitch2": 59,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline182",
+                "time": 4480,
+                "pitch1": 51,
+                "pitch2": 57,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline183",
+                "time": 4736,
+                "pitch1": 44,
+                "pitch2": 56,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline184",
+                "time": 4672.0,
+                "pitch1": 61,
+                "pitch2": 69,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline185",
+                "time": 4992.0,
+                "pitch1": 40,
+                "pitch2": 52,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline186",
+                "time": 4928.0,
+                "pitch1": 51,
+                "pitch2": 57,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline187",
+                "time": 4800.0,
+                "pitch1": 55,
+                "pitch2": 62,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline188",
+                "time": 5056.0,
+                "pitch1": 49,
+                "pitch2": 56,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline189",
+                "time": 5248.0,
+                "pitch1": 51,
+                "pitch2": 68,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline190",
+                "time": 5440.0,
+                "pitch1": 44,
+                "pitch2": 52,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline191",
+                "time": 5760.0,
+                "pitch1": 42,
+                "pitch2": 56,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline192",
+                "time": 6992.0,
+                "pitch1": 32,
+                "pitch2": 42,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline193",
+                "time": 8064.0,
+                "pitch1": 54,
+                "pitch2": 68,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline194",
+                "time": 8192.0,
+                "pitch1": 63,
+                "pitch2": 69,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline195",
+                "time": 8832.0,
+                "pitch1": 51,
+                "pitch2": 59,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline196",
+                "time": 9856.0,
+                "pitch1": 45,
+                "pitch2": 57,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline197",
+                "time": 9920.0,
+                "pitch1": 58,
+                "pitch2": 63,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline198",
+                "time": 10688.0,
+                "pitch1": 63,
+                "pitch2": 68,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            },
+            {
+                "tag": "countline199",
+                "time": 10624.0,
+                "pitch1": 51,
+                "pitch2": 63,
+                "staff": 0,
+                "handle": "handle2",
+                "type": "countline"
+            }
+        ],
+        "linebreak": [
+            {
+                "tag": "lockedlinebreak",
+                "time": 0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak200",
+                "time": 3072,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak201",
+                "time": 6144,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak202",
+                "time": 9216,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak203",
+                "time": 12288,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak204",
+                "time": 15360,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak205",
+                "time": 18432,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak206",
+                "time": 21504,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            }
+        ],
+        "staffsizer": [],
+        "startrepeat": [],
+        "endrepeat": [],
+        "starthook": [],
+        "endhook": [],
+        "dot": [],
+        "stop": [],
+        "beam": [
+            {
+                "tag": "beam207",
+                "time": 0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "type": "beam"
+            },
+            {
+                "tag": "beam208",
+                "time": 0,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "type": "beam"
+            },
+            {
+                "tag": "beam209",
+                "time": 7680.0,
+                "duration": 0.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "beam"
+            },
+            {
+                "tag": "beam210",
+                "time": 7936.0,
+                "duration": 256.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "beam"
+            }
+        ],
+        "gracenote": [
+            {
+                "tag": "gracenote211",
+                "pitch": 59,
+                "time": 544.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote212",
+                "pitch": 61,
+                "time": 576.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote213",
+                "pitch": 46,
+                "time": 1568.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote214",
+                "pitch": 47,
+                "time": 1600.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote215",
+                "pitch": 49,
+                "time": 1792.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote216",
+                "pitch": 47,
+                "time": 1824.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote217",
+                "pitch": 46,
+                "time": 1856.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote218",
+                "pitch": 47,
+                "time": 1888.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote219",
+                "pitch": 49,
+                "time": 1920.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote220",
+                "pitch": 47,
+                "time": 1945.6000000000001,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote221",
+                "pitch": 49,
+                "time": 1971.2,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote222",
+                "pitch": 47,
+                "time": 1996.8000000000002,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote223",
+                "pitch": 49,
+                "time": 2022.4,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote224",
+                "pitch": 47,
+                "time": 2048.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote225",
+                "pitch": 30,
+                "time": 5920.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote226",
+                "pitch": 32,
+                "time": 5952.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote227",
+                "pitch": 46,
+                "time": 5792.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote228",
+                "pitch": 47,
+                "time": 5824.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote229",
+                "pitch": 54,
+                "time": 3616.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote230",
+                "pitch": 56,
+                "time": 3648.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote231",
+                "pitch": 36,
+                "time": 6928.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote232",
+                "pitch": 37,
+                "time": 6944.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote233",
+                "pitch": 36,
+                "time": 6960.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote234",
+                "pitch": 37,
+                "time": 6976.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote235",
+                "pitch": 36,
+                "time": 6992.0,
+                "hand": "l",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote236",
+                "pitch": 51,
+                "time": 6688.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote237",
+                "pitch": 53,
+                "time": 6720.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote238",
+                "pitch": 59,
+                "time": 7968.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote239",
+                "pitch": 58,
+                "time": 8000.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote240",
+                "pitch": 59,
+                "time": 8032.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote241",
+                "pitch": 61,
+                "time": 8064.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote242",
+                "pitch": 59,
+                "time": 8089.6,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote243",
+                "pitch": 61,
+                "time": 8115.200000000001,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote244",
+                "pitch": 59,
+                "time": 8140.8,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote245",
+                "pitch": 61,
+                "time": 8166.400000000001,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote246",
+                "pitch": 59,
+                "time": 8192.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote247",
+                "pitch": 54,
+                "time": 8853.333333333332,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote248",
+                "pitch": 53,
+                "time": 8874.666666666666,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote249",
+                "pitch": 54,
+                "time": 8896.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote250",
+                "pitch": 53,
+                "time": 8917.333333333332,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote251",
+                "pitch": 54,
+                "time": 8938.666666666666,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            },
+            {
+                "tag": "gracenote252",
+                "pitch": 53,
+                "time": 8960.0,
+                "hand": "r",
+                "staff": 0,
+                "type": "gracenote"
+            }
+        ],
+        "text": [],
+        "pedal": [],
+        "slur": []
+    }
+}

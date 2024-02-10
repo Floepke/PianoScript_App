@@ -182,7 +182,8 @@ class Editor:
             'cursor',
             'countline',
             'handle',
-            'linebreak'
+            'linebreak',
+            'gracenote'
         ]
         self.io['editor'].tag_raise(drawing_order)
 

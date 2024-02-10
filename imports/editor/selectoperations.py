@@ -39,6 +39,7 @@ class SelectOperations:
                 new = copy.deepcopy(event)
                 new['time'] = new['time'] - first_evt + mouse_time
                 new['tag'] = event_type + str(self.io['calc'].add_and_return_tag())
+                new['staff'] = self.io['selected_staff']
                 self.io['score']['events'][event_type].append(new)
 
         self.io['maineditor'].update('keyedit')

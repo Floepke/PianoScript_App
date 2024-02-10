@@ -150,3 +150,19 @@ class SaveFileStructureSource:
             'hand':hand,
             'staff':staff
         }
+    
+    def new_gracenote(
+            tag: str, # note+tagnumber to make tag unique
+            pitch: int, # piano note number 1 to 88
+            time: float, # in linear time in pianoticks 0 to infinity (quarter note == 256)
+            hand: str, # 'l' or 'r'
+            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            ):
+        '''The note event structure.'''
+        return {
+            'tag':tag,
+            'pitch':pitch,
+            'time':time,
+            'hand':hand,
+            'staff':staff,
+        }

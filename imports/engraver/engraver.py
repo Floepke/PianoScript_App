@@ -320,6 +320,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
         stop_sign_style = io['score']['properties']['stop_sign_style']
         continuation_dot_style = io['score']['properties']['continuation_dot_style']
 
+        # engraver settings:
+        stem_thickness = 0.5
+        beam_thickness = 1
+
         Left = 0
         Right = page_width
         Top = 0
@@ -517,23 +521,28 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1,
                                                             x+PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
-                                                            width=.6*draw_scale,
+                                                            width=stem_thickness*draw_scale,
                                                             tag=['stem'])
                                         else:
                                             io['view'].new_line(x,
                                                             y_cursor+y1,
                                                             x-PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
-                                                            width=.6*draw_scale,
+                                                            width=stem_thickness*draw_scale,
                                                             tag=['stem'])
                                 
                                 # draw midinote
-                                if midinote_onoff: io['view'].new_polygon([(x, y_cursor+y1),
+                                if midinote_onoff:
+                                    if evt['hand'] == 'l':
+                                        color = io['score']['properties']['color_left_midinote']
+                                    else:
+                                        color = io['score']['properties']['color_right_midinote']
+                                    io['view'].new_polygon([(x, y_cursor+y1),
                                                         (x+PITCH_UNIT*draw_scale, y_cursor+y1+PITCH_UNIT*draw_scale),
                                                         (x+PITCH_UNIT*draw_scale, y_cursor+y2),
                                                         (x-PITCH_UNIT*draw_scale, y_cursor+y2),
                                                         (x-PITCH_UNIT*draw_scale, y_cursor+y1+PITCH_UNIT*draw_scale)],
-                                                        fill_color='#aaa',
+                                                        fill_color=color,
                                                         outline_color='',
                                                         width=0,
                                                         tag=['midinote'])
@@ -543,23 +552,25 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if notestop_onoff:
-                                    # # Traditional stopsign
-                                    # io['view'].new_line(x-PITCH_UNIT*draw_scale, 
-                                    #                     y_cursor+y-PITCH_UNIT*2*draw_scale,
-                                    #                     x,
-                                    #                     y_cursor+y,
-                                    #                     width=.4*draw_scale,
-                                    #                     color='black',
-                                    #                     tag=['notestop'])
-                                    # io['view'].new_line(x+PITCH_UNIT*draw_scale, 
-                                    #                     y_cursor+y-PITCH_UNIT*2*draw_scale,
-                                    #                     x,
-                                    #                     y_cursor+y,
-                                    #                     width=.4*draw_scale,
-                                    #                     color='black',
-                                    #                     tag=['notestop'])
-                                    # triangle stopsign
-                                    io['view'].new_polygon([(x, y_cursor+y-PITCH_UNIT*2*draw_scale), 
+                                    if stop_sign_style == 'Klavarskribo':
+                                        # Traditional stopsign
+                                        io['view'].new_line(x-PITCH_UNIT*draw_scale, 
+                                                            y_cursor+y-PITCH_UNIT*2*draw_scale,
+                                                            x,
+                                                            y_cursor+y,
+                                                            width=.4*draw_scale,
+                                                            color='black',
+                                                            tag=['notestop'])
+                                        io['view'].new_line(x+PITCH_UNIT*draw_scale, 
+                                                            y_cursor+y-PITCH_UNIT*2*draw_scale,
+                                                            x,
+                                                            y_cursor+y,
+                                                            width=.4*draw_scale,
+                                                            color='black',
+                                                            tag=['notestop'])
+                                    elif stop_sign_style == 'PianoScript':
+                                        # triangle stopsign
+                                        io['view'].new_polygon([(x, y_cursor+y-PITCH_UNIT*2*draw_scale), 
                                                                           (x+PITCH_UNIT*draw_scale, y_cursor+y),
                                                                           (x-PITCH_UNIT*draw_scale, y_cursor+y)],
                                                                           fill_color='#000000',
@@ -590,7 +601,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 if stem_onoff: io['view'].new_line(x1, y_cursor+y1, 
                                                     x2, y_cursor+y2,
                                                     color='#000000',
-                                                    width=.6*draw_scale, 
+                                                    width=stem_thickness*draw_scale, 
                                                     tag=['connectstem'])
                         
 
@@ -611,7 +622,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     io['view'].new_line(x-PITCH_UNIT*5*draw_scale, y_cursor+y1, 
                                                         x-PITCH_UNIT*6*draw_scale, y_cursor+y2,
                                                         color='black',
-                                                        width=1*draw_scale, 
+                                                        width=beam_thickness*draw_scale, 
                                                         tag=['beam'])
                                     # connect the stems to the beam
                                     for n in notes:
@@ -620,7 +631,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                         io['view'].new_line(x1, y_cursor+y1,
                                                             x-PITCH_UNIT*5*draw_scale-PITCH_UNIT*normalize(notes[0]['time'], notes[-1]['time'], n['time']), y_cursor+y1,
                                                             color='black',
-                                                            width=.6*draw_scale,
+                                                            width=stem_thickness*draw_scale,
                                                             tag=['beam'])
                                 else:
                                     # RIGHT BEAM:
@@ -632,7 +643,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     io['view'].new_line(x+PITCH_UNIT*5*draw_scale, y_cursor+y1, 
                                                         x+PITCH_UNIT*6*draw_scale, y_cursor+y2,
                                                         color='black',
-                                                        width=1*draw_scale, 
+                                                        width=beam_thickness*draw_scale, 
                                                         tag=['beam'])
                                     # connect the stems to the beam
                                     for n in notes:
@@ -641,9 +652,46 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                         io['view'].new_line(x1, y_cursor+y1,
                                                             x+PITCH_UNIT*5*draw_scale+PITCH_UNIT*normalize(notes[0]['time'], notes[-1]['time'], n['time']), y_cursor+y1,
                                                             color='black',
-                                                            width=.6*draw_scale,
+                                                            width=stem_thickness*draw_scale,
                                                             tag=['beam'])
-                                
+
+                        if evt['type'] == 'gracenote':
+                            if idx_staff == evt['staff'] and note_onoff:
+                                # draw grace note
+                                x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+                                if evt['pitch'] in BLACK_KEYS:
+                                    io['view'].new_oval(x - (PITCH_UNIT * draw_scale), 
+                                                        y,
+                                                        x + (PITCH_UNIT * draw_scale),
+                                                        y + (PITCH_UNIT * 2 * draw_scale),
+                                                        tag=[evt['tag'], 'noteheadblack'],
+                                                        fill_color='black',
+                                                        outline_width=0,
+                                                        outline_color='black')
+                                elif evt['pitch'] in WHITE_KEYS:
+                                    io['view'].new_oval(x - (PITCH_UNIT * draw_scale), 
+                                                        y,
+                                                        x + (PITCH_UNIT * draw_scale),
+                                                        y + (PITCH_UNIT * 2 * draw_scale),
+                                                        tag=[evt['tag'], 'noteheadblack'],
+                                                        fill_color='white',
+                                                        outline_width=0.3,
+                                                        outline_color='black')
+                                    
+
+                        if evt['type'] == 'countline':
+                            if idx_staff == evt['staff'] and countline_onoff:
+                                # draw rest
+                                x1 = pitch2x_view(evt['pitch1'], staff_range[idx_staff], draw_scale, x_cursor)
+                                x2 = pitch2x_view(evt['pitch2'], staff_range[idx_staff], draw_scale, x_cursor)
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+                                io['view'].new_line(x1, y, x2, y, 
+                                                    color='black', 
+                                                    width=0.2, 
+                                                    tag=['countline'],
+                                                    dash=[2,2])
+
                     x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']
 
                 idx_line += 1
