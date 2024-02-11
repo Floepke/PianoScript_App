@@ -19,6 +19,8 @@ from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
 from imports.engraver.pdfexport import pdf_export
 
+from imports.utils.midi import Midi
+
 class Gui():
     def __init__(self, main, io):
         self.io = io
@@ -71,6 +73,10 @@ class Gui():
         self.pdf_export_action = QAction('Export PDF', self.main)
         self.pdf_export_action.triggered.connect(lambda: pdf_export(self.io))
         self.file_menu.addAction(self.pdf_export_action)
+
+        self.mid_export_action = QAction('Export MIDI', self.main)
+        self.mid_export_action.triggered.connect(lambda: self.io['midi'].export_midi())
+        self.file_menu.addAction(self.mid_export_action)
 
         self.file_menu.addSeparator()
         self.exit_action = QAction('Exit', self.main)

@@ -1,6 +1,7 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
 import mido, os, copy
+from midiutil.MidiFile import MIDIFile
 
 
 class Midi:
@@ -163,3 +164,67 @@ class Midi:
 
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
+
+    def export_midi(self):
+
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getSaveFileName(self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
+
+        if file_path:
+            Score = self.io['score']
+            # configure channels and names
+            longname = {'l':'left','r':'right'}
+            trackname = {}
+            channel = {}
+            nrchannels = 0
+            for note in Score['events']['note']:
+                if note['hand'] not in channel:
+                    channel[note['hand']] = nrchannels
+                    trackname[nrchannels] = longname[note['hand']]
+                    nrchannels += 1
+
+            # some info for the midifile
+            clocks_per_tick=24
+            denominator_dict = {
+                1:0,
+                2:1,
+                4:2,
+                8:3,
+                16:4,
+                32:5,
+                64:6,
+                128:7,
+                256:8
+            }
+            ticks_per_quarternote = 2048
+
+            # creating the midi file object
+            MyMIDI = MIDIFile(numTracks=nrchannels, 
+                            removeDuplicates=True, 
+                            deinterleave=True, 
+                            adjust_origin=False, 
+                            file_format=1, 
+                            ticks_per_quarternote=ticks_per_quarternote, 
+                            eventtime_is_ticks=True)
+
+            for ts in Score['events']['grid']:
+                MyMIDI.addTimeSignature(track=0,
+                                        time=0, 
+                                        numerator=int(ts['numerator']), 
+                                        denominator=denominator_dict[int(ts['denominator'])], 
+                                        clocks_per_tick=clocks_per_tick, 
+                                        notes_per_quarter=8)
+                MyMIDI.addTempo(track=0,time=0, tempo=120)
+                MyMIDI.addTrackName(track=0,time=0, trackName='Tsig & tempo')
+
+            # adding the notes
+            for note in Score['events']['note']:
+                t = int(note['time']/256*ticks_per_quarternote)
+                d = int(note['duration']/256*ticks_per_quarternote)
+                c = 0
+                if note['hand'] == 'r': c = 1# l or r?? first fix the midi import
+                MyMIDI.addNote(track=0, channel=c, pitch=int(note['pitch']+20), time=t, duration=d,volume=80,annotation=None)
+
+            # saving the midi file
+            with open(file_path, "wb") as output_file:
+                MyMIDI.writeFile(output_file)
