@@ -108,6 +108,8 @@ class Gui():
         self.settings_menu.addAction(self.grid_edit_action)
         self.staff_sizer_action = QAction('Line break Editor', self.main)
         self.settings_menu.addAction(self.staff_sizer_action)
+        self.settings_menu.addSeparator()
+        self.settings_menu.addAction('Score Options', lambda: ScoreOptionsDialog(self.io).exec())
         self.menu_bar.addMenu(self.settings_menu)
 
         # Create a new menu
@@ -143,13 +145,6 @@ class Gui():
 
         # Add the menu to the menu bar
         self.menu_bar.addMenu(self.checkbox_menu)
-
-        # Create a Help menu
-        self.help_menu = QMenu('Help', self.main)
-        self.menu_bar.addMenu(self.help_menu)
-        self.score_options_dialog_action = QAction('Score Options', self.main)
-        self.score_options_dialog_action.triggered.connect(lambda: ScoreOptionsDialog().exec())
-        self.help_menu.addAction(self.score_options_dialog_action)
         
 
 

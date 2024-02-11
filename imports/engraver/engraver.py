@@ -72,6 +72,14 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
             amount = gr['amount']
             grid = gr['grid']
             tsig_length = 0
+
+            # create time signature indicator
+            DOC.append({
+                'type': 'timesignature',
+                'time': time,
+                'numerator': numerator,
+                'denominator': denominator
+            })
             
             # add barlines and gridlines
             for m in range(amount):
@@ -523,6 +531,13 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1,
                                                             width=stem_thickness*draw_scale,
                                                             tag=['stem'])
+                                            io['view'].new_line(x-PITCH_UNIT*1.5*draw_scale,
+                                                            y_cursor+y1,
+                                                            x+PITCH_UNIT*5*draw_scale+PITCH_UNIT*1.5*draw_scale,
+                                                            y_cursor+y1,
+                                                            color='white',
+                                                            width=stem_thickness*draw_scale,
+                                                            tag=['whitespace'])
                                         else:
                                             io['view'].new_line(x,
                                                             y_cursor+y1,
@@ -530,6 +545,13 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1,
                                                             width=stem_thickness*draw_scale,
                                                             tag=['stem'])
+                                            io['view'].new_line(x+PITCH_UNIT*1.5*draw_scale,
+                                                            y_cursor+y1,
+                                                            x-PITCH_UNIT*5*draw_scale-PITCH_UNIT*1.5*draw_scale,
+                                                            y_cursor+y1,
+                                                            color='white',
+                                                            width=stem_thickness*draw_scale,
+                                                            tag=['whitespace'])
                                 
                                 # draw midinote
                                 if midinote_onoff:
@@ -691,6 +713,41 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                     width=0.2, 
                                                     tag=['countline'],
                                                     dash=[2,2])
+                        
+                        if evt['type'] == 'timesignature':
+                            if idx_staff == 0:
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+                                io['view'].new_text(x_cursor-(PITCH_UNIT*7.5*draw_scale),
+                                                    y+(PITCH_UNIT*4*draw_scale), 
+                                                    str(evt['numerator']), 
+                                                    color='black', 
+                                                    tag=['timesignature'],
+                                                    size=5,
+                                                    font='Courier New',
+                                                    anchor='s')
+                                io['view'].new_line(x_cursor-(PITCH_UNIT*5*draw_scale),
+                                                    y, 
+                                                    x_cursor-(PITCH_UNIT*10*draw_scale), 
+                                                    y, 
+                                                    color='black', 
+                                                    width=.5, 
+                                                    tag=['timesignature'])
+                                io['view'].new_line(x_cursor+(PITCH_UNIT*2*draw_scale),
+                                                    y, 
+                                                    x_cursor-(PITCH_UNIT*10*draw_scale), 
+                                                    y, 
+                                                    color='black', 
+                                                    width=.2, 
+                                                    tag=['timesignature'],
+                                                    dash=[2,2])
+                                io['view'].new_text(x_cursor-(PITCH_UNIT*7.5*draw_scale), 
+                                                    y-(PITCH_UNIT*3.5*draw_scale), 
+                                                    str(evt['denominator']), 
+                                                    color='black', 
+                                                    tag=['timesignature'],
+                                                    size=5,
+                                                    font='Courier New',
+                                                    anchor='n')
 
                     x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']
 
@@ -708,15 +765,16 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
         drawing_order = [
             'background',
             'midinote',
+            'barline', 
+            'whitespace',
             'staffline',
             'titlebackground',
             'titletext',
-            'barline', 
             'gridline', 
             'barnumbering',
+            'connectstem',
             'stem',
             'continuationdot',
-            'connectstem',
             'noteheadwhite',
             'leftdotwhite',
             'noteheadblack',
