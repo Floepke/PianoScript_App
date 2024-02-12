@@ -82,6 +82,7 @@ class ScoreOptionsDialog(QDialog):
 
         self.draw_scale = QDoubleSpinBox()
         self.draw_scale.setRange(0.1, 10)
+        self.draw_scale.setSingleStep(0.1)
         self.draw_scale.setValue(float(self.io['score']['properties']['draw_scale']))
 
         self.header_height = QDoubleSpinBox()
@@ -98,6 +99,7 @@ class ScoreOptionsDialog(QDialog):
 
         self.threeline_scale = QDoubleSpinBox()
         self.threeline_scale.setRange(0.1, 10)
+        self.threeline_scale.setSingleStep(0.1)
         self.threeline_scale.setValue(float(self.io['score']['properties']['threeline_scale']))
 
         self.stop_sign_style = QComboBox()
@@ -126,13 +128,13 @@ class ScoreOptionsDialog(QDialog):
 
         properties_layout.addLayout(properties_form_layout)
 
-        # Create properties tab
+        # Create elements tab
         elements_tab = QWidget()
         elements_layout = QVBoxLayout(elements_tab)
         elements_scroll = QScrollArea()
         elements_scroll.setWidgetResizable(True)
         elements_scroll.setWidget(elements_tab)
-        tab_widget.addTab(elements_scroll, 'Elements')
+        tab_widget.addTab(elements_scroll, 'Elements on/off')
         elements_form_layout = QFormLayout()
         elements_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
@@ -203,10 +205,7 @@ class ScoreOptionsDialog(QDialog):
 
     
     def validate(self):
-        
-        header_tab = [self.title, self.composer, self.copyright, 
-                      self.app_name, self.app_version, self.timestamp, 
-                      self.genre, self.comment]
+        '''Validate the data entered in the dialog'''
         self.io['score']['header']['title'] = self.title.text()
         self.io['score']['header']['composer'] = self.composer.text()
         self.io['score']['header']['copyright'] = self.copyright.text()
@@ -246,6 +245,5 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['leftdot_onoff'] = self.leftdot_onoff.isChecked()
         
         self.io['maineditor'].update('loadfile')
-        
         
         self.accept()
