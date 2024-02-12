@@ -467,7 +467,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y,
                                                             x2,
                                                             y_cursor+y,
-                                                            width=.1*draw_scale,
+                                                            width=.15*draw_scale,
                                                             color='black',
                                                             dash=[14, 20],
                                                             tag=['gridline'])

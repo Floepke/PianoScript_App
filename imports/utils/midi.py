@@ -215,7 +215,7 @@ class Midi:
                                         clocks_per_tick=clocks_per_tick, 
                                         notes_per_quarter=8)
                 MyMIDI.addTempo(track=0,time=0, tempo=120)
-                MyMIDI.addTrackName(track=0,time=0, trackName='Tsig & tempo')
+                MyMIDI.addTrackName(track=0,time=0, trackName='Track 0')
 
             # adding the notes
             for note in Score['events']['note']:
