@@ -9,6 +9,7 @@ class ScoreOptionsDialog(QDialog):
         self.io = io
 
         self.resize(500, 500)
+        self.setWindowTitle("Score Options")
         
         layout = QVBoxLayout(self)
         tab_widget = QTabWidget(self)
@@ -94,7 +95,7 @@ class ScoreOptionsDialog(QDialog):
         self.footer_height.setValue(float(self.io['score']['properties']['footer_height']))
 
         self.black_note_rule = QComboBox()
-        self.black_note_rule.addItems(['AlwaysUp', 'AlwaysDown', 'AlwaysDownExceptCollision', 'AlwaysUpExceptCollision'])
+        self.black_note_rule.addItems(['AlwaysUp', 'AlwaysDown', 'AlwaysDownExceptCollision', 'AlwaysUpExceptCollision', 'OnlyChordUp'])
         self.black_note_rule.setCurrentText(self.io['score']['properties']['black_note_rule'])
 
         self.threeline_scale = QDoubleSpinBox()

@@ -12,7 +12,8 @@ def continuation_dot(time, pitch, note):
         'time':time,
         'pitch':pitch,
         'type':'continuationdot',
-        'staff':note['staff']
+        'staff':note['staff'],
+        'hand':note['hand']
     }
 
 def stop_sign(time, pitch, note):
@@ -20,7 +21,8 @@ def stop_sign(time, pitch, note):
         'time':time,
         'pitch':pitch,
         'type':'notestop',
-        'staff': note['staff']
+        'staff': note['staff'],
+        'hand':note['hand']
     }
 
 
@@ -426,7 +428,7 @@ def beam_processor(io, DOC):
         if not size:
             amount = 0
         else:
-            amount = int(math.ceil((next_marker - beam['time']) / size))
+            amount = int(round((next_marker - beam['time']) / size))
         
         time = beam['time']
         for _ in range(amount):
@@ -452,7 +454,7 @@ def beam_processor(io, DOC):
         if not size:
             amount = 0
         else:
-            amount = int(math.ceil((next_marker - beam['time']) / size))
+            amount = int(round((next_marker - beam['time']) / size))
         
         time = beam['time']
         for _ in range(amount):
@@ -465,11 +467,11 @@ def beam_processor(io, DOC):
     # filling the left beam list with attached notes
     for idx_beam, beam in enumerate(left_beam_list + right_beam_list):
 
-        beam['notes'] = [note for note in io['score']['events']['note'] 
+        beam['notes'] = [note for note in DOC if note['type'] in ['note', 'continuationdot']]
+        beam['notes'] = [note for note in beam['notes']
                          if beam['time'] <= note['time'] < beam['time'] + beam['duration'] and
                          note['staff'] == beam['staff'] and
                          note['hand'] == beam['hand']]
-
         beam['notes'] = sorted(beam['notes'], key=lambda y: y['time'])
         
         DOC.append(beam)

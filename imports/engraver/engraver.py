@@ -305,6 +305,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
         page_margin_bottom = io['score']['properties']['page_margin_down']
         page_width = io['score']['properties']['page_width']
         page_height = io['score']['properties']['page_height']
+        black_note_rule = io['score']['properties']['black_note_rule']
 
         # onoff settings
         staff_onoff = io['score']['properties']['staff_onoff']
@@ -363,7 +364,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     size=8,
                                     tag=['title'],
                                     font='Courier new',
-                                    anchor='nw')
+                                    anchor='w')
                 # draw the composer
                 io['view'].new_text(Right-page_margin_right, 
                                     y_cursor,
@@ -371,7 +372,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     size=4,
                                     tag=['composer'],
                                     font='Courier new',
-                                    anchor='ne') 
+                                    anchor='e') 
                 
                 staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 y_cursor += io['score']['properties']['header_height']
@@ -379,13 +380,16 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                 staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
             
             # draw footer copyright pagenumbering and title
+            text = f'page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}'
+            if idx_page == 0:
+                text += f'\n{io['score']['header']['copyright']}'
             io['view'].new_text(page_margin_left,
                                 page_height-page_margin_bottom,
-                                f'page {idx_page+1} of {len(DOC)} - '+io['score']['header']['copyright'],
+                                text,
                                 size=4,
                                 tag=['copyright'],
                                 font='Courier new',
-                                anchor='sw')
+                                anchor='w')
             
             for line, dimensions, staff_range in zip(page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
                 print('new line:')
@@ -484,7 +488,18 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     # draw the notehead
                                     if note_onoff:
                                         if evt['pitch'] in BLACK_KEYS:
-                                            io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
+                                            if black_note_rule == 'AlwaysUp':
+                                                print('!!!')
+                                                io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
+                                                            y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
+                                                            x+PITCH_UNIT*.75*draw_scale,
+                                                            y_cursor+y1,
+                                                            fill_color='#000000',
+                                                            outline_color='#000000',
+                                                            outline_width=.4*draw_scale,
+                                                            tag=['noteheadblack'])
+                                            elif black_note_rule == 'AlwaysDown':
+                                                io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
                                                             y_cursor+y1,
                                                             x+PITCH_UNIT*.75*draw_scale,
                                                             y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
@@ -513,8 +528,18 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             fill_color='#000000',
                                                             outline_color='',
                                                             tag=['leftdotwhite'])
+                                                    
                                             else:
-                                                io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
+                                                if black_note_rule == 'AlwaysUp':
+                                                    io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
+                                                            y_cursor+y1-(PITCH_UNIT*(2.25/2+.25)*draw_scale),
+                                                            x+PITCH_UNIT*.25*draw_scale,
+                                                            y_cursor+y1-(PITCH_UNIT*(2.25/2-.25)*draw_scale),
+                                                            fill_color='#ffffff',
+                                                            outline_color='',
+                                                            tag=['leftdotblack'])
+                                                elif black_note_rule == 'AlwaysDown':
+                                                    io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
                                                             y_cursor+y1+(PITCH_UNIT*(2.25/2-.25)*draw_scale),
                                                             x+PITCH_UNIT*.25*draw_scale,
                                                             y_cursor+y1+(PITCH_UNIT*(2.25/2+.25)*draw_scale),
@@ -533,7 +558,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             tag=['stem'])
                                             io['view'].new_line(x-PITCH_UNIT*1.5*draw_scale,
                                                             y_cursor+y1,
-                                                            x+PITCH_UNIT*5*draw_scale+PITCH_UNIT*1.5*draw_scale,
+                                                            x+PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
                                                             color='white',
                                                             width=stem_thickness*draw_scale,
@@ -547,7 +572,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             tag=['stem'])
                                             io['view'].new_line(x+PITCH_UNIT*1.5*draw_scale,
                                                             y_cursor+y1,
-                                                            x-PITCH_UNIT*5*draw_scale-PITCH_UNIT*1.5*draw_scale,
+                                                            x-PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
                                                             color='white',
                                                             width=stem_thickness*draw_scale,
@@ -593,11 +618,11 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     elif stop_sign_style == 'PianoScript':
                                         # triangle stopsign
                                         io['view'].new_polygon([(x, y_cursor+y-PITCH_UNIT*2*draw_scale), 
-                                                                          (x+PITCH_UNIT*draw_scale, y_cursor+y),
-                                                                          (x-PITCH_UNIT*draw_scale, y_cursor+y)],
-                                                                          fill_color='#000000',
-                                                                          outline_color='',
-                                                                          tag=['notestop'])
+                                                                (x+PITCH_UNIT*draw_scale, y_cursor+y),
+                                                                (x-PITCH_UNIT*draw_scale, y_cursor+y)],
+                                                                fill_color='#000000',
+                                                                outline_color='',
+                                                                tag=['notestop'])
 
                                     
                         # draw continuation dot
@@ -605,13 +630,23 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                             if idx_staff == evt['staff']:
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
-                                if soundingdot_onoff: io['view'].new_oval(x-PITCH_UNIT*.65*draw_scale,
+                                if soundingdot_onoff: 
+                                    if continuation_dot_style == 'Klavarskribo':
+                                        io['view'].new_oval(x-PITCH_UNIT*.65*draw_scale,
                                                                 y_cursor+y+(PITCH_UNIT*.75*draw_scale),
                                                                 x+PITCH_UNIT*.65*draw_scale,
                                                                 y_cursor+y+(PITCH_UNIT*1.75*draw_scale),
                                                                 fill_color='#000000',
                                                                 outline_color='',
                                                                 tag=['continuationdot'])
+                                    elif continuation_dot_style == 'PianoScript':
+                                        io['view'].new_polygon([(x+PITCH_UNIT*draw_scale, y_cursor+y),
+                                                                (x, y_cursor+y+PITCH_UNIT*2*draw_scale),
+                                                                (x-PITCH_UNIT*draw_scale, y_cursor+y)],
+                                                                fill_color='#000000',
+                                                                outline_color='',
+                                                                tag=['continuationdot'])
+
                         
                         # connect stem
                         if evt['type'] == 'connectstem':
@@ -639,8 +674,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     # draw left beam
                                     min_pitch_note = min(notes, key=lambda x: x['pitch'])
                                     x = pitch2x_view(min_pitch_note['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
-                                    y1 = tick2y_view(notes[0]['time'], io, staff_height, idx_line)
-                                    y2 = tick2y_view(notes[-1]['time'], io, staff_height, idx_line)
+                                    y1 = tick2y_view([note for note in notes if note['type'] == 'note'][0]['time'], io, staff_height, idx_line)
+                                    y2 = tick2y_view([note for note in notes if note['type'] == 'note'][-1]['time'], io, staff_height, idx_line)
                                     io['view'].new_line(x-PITCH_UNIT*5*draw_scale, y_cursor+y1, 
                                                         x-PITCH_UNIT*6*draw_scale, y_cursor+y2,
                                                         color='black',
@@ -650,7 +685,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     for n in notes:
                                         x1 = pitch2x_view(n['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                         y1 = tick2y_view(n['time'], io, staff_height, idx_line)
-                                        io['view'].new_line(x1, y_cursor+y1,
+                                        if n['type'] == 'note':
+                                            io['view'].new_line(x1, y_cursor+y1,
                                                             x-PITCH_UNIT*5*draw_scale-PITCH_UNIT*normalize(notes[0]['time'], notes[-1]['time'], n['time']), y_cursor+y1,
                                                             color='black',
                                                             width=stem_thickness*draw_scale,
@@ -660,8 +696,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     # draw left beam
                                     max_pitch_note = max(notes, key=lambda x: x['pitch'])
                                     x = pitch2x_view(max_pitch_note['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
-                                    y1 = tick2y_view(notes[0]['time'], io, staff_height, idx_line)
-                                    y2 = tick2y_view(notes[-1]['time'], io, staff_height, idx_line)
+                                    y1 = tick2y_view([note for note in notes if note['type'] == 'note'][0]['time'], io, staff_height, idx_line)
+                                    y2 = tick2y_view([note for note in notes if note['type'] == 'note'][-1]['time'], io, staff_height, idx_line)
                                     io['view'].new_line(x+PITCH_UNIT*5*draw_scale, y_cursor+y1, 
                                                         x+PITCH_UNIT*6*draw_scale, y_cursor+y2,
                                                         color='black',
@@ -671,7 +707,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     for n in notes:
                                         x1 = pitch2x_view(n['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                         y1 = tick2y_view(n['time'], io, staff_height, idx_line)
-                                        io['view'].new_line(x1, y_cursor+y1,
+                                        if n['type'] == 'note':
+                                            io['view'].new_line(x1, y_cursor+y1,
                                                             x+PITCH_UNIT*5*draw_scale+PITCH_UNIT*normalize(notes[0]['time'], notes[-1]['time'], n['time']), y_cursor+y1,
                                                             color='black',
                                                             width=stem_thickness*draw_scale,
