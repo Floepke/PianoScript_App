@@ -267,20 +267,28 @@ def draw_staff(x_cursor: float,
                draw_min: int, 
                draw_max: int,
                io: dict, 
-               staff_length: float):
+               staff_length: float,
+               minipiano: bool):
 
+    # prepare the staff
     staff_min, staff_max = trim_key_to_outer_sides_staff(staff_min, staff_max)
     if not staff_min and not staff_max:
         draw_min, draw_max = staff_min, staff_max
     draw_min, draw_max = trim_key_to_outer_sides_staff(draw_min, draw_max)
+    scale = io['score']['properties']['draw_scale']
 
     # draw the staff
     x = x_cursor
+
+    if minipiano:
+        x1 = x-PITCH_UNIT*3*scale
+        y1 = y_cursor+staff_length
+        y2 = y_cursor+staff_length+PITCH_UNIT*8*scale
+
     for n in range(staff_min, draw_max+1):
         
         # calculate the new x_cursor
         remainder = ((n-1)%12)+1
-        scale = io['score']['properties']['draw_scale']
         x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == staff_min else PITCH_UNIT * scale
         
         if n >= draw_min and n <= draw_max:
@@ -293,18 +301,43 @@ def draw_staff(x_cursor: float,
                                     color='#000000',
                                     dash=[5, 5],
                                     tag=['staffline'])
+                    if minipiano:
+                        io['view'].new_line(x, y_cursor+staff_length, x, y_cursor+staff_length+PITCH_UNIT*4*scale, 
+                                        width=1*scale, 
+                                        color='#888',
+                                        tag=['minipiano'])
                 else:
                     # normal group of two lines
                     io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
                                     width=.2*scale, 
                                     color='#000000',
                                     tag=['staffline'])
+                    if minipiano:
+                        io['view'].new_line(x, y_cursor+staff_length, x, y_cursor+staff_length+PITCH_UNIT*4*scale, 
+                                        width=1*scale, 
+                                        color='#000',
+                                        tag=['minipiano'])
             elif remainder in [10, 12, 2]: # if it's one of the f# g# a# keys
                 # draw line thick for the group of three
                 io['view'].new_line(x, y_cursor, x, y_cursor+staff_length, 
-                                    width=.4*scale, 
+                                    width=0.2*io['score']['properties']['threeline_scale']*scale,
                                     color='#000000',
                                     tag=['staffline'])
+                if minipiano:
+                        io['view'].new_line(x, y_cursor+staff_length, x, y_cursor+staff_length+PITCH_UNIT*4*scale, 
+                                        width=1*scale, 
+                                        color='#000',
+                                        tag=['minipiano'])
+                        
+    if minipiano:
+        io['view'].new_rectangle(x1,
+                                 y1, 
+                                 x+PITCH_UNIT*3*scale, 
+                                 y2, 
+                                 width=0.2*scale, 
+                                 outline_color='#000',
+                                 fill_color='',
+                                 tag=['minipiano'])
             
 
 def get_system_ticks(io):

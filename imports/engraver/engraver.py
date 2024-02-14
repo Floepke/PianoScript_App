@@ -348,8 +348,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                 idx_line += len(DOC[idx_page])
                 barnumber = update_barnumber(DOC, idx_page+1)
                 continue
-                
-            print('new page:')
 
             # update the cursors
             x_cursor = page_margin_left
@@ -374,17 +372,17 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     font='Courier new',
                                     anchor='e') 
                 
-                staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
+            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 y_cursor += io['score']['properties']['header_height']
-            else:
-                staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
-            
+            # else:
+            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
+
             # draw footer copyright pagenumbering and title
-            text = f'page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}'
+            text = f"page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
             if idx_page == 0:
-                text += f'\n{io['score']['header']['copyright']}'
+                text += f"\n{io['score']['header']['copyright']}"
             io['view'].new_text(page_margin_left,
-                                page_height-page_margin_bottom,
+                                page_height-page_margin_bottom-PITCH_UNIT*4*draw_scale,
                                 text,
                                 size=4,
                                 tag=['copyright'],
@@ -392,7 +390,15 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 anchor='w')
             
             for line, dimensions, staff_range in zip(page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
-                print('new line:')
+
+                # set staff height
+                if idx_page == 0:
+                    if idx_line == 0 and minipiano_onoff:
+                        staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height'] - PITCH_UNIT * 8 * draw_scale
+                    else:
+                        staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
+                else:
+                    staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
                 # draw the staffs
                 for idx_staff, staff_prefs in enumerate(dimensions):
@@ -414,14 +420,16 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                         else:
                             draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0] # given in file
                             draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
-                        if staff_onoff: draw_staff(x_cursor, 
-                                            y_cursor, 
-                                            staff_range[idx_staff][0], 
-                                            staff_range[idx_staff][1],
-                                            draw_start,
-                                            draw_end,
-                                            io, 
-                                            staff_length=staff_height) # TODO: implement minipiano
+                        if staff_onoff: 
+                            draw_staff(x_cursor,
+                                        y_cursor, 
+                                        staff_range[idx_staff][0],
+                                        staff_range[idx_staff][1],
+                                        draw_start,
+                                        draw_end,
+                                        io, 
+                                        staff_length=staff_height,
+                                        minipiano=True if idx_line == 0 and minipiano_onoff else False)
 
                     for evt in line:
 
@@ -438,8 +446,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                         x2 += w['staff_width'] + w['margin_right'] + (leftover / (len(page) * enabled_staffs + 1))
                                         last_r_marg = w['margin_right']
                                 x2 -= last_r_marg + (leftover / (len(page) * enabled_staffs + 1)) + (PITCH_UNIT * 2 * draw_scale)
-                                #x2 += 10 # overlapping barlines
-                                #if evt['type'] == 'barlinedouble': x2 -= last_r_marg
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if evt['type'] in ['barline', 'barlinedouble']: w = 0.2*draw_scale
                                 else: w = 1*draw_scale
@@ -455,7 +461,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     if measure_numbering_onoff: io['view'].new_text(x2-2, 
                                                                         y_cursor+y-4, 
                                                                         str(barnumber),
-                                                                        size=4,
+                                                                        size=4*draw_scale,
                                                                         tag=['barnumbering'],
                                                                         font='Courier new',
                                                                         anchor='nw')
@@ -489,7 +495,6 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     if note_onoff:
                                         if evt['pitch'] in BLACK_KEYS:
                                             if black_note_rule == 'AlwaysUp':
-                                                print('!!!')
                                                 io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
                                                             y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
                                                             x+PITCH_UNIT*.75*draw_scale,

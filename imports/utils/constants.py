@@ -52,7 +52,7 @@ SCORE_TEMPLATE = {
             'AlwaysDownExceptCollisions', 
             'AlwaysUpExceptCollisions'
             ][0],
-        'threeline_scale':1,
+        'threeline_scale':2.0,
         'stop_sign_style':['PianoScript', 'Klavarskribo'][0],
         'continuation_dot_style':['PianoScript', 'Klavarskribo'][1],
         
