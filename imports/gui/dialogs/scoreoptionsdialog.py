@@ -1,7 +1,8 @@
-from imports.utils.constants import SCORE_TEMPLATE
-
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, QFormLayout, QLabel, QCheckBox, QSpinBox, QDoubleSpinBox, QLineEdit, QScrollArea, QPushButton, QComboBox
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTabWidget
+from PySide6.QtWidgets import QWidget, QFormLayout, QCheckBox, QDoubleSpinBox
+from PySide6.QtWidgets import QScrollArea, QPushButton, QComboBox
+from PySide6.QtWidgets import QPushButton, QLineEdit, QColorDialog
+from PySide6.QtGui import QColor
 
 class ScoreOptionsDialog(QDialog):
     def __init__(self, io, parent=None):
@@ -111,6 +112,9 @@ class ScoreOptionsDialog(QDialog):
         self.continuation_dot_style.addItems(['PianoScript', 'Klavarskribo'])
         self.continuation_dot_style.setCurrentText(self.io['score']['properties']['continuation_dot_style'])
 
+        self.color_right_midinote = QLineEdit(self.io['score']['properties']['color_right_midinote'])
+        self.color_left_midinote = QLineEdit(self.io['score']['properties']['color_left_midinote'])
+
         properties_form_layout = QFormLayout()
 
         properties_form_layout.addRow('Page Width:', self.page_width)
@@ -126,6 +130,8 @@ class ScoreOptionsDialog(QDialog):
         properties_form_layout.addRow('ThreeLine Scale:', self.threeline_scale)
         properties_form_layout.addRow('Stop Sign Style:', self.stop_sign_style)
         properties_form_layout.addRow('Continuation Dot Style:', self.continuation_dot_style)
+        properties_form_layout.addRow('Color Right Midinote:', self.color_right_midinote)
+        properties_form_layout.addRow('Color Left Midinote:', self.color_left_midinote)
 
         properties_layout.addLayout(properties_form_layout)
 
@@ -189,23 +195,23 @@ class ScoreOptionsDialog(QDialog):
         elements_layout.addLayout(elements_form_layout)
 
         # Create OK and Cancel buttons
-        ok_button = QPushButton('OK')
-        cancel_button = QPushButton('Cancel')
-
-        # Connect the OK button to the accept slot
-        ok_button.clicked.connect(self.validate)
+        close_button = QPushButton('Close')
+        apply_button = QPushButton('Apply')
 
         # Connect the Cancel button to the reject slot
-        cancel_button.clicked.connect(self.reject)
+        close_button.clicked.connect(lambda: self.validate(close=True))
+
+        # Connect the OK button to the accept slot
+        apply_button.clicked.connect(lambda: self.validate(close=False))
 
         # Add the buttons to a layout
         button_layout = QHBoxLayout()
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(close_button)
+        button_layout.addWidget(apply_button)
         layout.addLayout(button_layout)
 
     
-    def validate(self):
+    def validate(self, close: bool):
         '''Validate the data entered in the dialog'''
         self.io['score']['header']['title'] = self.title.text()
         self.io['score']['header']['composer'] = self.composer.text()
@@ -229,6 +235,8 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['threeline_scale'] = self.threeline_scale.value()
         self.io['score']['properties']['stop_sign_style'] = self.stop_sign_style.currentText()
         self.io['score']['properties']['continuation_dot_style'] = self.continuation_dot_style.currentText()
+        self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.text()
+        self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.text()
         self.io['score']['properties']['staff_onoff'] = self.staff_onoff.isChecked()
         self.io['score']['properties']['minipiano_onoff'] = self.minipiano_onoff.isChecked()
         self.io['score']['properties']['stem_onoff'] = self.stem_onoff.isChecked()
@@ -245,6 +253,49 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['soundingdot_onoff'] = self.soundingdot_onoff.isChecked()
         self.io['score']['properties']['leftdot_onoff'] = self.leftdot_onoff.isChecked()
         
-        self.io['maineditor'].update('loadfile')
+        self.io['maineditor'].update('score_options')
         
-        self.accept()
+        if close: self.accept()
+
+class ColorPicker(QWidget):
+    def __init__(self, initial_color, validate, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout()
+        self.button = QPushButton("Colorpicker", self)
+        self.button.clicked.connect(self.on_button_clicked)
+        self.line_edit = QLineEdit(initial_color, self)
+        self.layout.addWidget(self.button)
+        self.layout.addWidget(self.line_edit)
+        self.setLayout(self.layout)
+        self.validate = validate
+
+    def on_button_clicked(self):
+        color = QColorDialog.getColor(QColor(self.line_edit.text()), self)
+        if color.isValid():
+            self.line_edit.setText(color.name())
+        self.validate()
+                                             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

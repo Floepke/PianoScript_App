@@ -3,11 +3,11 @@ from imports.utils.constants import *
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu
-from PySide6.QtWidgets import QGraphicsScene
+from PySide6.QtWidgets import QGraphicsScene, QToolBar, QCheckBox
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
 from PySide6.QtWidgets import QSpinBox, QToolButton, QComboBox
 from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QFont
 from PySide6.QtGui import QColor, QBrush
 from imports.editor.graphicsview_editor import GraphicsViewEditor
 # from imports.utils.fileoprations import FileOperations
@@ -114,8 +114,12 @@ class Gui():
         self.settings_menu.addAction(self.grid_edit_action)
         self.staff_sizer_action = QAction('Line break Editor', self.main)
         self.settings_menu.addAction(self.staff_sizer_action)
-        self.settings_menu.addSeparator()
         self.settings_menu.addAction('Score Options', lambda: ScoreOptionsDialog(self.io).exec())
+        self.settings_menu.addSeparator()
+        self.auto_engrave_action = QAction('Auto engrave', self.main)
+        self.auto_engrave_action.setCheckable(True)
+        self.auto_engrave_action.setChecked(True)
+        self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
 
         # Create a new menu
@@ -168,14 +172,55 @@ class Gui():
         self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
         self.print_view = GraphicsViewEngraver(self.print_scene, self.io, self.main)
 
+        # Create a widget to hold the toolbar
+        self.toolbar_widget = QWidget()
+        self.toolbar_widget.setFixedWidth(25)
+
+        # Create the toolbar
+        self.toolbar = QToolBar()
+        self.toolbar.setOrientation(Qt.Vertical)
+        self.toolbar.setStyleSheet('''QToolButton { font-size: 25px; }''')
+
+
+        # Add the buttons to the toolbar
+        self.previous_button = QToolButton()
+        self.previous_button.setText("<")
+        self.previous_button.setToolTip("Previous page")
+        self.previous_button.clicked.connect(self.previous_page)
+        self.toolbar.addWidget(self.previous_button)
+
+        self.next_button = QToolButton()
+        self.next_button.setText(">")
+        self.next_button.setToolTip("Next page")
+        self.next_button.clicked.connect(self.next_page)
+        self.toolbar.addWidget(self.next_button)
+
+        self.refresh_button = QToolButton()
+        self.refresh_button.setText("⟳")
+        self.refresh_button.setToolTip("Engrave the document")
+        self.refresh_button.clicked.connect(self.refresh)
+        self.toolbar.addWidget(self.refresh_button)
+
+        # self.auto_engrave_checkbox = QCheckBox()
+        # self.auto_engrave_checkbox.setChecked(True)
+        # self.auto_engrave_checkbox.setToolTip("Auto engrave the document")
+        # self.toolbar.addWidget(self.auto_engrave_checkbox)
+
+        # Add the toolbar to the widget
+        self.toolbar_layout = QVBoxLayout()
+        self.toolbar_layout.addWidget(self.toolbar)
+        self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        self.toolbar_widget.setLayout(self.toolbar_layout)
+
         # Create a resizable splitter
         self.splitter = QSplitter(self.main)
         self.splitter.addWidget(self.editor_view)
+        self.splitter.addWidget(self.toolbar_widget)
         self.splitter.addWidget(self.print_view)
-        self.splitter.setHandleWidth(20)
+        self.splitter.setHandleWidth(10)
 
         # Set the initial sizes of the widgets in the splitter
-        self.splitter.setSizes([10, 290])
+        self.splitter.setSizes([10, 10, 290])
         # set the minimum width of the splitter
         self.splitter.setMinimumWidth(500)
 
@@ -191,7 +236,7 @@ class Gui():
         # self.grid_selector_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
         # set stylesheet
-        self.grid_selector_dock.setStyleSheet("""background-color: #678;""")
+        # self.grid_selector_dock.setStyleSheet("""background-color: #678;""")
 
         # create a layout in the dockable widget
         self.gs_dock_layout = QVBoxLayout()
@@ -254,7 +299,7 @@ class Gui():
         self.tool_dock = QDockWidget('Tool', self.main)
         self.tool_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
-        self.tool_dock.setStyleSheet("""background-color: #678;""")
+        # self.tool_dock.setStyleSheet("""background-color: #678;""")
 
         # create a layout in the dockable widget
         self.tool_layout = QVBoxLayout()
@@ -276,10 +321,10 @@ class Gui():
         self.tree_view.setIndentation(0)
         # set single selection
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
-        self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
+        #self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
         self.tree_view.expandAll()
         # set color of any selected item
-        self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: #486; color: #ffffff}')
+        # self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: #486; color: #ffffff}')
         self.tool_layout.addWidget(self.tool_label)
         self.tool_layout.addWidget(self.tree_view)
         # connect the treeview to the select_tool function
@@ -359,3 +404,14 @@ class Gui():
             self.last_selected_child = index
             self.io['maineditor'].select_tool(index.data())
 
+
+    def previous_page(self):
+        self.io['selected_page'] -= 1
+        self.io['maineditor'].update('page_change')
+    
+    def next_page(self):
+        self.io['selected_page'] += 1
+        self.io['maineditor'].update('page_change')
+
+    def refresh(self):
+        self.io['maineditor'].update('page_change')

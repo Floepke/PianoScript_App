@@ -58,9 +58,10 @@ class Editor:
         if event_type in ['resize', 'scroll']:
             self.draw_viewport()
 
-        if event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor']:
+        if event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'score_options']:
             self.redraw_editor()
-            self.io['engraver'].do_engrave()
+            if self.io['auto_engrave'] or event_type in ['score_options', 'grid_editor']:
+                self.io['engraver'].do_engrave()
             if self.io['autosave']:
                 try: self.io['fileoperations'].auto_save()
                 except KeyError: ...
@@ -71,7 +72,8 @@ class Editor:
         # save if there is a change in the score
         if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and 
             not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
-            self.io['engraver'].do_engrave()
+            if self.io['auto_engrave']: 
+                self.io['engraver'].do_engrave()
             if self.io['autosave']:
                 try: self.io['fileoperations'].auto_save()
                 except KeyError: ...
@@ -210,6 +212,15 @@ class Editor:
         
         # draw all events in viewport
         self.draw_viewport()
+
+    def toggle_auto_engrave(self):
+        '''toggles the autorender function'''
+        if self.io['auto_engrave']:
+            self.io['auto_engrave'] = False
+            self.io['gui'].auto_engrave_action.setChecked(False)
+        else:
+            self.io['auto_engrave'] = True
+            self.io['gui'].auto_engrave_action.setChecked(True)
         
 
 

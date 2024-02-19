@@ -491,6 +491,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 y2 = tick2y_view(evt['time']+evt['duration'], io, staff_height, idx_line)
                                 
                                 if evt['type'] == 'note':
+                                    #io['view'].new_text(x,y_cursor+y1, f"{evt['tag'][4:]}", size=3, tag=['debug'], font='Courier new', anchor='c', color='red')
                                     # draw the notehead
                                     if note_onoff:
                                         if evt['pitch'] in BLACK_KEYS:
@@ -829,7 +830,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
             'countline',
             'handle',
             'linebreak',
-            'beam'
+            'beam',
+            'debug'
         ]
         io['view'].tag_raise(drawing_order)
     

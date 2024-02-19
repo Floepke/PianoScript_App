@@ -19,11 +19,11 @@
         "draw_scale": 0.8,
         "header_height": 20.0,
         "footer_height": 12.5,
-        "color_right_midinote": "#c8c8c8",
-        "color_left_midinote": "#c8c8c8",
-        "editor_zoom": 110,
+        "color_right_midinote": "lightblue",
+        "color_left_midinote": "pink",
+        "editor_zoom": 130,
         "black_note_rule": "AlwaysDown",
-        "threeline_scale": 1.5000000000000004,
+        "threeline_scale": 1.5,
         "stop_sign_style": "PianoScript",
         "continuation_dot_style": "Klavarskribo",
         "staff_onoff": true,
@@ -68,7 +68,7 @@
         "grid": [
             {
                 "nr": 1,
-                "tag": "grid1",
+                "tag": "grid0",
                 "amount": 69,
                 "numerator": 4,
                 "denominator": 4,
@@ -82,7 +82,7 @@
         ],
         "note": [
             {
-                "tag": "note2",
+                "tag": "note1",
                 "pitch": 36,
                 "time": 0.0,
                 "duration": 85.33333333333333,
@@ -92,7 +92,7 @@
                 "type": "note"
             },
             {
-                "tag": "note3",
+                "tag": "note2",
                 "pitch": 41,
                 "time": 85.33333333333333,
                 "duration": 85.33333333333333,
@@ -102,7 +102,7 @@
                 "type": "note"
             },
             {
-                "tag": "note4",
+                "tag": "note3",
                 "pitch": 44,
                 "time": 170.66666666666666,
                 "duration": 85.33333333333333,
@@ -112,7 +112,7 @@
                 "type": "note"
             },
             {
-                "tag": "note5",
+                "tag": "note4",
                 "pitch": 36,
                 "time": 256.0,
                 "duration": 85.33333333333333,
@@ -122,7 +122,7 @@
                 "type": "note"
             },
             {
-                "tag": "note6",
+                "tag": "note5",
                 "pitch": 41,
                 "time": 341.3333333333333,
                 "duration": 85.33333333333333,
@@ -132,7 +132,7 @@
                 "type": "note"
             },
             {
-                "tag": "note7",
+                "tag": "note6",
                 "pitch": 44,
                 "time": 426.66666666666663,
                 "duration": 85.33333333333333,
@@ -142,7 +142,7 @@
                 "type": "note"
             },
             {
-                "tag": "note8",
+                "tag": "note7",
                 "pitch": 36,
                 "time": 512.0,
                 "duration": 85.33333333333333,
@@ -152,7 +152,7 @@
                 "type": "note"
             },
             {
-                "tag": "note9",
+                "tag": "note8",
                 "pitch": 41,
                 "time": 597.3333333333334,
                 "duration": 85.33333333333333,
@@ -162,7 +162,7 @@
                 "type": "note"
             },
             {
-                "tag": "note10",
+                "tag": "note9",
                 "pitch": 44,
                 "time": 682.6666666666666,
                 "duration": 85.33333333333333,
@@ -172,7 +172,7 @@
                 "type": "note"
             },
             {
-                "tag": "note11",
+                "tag": "note10",
                 "pitch": 36,
                 "time": 768.0,
                 "duration": 85.33333333333333,
@@ -182,7 +182,7 @@
                 "type": "note"
             },
             {
-                "tag": "note12",
+                "tag": "note11",
                 "pitch": 41,
                 "time": 853.3333333333334,
                 "duration": 85.33333333333333,
@@ -192,7 +192,7 @@
                 "type": "note"
             },
             {
-                "tag": "note13",
+                "tag": "note12",
                 "pitch": 44,
                 "time": 938.6666666666666,
                 "duration": 85.33333333333333,
@@ -202,7 +202,7 @@
                 "type": "note"
             },
             {
-                "tag": "note14",
+                "tag": "note13",
                 "pitch": 36,
                 "time": 1024.0,
                 "duration": 85.33333333333333,
@@ -212,7 +212,7 @@
                 "type": "note"
             },
             {
-                "tag": "note15",
+                "tag": "note14",
                 "pitch": 41,
                 "time": 1109.3333333333333,
                 "duration": 85.33333333333333,
@@ -222,7 +222,7 @@
                 "type": "note"
             },
             {
-                "tag": "note16",
+                "tag": "note15",
                 "pitch": 44,
                 "time": 1194.6666666666667,
                 "duration": 85.33333333333333,
@@ -232,7 +232,7 @@
                 "type": "note"
             },
             {
-                "tag": "note17",
+                "tag": "note16",
                 "pitch": 36,
                 "time": 1280.0,
                 "duration": 85.33333333333333,
@@ -242,7 +242,7 @@
                 "type": "note"
             },
             {
-                "tag": "note18",
+                "tag": "note17",
                 "pitch": 41,
                 "time": 1365.3333333333333,
                 "duration": 85.33333333333333,
@@ -252,7 +252,7 @@
                 "type": "note"
             },
             {
-                "tag": "note19",
+                "tag": "note18",
                 "pitch": 44,
                 "time": 1450.6666666666665,
                 "duration": 85.33333333333333,
@@ -262,7 +262,7 @@
                 "type": "note"
             },
             {
-                "tag": "note20",
+                "tag": "note19",
                 "pitch": 36,
                 "time": 1536.0,
                 "duration": 85.33333333333333,
@@ -272,7 +272,7 @@
                 "type": "note"
             },
             {
-                "tag": "note21",
+                "tag": "note20",
                 "pitch": 41,
                 "time": 1621.3333333333335,
                 "duration": 85.33333333333333,
@@ -282,7 +282,7 @@
                 "type": "note"
             },
             {
-                "tag": "note22",
+                "tag": "note21",
                 "pitch": 44,
                 "time": 1706.6666666666665,
                 "duration": 85.33333333333333,
@@ -292,7 +292,7 @@
                 "type": "note"
             },
             {
-                "tag": "note23",
+                "tag": "note22",
                 "pitch": 36,
                 "time": 1792.0,
                 "duration": 85.33333333333333,
@@ -302,7 +302,7 @@
                 "type": "note"
             },
             {
-                "tag": "note24",
+                "tag": "note23",
                 "pitch": 41,
                 "time": 1877.3333333333335,
                 "duration": 85.33333333333333,
@@ -312,7 +312,7 @@
                 "type": "note"
             },
             {
-                "tag": "note25",
+                "tag": "note24",
                 "pitch": 44,
                 "time": 1962.6666666666665,
                 "duration": 85.33333333333333,
@@ -322,7 +322,7 @@
                 "type": "note"
             },
             {
-                "tag": "note26",
+                "tag": "note25",
                 "pitch": 37,
                 "time": 2048.0,
                 "duration": 85.33333333333333,
@@ -332,7 +332,7 @@
                 "type": "note"
             },
             {
-                "tag": "note27",
+                "tag": "note26",
                 "pitch": 41,
                 "time": 2133.333333333333,
                 "duration": 85.33333333333333,
@@ -342,7 +342,7 @@
                 "type": "note"
             },
             {
-                "tag": "note28",
+                "tag": "note27",
                 "pitch": 44,
                 "time": 2218.6666666666665,
                 "duration": 85.33333333333333,
@@ -352,7 +352,7 @@
                 "type": "note"
             },
             {
-                "tag": "note29",
+                "tag": "note28",
                 "pitch": 37,
                 "time": 2304.0,
                 "duration": 85.33333333333333,
@@ -362,7 +362,7 @@
                 "type": "note"
             },
             {
-                "tag": "note30",
+                "tag": "note29",
                 "pitch": 41,
                 "time": 2389.333333333333,
                 "duration": 85.33333333333333,
@@ -372,7 +372,7 @@
                 "type": "note"
             },
             {
-                "tag": "note31",
+                "tag": "note30",
                 "pitch": 44,
                 "time": 2474.6666666666665,
                 "duration": 85.33333333333333,
@@ -382,7 +382,7 @@
                 "type": "note"
             },
             {
-                "tag": "note32",
+                "tag": "note31",
                 "pitch": 37,
                 "time": 2560.0,
                 "duration": 85.33333333333333,
@@ -392,7 +392,7 @@
                 "type": "note"
             },
             {
-                "tag": "note33",
+                "tag": "note32",
                 "pitch": 42,
                 "time": 2645.333333333333,
                 "duration": 85.33333333333333,
@@ -402,7 +402,7 @@
                 "type": "note"
             },
             {
-                "tag": "note34",
+                "tag": "note33",
                 "pitch": 46,
                 "time": 2730.6666666666665,
                 "duration": 85.33333333333333,
@@ -412,7 +412,7 @@
                 "type": "note"
             },
             {
-                "tag": "note35",
+                "tag": "note34",
                 "pitch": 37,
                 "time": 2816.0,
                 "duration": 85.33333333333333,
@@ -422,7 +422,7 @@
                 "type": "note"
             },
             {
-                "tag": "note36",
+                "tag": "note35",
                 "pitch": 42,
                 "time": 2901.333333333333,
                 "duration": 85.33333333333333,
@@ -432,7 +432,7 @@
                 "type": "note"
             },
             {
-                "tag": "note37",
+                "tag": "note36",
                 "pitch": 46,
                 "time": 2986.6666666666665,
                 "duration": 85.33333333333333,
@@ -442,7 +442,7 @@
                 "type": "note"
             },
             {
-                "tag": "note38",
+                "tag": "note37",
                 "pitch": 36,
                 "time": 3072.0,
                 "duration": 85.33333333333333,
@@ -452,7 +452,7 @@
                 "type": "note"
             },
             {
-                "tag": "note39",
+                "tag": "note38",
                 "pitch": 40,
                 "time": 3157.333333333333,
                 "duration": 85.33333333333333,
@@ -462,7 +462,7 @@
                 "type": "note"
             },
             {
-                "tag": "note40",
+                "tag": "note39",
                 "pitch": 46,
                 "time": 3242.6666666666665,
                 "duration": 85.33333333333333,
@@ -472,7 +472,7 @@
                 "type": "note"
             },
             {
-                "tag": "note41",
+                "tag": "note40",
                 "pitch": 36,
                 "time": 3328.0,
                 "duration": 85.33333333333333,
@@ -482,7 +482,7 @@
                 "type": "note"
             },
             {
-                "tag": "note42",
+                "tag": "note41",
                 "pitch": 41,
                 "time": 3413.333333333333,
                 "duration": 85.33333333333333,
@@ -492,7 +492,7 @@
                 "type": "note"
             },
             {
-                "tag": "note43",
+                "tag": "note42",
                 "pitch": 44,
                 "time": 3498.6666666666665,
                 "duration": 85.33333333333333,
@@ -502,7 +502,7 @@
                 "type": "note"
             },
             {
-                "tag": "note44",
+                "tag": "note43",
                 "pitch": 36,
                 "time": 3584.0,
                 "duration": 85.33333333333333,
@@ -512,7 +512,7 @@
                 "type": "note"
             },
             {
-                "tag": "note45",
+                "tag": "note44",
                 "pitch": 41,
                 "time": 3669.333333333333,
                 "duration": 85.33333333333333,
@@ -522,7 +522,7 @@
                 "type": "note"
             },
             {
-                "tag": "note46",
+                "tag": "note45",
                 "pitch": 43,
                 "time": 3754.6666666666665,
                 "duration": 85.33333333333333,
@@ -532,7 +532,7 @@
                 "type": "note"
             },
             {
-                "tag": "note47",
+                "tag": "note46",
                 "pitch": 34,
                 "time": 3840.0,
                 "duration": 85.33333333333333,
@@ -542,7 +542,7 @@
                 "type": "note"
             },
             {
-                "tag": "note48",
+                "tag": "note47",
                 "pitch": 40,
                 "time": 3925.333333333333,
                 "duration": 85.33333333333333,
@@ -552,7 +552,7 @@
                 "type": "note"
             },
             {
-                "tag": "note49",
+                "tag": "note48",
                 "pitch": 43,
                 "time": 4010.6666666666665,
                 "duration": 85.33333333333333,
@@ -562,7 +562,7 @@
                 "type": "note"
             },
             {
-                "tag": "note50",
+                "tag": "note49",
                 "pitch": 32,
                 "time": 4096.0,
                 "duration": 85.33333333333333,
@@ -572,7 +572,7 @@
                 "type": "note"
             },
             {
-                "tag": "note51",
+                "tag": "note50",
                 "pitch": 36,
                 "time": 4181.333333333333,
                 "duration": 85.33333333333333,
@@ -582,7 +582,7 @@
                 "type": "note"
             },
             {
-                "tag": "note52",
+                "tag": "note51",
                 "pitch": 41,
                 "time": 4266.666666666666,
                 "duration": 85.33333333333333,
@@ -592,7 +592,7 @@
                 "type": "note"
             },
             {
-                "tag": "note53",
+                "tag": "note52",
                 "pitch": 36,
                 "time": 4352.0,
                 "duration": 85.33333333333333,
@@ -602,7 +602,7 @@
                 "type": "note"
             },
             {
-                "tag": "note54",
+                "tag": "note53",
                 "pitch": 41,
                 "time": 4437.333333333333,
                 "duration": 85.33333333333333,
@@ -612,7 +612,7 @@
                 "type": "note"
             },
             {
-                "tag": "note55",
+                "tag": "note54",
                 "pitch": 44,
                 "time": 4522.666666666666,
                 "duration": 85.33333333333333,
@@ -622,7 +622,7 @@
                 "type": "note"
             },
             {
-                "tag": "note56",
+                "tag": "note55",
                 "pitch": 36,
                 "time": 4608.0,
                 "duration": 85.33333333333333,
@@ -632,7 +632,7 @@
                 "type": "note"
             },
             {
-                "tag": "note57",
+                "tag": "note56",
                 "pitch": 41,
                 "time": 4693.333333333333,
                 "duration": 85.33333333333333,
@@ -642,7 +642,7 @@
                 "type": "note"
             },
             {
-                "tag": "note58",
+                "tag": "note57",
                 "pitch": 44,
                 "time": 4778.666666666666,
                 "duration": 85.33333333333333,
@@ -652,7 +652,7 @@
                 "type": "note"
             },
             {
-                "tag": "note59",
+                "tag": "note58",
                 "pitch": 36,
                 "time": 4864.0,
                 "duration": 85.33333333333333,
@@ -662,7 +662,7 @@
                 "type": "note"
             },
             {
-                "tag": "note60",
+                "tag": "note59",
                 "pitch": 41,
                 "time": 4949.333333333333,
                 "duration": 85.33333333333333,
@@ -672,7 +672,7 @@
                 "type": "note"
             },
             {
-                "tag": "note61",
+                "tag": "note60",
                 "pitch": 44,
                 "time": 5034.666666666666,
                 "duration": 85.33333333333333,
@@ -682,7 +682,7 @@
                 "type": "note"
             },
             {
-                "tag": "note62",
+                "tag": "note61",
                 "pitch": 48,
                 "time": 4864.0,
                 "duration": 192.0,
@@ -692,7 +692,7 @@
                 "type": "note"
             },
             {
-                "tag": "note63",
+                "tag": "note62",
                 "pitch": 48,
                 "time": 5056.0,
                 "duration": 64.0,
@@ -702,7 +702,7 @@
                 "type": "note"
             },
             {
-                "tag": "note64",
+                "tag": "note63",
                 "pitch": 48,
                 "time": 5120.0,
                 "duration": 768.0,
@@ -712,7 +712,7 @@
                 "type": "note"
             },
             {
-                "tag": "note65",
+                "tag": "note64",
                 "pitch": 48,
                 "time": 5888.0,
                 "duration": 192.0,
@@ -722,7 +722,7 @@
                 "type": "note"
             },
             {
-                "tag": "note66",
+                "tag": "note65",
                 "pitch": 48,
                 "time": 6080.0,
                 "duration": 64.0,
@@ -732,7 +732,7 @@
                 "type": "note"
             },
             {
-                "tag": "note67",
+                "tag": "note66",
                 "pitch": 48,
                 "time": 6144.0,
                 "duration": 512.0,
@@ -742,7 +742,7 @@
                 "type": "note"
             },
             {
-                "tag": "note68",
+                "tag": "note67",
                 "pitch": 49,
                 "time": 6656.0,
                 "duration": 512.0,
@@ -752,7 +752,7 @@
                 "type": "note"
             },
             {
-                "tag": "note69",
+                "tag": "note68",
                 "pitch": 48,
                 "time": 7168.0,
                 "duration": 512.0,
@@ -762,7 +762,7 @@
                 "type": "note"
             },
             {
-                "tag": "note70",
+                "tag": "note69",
                 "pitch": 46,
                 "time": 7680.0,
                 "duration": 256.0,
@@ -772,7 +772,7 @@
                 "type": "note"
             },
             {
-                "tag": "note71",
+                "tag": "note70",
                 "pitch": 51,
                 "time": 7936.0,
                 "duration": 256.0,
@@ -782,8 +782,18 @@
                 "type": "note"
             },
             {
-                "tag": "note72",
+                "tag": "note71",
                 "pitch": 29,
+                "time": 0.0,
+                "duration": 1024.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note72",
+                "pitch": 17,
                 "time": 0.0,
                 "duration": 1024.0,
                 "hand": "l",
@@ -793,16 +803,6 @@
             },
             {
                 "tag": "note73",
-                "pitch": 17,
-                "time": 0.0,
-                "duration": 1024.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note74",
                 "pitch": 15,
                 "time": 1024.0,
                 "duration": 1024.0,
@@ -812,7 +812,7 @@
                 "type": "note"
             },
             {
-                "tag": "note75",
+                "tag": "note74",
                 "pitch": 27,
                 "time": 1024.0,
                 "duration": 1024.0,
@@ -822,7 +822,7 @@
                 "type": "note"
             },
             {
-                "tag": "note76",
+                "tag": "note75",
                 "pitch": 13,
                 "time": 2048.0,
                 "duration": 512.0,
@@ -832,7 +832,7 @@
                 "type": "note"
             },
             {
-                "tag": "note77",
+                "tag": "note76",
                 "pitch": 25,
                 "time": 2048.0,
                 "duration": 512.0,
@@ -842,7 +842,7 @@
                 "type": "note"
             },
             {
-                "tag": "note78",
+                "tag": "note77",
                 "pitch": 10,
                 "time": 2560.0,
                 "duration": 512.0,
@@ -852,7 +852,7 @@
                 "type": "note"
             },
             {
-                "tag": "note79",
+                "tag": "note78",
                 "pitch": 22,
                 "time": 2560.0,
                 "duration": 512.0,
@@ -862,8 +862,18 @@
                 "type": "note"
             },
             {
-                "tag": "note80",
+                "tag": "note79",
                 "pitch": 12,
+                "time": 3072.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note80",
+                "pitch": 24,
                 "time": 3072.0,
                 "duration": 512.0,
                 "hand": "l",
@@ -873,16 +883,6 @@
             },
             {
                 "tag": "note81",
-                "pitch": 24,
-                "time": 3072.0,
-                "duration": 512.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note82",
                 "pitch": 12,
                 "time": 3584.0,
                 "duration": 512.0,
@@ -892,7 +892,7 @@
                 "type": "note"
             },
             {
-                "tag": "note83",
+                "tag": "note82",
                 "pitch": 24,
                 "time": 3584.0,
                 "duration": 512.0,
@@ -902,7 +902,7 @@
                 "type": "note"
             },
             {
-                "tag": "note84",
+                "tag": "note83",
                 "pitch": 17,
                 "time": 4096.0,
                 "duration": 1024.0,
@@ -912,7 +912,7 @@
                 "type": "note"
             },
             {
-                "tag": "note85",
+                "tag": "note84",
                 "pitch": 29,
                 "time": 4096.0,
                 "duration": 1024.0,
@@ -922,7 +922,7 @@
                 "type": "note"
             },
             {
-                "tag": "note86",
+                "tag": "note85",
                 "pitch": 16,
                 "time": 5120.0,
                 "duration": 1024.0,
@@ -932,7 +932,7 @@
                 "type": "note"
             },
             {
-                "tag": "note87",
+                "tag": "note86",
                 "pitch": 28,
                 "time": 5120.0,
                 "duration": 1024.0,
@@ -942,7 +942,7 @@
                 "type": "note"
             },
             {
-                "tag": "note88",
+                "tag": "note87",
                 "pitch": 24,
                 "time": 5120.0,
                 "duration": 1024.0,
@@ -952,7 +952,7 @@
                 "type": "note"
             },
             {
-                "tag": "note89",
+                "tag": "note88",
                 "pitch": 36,
                 "time": 5120.0,
                 "duration": 85.33333333333333,
@@ -962,7 +962,7 @@
                 "type": "note"
             },
             {
-                "tag": "note90",
+                "tag": "note89",
                 "pitch": 43,
                 "time": 5205.333333333333,
                 "duration": 85.33333333333333,
@@ -972,7 +972,7 @@
                 "type": "note"
             },
             {
-                "tag": "note91",
+                "tag": "note90",
                 "pitch": 46,
                 "time": 5290.666666666666,
                 "duration": 85.33333333333333,
@@ -982,7 +982,7 @@
                 "type": "note"
             },
             {
-                "tag": "note92",
+                "tag": "note91",
                 "pitch": 36,
                 "time": 5376.0,
                 "duration": 85.33333333333333,
@@ -992,7 +992,7 @@
                 "type": "note"
             },
             {
-                "tag": "note93",
+                "tag": "note92",
                 "pitch": 43,
                 "time": 5461.333333333333,
                 "duration": 85.33333333333333,
@@ -1002,7 +1002,7 @@
                 "type": "note"
             },
             {
-                "tag": "note94",
+                "tag": "note93",
                 "pitch": 46,
                 "time": 5546.666666666666,
                 "duration": 85.33333333333333,
@@ -1012,7 +1012,7 @@
                 "type": "note"
             },
             {
-                "tag": "note95",
+                "tag": "note94",
                 "pitch": 36,
                 "time": 5632.0,
                 "duration": 85.33333333333333,
@@ -1022,7 +1022,7 @@
                 "type": "note"
             },
             {
-                "tag": "note96",
+                "tag": "note95",
                 "pitch": 43,
                 "time": 5717.333333333333,
                 "duration": 85.33333333333333,
@@ -1032,7 +1032,7 @@
                 "type": "note"
             },
             {
-                "tag": "note97",
+                "tag": "note96",
                 "pitch": 46,
                 "time": 5802.666666666666,
                 "duration": 85.33333333333333,
@@ -1042,7 +1042,7 @@
                 "type": "note"
             },
             {
-                "tag": "note98",
+                "tag": "note97",
                 "pitch": 36,
                 "time": 5888.0,
                 "duration": 85.33333333333333,
@@ -1052,7 +1052,7 @@
                 "type": "note"
             },
             {
-                "tag": "note99",
+                "tag": "note98",
                 "pitch": 43,
                 "time": 5973.333333333333,
                 "duration": 85.33333333333333,
@@ -1062,7 +1062,7 @@
                 "type": "note"
             },
             {
-                "tag": "note100",
+                "tag": "note99",
                 "pitch": 46,
                 "time": 6058.666666666666,
                 "duration": 85.33333333333333,
@@ -1072,7 +1072,7 @@
                 "type": "note"
             },
             {
-                "tag": "note101",
+                "tag": "note100",
                 "pitch": 36,
                 "time": 6144.0,
                 "duration": 85.33333333333333,
@@ -1082,7 +1082,7 @@
                 "type": "note"
             },
             {
-                "tag": "note102",
+                "tag": "note101",
                 "pitch": 41,
                 "time": 6229.333333333333,
                 "duration": 85.33333333333333,
@@ -1092,7 +1092,7 @@
                 "type": "note"
             },
             {
-                "tag": "note103",
+                "tag": "note102",
                 "pitch": 44,
                 "time": 6314.666666666666,
                 "duration": 85.33333333333333,
@@ -1102,7 +1102,7 @@
                 "type": "note"
             },
             {
-                "tag": "note104",
+                "tag": "note103",
                 "pitch": 36,
                 "time": 6400.0,
                 "duration": 85.33333333333333,
@@ -1112,7 +1112,7 @@
                 "type": "note"
             },
             {
-                "tag": "note105",
+                "tag": "note104",
                 "pitch": 41,
                 "time": 6485.333333333333,
                 "duration": 85.33333333333333,
@@ -1122,7 +1122,7 @@
                 "type": "note"
             },
             {
-                "tag": "note106",
+                "tag": "note105",
                 "pitch": 44,
                 "time": 6570.666666666666,
                 "duration": 85.33333333333333,
@@ -1132,7 +1132,7 @@
                 "type": "note"
             },
             {
-                "tag": "note107",
+                "tag": "note106",
                 "pitch": 37,
                 "time": 6656.0,
                 "duration": 85.33333333333333,
@@ -1142,7 +1142,7 @@
                 "type": "note"
             },
             {
-                "tag": "note108",
+                "tag": "note107",
                 "pitch": 41,
                 "time": 6741.333333333333,
                 "duration": 85.33333333333333,
@@ -1152,7 +1152,7 @@
                 "type": "note"
             },
             {
-                "tag": "note109",
+                "tag": "note108",
                 "pitch": 46,
                 "time": 6826.666666666666,
                 "duration": 85.33333333333333,
@@ -1162,7 +1162,7 @@
                 "type": "note"
             },
             {
-                "tag": "note110",
+                "tag": "note109",
                 "pitch": 37,
                 "time": 6912.0,
                 "duration": 85.33333333333333,
@@ -1172,7 +1172,7 @@
                 "type": "note"
             },
             {
-                "tag": "note111",
+                "tag": "note110",
                 "pitch": 41,
                 "time": 6997.333333333333,
                 "duration": 85.33333333333333,
@@ -1182,7 +1182,7 @@
                 "type": "note"
             },
             {
-                "tag": "note112",
+                "tag": "note111",
                 "pitch": 46,
                 "time": 7082.666666666666,
                 "duration": 85.33333333333333,
@@ -1192,7 +1192,7 @@
                 "type": "note"
             },
             {
-                "tag": "note113",
+                "tag": "note112",
                 "pitch": 36,
                 "time": 7168.0,
                 "duration": 85.33333333333333,
@@ -1202,7 +1202,7 @@
                 "type": "note"
             },
             {
-                "tag": "note114",
+                "tag": "note113",
                 "pitch": 39,
                 "time": 7253.333333333333,
                 "duration": 85.33333333333333,
@@ -1212,7 +1212,7 @@
                 "type": "note"
             },
             {
-                "tag": "note115",
+                "tag": "note114",
                 "pitch": 44,
                 "time": 7338.666666666666,
                 "duration": 85.33333333333333,
@@ -1222,7 +1222,7 @@
                 "type": "note"
             },
             {
-                "tag": "note116",
+                "tag": "note115",
                 "pitch": 36,
                 "time": 7424.0,
                 "duration": 85.33333333333333,
@@ -1232,7 +1232,7 @@
                 "type": "note"
             },
             {
-                "tag": "note117",
+                "tag": "note116",
                 "pitch": 39,
                 "time": 7509.333333333333,
                 "duration": 85.33333333333333,
@@ -1242,7 +1242,7 @@
                 "type": "note"
             },
             {
-                "tag": "note118",
+                "tag": "note117",
                 "pitch": 44,
                 "time": 7594.666666666666,
                 "duration": 85.33333333333333,
@@ -1252,7 +1252,7 @@
                 "type": "note"
             },
             {
-                "tag": "note119",
+                "tag": "note118",
                 "pitch": 37,
                 "time": 7680.0,
                 "duration": 85.33333333333333,
@@ -1262,7 +1262,7 @@
                 "type": "note"
             },
             {
-                "tag": "note120",
+                "tag": "note119",
                 "pitch": 39,
                 "time": 7765.333333333333,
                 "duration": 85.33333333333333,
@@ -1272,7 +1272,7 @@
                 "type": "note"
             },
             {
-                "tag": "note121",
+                "tag": "note120",
                 "pitch": 43,
                 "time": 7850.666666666666,
                 "duration": 85.33333333333333,
@@ -1282,7 +1282,7 @@
                 "type": "note"
             },
             {
-                "tag": "note122",
+                "tag": "note121",
                 "pitch": 37,
                 "time": 7936.0,
                 "duration": 85.33333333333333,
@@ -1292,7 +1292,7 @@
                 "type": "note"
             },
             {
-                "tag": "note123",
+                "tag": "note122",
                 "pitch": 39,
                 "time": 8021.333333333333,
                 "duration": 85.33333333333333,
@@ -1302,7 +1302,7 @@
                 "type": "note"
             },
             {
-                "tag": "note124",
+                "tag": "note123",
                 "pitch": 43,
                 "time": 8106.666666666666,
                 "duration": 85.33333333333333,
@@ -1312,7 +1312,7 @@
                 "type": "note"
             },
             {
-                "tag": "note125",
+                "tag": "note124",
                 "pitch": 44,
                 "time": 8192.0,
                 "duration": 170.66666666666606,
@@ -1322,7 +1322,7 @@
                 "type": "note"
             },
             {
-                "tag": "note126",
+                "tag": "note125",
                 "pitch": 36,
                 "time": 8192.0,
                 "duration": 85.33333333333212,
@@ -1332,7 +1332,7 @@
                 "type": "note"
             },
             {
-                "tag": "note127",
+                "tag": "note126",
                 "pitch": 39,
                 "time": 8277.333333333332,
                 "duration": 85.33333333333333,
@@ -1342,7 +1342,7 @@
                 "type": "note"
             },
             {
-                "tag": "note128",
+                "tag": "note127",
                 "pitch": 44,
                 "time": 8362.666666666666,
                 "duration": 85.33333333333333,
@@ -1353,16 +1353,6 @@
             },
             {
                 "tag": "note129",
-                "pitch": 36,
-                "time": 8448.0,
-                "duration": 85.33333333333333,
-                "hand": "r",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note130",
                 "pitch": 39,
                 "time": 8533.333333333332,
                 "duration": 85.33333333333333,
@@ -1372,7 +1362,7 @@
                 "type": "note"
             },
             {
-                "tag": "note131",
+                "tag": "note130",
                 "pitch": 44,
                 "time": 8618.666666666666,
                 "duration": 85.33333333333333,
@@ -1383,16 +1373,6 @@
             },
             {
                 "tag": "note132",
-                "pitch": 36,
-                "time": 8704.0,
-                "duration": 85.33333333333333,
-                "hand": "r",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note133",
                 "pitch": 39,
                 "time": 8789.333333333332,
                 "duration": 85.33333333333333,
@@ -1402,7 +1382,7 @@
                 "type": "note"
             },
             {
-                "tag": "note134",
+                "tag": "note133",
                 "pitch": 44,
                 "time": 8874.666666666666,
                 "duration": 85.33333333333333,
@@ -1412,7 +1392,7 @@
                 "type": "note"
             },
             {
-                "tag": "note135",
+                "tag": "note134",
                 "pitch": 36,
                 "time": 8960.0,
                 "duration": 85.33333333333333,
@@ -1422,7 +1402,7 @@
                 "type": "note"
             },
             {
-                "tag": "note136",
+                "tag": "note135",
                 "pitch": 39,
                 "time": 9045.333333333332,
                 "duration": 85.33333333333333,
@@ -1432,7 +1412,7 @@
                 "type": "note"
             },
             {
-                "tag": "note137",
+                "tag": "note136",
                 "pitch": 44,
                 "time": 9130.666666666666,
                 "duration": 85.33333333333333,
@@ -1442,7 +1422,7 @@
                 "type": "note"
             },
             {
-                "tag": "note138",
+                "tag": "note137",
                 "pitch": 39,
                 "time": 9301.333333333332,
                 "duration": 85.33333333333333,
@@ -1452,7 +1432,7 @@
                 "type": "note"
             },
             {
-                "tag": "note139",
+                "tag": "note138",
                 "pitch": 44,
                 "time": 9386.666666666666,
                 "duration": 85.33333333333333,
@@ -1462,7 +1442,7 @@
                 "type": "note"
             },
             {
-                "tag": "note140",
+                "tag": "note139",
                 "pitch": 35,
                 "time": 9216.0,
                 "duration": 85.33333333333333,
@@ -1472,7 +1452,7 @@
                 "type": "note"
             },
             {
-                "tag": "note141",
+                "tag": "note140",
                 "pitch": 39,
                 "time": 9557.333333333332,
                 "duration": 85.33333333333333,
@@ -1482,7 +1462,7 @@
                 "type": "note"
             },
             {
-                "tag": "note142",
+                "tag": "note141",
                 "pitch": 44,
                 "time": 9642.666666666666,
                 "duration": 85.33333333333333,
@@ -1492,7 +1472,7 @@
                 "type": "note"
             },
             {
-                "tag": "note143",
+                "tag": "note142",
                 "pitch": 35,
                 "time": 9472.0,
                 "duration": 85.33333333333333,
@@ -1502,7 +1482,7 @@
                 "type": "note"
             },
             {
-                "tag": "note144",
+                "tag": "note143",
                 "pitch": 39,
                 "time": 9813.333333333332,
                 "duration": 85.33333333333333,
@@ -1512,7 +1492,7 @@
                 "type": "note"
             },
             {
-                "tag": "note145",
+                "tag": "note144",
                 "pitch": 44,
                 "time": 9898.666666666666,
                 "duration": 85.33333333333333,
@@ -1522,7 +1502,7 @@
                 "type": "note"
             },
             {
-                "tag": "note146",
+                "tag": "note145",
                 "pitch": 35,
                 "time": 9728.0,
                 "duration": 85.33333333333333,
@@ -1532,7 +1512,7 @@
                 "type": "note"
             },
             {
-                "tag": "note147",
+                "tag": "note146",
                 "pitch": 39,
                 "time": 10069.333333333332,
                 "duration": 85.33333333333333,
@@ -1542,7 +1522,7 @@
                 "type": "note"
             },
             {
-                "tag": "note148",
+                "tag": "note147",
                 "pitch": 44,
                 "time": 10154.666666666666,
                 "duration": 85.33333333333333,
@@ -1552,7 +1532,7 @@
                 "type": "note"
             },
             {
-                "tag": "note149",
+                "tag": "note148",
                 "pitch": 35,
                 "time": 9984.0,
                 "duration": 85.33333333333333,
@@ -1562,7 +1542,7 @@
                 "type": "note"
             },
             {
-                "tag": "note150",
+                "tag": "note149",
                 "pitch": 47,
                 "time": 9984.0,
                 "duration": 192.0,
@@ -1572,7 +1552,7 @@
                 "type": "note"
             },
             {
-                "tag": "note151",
+                "tag": "note150",
                 "pitch": 47,
                 "time": 10176.0,
                 "duration": 64.0,
@@ -1582,7 +1562,7 @@
                 "type": "note"
             },
             {
-                "tag": "note152",
+                "tag": "note151",
                 "pitch": 47,
                 "time": 10240.0,
                 "duration": 768.0,
@@ -1592,7 +1572,7 @@
                 "type": "note"
             },
             {
-                "tag": "note153",
+                "tag": "note152",
                 "pitch": 47,
                 "time": 11008.0,
                 "duration": 192.0,
@@ -1602,7 +1582,7 @@
                 "type": "note"
             },
             {
-                "tag": "note154",
+                "tag": "note153",
                 "pitch": 47,
                 "time": 11200.0,
                 "duration": 64.0,
@@ -1612,7 +1592,7 @@
                 "type": "note"
             },
             {
-                "tag": "note155",
+                "tag": "note154",
                 "pitch": 47,
                 "time": 11264.0,
                 "duration": 512.0,
@@ -1622,7 +1602,7 @@
                 "type": "note"
             },
             {
-                "tag": "note156",
+                "tag": "note155",
                 "pitch": 46,
                 "time": 11776.0,
                 "duration": 256.0,
@@ -1632,7 +1612,7 @@
                 "type": "note"
             },
             {
-                "tag": "note157",
+                "tag": "note156",
                 "pitch": 47,
                 "time": 12032.0,
                 "duration": 256.0,
@@ -1642,11 +1622,131 @@
                 "type": "note"
             },
             {
-                "tag": "note158",
+                "tag": "note157",
                 "pitch": 49,
                 "time": 12288.0,
                 "duration": 768.0,
                 "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note173",
+                "pitch": 36,
+                "time": 8704.0,
+                "duration": 85.33333333333333,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note175",
+                "pitch": 36,
+                "time": 8448.0,
+                "duration": 85.33333333333333,
+                "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note177",
+                "pitch": 29,
+                "time": 6144.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note178",
+                "pitch": 17,
+                "time": 6144.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note179",
+                "pitch": 22,
+                "time": 6656.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note180",
+                "pitch": 10,
+                "time": 6656.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note181",
+                "pitch": 15,
+                "time": 7168.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note182",
+                "pitch": 27,
+                "time": 7168.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note183",
+                "pitch": 15,
+                "time": 7680.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note184",
+                "pitch": 27,
+                "time": 7680.0,
+                "duration": 512.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note185",
+                "pitch": 20,
+                "time": 8192.0,
+                "duration": 1024.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note186",
+                "pitch": 32,
+                "time": 8192.0,
+                "duration": 1024.0,
+                "hand": "l",
                 "staff": 0,
                 "attached": "",
                 "type": "note"
@@ -1687,7 +1787,7 @@
                 }
             },
             {
-                "tag": "linebreak159",
+                "tag": "linebreak158",
                 "time": 10240.0,
                 "staff1": {
                     "margins": [
@@ -1719,7 +1819,7 @@
                 }
             },
             {
-                "tag": "linebreak160",
+                "tag": "linebreak159",
                 "time": 15360.0,
                 "staff1": {
                     "margins": [
@@ -1751,7 +1851,7 @@
                 }
             },
             {
-                "tag": "linebreak161",
+                "tag": "linebreak160",
                 "time": 20480.0,
                 "staff1": {
                     "margins": [
@@ -1783,7 +1883,7 @@
                 }
             },
             {
-                "tag": "linebreak162",
+                "tag": "linebreak161",
                 "time": 25600.0,
                 "staff1": {
                     "margins": [
@@ -1815,7 +1915,7 @@
                 }
             },
             {
-                "tag": "linebreak163",
+                "tag": "linebreak162",
                 "time": 30720.0,
                 "staff1": {
                     "margins": [
@@ -1847,7 +1947,7 @@
                 }
             },
             {
-                "tag": "linebreak164",
+                "tag": "linebreak163",
                 "time": 40960.0,
                 "staff1": {
                     "margins": [
@@ -1879,7 +1979,7 @@
                 }
             },
             {
-                "tag": "linebreak165",
+                "tag": "linebreak164",
                 "time": 46080.0,
                 "staff1": {
                     "margins": [
@@ -1911,7 +2011,7 @@
                 }
             },
             {
-                "tag": "linebreak166",
+                "tag": "linebreak165",
                 "time": 51200.0,
                 "staff1": {
                     "margins": [
@@ -1943,7 +2043,7 @@
                 }
             },
             {
-                "tag": "linebreak167",
+                "tag": "linebreak166",
                 "time": 56320.0,
                 "staff1": {
                     "margins": [
@@ -1975,7 +2075,7 @@
                 }
             },
             {
-                "tag": "linebreak168",
+                "tag": "linebreak167",
                 "time": 61440.0,
                 "staff1": {
                     "margins": [
@@ -2007,7 +2107,7 @@
                 }
             },
             {
-                "tag": "linebreak169",
+                "tag": "linebreak168",
                 "time": 66560.0,
                 "staff1": {
                     "margins": [
@@ -2039,7 +2139,7 @@
                 }
             },
             {
-                "tag": "linebreak170",
+                "tag": "linebreak169",
                 "time": 5120.0,
                 "staff1": {
                     "margins": [
@@ -2080,7 +2180,7 @@
         "stop": [],
         "beam": [
             {
-                "tag": "beam171",
+                "tag": "beam170",
                 "time": 0.0,
                 "duration": 256.0,
                 "hand": "r",
@@ -2088,7 +2188,7 @@
                 "type": "beam"
             },
             {
-                "tag": "beam172",
+                "tag": "beam171",
                 "time": 0,
                 "duration": 256,
                 "hand": "l",

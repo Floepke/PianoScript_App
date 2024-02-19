@@ -35,14 +35,19 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
 
     # making a list of noteon and noteoff messages like a linear midi file
     note_on_off = []
-    for note in io['score']['events']['note']:
+    for note in sorted(io['score']['events']['note'], key=lambda y: y['time']):
         evt = copy.deepcopy(note)
         evt['endtime'] = evt['time'] + evt['duration']
         note_on_off.append(copy.deepcopy(evt))
         evt = copy.deepcopy(evt)
         evt['type'] = 'noteoff'
         note_on_off.append(copy.deepcopy(evt))
-    note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])  
+    #note_on_off = sorted(note_on_off, key=lambda y: y['type'])
+    #note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])
+    note_on_off = sorted(note_on_off, key=lambda y: (round(y['time']) if y['type'] == 'note' else round(y['endtime']), round(y['endtime'])))
+
+    for note in note_on_off:
+        print('type:\t', note['type'], 'tag:\t', note['tag'], 'pitch:\t', note['pitch'], 'time:\t', note['time'], 'endtime:\t', note['endtime'])
 
     # we add the notestop and continuationdot events
     active_notes = []
@@ -52,8 +57,8 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
             active_notes.append(note)
             for n in active_notes:
                 # continuation dots for note start:
-                if n != note:
-                    if (not EQUALS(n['endtime'], note['time']) and
+                if n['tag'] != note['tag']:
+                    if (not EQUALS(n['time'], note['time']) and
                         note['staff'] == n['staff'] and
                         note['hand'] == n['hand']):
                         DOC.append(continuation_dot(note['time'], n['pitch'], note))
@@ -70,7 +75,7 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
             
             for idx_n, n in enumerate(active_notes):
                 # continuation dots for note end:
-                if n != note:
+                if n['tag'] != note['tag']:
                     if (not EQUALS(n['endtime'], note['endtime']) and
                         note['staff'] == n['staff'] and
                         note['hand'] == n['hand']):
@@ -281,7 +286,7 @@ def draw_staff(x_cursor: float,
     x = x_cursor
 
     if minipiano:
-        x1 = x-PITCH_UNIT*3*scale
+        x1 = x-PITCH_UNIT*2*scale
         y1 = y_cursor+staff_length
         y2 = y_cursor+staff_length+PITCH_UNIT*8*scale
 
@@ -391,31 +396,6 @@ def pitch2x_view(pitch: int, staff_range: list, scale: float, x_cursor: float):
             break
     
     return x
-
-
-# def pitch2x_view_countline(pitch: int, staff_range: list, scale: float, x_cursor: float):
-#     '''
-#         pitch2x_view_countline converts a pitch value to a x value in the print view
-#         even if the position is not on the staff
-#     '''
-
-#     key_min = staff_range[0]
-#     key_max = staff_range[1]
-
-#     key_min, key_max = trim_key_to_outer_sides_staff(key_min, key_max)
-
-#     # calculate the x position
-#     x = x_cursor
-#     for n in range(1, key_min):
-#         remainder = ((n-1)%12)+1
-#         x -= PITCH_UNIT * 2 * scale if remainder in [4, 9] else PITCH_UNIT * 2 * scale / 2
-#     for n in range(1, 88):
-#         remainder = ((n-1)%12)+1
-#         x += PITCH_UNIT * 2 * scale if remainder in [4, 9] and not n == key_min else PITCH_UNIT * 2 * scale / 2
-#         if n == pitch:
-#             break
-    
-#     return x
 
 
 def update_barnumber(DOC, idx_page):

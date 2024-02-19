@@ -135,7 +135,10 @@ class PianoScript():
             'autosave':True,
 
             # current selected staff to edit
-            'selected_staff':0
+            'selected_staff':0,
+
+            # checkbox auto engrave
+            'auto_engrave':True
         }
 
         # setup
@@ -165,6 +168,7 @@ class PianoScript():
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
 
         self.gui.autosave_action.triggered.connect(self.io['fileoperations'].toggle_autosave)
+        self.gui.auto_engrave_action.triggered.connect(self.io['maineditor'].toggle_auto_engrave)
         self.gui.exit_action.triggered.connect(self.root.close)
 
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
@@ -198,7 +202,7 @@ class PianoScript():
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
 
         # set stylesheet
-        self.root.setStyleSheet(stylesheet)
+        #self.root.setStyleSheet(stylesheet)
 
         # run the application
         sys.exit(self.app.exec())
@@ -227,7 +231,7 @@ class PianoScript():
             self.io['maineditor'].update('grid_editor')
 
     def open_staff_sizer_editor(self):
-        """ """
+        """ open the Staff Sizer Editor """
         popup = Popup(message='Line break Editor: not yet integrated',
                       max_lines=3,
                       text_size=(100, 21))
