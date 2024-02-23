@@ -1,15 +1,15 @@
 from imports.editor.draweditor import DrawEditor
-from imports.design.note import Note
-from imports.design.slur import Slur
-from imports.design.beam import Beam
-from imports.design.countline import CountLine
+from imports.elements.note import Note
+from imports.elements.slur import Slur
+from imports.elements.beam import Beam
+from imports.elements.countline import CountLine
 from imports.editor.selection import Selection
-from imports.design.arpeggio import Arpeggio
-from imports.design.gracenote import GraceNote
-from imports.design.staffsizer import StaffSizer
-from imports.design.linebreak import LineBreak
-from imports.design.trill import Trill
-from imports.design.dot import Dot
+from imports.elements.arpeggio import Arpeggio
+from imports.elements.gracenote import GraceNote
+from imports.elements.staffsizer import StaffSizer
+from imports.elements.linebreak import LineBreak
+from imports.elements.trill import Trill
+from imports.elements.dot import Dot
 import re
 from imports.editor.ctlz import CtlZ
 import threading

@@ -53,6 +53,7 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
         # data to collect
         leftover_page_space = []
         staff_dimensions = []
+        barline_times = []
 
         '''
         first we add all types of events:
@@ -92,6 +93,8 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
                     'type': 'barlinedouble',
                     'time': time + measure_length * m - FRACTION
                 })
+                # simultaneously make a list of barline times
+                barline_times.append(time + measure_length * m)
                 for g in grid:
                     # add gridlines
                     DOC.append({
@@ -272,16 +275,16 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
 
         DOC = doc
         
-        return DOC, leftover_page_space, staff_dimensions, staff_ranges
+        return DOC, leftover_page_space, staff_dimensions, staff_ranges, barline_times
 
-    DOC, leftover_page_space, staff_dimensions, staff_ranges = pre_calculate(io)
+    DOC, leftover_page_space, staff_dimensions, staff_ranges, barline_times = pre_calculate(io)
 
     # set pageno
     pageno = io['selected_page'] % len(DOC)
 
     io['num_pages'] = len(DOC)
 
-    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale
+    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times
     
     
     
@@ -290,7 +293,7 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
     
     
     
-def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale):
+def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times):
     
     
     def draw(io):
@@ -479,7 +482,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y,
                                                             width=.15*draw_scale,
                                                             color='black',
-                                                            dash=[14, 20],
+                                                            dash=[5, 7],
                                                             tag=['gridline'])
                         
                         # draw the notes
@@ -491,27 +494,26 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 y2 = tick2y_view(evt['time']+evt['duration'], io, staff_height, idx_line)
                                 
                                 if evt['type'] == 'note':
-                                    #io['view'].new_text(x,y_cursor+y1, f"{evt['tag'][4:]}", size=3, tag=['debug'], font='Courier new', anchor='c', color='red')
                                     # draw the notehead
                                     if note_onoff:
                                         if evt['pitch'] in BLACK_KEYS:
-                                            if black_note_rule == 'AlwaysUp':
-                                                io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
+                                            if black_note_rule == 'Up':
+                                                io['view'].new_oval(x-PITCH_UNIT*draw_scale,
                                                             y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
-                                                            x+PITCH_UNIT*.75*draw_scale,
+                                                            x+PITCH_UNIT*draw_scale,
                                                             y_cursor+y1,
                                                             fill_color='#000000',
                                                             outline_color='#000000',
-                                                            outline_width=.4*draw_scale,
+                                                            outline_width=.1*draw_scale,
                                                             tag=['noteheadblack'])
-                                            elif black_note_rule == 'AlwaysDown':
-                                                io['view'].new_oval(x-PITCH_UNIT*.75*draw_scale,
+                                            elif black_note_rule == 'Down':
+                                                io['view'].new_oval(x-PITCH_UNIT*.85*draw_scale,
                                                             y_cursor+y1,
-                                                            x+PITCH_UNIT*.75*draw_scale,
+                                                            x+PITCH_UNIT*.85*draw_scale,
                                                             y_cursor+y1-(PITCH_UNIT*2.25*draw_scale),
                                                             fill_color='#000000',
                                                             outline_color='#000000',
-                                                            outline_width=.4*draw_scale,
+                                                            outline_width=.1*draw_scale,
                                                             tag=['noteheadblack'])
                                         else:
                                             io['view'].new_oval(x-PITCH_UNIT*draw_scale,
@@ -520,7 +522,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1+(PITCH_UNIT*2.25*draw_scale),
                                                             fill_color='#ffffff',
                                                             outline_color='#000000',
-                                                            outline_width=.4*draw_scale,
+                                                            outline_width=.3*draw_scale,
                                                             tag=['noteheadwhite'])
                                         
                                     # left hand dot
@@ -536,7 +538,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             tag=['leftdotwhite'])
                                                     
                                             else:
-                                                if black_note_rule == 'AlwaysUp':
+                                                if black_note_rule == 'Up':
                                                     io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
                                                             y_cursor+y1-(PITCH_UNIT*(2.25/2+.25)*draw_scale),
                                                             x+PITCH_UNIT*.25*draw_scale,
@@ -544,7 +546,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             fill_color='#ffffff',
                                                             outline_color='',
                                                             tag=['leftdotblack'])
-                                                elif black_note_rule == 'AlwaysDown':
+                                                elif black_note_rule == 'Down':
                                                     io['view'].new_oval(x-PITCH_UNIT*.25*draw_scale,
                                                             y_cursor+y1+(PITCH_UNIT*(2.25/2-.25)*draw_scale),
                                                             x+PITCH_UNIT*.25*draw_scale,
@@ -562,7 +564,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1,
                                                             width=stem_thickness*draw_scale,
                                                             tag=['stem'])
-                                            io['view'].new_line(x-PITCH_UNIT*1.5*draw_scale,
+                                            if any(EQUALS(evt['time'], barline_time) for barline_time in barline_times):
+                                                io['view'].new_line(x-PITCH_UNIT*1.5*draw_scale,
                                                             y_cursor+y1,
                                                             x+PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
@@ -576,7 +579,8 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             y_cursor+y1,
                                                             width=stem_thickness*draw_scale,
                                                             tag=['stem'])
-                                            io['view'].new_line(x+PITCH_UNIT*1.5*draw_scale,
+                                            if any(EQUALS(evt['time'], barline_time) for barline_time in barline_times):
+                                                io['view'].new_line(x+PITCH_UNIT*1.5*draw_scale,
                                                             y_cursor+y1,
                                                             x-PITCH_UNIT*5*draw_scale,
                                                             y_cursor+y1,
@@ -624,12 +628,12 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     elif stop_sign_style == 'PianoScript':
                                         # triangle stopsign
                                         io['view'].new_polygon([(x, y_cursor+y-PITCH_UNIT*2*draw_scale), 
-                                                                (x+PITCH_UNIT*draw_scale, y_cursor+y),
-                                                                (x-PITCH_UNIT*draw_scale, y_cursor+y)],
-                                                                fill_color='#000000',
-                                                                outline_color='',
-                                                                tag=['notestop'])
-
+                                                            (x+PITCH_UNIT*.75*draw_scale, y_cursor+y),
+                                                            (x-PITCH_UNIT*.75*draw_scale, y_cursor+y)],
+                                                            fill_color='#000',
+                                                            outline_color='#000',
+                                                            width=.3*draw_scale,
+                                                            tag=['notestop'])
                                     
                         # draw continuation dot
                         if evt['type'] == 'continuationdot':
@@ -638,19 +642,29 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if soundingdot_onoff: 
                                     if continuation_dot_style == 'Klavarskribo':
-                                        io['view'].new_oval(x-PITCH_UNIT*.65*draw_scale,
+                                        io['view'].new_oval(x-PITCH_UNIT*.5*draw_scale,
                                                                 y_cursor+y+(PITCH_UNIT*.75*draw_scale),
-                                                                x+PITCH_UNIT*.65*draw_scale,
+                                                                x+PITCH_UNIT*.5*draw_scale,
                                                                 y_cursor+y+(PITCH_UNIT*1.75*draw_scale),
                                                                 fill_color='#000000',
                                                                 outline_color='',
                                                                 tag=['continuationdot'])
                                     elif continuation_dot_style == 'PianoScript':
-                                        io['view'].new_polygon([(x+PITCH_UNIT*draw_scale, y_cursor+y),
+                                        if evt['pitch'] in BLACK_KEYS:
+                                            io['view'].new_polygon([(x+PITCH_UNIT*.75*draw_scale, y_cursor+y),
                                                                 (x, y_cursor+y+PITCH_UNIT*2*draw_scale),
-                                                                (x-PITCH_UNIT*draw_scale, y_cursor+y)],
-                                                                fill_color='#000000',
-                                                                outline_color='',
+                                                                (x-PITCH_UNIT*.75*draw_scale, y_cursor+y)],
+                                                                fill_color='#000',
+                                                                outline_color='#000',
+                                                                width=.2*draw_scale,
+                                                                tag=['continuationdot'])
+                                        else:
+                                            io['view'].new_polygon([(x-PITCH_UNIT*.75*draw_scale, y_cursor+y),
+                                                                (x, y_cursor+y+PITCH_UNIT*2*draw_scale),
+                                                                (x+PITCH_UNIT*.75*draw_scale, y_cursor+y)],
+                                                                fill_color='#fff',
+                                                                outline_color='#000',
+                                                                width=.3*draw_scale,
                                                                 tag=['continuationdot'])
 
                         
@@ -671,9 +685,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                         # beams
                         if evt['type'] == 'beam':
                             if idx_staff == evt['staff'] and beam_onoff:
-                                notes = evt['notes']
+                                notes = [note for note in evt['notes'] if note['type'] == 'note']
                                 if len(notes) < 2 or all(EQUALS(note['time'], notes[0]['time']) for note in notes):
                                     continue
+                                notes = evt['notes']
                                 
                                 # LEFT BEAM:
                                 if evt['hand'] == 'l':
@@ -726,19 +741,19 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if evt['pitch'] in BLACK_KEYS:
-                                    io['view'].new_oval(x - (PITCH_UNIT * draw_scale), 
+                                    io['view'].new_oval(x - (PITCH_UNIT * 0.75 * draw_scale), 
                                                         y,
-                                                        x + (PITCH_UNIT * draw_scale),
-                                                        y + (PITCH_UNIT * 2 * draw_scale),
+                                                        x + (PITCH_UNIT * 0.75 * draw_scale),
+                                                        y + (PITCH_UNIT * 2 * 0.75 * draw_scale),
                                                         tag=[evt['tag'], 'noteheadblack'],
                                                         fill_color='black',
                                                         outline_width=0,
                                                         outline_color='black')
                                 elif evt['pitch'] in WHITE_KEYS:
-                                    io['view'].new_oval(x - (PITCH_UNIT * draw_scale), 
+                                    io['view'].new_oval(x - (PITCH_UNIT * 0.75 * draw_scale), 
                                                         y,
-                                                        x + (PITCH_UNIT * draw_scale),
-                                                        y + (PITCH_UNIT * 2 * draw_scale),
+                                                        x + (PITCH_UNIT * 0.75 * draw_scale),
+                                                        y + (PITCH_UNIT * 2 * 0.75 * draw_scale),
                                                         tag=[evt['tag'], 'noteheadblack'],
                                                         fill_color='white',
                                                         outline_width=0.3,
@@ -839,36 +854,13 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
 
     io['total_pages'] = len(DOC)
 
-
-from PySide6.QtCore import QThread, Signal
-
-class Worker(QThread):
-    pre_render_finished = Signal(tuple)
-
-    def __init__(self, io):
-        super().__init__()
-        self.io = io
-
-    def run(self):
-        result = pre_render(self.io)
-        self.pre_render_finished.emit(result)
-
 class Engraver:
     def __init__(self, io):
         self.io = io
-        self.worker = Worker(self.io)
-        self.worker.pre_render_finished.connect(self.render_start)
-
-    def pre_render_start(self):
-        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = pre_render(self.io)
-        render(self.io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
-
-    def render_start(self, result):
-        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = result
-        render(self.io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
 
     def do_engrave(self):
-        self.pre_render_start()
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times = pre_render(self.io)
+        render(self.io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times)
 
 
 

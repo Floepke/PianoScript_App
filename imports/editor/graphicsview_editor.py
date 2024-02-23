@@ -27,6 +27,8 @@ class GraphicsViewEditor(QGraphicsView):
         self.left_mouse_button = False
         self.middle_mouse_button = False
         self.right_mouse_button = False
+        # modifiers
+        self.shift_modifier = False
 
         self.scene = scene
 
@@ -63,8 +65,9 @@ class GraphicsViewEditor(QGraphicsView):
         x = scene_point.x()
         y = scene_point.y()
 
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.LeftButton and not (event.modifiers() & Qt.ShiftModifier):
             self.left_mouse_button = True
+            self.shift_modifier = False
             self.io['maineditor'].update('leftclick', x, y)
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = True
@@ -72,8 +75,10 @@ class GraphicsViewEditor(QGraphicsView):
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = True
             self.io['maineditor'].update('rightclick', x, y)
-        
-        self.scene.update()
+        elif event.button() == Qt.LeftButton and (event.modifiers() & Qt.ShiftModifier):
+            self.left_mouse_button = True
+            self.shift_modifier = True
+            self.io['maineditor'].update('leftclick+shift', x, y)
         
 
     def mouseMoveEvent(self, event):
@@ -84,14 +89,14 @@ class GraphicsViewEditor(QGraphicsView):
         
         if not any([self.left_mouse_button, self.middle_mouse_button, self.right_mouse_button]):
             self.io['maineditor'].update('move', x, y)
-        elif self.left_mouse_button:
+        elif self.left_mouse_button and not self.shift_modifier:
             self.io['maineditor'].update('leftclick+move', x, y)
         elif self.middle_mouse_button:
             self.io['maineditor'].update('middleclick+move', x, y)
         elif self.right_mouse_button:
             self.io['maineditor'].update('rightclick+move', x, y)
-
-        #self.scene.update()
+        elif self.left_mouse_button and self.shift_modifier:
+            self.io['maineditor'].update('leftclick+shift+move', x, y)
         
 
     def mouseReleaseEvent(self, event):
@@ -102,6 +107,7 @@ class GraphicsViewEditor(QGraphicsView):
         
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = False
+            self.shift_modifier = False
             self.io['maineditor'].update('leftrelease', x, y)
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button = False
@@ -109,8 +115,6 @@ class GraphicsViewEditor(QGraphicsView):
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = False
             self.io['maineditor'].update('rightrelease', x, y)
-        
-        self.scene.update()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # if the space key is pressed, switch the hand

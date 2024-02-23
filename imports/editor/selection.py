@@ -1,5 +1,5 @@
 import re
-from imports.design.note import Note
+from imports.elements.note import Note
 from imports.utils.savefilestructure import SaveFileStructureSource
 
 class Selection:
@@ -9,7 +9,7 @@ class Selection:
         '''handles the mouse handling of the selection tool'''
 
         # right mouse button handling:
-        if event_type == 'rightclick':
+        if event_type == 'leftclick+shift':
             # delete note cursor
             io['editor'].delete_with_tag(['notecursor'])
 
@@ -30,13 +30,13 @@ class Selection:
                 io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
                 
 
-        elif event_type in ['rightclick+move', 'scroll']:
+        elif event_type in ['leftclick+shift+move', 'scroll']:
             if io['selection']['rectangle_on']:
                 # if we are in rectangle selection mode we want to update the rectangle and detect the containing objects
                 Selection.draw_selection_rectangle(io, x, y)
 
         
-        elif event_type == 'rightrelease':
+        elif event_type == 'leftrelease':
             # delete the selection rectangle
             io['editor'].delete_with_tag(['selectionrectangle'])
 
@@ -106,10 +106,10 @@ class Selection:
                                    x2,
                                    y2,
                                    tag=['selectionrectangle'],
-                                   fill_color='#f09cff60',
-                                   width=1,
-                                   outline_color='000000ff',
-                                   dash=(6,6))
+                                   fill_color='',
+                                   width=4,
+                                   outline_color='ff0000ff',
+                                   dash=(2,2))
         io['editor'].tag_raise(['selectionrectangle'])
 
         io['editor'].tag_raise(['selectionrectangle'])

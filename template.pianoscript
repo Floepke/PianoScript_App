@@ -1,0 +1,180 @@
+{
+    "header": {
+        "title": "Untitled",
+        "composer": "PianoScript",
+        "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
+        "app_name": "pianoscript",
+        "app_version": "1.0",
+        "timestamp": "19-02-2024_21:43:08",
+        "genre": "",
+        "comment": ""
+    },
+    "properties": {
+        "page_width": 210.0,
+        "page_height": 297.0,
+        "page_margin_left": 5.0,
+        "page_margin_right": 5.0,
+        "page_margin_up": 10.0,
+        "page_margin_down": 10.0,
+        "draw_scale": 0.9,
+        "header_height": 20.0,
+        "footer_height": 12.5,
+        "color_right_midinote": "pink",
+        "color_left_midinote": "lightblue",
+        "editor_zoom": 130,
+        "black_note_rule": "Up",
+        "threeline_scale": 2.0,
+        "stop_sign_style": "Klavarskribo",
+        "continuation_dot_style": "Klavarskribo",
+        "staff_onoff": true,
+        "minipiano_onoff": true,
+        "stem_onoff": true,
+        "beam_onoff": true,
+        "note_onoff": true,
+        "midinote_onoff": false,
+        "notestop_onoff": true,
+        "page_numbering_onoff": true,
+        "barlines_onoff": true,
+        "basegrid_onoff": true,
+        "countline_onoff": true,
+        "measure_numbering_onoff": true,
+        "accidental_onoff": true,
+        "soundingdot_onoff": true,
+        "leftdot_onoff": false,
+        "staffs": [
+            {
+                "onoff": true,
+                "name": "Staff 1",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 2",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 3",
+                "staff_scale": 1.0
+            },
+            {
+                "onoff": false,
+                "name": "Staff 4",
+                "staff_scale": 1.0
+            }
+        ]
+    },
+    "events": {
+        "grid": [
+            {
+                "tag": "grid0",
+                "amount": 8,
+                "numerator": 4,
+                "denominator": 4,
+                "grid": [
+                    256,
+                    512,
+                    768
+                ],
+                "visible": true
+            }
+        ],
+        "note": [],
+        "countline": [],
+        "linebreak": [
+            {
+                "tag": "lockedlinebreak",
+                "time": 0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak1",
+                "time": 4096.0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            }
+        ],
+        "staffsizer": [],
+        "startrepeat": [],
+        "endrepeat": [],
+        "starthook": [],
+        "endhook": [],
+        "dot": [],
+        "stop": [],
+        "beam": [
+            {
+                "tag": "beam2",
+                "time": 0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "type": "beam"
+            },
+            {
+                "tag": "beam3",
+                "time": 0,
+                "duration": 256,
+                "hand": "r",
+                "staff": 0,
+                "type": "beam"
+            }
+        ],
+        "gracenote": [],
+        "text": [],
+        "pedal": [],
+        "slur": []
+    }
+}

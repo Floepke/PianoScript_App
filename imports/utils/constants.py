@@ -46,12 +46,12 @@ SCORE_TEMPLATE = {
         'color_left_midinote':'#c8c8c8',
         'editor_zoom':80, # size in pixels per quarter note
         'black_note_rule':[
-            'AlwaysUp', 
-            'AlwaysDown', 
+            'Up', 
+            'Down', 
             'OnlyChordUp', 
             'AlwaysDownExceptCollisions', 
             'AlwaysUpExceptCollisions'
-            ][0],
+            ][1],
         'threeline_scale':2.0,
         'stop_sign_style':['PianoScript', 'Klavarskribo'][0],
         'continuation_dot_style':['PianoScript', 'Klavarskribo'][1],

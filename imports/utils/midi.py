@@ -28,8 +28,8 @@ class Midi:
 
     def load_midi(self):
 
-        # if not self.io['fileoperations'].save_check():
-        #     return
+        if not self.io['fileoperations'].save_check():
+            return
         
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getOpenFileName(self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')

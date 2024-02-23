@@ -96,7 +96,7 @@ class ScoreOptionsDialog(QDialog):
         self.footer_height.setValue(float(self.io['score']['properties']['footer_height']))
 
         self.black_note_rule = QComboBox()
-        self.black_note_rule.addItems(['AlwaysUp', 'AlwaysDown', 'AlwaysDownExceptCollision', 'AlwaysUpExceptCollision', 'OnlyChordUp'])
+        self.black_note_rule.addItems(['Up', 'Down'])#, 'DownExceptCollision', 'UpExceptCollision', 'OnlyChordUp'
         self.black_note_rule.setCurrentText(self.io['score']['properties']['black_note_rule'])
 
         self.threeline_scale = QDoubleSpinBox()
@@ -112,8 +112,15 @@ class ScoreOptionsDialog(QDialog):
         self.continuation_dot_style.addItems(['PianoScript', 'Klavarskribo'])
         self.continuation_dot_style.setCurrentText(self.io['score']['properties']['continuation_dot_style'])
 
-        self.color_right_midinote = QLineEdit(self.io['score']['properties']['color_right_midinote'])
-        self.color_left_midinote = QLineEdit(self.io['score']['properties']['color_left_midinote'])
+        self.color_right_midinote = QComboBox()
+        self.color_right_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_right_midinote.setEditable(True)
+        self.color_right_midinote.setCurrentText(self.io['score']['properties']['color_right_midinote'])
+
+        self.color_left_midinote = QComboBox()
+        self.color_left_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_left_midinote.setEditable(True)
+        self.color_left_midinote.setCurrentText(self.io['score']['properties']['color_left_midinote'])
 
         properties_form_layout = QFormLayout()
 
@@ -235,8 +242,8 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['threeline_scale'] = self.threeline_scale.value()
         self.io['score']['properties']['stop_sign_style'] = self.stop_sign_style.currentText()
         self.io['score']['properties']['continuation_dot_style'] = self.continuation_dot_style.currentText()
-        self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.text()
-        self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.text()
+        self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.currentText()
+        self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.currentText()
         self.io['score']['properties']['staff_onoff'] = self.staff_onoff.isChecked()
         self.io['score']['properties']['minipiano_onoff'] = self.minipiano_onoff.isChecked()
         self.io['score']['properties']['stem_onoff'] = self.stem_onoff.isChecked()

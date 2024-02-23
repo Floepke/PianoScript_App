@@ -99,8 +99,8 @@ def pdf_export(io):
         for page in range(io['total_pages']):
             io['selected_page'] = page
             if page > 0:printer.newPage()
-            DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale = pre_render(io, render_type='pdf')
-            render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale)
+            DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times = pre_render(io, render_type='pdf')
+            render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times)
             io['gui'].print_scene.render(painter)
 
         # End the painter

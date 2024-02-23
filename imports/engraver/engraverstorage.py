@@ -46,9 +46,6 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
     #note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])
     note_on_off = sorted(note_on_off, key=lambda y: (round(y['time']) if y['type'] == 'note' else round(y['endtime']), round(y['endtime'])))
 
-    for note in note_on_off:
-        print('type:\t', note['type'], 'tag:\t', note['tag'], 'pitch:\t', note['pitch'], 'time:\t', note['time'], 'endtime:\t', note['endtime'])
-
     # we add the notestop and continuationdot events
     active_notes = []
     for idx, note in enumerate(note_on_off):
@@ -71,7 +68,6 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
                     n['hand'] == note['hand']):
                     active_notes.remove(n)
                     break
-
             
             for idx_n, n in enumerate(active_notes):
                 # continuation dots for note end:

@@ -166,6 +166,7 @@ class PianoScript():
         self.gui.load_action.triggered.connect(self.io['fileoperations'].load)
         self.gui.save_action.triggered.connect(self.io['fileoperations'].save)
         self.gui.saveas_action.triggered.connect(self.io['fileoperations'].saveas)
+        self.gui.save_template_action.triggered.connect(self.io['fileoperations'].save_template)
 
         self.gui.autosave_action.triggered.connect(self.io['fileoperations'].toggle_autosave)
         self.gui.auto_engrave_action.triggered.connect(self.io['maineditor'].toggle_auto_engrave)
@@ -200,9 +201,6 @@ class PianoScript():
         hand_right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
         escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
-
-        # set stylesheet
-        #self.root.setStyleSheet(stylesheet)
 
         # run the application
         sys.exit(self.app.exec())

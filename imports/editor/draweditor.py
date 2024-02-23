@@ -1,6 +1,6 @@
 # in HARDCODE.py you can find all constants that are used in the application along with the description.
 from imports.utils.constants import *
-from imports.design.note import Note
+from imports.elements.note import Note
 import copy
 
 class DrawEditor:

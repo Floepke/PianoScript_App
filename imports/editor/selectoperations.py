@@ -1,6 +1,6 @@
 import copy
 from imports.editor.selection import SaveFileStructureSource
-from imports.design.note import Note
+from imports.elements.note import Note
 
 class SelectOperations:
 

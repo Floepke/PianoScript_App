@@ -115,11 +115,11 @@ class CountLine:
         # add handles
         io['editor'].new_rectangle(x1-5, y-5, x1+5, y+5,
                                    tag=[countline['tag'], 'countline', 'handle'],
-                                   fill_color='#aaaa00ff',
+                                   fill_color='#aaaa0099',
                                    width=0)
         io['editor'].new_rectangle(x2-5, y-5, x2+5, y+5,
                                    tag=[countline['tag'], 'countline', 'handle'],
-                                   fill_color='#aaaa00ff',
+                                   fill_color='#aaaa0099',
                                    width=0)
         
     def delete_editor(io, countline):

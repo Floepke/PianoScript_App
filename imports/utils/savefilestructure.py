@@ -166,3 +166,21 @@ class SaveFileStructureSource:
             'hand':hand,
             'staff':staff,
         }
+    
+    def new_text(
+            tag: str, # text+tagnumber to make tag unique
+            text: str, # text
+            time: float, # in linear time in pianoticks 0 to infinity
+            pitch: int, # piano note number 1 to 88
+            font: str, # font
+            font_size: int, # size
+            staff: int, # staff number 0 to 3 there is a total of 4 staffs available
+            ):
+        '''The text event structure.'''
+        return {
+            'tag':tag,
+            'text':text,
+            'time':time,
+            'pitch':pitch,
+            'staff':staff
+        }

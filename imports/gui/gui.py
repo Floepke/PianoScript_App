@@ -48,7 +48,6 @@ class Gui():
         self.load_action = QAction('Load', self.main)
         self.load_action.setShortcut('Ctrl+O')
         self.file_menu.addAction(self.load_action)
-        self.file_menu.addSeparator()
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
         self.import_midi_action.triggered.connect(lambda: self.io['midi'].load_midi())
@@ -60,6 +59,9 @@ class Gui():
         self.saveas_action = QAction('Save As', self.main)
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
+        self.save_template_action = QAction('Set As Default Template...', self.main)
+        self.file_menu.addAction(self.save_template_action)
+        
 
         self.file_menu.addSeparator()
 
@@ -166,6 +168,11 @@ class Gui():
         self.editor_view = GraphicsViewEditor(self.editor_scene, self.io, self.main)
         # set minimum width of the editor
         self.editor_view.setMinimumWidth(400)
+        # Set the focus policy to Qt.StrongFocus to accept focus by tabbing and clicking
+        self.editor_view.setFocusPolicy(Qt.StrongFocus)
+
+        # Set the focus to the editor view
+        self.editor_view.setFocus()
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
@@ -201,10 +208,19 @@ class Gui():
         self.refresh_button.clicked.connect(self.refresh)
         self.toolbar.addWidget(self.refresh_button)
 
-        # self.auto_engrave_checkbox = QCheckBox()
-        # self.auto_engrave_checkbox.setChecked(True)
-        # self.auto_engrave_checkbox.setToolTip("Auto engrave the document")
-        # self.toolbar.addWidget(self.auto_engrave_checkbox)
+        self.toolbar.addSeparator()
+
+        self.play_button = QToolButton()
+        self.play_button.setText("▶")
+        self.play_button.setToolTip("Play MIDI")
+        # self.play_button.clicked.connect(self.play)
+        self.toolbar.addWidget(self.play_button)
+
+        self.stop_button = QToolButton()
+        self.stop_button.setText("■")
+        self.stop_button.setToolTip("Stop MIDI")
+        # self.stop_button.clicked.connect(self.stop)
+        self.toolbar.addWidget(self.stop_button)
 
         # Add the toolbar to the widget
         self.toolbar_layout = QVBoxLayout()
@@ -403,6 +419,8 @@ class Gui():
         else:
             self.last_selected_child = index
             self.io['maineditor'].select_tool(index.data())
+
+        self.editor_view.setFocus()
 
 
     def previous_page(self):

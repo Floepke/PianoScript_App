@@ -58,6 +58,9 @@ class GraceNote:
 
                 GraceNote.draw_editor(io, new)
 
+                # draw the note, redraw the editor viewport
+                io['maineditor'].draw_viewport()
+
         # middle mouse button handling:
         elif event_type == 'middleclick':
             ...

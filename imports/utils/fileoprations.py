@@ -35,9 +35,16 @@ class FileOperations:
         self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
         
         # load the score into the editor
-        # for now, we just load the hardcoded template into the score. later, we will add a template system.
-        self.io['score'] = json.load(open('pianoscriptfiles/test.pianoscript', 'r'))
-        #self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
+        try:
+            with open('template.pianoscript', 'r') as file:
+                self.io['score'] = json.load(file)
+        except FileNotFoundError:
+            self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
+            with open('template.pianoscript', 'w') as file:
+                json.dump(SCORE_TEMPLATE, file, indent=4)
+
+        # load test file only for debug purposes:
+        #self.io['score'] = json.load(open('pianoscriptfiles/Lamp.pianoscript', 'r'))
 
         # renumber tags
         self.io['calc'].renumber_tags()
@@ -53,6 +60,9 @@ class FileOperations:
 
         # update page dimensions in the printview
         self.io['gui'].print_view.update_page_dimensions()
+
+        # update window title
+        self.io['gui'].main.setWindowTitle('PianoScript - new file')
 
 
     def load(self):
@@ -112,6 +122,11 @@ class FileOperations:
             self.savepath = file_path
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
+
+    def save_template(self):
+        '''This function overwrites the template.pianoscript file with the current score'''
+        with open('template.pianoscript', 'w') as file:
+            json.dump(self.io['score'], file, indent=4)
 
     def auto_save(self):
         if self.savepath and self.io['autosave']:
