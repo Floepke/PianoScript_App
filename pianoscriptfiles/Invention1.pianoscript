@@ -17,12 +17,12 @@
         "page_margin_up": 10.0,
         "page_margin_down": 10.0,
         "draw_scale": 0.75,
-        "header_height": 20.0,
+        "header_height": 12.0,
         "footer_height": 12.5,
-        "color_right_midinote": "#bbb",
-        "color_left_midinote": "#bbb",
+        "color_right_midinote": "lightskyblue",
+        "color_left_midinote": "lightpink",
         "editor_zoom": 130,
-        "black_note_rule": "Up",
+        "black_note_rule": "Down",
         "threeline_scale": 2.0,
         "stop_sign_style": "Klavarskribo",
         "continuation_dot_style": "Klavarskribo",
@@ -31,7 +31,7 @@
         "stem_onoff": true,
         "beam_onoff": true,
         "note_onoff": true,
-        "midinote_onoff": false,
+        "midinote_onoff": true,
         "notestop_onoff": true,
         "page_numbering_onoff": true,
         "barlines_onoff": true,
@@ -5652,102 +5652,6 @@
             },
             {
                 "tag": "linebreak467",
-                "time": 18432,
-                "staff1": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff2": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff3": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff4": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                }
-            },
-            {
-                "tag": "linebreak468",
-                "time": 3072.0,
-                "staff1": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff2": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff3": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff4": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                }
-            },
-            {
-                "tag": "linebreak469",
-                "time": 6144.0,
-                "staff1": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff2": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff3": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff4": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                }
-            },
-            {
-                "tag": "linebreak470",
                 "time": 9216.0,
                 "staff1": {
                     "margins": [
@@ -5779,7 +5683,39 @@
                 }
             },
             {
-                "tag": "linebreak471",
+                "tag": "linebreak468",
+                "time": 18432.0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak470",
                 "time": 12288.0,
                 "staff1": {
                     "margins": [
@@ -5811,8 +5747,72 @@
                 }
             },
             {
-                "tag": "linebreak472",
+                "tag": "linebreak483",
+                "time": 6144.0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak486",
                 "time": 15360.0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak487",
+                "time": 3072.0,
                 "staff1": {
                     "margins": [
                         10.0,
@@ -5852,7 +5852,7 @@
         "stop": [],
         "beam": [
             {
-                "tag": "beam473",
+                "tag": "beam471",
                 "time": 0,
                 "duration": 256,
                 "hand": "l",
@@ -5860,7 +5860,7 @@
                 "type": "beam"
             },
             {
-                "tag": "beam474",
+                "tag": "beam472",
                 "time": 0,
                 "duration": 256,
                 "hand": "r",
@@ -5868,7 +5868,7 @@
                 "type": "beam"
             },
             {
-                "tag": "beam475",
+                "tag": "beam473",
                 "time": 21504.0,
                 "duration": 0.0,
                 "hand": "l",
@@ -5876,7 +5876,7 @@
                 "type": "beam"
             },
             {
-                "tag": "beam476",
+                "tag": "beam474",
                 "time": 21504.0,
                 "duration": 0.0,
                 "hand": "r",
@@ -5886,7 +5886,7 @@
         ],
         "gracenote": [
             {
-                "tag": "gracenote477",
+                "tag": "gracenote475",
                 "pitch": 52,
                 "time": 784.0,
                 "hand": "r",
@@ -5894,7 +5894,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote478",
+                "tag": "gracenote476",
                 "pitch": 51,
                 "time": 800.0,
                 "hand": "r",
@@ -5902,7 +5902,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote479",
+                "tag": "gracenote477",
                 "pitch": 59,
                 "time": 1808.0,
                 "hand": "r",
@@ -5910,7 +5910,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote480",
+                "tag": "gracenote478",
                 "pitch": 57,
                 "time": 1824.0,
                 "hand": "r",
@@ -5918,7 +5918,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote481",
+                "tag": "gracenote479",
                 "pitch": 52,
                 "time": 5904.0,
                 "hand": "r",
@@ -5926,7 +5926,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote482",
+                "tag": "gracenote480",
                 "pitch": 51,
                 "time": 5920.0,
                 "hand": "r",
@@ -5934,7 +5934,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote483",
+                "tag": "gracenote481",
                 "pitch": 47,
                 "time": 7184.0,
                 "hand": "r",
@@ -5942,7 +5942,7 @@
                 "type": "gracenote"
             },
             {
-                "tag": "gracenote484",
+                "tag": "gracenote482",
                 "pitch": 46,
                 "time": 7200.0,
                 "hand": "r",

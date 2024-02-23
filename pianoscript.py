@@ -132,7 +132,7 @@ class PianoScript():
             'num_pages':0,
 
             # auto save onoff
-            'autosave':True,
+            'autosave':False,
 
             # current selected staff to edit
             'selected_staff':0,

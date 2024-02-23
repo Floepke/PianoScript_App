@@ -68,7 +68,7 @@
         "grid": [
             {
                 "nr": 1,
-                "tag": "grid39",
+                "tag": "grid4",
                 "amount": 32,
                 "numerator": 4,
                 "denominator": 4,
@@ -83,9 +83,9 @@
         "note": [
             {
                 "tag": "note5",
-                "pitch": 41,
-                "time": 0,
-                "duration": 256,
+                "pitch": 40,
+                "time": 256.0,
+                "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
                 "attached": "",
@@ -93,8 +93,8 @@
             },
             {
                 "tag": "note6",
-                "pitch": 38,
-                "time": 0.0,
+                "pitch": 33,
+                "time": 256.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -103,9 +103,9 @@
             },
             {
                 "tag": "note7",
-                "pitch": 40,
-                "time": 256.0,
-                "duration": 256.0,
+                "pitch": 41,
+                "time": 512.0,
+                "duration": 256,
                 "hand": "l",
                 "staff": 0,
                 "attached": "",
@@ -113,8 +113,8 @@
             },
             {
                 "tag": "note8",
-                "pitch": 33,
-                "time": 256.0,
+                "pitch": 38,
+                "time": 512.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -123,26 +123,6 @@
             },
             {
                 "tag": "note9",
-                "pitch": 41,
-                "time": 512.0,
-                "duration": 256,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note10",
-                "pitch": 38,
-                "time": 512.0,
-                "duration": 256.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note11",
                 "pitch": 40,
                 "time": 768.0,
                 "duration": 256.0,
@@ -152,7 +132,7 @@
                 "type": "note"
             },
             {
-                "tag": "note12",
+                "tag": "note10",
                 "pitch": 33,
                 "time": 768.0,
                 "duration": 256.0,
@@ -162,7 +142,7 @@
                 "type": "note"
             },
             {
-                "tag": "note13",
+                "tag": "note11",
                 "pitch": 41,
                 "time": 1024.0,
                 "duration": 256,
@@ -172,7 +152,7 @@
                 "type": "note"
             },
             {
-                "tag": "note14",
+                "tag": "note12",
                 "pitch": 38,
                 "time": 1024.0,
                 "duration": 256.0,
@@ -182,7 +162,7 @@
                 "type": "note"
             },
             {
-                "tag": "note16",
+                "tag": "note13",
                 "pitch": 33,
                 "time": 1280.0,
                 "duration": 256.0,
@@ -192,7 +172,7 @@
                 "type": "note"
             },
             {
-                "tag": "note17",
+                "tag": "note14",
                 "pitch": 43,
                 "time": 1280.0,
                 "duration": 256.0,
@@ -202,7 +182,7 @@
                 "type": "note"
             },
             {
-                "tag": "note18",
+                "tag": "note15",
                 "pitch": 41,
                 "time": 1536.0,
                 "duration": 256,
@@ -212,7 +192,7 @@
                 "type": "note"
             },
             {
-                "tag": "note19",
+                "tag": "note16",
                 "pitch": 38,
                 "time": 1536.0,
                 "duration": 256.0,
@@ -222,9 +202,39 @@
                 "type": "note"
             },
             {
-                "tag": "note20",
+                "tag": "note17",
                 "pitch": 40,
                 "time": 1792.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note18",
+                "pitch": 33,
+                "time": 1792.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note19",
+                "pitch": 41,
+                "time": 2048.0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note20",
+                "pitch": 38,
+                "time": 2048.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -233,8 +243,8 @@
             },
             {
                 "tag": "note21",
-                "pitch": 33,
-                "time": 1792.0,
+                "pitch": 40,
+                "time": 2304.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -243,18 +253,8 @@
             },
             {
                 "tag": "note22",
-                "pitch": 41,
-                "time": 2048.0,
-                "duration": 256,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note23",
-                "pitch": 38,
-                "time": 2048.0,
+                "pitch": 33,
+                "time": 2304.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -262,9 +262,19 @@
                 "type": "note"
             },
             {
+                "tag": "note23",
+                "pitch": 41,
+                "time": 2560.0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
                 "tag": "note24",
-                "pitch": 40,
-                "time": 2304.0,
+                "pitch": 38,
+                "time": 2560.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -273,8 +283,8 @@
             },
             {
                 "tag": "note25",
-                "pitch": 33,
-                "time": 2304.0,
+                "pitch": 40,
+                "time": 2816.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -283,36 +293,6 @@
             },
             {
                 "tag": "note26",
-                "pitch": 41,
-                "time": 2560.0,
-                "duration": 256,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note27",
-                "pitch": 38,
-                "time": 2560.0,
-                "duration": 256.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note28",
-                "pitch": 40,
-                "time": 2816.0,
-                "duration": 256.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note29",
                 "pitch": 33,
                 "time": 2816.0,
                 "duration": 256.0,
@@ -322,7 +302,7 @@
                 "type": "note"
             },
             {
-                "tag": "note30",
+                "tag": "note27",
                 "pitch": 41,
                 "time": 3072.0,
                 "duration": 256,
@@ -332,7 +312,7 @@
                 "type": "note"
             },
             {
-                "tag": "note31",
+                "tag": "note28",
                 "pitch": 38,
                 "time": 3072.0,
                 "duration": 256.0,
@@ -342,9 +322,39 @@
                 "type": "note"
             },
             {
-                "tag": "note32",
+                "tag": "note29",
                 "pitch": 40,
                 "time": 3328.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note30",
+                "pitch": 33,
+                "time": 3328.0,
+                "duration": 256.0,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note31",
+                "pitch": 41,
+                "time": 3584.0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note32",
+                "pitch": 38,
+                "time": 3584.0,
                 "duration": 256.0,
                 "hand": "l",
                 "staff": 0,
@@ -354,36 +364,6 @@
             {
                 "tag": "note33",
                 "pitch": 33,
-                "time": 3328.0,
-                "duration": 256.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note34",
-                "pitch": 41,
-                "time": 3584.0,
-                "duration": 256,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note35",
-                "pitch": 38,
-                "time": 3584.0,
-                "duration": 256.0,
-                "hand": "l",
-                "staff": 0,
-                "attached": "",
-                "type": "note"
-            },
-            {
-                "tag": "note37",
-                "pitch": 33,
                 "time": 3840.0,
                 "duration": 256.0,
                 "hand": "l",
@@ -392,7 +372,7 @@
                 "type": "note"
             },
             {
-                "tag": "note38",
+                "tag": "note34",
                 "pitch": 43,
                 "time": 3840.0,
                 "duration": 256.0,
@@ -402,7 +382,7 @@
                 "type": "note"
             },
             {
-                "tag": "note42",
+                "tag": "note35",
                 "pitch": 41,
                 "time": 4096.0,
                 "duration": 256,
@@ -412,7 +392,7 @@
                 "type": "note"
             },
             {
-                "tag": "note43",
+                "tag": "note36",
                 "pitch": 38,
                 "time": 4096.0,
                 "duration": 256.0,
@@ -422,7 +402,7 @@
                 "type": "note"
             },
             {
-                "tag": "note44",
+                "tag": "note37",
                 "pitch": 40,
                 "time": 4352.0,
                 "duration": 256.0,
@@ -432,7 +412,7 @@
                 "type": "note"
             },
             {
-                "tag": "note45",
+                "tag": "note38",
                 "pitch": 33,
                 "time": 4352.0,
                 "duration": 256.0,
@@ -442,7 +422,7 @@
                 "type": "note"
             },
             {
-                "tag": "note46",
+                "tag": "note39",
                 "pitch": 41,
                 "time": 4608.0,
                 "duration": 256,
@@ -452,7 +432,7 @@
                 "type": "note"
             },
             {
-                "tag": "note47",
+                "tag": "note40",
                 "pitch": 38,
                 "time": 4608.0,
                 "duration": 256.0,
@@ -462,7 +442,7 @@
                 "type": "note"
             },
             {
-                "tag": "note49",
+                "tag": "note41",
                 "pitch": 33,
                 "time": 4864.0,
                 "duration": 256.0,
@@ -472,7 +452,7 @@
                 "type": "note"
             },
             {
-                "tag": "note50",
+                "tag": "note42",
                 "pitch": 43,
                 "time": 4864.0,
                 "duration": 256.0,
@@ -482,7 +462,7 @@
                 "type": "note"
             },
             {
-                "tag": "note52",
+                "tag": "note43",
                 "pitch": 45,
                 "time": 4096.0,
                 "duration": 384.0,
@@ -492,7 +472,7 @@
                 "type": "note"
             },
             {
-                "tag": "note53",
+                "tag": "note44",
                 "pitch": 43,
                 "time": 4480.0,
                 "duration": 128.0,
@@ -502,7 +482,7 @@
                 "type": "note"
             },
             {
-                "tag": "note54",
+                "tag": "note45",
                 "pitch": 45,
                 "time": 4608.0,
                 "duration": 384.0,
@@ -512,7 +492,7 @@
                 "type": "note"
             },
             {
-                "tag": "note55",
+                "tag": "note46",
                 "pitch": 46,
                 "time": 4992.0,
                 "duration": 128.0,
@@ -522,7 +502,7 @@
                 "type": "note"
             },
             {
-                "tag": "note56",
+                "tag": "note47",
                 "pitch": 50,
                 "time": 5120.0,
                 "duration": 256.0,
@@ -532,7 +512,7 @@
                 "type": "note"
             },
             {
-                "tag": "note57",
+                "tag": "note48",
                 "pitch": 53,
                 "time": 5376.0,
                 "duration": 256.0,
@@ -542,7 +522,7 @@
                 "type": "note"
             },
             {
-                "tag": "note58",
+                "tag": "note49",
                 "pitch": 53,
                 "time": 5632.0,
                 "duration": 128.0,
@@ -552,7 +532,7 @@
                 "type": "note"
             },
             {
-                "tag": "note59",
+                "tag": "note50",
                 "pitch": 43,
                 "time": 5760.0,
                 "duration": 128.0,
@@ -562,7 +542,7 @@
                 "type": "note"
             },
             {
-                "tag": "note60",
+                "tag": "note51",
                 "pitch": 46,
                 "time": 5888.0,
                 "duration": 128.0,
@@ -572,7 +552,7 @@
                 "type": "note"
             },
             {
-                "tag": "note61",
+                "tag": "note52",
                 "pitch": 48,
                 "time": 6016.0,
                 "duration": 128.0,
@@ -582,7 +562,7 @@
                 "type": "note"
             },
             {
-                "tag": "note62",
+                "tag": "note53",
                 "pitch": 49,
                 "time": 6144.0,
                 "duration": 128.0,
@@ -592,7 +572,7 @@
                 "type": "note"
             },
             {
-                "tag": "note63",
+                "tag": "note54",
                 "pitch": 48,
                 "time": 6272.0,
                 "duration": 128.0,
@@ -602,7 +582,7 @@
                 "type": "note"
             },
             {
-                "tag": "note64",
+                "tag": "note55",
                 "pitch": 46,
                 "time": 6400.0,
                 "duration": 256.0,
@@ -612,7 +592,7 @@
                 "type": "note"
             },
             {
-                "tag": "note65",
+                "tag": "note56",
                 "pitch": 46,
                 "time": 6656.0,
                 "duration": 128.0,
@@ -622,7 +602,7 @@
                 "type": "note"
             },
             {
-                "tag": "note66",
+                "tag": "note57",
                 "pitch": 48,
                 "time": 6784.0,
                 "duration": 128.0,
@@ -632,7 +612,7 @@
                 "type": "note"
             },
             {
-                "tag": "note67",
+                "tag": "note58",
                 "pitch": 49,
                 "time": 6912.0,
                 "duration": 128.0,
@@ -642,7 +622,7 @@
                 "type": "note"
             },
             {
-                "tag": "note68",
+                "tag": "note59",
                 "pitch": 51,
                 "time": 7040.0,
                 "duration": 128.0,
@@ -652,7 +632,7 @@
                 "type": "note"
             },
             {
-                "tag": "note69",
+                "tag": "note60",
                 "pitch": 53,
                 "time": 7168.0,
                 "duration": 128.0,
@@ -662,7 +642,7 @@
                 "type": "note"
             },
             {
-                "tag": "note70",
+                "tag": "note61",
                 "pitch": 53,
                 "time": 7296.0,
                 "duration": 128.0,
@@ -672,7 +652,7 @@
                 "type": "note"
             },
             {
-                "tag": "note71",
+                "tag": "note62",
                 "pitch": 53,
                 "time": 7424.0,
                 "duration": 256.0,
@@ -682,7 +662,7 @@
                 "type": "note"
             },
             {
-                "tag": "note72",
+                "tag": "note63",
                 "pitch": 53,
                 "time": 7680.0,
                 "duration": 128.0,
@@ -692,7 +672,7 @@
                 "type": "note"
             },
             {
-                "tag": "note73",
+                "tag": "note64",
                 "pitch": 51,
                 "time": 7808.0,
                 "duration": 128.0,
@@ -702,7 +682,7 @@
                 "type": "note"
             },
             {
-                "tag": "note74",
+                "tag": "note65",
                 "pitch": 49,
                 "time": 7936.0,
                 "duration": 128.0,
@@ -712,7 +692,7 @@
                 "type": "note"
             },
             {
-                "tag": "note75",
+                "tag": "note66",
                 "pitch": 48,
                 "time": 8064.0,
                 "duration": 128.0,
@@ -722,7 +702,7 @@
                 "type": "note"
             },
             {
-                "tag": "note76",
+                "tag": "note67",
                 "pitch": 49,
                 "time": 8192.0,
                 "duration": 128.0,
@@ -732,7 +712,7 @@
                 "type": "note"
             },
             {
-                "tag": "note77",
+                "tag": "note68",
                 "pitch": 48,
                 "time": 8320.0,
                 "duration": 128.0,
@@ -742,7 +722,7 @@
                 "type": "note"
             },
             {
-                "tag": "note78",
+                "tag": "note69",
                 "pitch": 46,
                 "time": 8448.0,
                 "duration": 256.0,
@@ -752,7 +732,7 @@
                 "type": "note"
             },
             {
-                "tag": "note79",
+                "tag": "note70",
                 "pitch": 46,
                 "time": 8704.0,
                 "duration": 128.0,
@@ -762,7 +742,7 @@
                 "type": "note"
             },
             {
-                "tag": "note80",
+                "tag": "note71",
                 "pitch": 48,
                 "time": 8832.0,
                 "duration": 128.0,
@@ -772,7 +752,7 @@
                 "type": "note"
             },
             {
-                "tag": "note81",
+                "tag": "note72",
                 "pitch": 49,
                 "time": 8960.0,
                 "duration": 128.0,
@@ -782,7 +762,7 @@
                 "type": "note"
             },
             {
-                "tag": "note82",
+                "tag": "note73",
                 "pitch": 48,
                 "time": 9088.0,
                 "duration": 128.0,
@@ -792,7 +772,7 @@
                 "type": "note"
             },
             {
-                "tag": "note83",
+                "tag": "note74",
                 "pitch": 46,
                 "time": 9216.0,
                 "duration": 128.0,
@@ -802,7 +782,7 @@
                 "type": "note"
             },
             {
-                "tag": "note84",
+                "tag": "note75",
                 "pitch": 46,
                 "time": 9344.0,
                 "duration": 128.0,
@@ -812,7 +792,7 @@
                 "type": "note"
             },
             {
-                "tag": "note85",
+                "tag": "note76",
                 "pitch": 46,
                 "time": 9472.0,
                 "duration": 384.0,
@@ -822,7 +802,7 @@
                 "type": "note"
             },
             {
-                "tag": "note86",
+                "tag": "note77",
                 "pitch": 48,
                 "time": 9856.0,
                 "duration": 128.0,
@@ -832,7 +812,7 @@
                 "type": "note"
             },
             {
-                "tag": "note87",
+                "tag": "note78",
                 "pitch": 49,
                 "time": 9984.0,
                 "duration": 128.0,
@@ -842,7 +822,7 @@
                 "type": "note"
             },
             {
-                "tag": "note88",
+                "tag": "note79",
                 "pitch": 48,
                 "time": 10112.0,
                 "duration": 128.0,
@@ -852,7 +832,7 @@
                 "type": "note"
             },
             {
-                "tag": "note90",
+                "tag": "note80",
                 "pitch": 38,
                 "time": 5120.0,
                 "duration": 256.0,
@@ -862,7 +842,7 @@
                 "type": "note"
             },
             {
-                "tag": "note94",
+                "tag": "note81",
                 "pitch": 45,
                 "time": 5120.0,
                 "duration": 256.0,
@@ -872,7 +852,7 @@
                 "type": "note"
             },
             {
-                "tag": "note95",
+                "tag": "note82",
                 "pitch": 43,
                 "time": 5376.0,
                 "duration": 256.0,
@@ -882,7 +862,7 @@
                 "type": "note"
             },
             {
-                "tag": "note96",
+                "tag": "note83",
                 "pitch": 46,
                 "time": 5376.0,
                 "duration": 256.0,
@@ -892,7 +872,7 @@
                 "type": "note"
             },
             {
-                "tag": "note97",
+                "tag": "note84",
                 "pitch": 38,
                 "time": 5632.0,
                 "duration": 256.0,
@@ -902,7 +882,7 @@
                 "type": "note"
             },
             {
-                "tag": "note98",
+                "tag": "note85",
                 "pitch": 45,
                 "time": 5632.0,
                 "duration": 256.0,
@@ -912,7 +892,7 @@
                 "type": "note"
             },
             {
-                "tag": "note99",
+                "tag": "note86",
                 "pitch": 36,
                 "time": 5888.0,
                 "duration": 256.0,
@@ -922,7 +902,7 @@
                 "type": "note"
             },
             {
-                "tag": "note100",
+                "tag": "note87",
                 "pitch": 39,
                 "time": 5888.0,
                 "duration": 256.0,
@@ -932,7 +912,7 @@
                 "type": "note"
             },
             {
-                "tag": "note101",
+                "tag": "note88",
                 "pitch": 34,
                 "time": 6144.0,
                 "duration": 256.0,
@@ -942,7 +922,7 @@
                 "type": "note"
             },
             {
-                "tag": "note102",
+                "tag": "note89",
                 "pitch": 41,
                 "time": 6144.0,
                 "duration": 256.0,
@@ -952,7 +932,7 @@
                 "type": "note"
             },
             {
-                "tag": "note103",
+                "tag": "note90",
                 "pitch": 39,
                 "time": 6400.0,
                 "duration": 256.0,
@@ -962,7 +942,7 @@
                 "type": "note"
             },
             {
-                "tag": "note104",
+                "tag": "note91",
                 "pitch": 42,
                 "time": 6400.0,
                 "duration": 256.0,
@@ -972,7 +952,7 @@
                 "type": "note"
             },
             {
-                "tag": "note105",
+                "tag": "note92",
                 "pitch": 34,
                 "time": 6656.0,
                 "duration": 256.0,
@@ -982,7 +962,7 @@
                 "type": "note"
             },
             {
-                "tag": "note106",
+                "tag": "note93",
                 "pitch": 41,
                 "time": 6656.0,
                 "duration": 256.0,
@@ -992,7 +972,7 @@
                 "type": "note"
             },
             {
-                "tag": "note108",
+                "tag": "note94",
                 "pitch": 39,
                 "time": 6912.0,
                 "duration": 256.0,
@@ -1002,7 +982,7 @@
                 "type": "note"
             },
             {
-                "tag": "note109",
+                "tag": "note95",
                 "pitch": 42,
                 "time": 6912.0,
                 "duration": 256.0,
@@ -1012,7 +992,7 @@
                 "type": "note"
             },
             {
-                "tag": "note110",
+                "tag": "note96",
                 "pitch": 37,
                 "time": 7168.0,
                 "duration": 256.0,
@@ -1022,7 +1002,7 @@
                 "type": "note"
             },
             {
-                "tag": "note111",
+                "tag": "note97",
                 "pitch": 44,
                 "time": 7168.0,
                 "duration": 256.0,
@@ -1032,7 +1012,7 @@
                 "type": "note"
             },
             {
-                "tag": "note112",
+                "tag": "note98",
                 "pitch": 42,
                 "time": 7424.0,
                 "duration": 256.0,
@@ -1042,7 +1022,7 @@
                 "type": "note"
             },
             {
-                "tag": "note114",
+                "tag": "note99",
                 "pitch": 46,
                 "time": 7424.0,
                 "duration": 256.0,
@@ -1052,7 +1032,7 @@
                 "type": "note"
             },
             {
-                "tag": "note115",
+                "tag": "note100",
                 "pitch": 41,
                 "time": 7680.0,
                 "duration": 256.0,
@@ -1062,7 +1042,7 @@
                 "type": "note"
             },
             {
-                "tag": "note116",
+                "tag": "note101",
                 "pitch": 48,
                 "time": 7680.0,
                 "duration": 256.0,
@@ -1072,7 +1052,7 @@
                 "type": "note"
             },
             {
-                "tag": "note117",
+                "tag": "note102",
                 "pitch": 42,
                 "time": 7936.0,
                 "duration": 256.0,
@@ -1082,7 +1062,7 @@
                 "type": "note"
             },
             {
-                "tag": "note118",
+                "tag": "note103",
                 "pitch": 46,
                 "time": 7936.0,
                 "duration": 256.0,
@@ -1092,7 +1072,7 @@
                 "type": "note"
             },
             {
-                "tag": "note119",
+                "tag": "note104",
                 "pitch": 37,
                 "time": 8192.0,
                 "duration": 256.0,
@@ -1102,7 +1082,7 @@
                 "type": "note"
             },
             {
-                "tag": "note120",
+                "tag": "note105",
                 "pitch": 44,
                 "time": 8192.0,
                 "duration": 256.0,
@@ -1112,7 +1092,7 @@
                 "type": "note"
             },
             {
-                "tag": "note121",
+                "tag": "note106",
                 "pitch": 39,
                 "time": 8448.0,
                 "duration": 256.0,
@@ -1122,7 +1102,7 @@
                 "type": "note"
             },
             {
-                "tag": "note122",
+                "tag": "note107",
                 "pitch": 42,
                 "time": 8448.0,
                 "duration": 256.0,
@@ -1132,7 +1112,7 @@
                 "type": "note"
             },
             {
-                "tag": "note123",
+                "tag": "note108",
                 "pitch": 41,
                 "time": 8704.0,
                 "duration": 256.0,
@@ -1142,7 +1122,7 @@
                 "type": "note"
             },
             {
-                "tag": "note124",
+                "tag": "note109",
                 "pitch": 34,
                 "time": 8704.0,
                 "duration": 256.0,
@@ -1152,7 +1132,7 @@
                 "type": "note"
             },
             {
-                "tag": "note125",
+                "tag": "note110",
                 "pitch": 32,
                 "time": 8960.0,
                 "duration": 256.0,
@@ -1162,7 +1142,7 @@
                 "type": "note"
             },
             {
-                "tag": "note126",
+                "tag": "note111",
                 "pitch": 39,
                 "time": 8960.0,
                 "duration": 256.0,
@@ -1172,7 +1152,7 @@
                 "type": "note"
             },
             {
-                "tag": "note127",
+                "tag": "note112",
                 "pitch": 30,
                 "time": 9216.0,
                 "duration": 256.0,
@@ -1182,7 +1162,7 @@
                 "type": "note"
             },
             {
-                "tag": "note128",
+                "tag": "note113",
                 "pitch": 37,
                 "time": 9216.0,
                 "duration": 256.0,
@@ -1192,7 +1172,7 @@
                 "type": "note"
             },
             {
-                "tag": "note129",
+                "tag": "note114",
                 "pitch": 29,
                 "time": 9472.0,
                 "duration": 256.0,
@@ -1202,7 +1182,7 @@
                 "type": "note"
             },
             {
-                "tag": "note132",
+                "tag": "note115",
                 "pitch": 36,
                 "time": 9472.0,
                 "duration": 256.0,
@@ -1212,7 +1192,7 @@
                 "type": "note"
             },
             {
-                "tag": "note133",
+                "tag": "note116",
                 "pitch": 30,
                 "time": 9728.0,
                 "duration": 256.0,
@@ -1222,7 +1202,7 @@
                 "type": "note"
             },
             {
-                "tag": "note134",
+                "tag": "note117",
                 "pitch": 37,
                 "time": 9728.0,
                 "duration": 256.0,
@@ -1232,7 +1212,7 @@
                 "type": "note"
             },
             {
-                "tag": "note135",
+                "tag": "note118",
                 "pitch": 32,
                 "time": 9984.0,
                 "duration": 256.0,
@@ -1242,7 +1222,7 @@
                 "type": "note"
             },
             {
-                "tag": "note136",
+                "tag": "note119",
                 "pitch": 39,
                 "time": 9984.0,
                 "duration": 256.0,
@@ -1252,7 +1232,7 @@
                 "type": "note"
             },
             {
-                "tag": "note137",
+                "tag": "note120",
                 "pitch": 34,
                 "time": 10240.0,
                 "duration": 256.0,
@@ -1262,7 +1242,7 @@
                 "type": "note"
             },
             {
-                "tag": "note138",
+                "tag": "note121",
                 "pitch": 41,
                 "time": 10240.0,
                 "duration": 256.0,
@@ -1272,7 +1252,7 @@
                 "type": "note"
             },
             {
-                "tag": "note139",
+                "tag": "note122",
                 "pitch": 42,
                 "time": 10496.0,
                 "duration": 256.0,
@@ -1282,7 +1262,7 @@
                 "type": "note"
             },
             {
-                "tag": "note140",
+                "tag": "note123",
                 "pitch": 39,
                 "time": 10496.0,
                 "duration": 256.0,
@@ -1292,7 +1272,7 @@
                 "type": "note"
             },
             {
-                "tag": "note141",
+                "tag": "note124",
                 "pitch": 34,
                 "time": 10752.0,
                 "duration": 256.0,
@@ -1302,7 +1282,7 @@
                 "type": "note"
             },
             {
-                "tag": "note142",
+                "tag": "note125",
                 "pitch": 41,
                 "time": 10752.0,
                 "duration": 256.0,
@@ -1312,7 +1292,7 @@
                 "type": "note"
             },
             {
-                "tag": "note143",
+                "tag": "note126",
                 "pitch": 42,
                 "time": 11008.0,
                 "duration": 256.0,
@@ -1322,7 +1302,7 @@
                 "type": "note"
             },
             {
-                "tag": "note144",
+                "tag": "note127",
                 "pitch": 39,
                 "time": 11008.0,
                 "duration": 256.0,
@@ -1332,7 +1312,7 @@
                 "type": "note"
             },
             {
-                "tag": "note145",
+                "tag": "note128",
                 "pitch": 46,
                 "time": 10240.0,
                 "duration": 896.0,
@@ -1342,11 +1322,31 @@
                 "type": "note"
             },
             {
-                "tag": "note146",
+                "tag": "note129",
                 "pitch": 48,
                 "time": 11136.0,
                 "duration": 128.0,
                 "hand": "r",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note134",
+                "pitch": 38,
+                "time": 0,
+                "duration": 256,
+                "hand": "l",
+                "staff": 0,
+                "attached": "",
+                "type": "note"
+            },
+            {
+                "tag": "note135",
+                "pitch": 41,
+                "time": 0,
+                "duration": 256,
+                "hand": "l",
                 "staff": 0,
                 "attached": "",
                 "type": "note"
@@ -1387,7 +1387,7 @@
                 }
             },
             {
-                "tag": "linebreak40",
+                "tag": "linebreak130",
                 "time": 8192.0,
                 "staff1": {
                     "margins": [
@@ -1419,7 +1419,7 @@
                 }
             },
             {
-                "tag": "linebreak41",
+                "tag": "linebreak131",
                 "time": 16384.0,
                 "staff1": {
                     "margins": [
@@ -1460,7 +1460,7 @@
         "stop": [],
         "beam": [
             {
-                "tag": "beam2",
+                "tag": "beam132",
                 "time": 0,
                 "duration": 256,
                 "hand": "l",
@@ -1468,7 +1468,7 @@
                 "type": "beam"
             },
             {
-                "tag": "beam3",
+                "tag": "beam133",
                 "time": 0,
                 "duration": 256,
                 "hand": "r",

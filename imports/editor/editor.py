@@ -10,9 +10,6 @@ from imports.elements.staffsizer import StaffSizer
 from imports.elements.linebreak import LineBreak
 from imports.elements.trill import Trill
 from imports.elements.dot import Dot
-import re
-from imports.editor.ctlz import CtlZ
-import threading
 from imports.utils.constants import *
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.engraver.engraver import pre_render
@@ -62,6 +59,7 @@ class Editor:
             self.redraw_editor()
             if self.io['auto_engrave'] or event_type in ['score_options', 'grid_editor']:
                 self.io['engraver'].do_engrave()
+            print(self.io['autosave'])
             if self.io['autosave']:
                 try: self.io['fileoperations'].auto_save()
                 except KeyError: ...
