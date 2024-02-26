@@ -4,24 +4,24 @@
         "composer": "PianoScript",
         "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
         "app_name": "pianoscript",
-        "app_version": "1.0",
-        "timestamp": "19-02-2024_21:43:08",
+        "app_version": 1.0,
+        "timestamp": "26-02-2024_04:49:03",
         "genre": "",
         "comment": ""
     },
     "properties": {
-        "page_width": 210.0,
-        "page_height": 297.0,
-        "page_margin_left": 5.0,
-        "page_margin_right": 5.0,
-        "page_margin_up": 10.0,
-        "page_margin_down": 10.0,
-        "draw_scale": 0.9,
-        "header_height": 20.0,
+        "page_width": 210,
+        "page_height": 297,
+        "page_margin_left": 5,
+        "page_margin_right": 5,
+        "page_margin_up": 10,
+        "page_margin_down": 10,
+        "draw_scale": 1,
+        "header_height": 20,
         "footer_height": 12.5,
-        "color_right_midinote": "pink",
-        "color_left_midinote": "lightblue",
-        "editor_zoom": 130,
+        "color_right_midinote": "#c8c8c8",
+        "color_left_midinote": "#c8c8c8",
+        "editor_zoom": 80,
         "black_note_rule": "Down",
         "threeline_scale": 2.0,
         "stop_sign_style": "PianoScript",
@@ -67,7 +67,7 @@
     "events": {
         "grid": [
             {
-                "tag": "grid0",
+                "tag": "grid",
                 "amount": 8,
                 "numerator": 4,
                 "denominator": 4,
@@ -113,38 +113,6 @@
                     ],
                     "range": "auto"
                 }
-            },
-            {
-                "tag": "linebreak1",
-                "time": 4096.0,
-                "staff1": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff2": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff3": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff4": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                }
             }
         ],
         "staffsizer": [],
@@ -154,24 +122,7 @@
         "endhook": [],
         "dot": [],
         "stop": [],
-        "beam": [
-            {
-                "tag": "beam2",
-                "time": 0,
-                "duration": 256,
-                "hand": "l",
-                "staff": 0,
-                "type": "beam"
-            },
-            {
-                "tag": "beam3",
-                "time": 0,
-                "duration": 256,
-                "hand": "r",
-                "staff": 0,
-                "type": "beam"
-            }
-        ],
+        "beam": [],
         "gracenote": [],
         "text": [],
         "pedal": [],

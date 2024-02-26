@@ -90,7 +90,10 @@ class GraceNote:
         # delete old gracenote
         io['editor'].delete_with_tag([note['tag']])
 
-        color = 'black'
+        if inselection:
+            color = '#009cff'
+        else:
+            color = 'black'
         
         # draw notehead
         x = io['calc'].pitch2x_editor(note['pitch'])

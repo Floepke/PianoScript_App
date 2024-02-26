@@ -16,6 +16,7 @@ class Beam:
 
             if detect:
                 io['edit_obj'] = detect
+                Beam.delete_editor(io, io['edit_obj'])
             else:
                 time = io['calc'].y2tick_editor(y, snap=True)
                 if io['calc'].x2pitch_editor(x) >= 44:
@@ -128,7 +129,11 @@ class Beam:
 
     def delete_editor(io, beam):
         
-        ...
+        # delete old beam
+        io['editor'].delete_with_tag([beam['tag']])
+
+        # delete from score
+        io['score']['events']['beam'].remove(beam)
 
 
 

@@ -3,9 +3,9 @@ from imports.utils.constants import *
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu
-from PySide6.QtWidgets import QGraphicsScene, QToolBar, QCheckBox
+from PySide6.QtWidgets import QGraphicsScene, QToolBar
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
-from PySide6.QtWidgets import QSpinBox, QToolButton, QComboBox
+from PySide6.QtWidgets import QSpinBox, QToolButton
 from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtGui import QColor, QBrush
@@ -113,10 +113,15 @@ class Gui():
         # Create a Settings menu
         self.settings_menu = QMenu('Settings', self.main)
         self.grid_edit_action = QAction('Grid Editor', self.main)
+        self.grid_edit_action.setShortcut('g')
         self.settings_menu.addAction(self.grid_edit_action)
-        self.staff_sizer_action = QAction('Line break Editor', self.main)
-        self.settings_menu.addAction(self.staff_sizer_action)
-        self.settings_menu.addAction('Score Options', lambda: ScoreOptionsDialog(self.io).exec())
+        self.line_break_editor_action = QAction('Line break Editor', self.main)
+        self.line_break_editor_action.setShortcut('l')
+        self.settings_menu.addAction(self.line_break_editor_action)
+        self.score_options_action = QAction('Score Options', self.main)
+        self.score_options_action.setShortcut('s')
+        self.score_options_action.triggered.connect(lambda: ScoreOptionsDialog(self.io).exec())
+        self.settings_menu.addAction(self.score_options_action)
         self.settings_menu.addSeparator()
         self.auto_engrave_action = QAction('Auto engrave', self.main)
         self.auto_engrave_action.setCheckable(True)
@@ -181,7 +186,7 @@ class Gui():
 
         # Create a widget to hold the toolbar
         self.toolbar_widget = QWidget()
-        self.toolbar_widget.setFixedWidth(25)
+        self.toolbar_widget.setFixedWidth(30)
 
         # Create the toolbar
         self.toolbar = QToolBar()
@@ -339,6 +344,8 @@ class Gui():
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
         #self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
         self.tree_view.expandAll()
+        # set first child selected 'note'
+        self.tree_view.setCurrentIndex(self.tree_view.model().index(0, 1))
         # set color of any selected item
         # self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: #486; color: #ffffff}')
         self.tool_layout.addWidget(self.tool_label)

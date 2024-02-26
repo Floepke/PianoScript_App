@@ -17,21 +17,13 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
-
-# disable debug messages that contain 'move' to bluck unwanted debug messages
-from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
 # from copy import deepcopy
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 # from imports.editor.grideditor.grid import Grid
 from imports.editor.grideditor.popup import Popup
-
-
-# def handler(msg_type, context, msg):
-#     if "move" in msg:
-#         return
-# qInstallMessageHandler(handler)
 
 
 class PianoScript():
@@ -201,6 +193,12 @@ class PianoScript():
         hand_right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
         escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
+        engrave_shortcut = QShortcut(QKeySequence("/"), self.root)
+        engrave_shortcut.activated.connect(self.io['engraver'].do_engrave)
+        next_page_shortcut = QShortcut(QKeySequence("."), self.root)
+        next_page_shortcut.activated.connect(self.io['gui'].next_page)
+        prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
+        prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
 
         # run the application
         sys.exit(self.app.exec())

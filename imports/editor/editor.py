@@ -6,7 +6,6 @@ from imports.elements.countline import CountLine
 from imports.editor.selection import Selection
 from imports.elements.arpeggio import Arpeggio
 from imports.elements.gracenote import GraceNote
-from imports.elements.staffsizer import StaffSizer
 from imports.elements.linebreak import LineBreak
 from imports.elements.trill import Trill
 from imports.elements.dot import Dot
@@ -28,7 +27,6 @@ class Editor:
             'countline':CountLine,
             'arpeggio':Arpeggio,
             'gracenote':GraceNote,
-            'staffsizer':StaffSizer,
             'trill':Trill,
             'linebreak':LineBreak,
             'dot':Dot,
