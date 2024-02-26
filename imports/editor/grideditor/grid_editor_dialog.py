@@ -91,7 +91,7 @@ class GridDialog(QDialog):
         self.grid: Optional[List[int]] = None
 
         dialog_layout = QGridLayout()
-
+        dialog_layout.setContentsMargins(0, 0, 0, 0)
         edt_box = self.editbox()
         dialog_layout.addWidget(edt_box, 0, 0)
 
@@ -533,6 +533,7 @@ class GridDialog(QDialog):
             self.grids[row].denominator = int(den)
             self.update_value(row=row, name='numerator', value=str(num))
             self.grids[row].numerator = int(num)
+            self._on_line_reset()
 
     def _yorn_box(self,
                   box: QGroupBox,
