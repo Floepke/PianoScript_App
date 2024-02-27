@@ -19,7 +19,7 @@ from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
 from imports.engraver.pdfexport import pdf_export
 
-from imports.utils.midi import Midi
+import threading
 
 class Gui():
     def __init__(self, main, io):
@@ -218,13 +218,13 @@ class Gui():
         self.play_button = QToolButton()
         self.play_button.setText("▶")
         self.play_button.setToolTip("Play MIDI")
-        # self.play_button.clicked.connect(self.play)
+        self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
         self.toolbar.addWidget(self.play_button)
 
         self.stop_button = QToolButton()
         self.stop_button.setText("■")
         self.stop_button.setToolTip("Stop MIDI")
-        # self.stop_button.clicked.connect(self.stop)
+        self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
         self.toolbar.addWidget(self.stop_button)
 
         # Add the toolbar to the widget
@@ -344,14 +344,12 @@ class Gui():
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
         #self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
         self.tree_view.expandAll()
-        # set first child selected 'note'
-        self.tree_view.setCurrentIndex(self.tree_view.model().index(0, 1))
-        # set color of any selected item
-        # self.tree_view.setStyleSheet('QTreeView::item:selected {background-color: #486; color: #ffffff}')
+
+        # add the widgets to the dockable widget
         self.tool_layout.addWidget(self.tool_label)
         self.tool_layout.addWidget(self.tree_view)
         # connect the treeview to the select_tool function
-        self.tree_view.clicked.connect(self.on_tree_view_clicked)
+        self.tree_view.clicked.connect(self.tree_view_click)
         # select the note tool by default
         self.tree_view.setCurrentIndex(self.tree_view.model().index(0,0))
         self.last_selected_child = None
@@ -401,7 +399,7 @@ class Gui():
 
         return model
 
-    def on_tree_view_clicked(self, index):
+    def tree_view_click(self, index):
         if self.tree_view.model().hasChildren(index):
             # if it's a parent
             if self.last_selected_child.parent() == index:
@@ -428,7 +426,6 @@ class Gui():
             self.io['maineditor'].select_tool(index.data())
 
         self.editor_view.setFocus()
-
 
     def previous_page(self):
         self.io['selected_page'] -= 1

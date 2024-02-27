@@ -199,7 +199,7 @@ class PianoScript():
         next_page_shortcut.activated.connect(self.io['gui'].next_page)
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
-
+    
         # run the application
         sys.exit(self.app.exec())
 
