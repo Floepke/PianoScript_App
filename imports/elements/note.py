@@ -202,7 +202,10 @@ class Note:
         elif inselection:# if note is in selection
             midicolor = '#009cff'
         else:# if normal note
-            midicolor = '#bbb'
+            if note['hand'] == 'l':
+                midicolor = io['score']['properties']['color_left_midinote']
+            elif note['hand'] == 'r':
+                midicolor = io['score']['properties']['color_right_midinote']
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
         io['editor'].new_polygon([(x, y), 
