@@ -200,8 +200,15 @@ class PianoScript():
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
 
+        self.root.closeEvent = self.cleanup
         # run the application
         sys.exit(self.app.exec())
+
+    def cleanup(self, event):
+        """ close open dialogs """
+
+        if self.editor_dialog:
+            self.editor_dialog.close()
 
     def open_grid_editor(self):
         """ open the Grid Editor """

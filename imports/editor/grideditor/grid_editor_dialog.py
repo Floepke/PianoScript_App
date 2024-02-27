@@ -6,6 +6,9 @@
 __author__ = 'Sihir'
 __copyright__ = '© Sihir 2024-2024 all rights reserved'
 
+from os.path import abspath
+from os.path import isfile
+
 from typing import Optional
 from typing import Any
 from typing import List
@@ -24,9 +27,12 @@ from PySide6.QtWidgets import QToolBar
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QSpinBox
+from PySide6.QtWidgets import QCommonStyle
 
+from PySide6.QtGui import QPixmap
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QAction
+from PySide6 import QtGui as _gui
 
 from PySide6.QtCore import QSize
 from PySide6.QtCore import Qt
@@ -62,8 +68,8 @@ class GridDialog(QDialog):
             | Qt.WindowTitleHint
             | Qt.WindowMinimizeButtonHint
         )
-        self.setMinimumSize(610, 410)
-        self.setMaximumSize(610, 410)
+        self.setMinimumSize(620, 400)
+        self.setMaximumSize(620, 400)
 
         # grid.grid has changed from a number to the array of count lines
         # a way around this for the moment
@@ -90,15 +96,18 @@ class GridDialog(QDialog):
         self.line_view: Optional[LinesView] = None
         self.grid: Optional[List[int]] = None
 
-        dialog_layout = QGridLayout()
+        dialog_layout = QGridLayout(parent=self)
         dialog_layout.setContentsMargins(0, 0, 0, 0)
+
         edt_box = self.editbox()
+        edt_box.setContentsMargins(0, 0, 0, 0)
         dialog_layout.addWidget(edt_box, 0, 0)
 
         self.setLayout(dialog_layout)
 
-        dialog_icon = QIcon('icons/GridEditor.png')
-        self.setWindowIcon(dialog_icon)
+        # this does not work
+        fname = abspath('./imports/icons/GridEditor.png')
+        self.setWindowIcon(QIcon(fname))
         self.close_callback = None
 
         # pylint: disable=invalid-name
@@ -251,6 +260,7 @@ class GridDialog(QDialog):
         assert box
         self.measure_view = MeasureView()
         layout.addWidget(self.measure_view.view, row, column)
+        layout.setContentsMargins(0, 0, 0, 0)
 
     def _populate(self):
         """ populate the TreeView """
@@ -410,7 +420,7 @@ class GridDialog(QDialog):
         self.dialog_result = DialogResult.OK
         self.close()
 
-    def _on_cancel(self):
+    def on_cancel(self):
         """ the cancel button was clicked """
 
         self._want_to_close = True
@@ -560,7 +570,7 @@ class GridDialog(QDialog):
         cancel_button = QPushButton(parent=box)
         cancel_button.setDefault(False)
         cancel_button.setText('Cancel')
-        cancel_button.clicked.connect(self._on_cancel)
+        cancel_button.clicked.connect(self.on_cancel)
         yorn_layout.addWidget(cancel_button, 0, 2, 1, 1)
 
         layout.addLayout(yorn_layout, row, col, row_span, col_span)

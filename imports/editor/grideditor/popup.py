@@ -5,6 +5,8 @@
 
 __copyright__ = '© Sihir 2024-2024 all rights reserved'
 
+from os.path import abspath
+
 from typing import Callable
 
 # pylint: disable=no-name-in-module
@@ -37,7 +39,8 @@ class Popup(QDialog):
         self.callback = result_callback
         self.max_lines = max_lines
 
-        dialog_icon = QIcon('icons/PopUp.png')
+        popup_ico = abspath('./imports/icons/PopUp.png')
+        dialog_icon = QIcon(popup_ico)
         self.setWindowIcon(dialog_icon)
         self.setWindowTitle('Notification')
 
