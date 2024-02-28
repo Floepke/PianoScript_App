@@ -11,7 +11,7 @@ from typing import Callable
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QGridLayout
-from PySide6.QtWidgets import QTreeView
+# from PySide6.QtWidgets import QTreeView
 from PySide6.QtWidgets import QAbstractItemView
 from PySide6.QtWidgets import QHeaderView
 

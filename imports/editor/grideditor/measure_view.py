@@ -50,7 +50,7 @@ class MeasureView():
         rect = drawer.get_viewport_coords()
         right = rect.width()
         bottom = rect.height()
-        margin = 3
+        margin = 0
 
         if data.visible:
             # draw the lines for the bar
@@ -92,10 +92,22 @@ class MeasureView():
                                width=width,
                                color='black')
 
+        scale = Grid.base(data.denominator)
+        step = bottom / data.numerator
+
         lines = []
         if data.visible:
-            scale = Grid.base(data.denominator)
-            step = bottom / data.numerator
+
+            # the indicator line:
+            y_pos = int(float(indicator) / scale * step)
+            width = 1
+            drawer.create_line(x1=20,
+                               y1=y_pos,
+                               x2=right,
+                               y2=y_pos,
+                               width=width,
+                               color='blue',
+                               dash=(10, 10))
 
             # for 3/4 we get 0, 256, 512
             # [1]  0    is not drawn
@@ -140,19 +152,3 @@ class MeasureView():
                                width=width,
                                color='black',
                                dash=(5, 5))
-
-        # the indicator line:
-        min_y = margin
-        max_y = bottom - margin
-        delta = Grid.base(data.denominator)
-        # print(f'denom {data.denominator} delta {delta}')
-        top = delta * data.numerator
-        y_pos  = int(min_y + (max_y - min_y) * indicator / top)
-        width = 1
-        drawer.create_line(x1=20,
-                           y1=y_pos,
-                           x2=right,
-                           y2=y_pos,
-                           width=width,
-                           color='blue',
-                           dash=(10, 10))

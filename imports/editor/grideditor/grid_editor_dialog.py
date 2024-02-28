@@ -7,7 +7,7 @@ __author__ = 'Sihir'
 __copyright__ = '© Sihir 2024-2024 all rights reserved'
 
 from os.path import abspath
-from os.path import isfile
+# from os.path import isfile
 
 from typing import Optional
 from typing import Any
@@ -27,12 +27,12 @@ from PySide6.QtWidgets import QToolBar
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QSpinBox
-from PySide6.QtWidgets import QCommonStyle
+# from PySide6.QtWidgets import QCommonStyle
 
-from PySide6.QtGui import QPixmap
+# from PySide6.QtGui import QPixmap
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QAction
-from PySide6 import QtGui as _gui
+# from PySide6 import QtGui as _gui
 
 from PySide6.QtCore import QSize
 from PySide6.QtCore import Qt
