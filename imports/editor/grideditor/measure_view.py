@@ -38,7 +38,8 @@ class MeasureView():
 
     # pylint: disable=too-many-locals
     def draw_measure(self,
-                     data: Grid):
+                     data: Grid,
+                     indicator: int):
         """ draw the measure counting lines """
 
         count_lines = [] if data.grid is None else data.grid
@@ -139,3 +140,19 @@ class MeasureView():
                                width=width,
                                color='black',
                                dash=(5, 5))
+
+        # the indicator line:
+        min_y = margin
+        max_y = bottom - margin
+        delta = Grid.base(data.denominator)
+        # print(f'denom {data.denominator} delta {delta}')
+        top = delta * data.numerator
+        y_pos  = int(min_y + (max_y - min_y) * indicator / top)
+        width = 1
+        drawer.create_line(x1=20,
+                           y1=y_pos,
+                           x2=right,
+                           y2=y_pos,
+                           width=width,
+                           color='blue',
+                           dash=(10, 10))

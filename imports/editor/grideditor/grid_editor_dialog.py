@@ -176,7 +176,9 @@ class GridDialog(QDialog):
     def _update_measure_view(self):
         """ updates the measure view """
 
-        self.measure_view.draw_measure(data=self.cur_grid)
+        indicator = self.line_spin.value()
+        self.measure_view.draw_measure(data=self.cur_grid,
+                                       indicator=indicator)
 
     def editbox(self) -> QGroupBox:
         """ the grid editor box """
@@ -375,7 +377,7 @@ class GridDialog(QDialog):
                         layout: QGridLayout,
                         row: int):
         """ toolbar """
-        tb_layout = QGridLayout()
+        tb_layout = QGridLayout(parent=self)
 
         toolbar = QToolBar(parent=box)
         tb_layout.addWidget(toolbar, row, 1)
@@ -532,17 +534,20 @@ class GridDialog(QDialog):
         """ the signature changed """
 
         row = self.cur_grid.nr - 1
-        num = self.spin_numerator.value()
-        den = self.combo_denominator.currentText()
+        num = int(self.spin_numerator.value())
+        den = int(self.combo_denominator.currentText())
         # self.note = f'Signature changed {num}/{den}, mute= {self.mute}'
         self._update_measure_view()
         self._update_grids_view()
+        delta = Grid.base(den)
+        max_line = delta * num
+        self.line_spin.setMaximum(max_line)
 
         if not self.mute:
-            self.update_value(row=row, name='denominator', value=den)
-            self.grids[row].denominator = int(den)
+            self.update_value(row=row, name='denominator', value=str(den))
+            self.grids[row].denominator = den
             self.update_value(row=row, name='numerator', value=str(num))
-            self.grids[row].numerator = int(num)
+            self.grids[row].numerator = num
             self._on_line_reset()
 
     def _yorn_box(self,
@@ -754,7 +759,7 @@ class GridDialog(QDialog):
                     col: int,
                     row_span: int = 1,
                     col_span: int = 1):
-        """ grid lines functions """
+        """ the indicator line """
 
         toolbar = QToolBar(parent=box)
 
@@ -763,7 +768,7 @@ class GridDialog(QDialog):
         action_add.triggered.connect(self._on_line_add)
         toolbar.addAction(action_add)
 
-        self.line_spin = line_spin = QSpinBox()
+        self.line_spin = line_spin = QSpinBox(parent=self)
         line_spin.setMinimum(0)
         line_spin.setMaximum(9999)
         line_spin.setValue(0)
@@ -787,6 +792,7 @@ class GridDialog(QDialog):
         """ the value of the line_edit changed """
 
         self.line_proposal = int(value)
+        self._update_measure_view()
 
     def _on_line_add(self):
         """ add a line in the measure """

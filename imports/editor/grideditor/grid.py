@@ -79,4 +79,6 @@ class Grid:
             64: 16,
             128: 8,
         }
-        return dct.get(denominator, 1)
+
+        value = dct.get(denominator, 1)
+        return value
