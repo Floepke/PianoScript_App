@@ -11,7 +11,6 @@ from typing import Callable
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QGridLayout
-# from PySide6.QtWidgets import QTreeView
 from PySide6.QtWidgets import QAbstractItemView
 from PySide6.QtWidgets import QHeaderView
 
@@ -55,6 +54,7 @@ class LinesView:
 
         # load these items in the edit controls
         view.clicked.connect(self._on_tree_view_clicked)
+
         model.dataChanged.connect(self._on_data_changed)
 
         layout.addWidget(view, row, col, row_span, col_span)
@@ -73,9 +73,8 @@ class LinesView:
                                    bottom_right=self.get_item(bottom_right_index))
 
     def _on_tree_view_clicked(self, index):
-        """ the tree was clicked changed """
+        """ the tree was LEFT clicked """
 
-        # print('on_tree_view_clicked')
         if self._on_selection_changed is not None:
             self._on_selection_changed(changed=self.get_item(index))
 

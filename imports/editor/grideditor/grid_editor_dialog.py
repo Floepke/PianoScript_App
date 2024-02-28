@@ -726,7 +726,7 @@ class GridDialog(QDialog):
 
         row, col, par, data = changed
         self.current_line = row
-        # self.note = f 'selection:     row {row} col {col} parent {par} data {data}'
+        self.line_spin.setValue(int(data))
 
     def _lines_on_value_changed(self,
                                 top_left: namedtuple,

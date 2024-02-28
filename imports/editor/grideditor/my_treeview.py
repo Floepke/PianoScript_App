@@ -11,6 +11,7 @@ from typing import List
 from PySide6.QtWidgets import QTreeView
 from PySide6.QtGui import QStandardItemModel
 
+
 class MyTreeView(QTreeView):
     """ MyTreeView can restore expanded rows """
 
@@ -18,7 +19,7 @@ class MyTreeView(QTreeView):
         """ initialize the class """
         super().__init__(parent)
 
-        self.model = QStandardItemModel()
+        self.model = QStandardItemModel(parent=parent)
         self.setModel(self.model)
 
     def get_parent_row_indices(self):
