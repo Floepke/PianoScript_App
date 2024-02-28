@@ -81,8 +81,17 @@ class MeasureView():
                                anchor='w',
                                text='(left blank)')
 
-        lines = [(margin, 2, right), (bottom - margin, 2, right)]
+        top_bottom = [(margin, 2, right), (bottom - margin, 2, right)]
 
+        for y_pos, width, size in top_bottom:
+            drawer.create_line(x1=20,
+                               y1=y_pos,
+                               x2=size,
+                               y2=y_pos,
+                               width=width,
+                               color='black')
+
+        lines = []
         if data.visible:
             scale = Grid.base(data.denominator)
             step = bottom / data.numerator
@@ -128,4 +137,5 @@ class MeasureView():
                                x2=size,
                                y2=y_pos,
                                width=width,
-                               color='black')
+                               color='black',
+                               dash=(5, 5))
