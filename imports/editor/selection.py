@@ -136,13 +136,15 @@ class Selection:
         for evt_type in io['score']['events'].keys():
             if evt_type == 'grid' or evt_type not in io['selection']['transpose_types']:
                 continue
-                
+
+            # add all events that are in the selection rectangle to the selection buffer    
             for event in io['score']['events'][evt_type]:
                 if event['time'] < start_time or event['time'] > end_time:
                     continue
                 if event['pitch'] < note_min or event['pitch'] > note_max:
                     continue
-                io['selection']['selection_buffer'][evt_type].append(event)
+                if event['staff'] == io['selected_staff']:
+                    io['selection']['selection_buffer'][evt_type].append(event)
                 if event in io['viewport']['events'][evt_type]:
                     io['viewport']['events'][evt_type].remove(event)
 

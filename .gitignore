@@ -7,3 +7,4 @@ page.pdf
 /.venv
 **/*.pdf
 **/*.DS_Store
+/play.mid

@@ -100,14 +100,13 @@ class MeasureView():
 
             # the indicator line:
             y_pos = int(float(indicator) / scale * step)
-            width = 1
+            width = 2
             drawer.create_line(x1=20,
                                y1=y_pos,
                                x2=right,
                                y2=y_pos,
                                width=width,
-                               color='blue',
-                               dash=(10, 10))
+                               color='red')
 
             # for 3/4 we get 0, 256, 512
             # [1]  0    is not drawn

@@ -210,7 +210,7 @@ class Midi:
             # creating the midi file object
             MyMIDI = MIDIFile(numTracks=nrchannels, 
                             removeDuplicates=True, 
-                            deinterleave=True, 
+                            deinterleave=False, 
                             adjust_origin=False, 
                             file_format=1, 
                             ticks_per_quarternote=ticks_per_quarternote, 

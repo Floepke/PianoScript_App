@@ -776,7 +776,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                             if idx_staff == 0:
                                 y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
                                 io['view'].new_text(x_cursor-(PITCH_UNIT*7.5*draw_scale),
-                                                    y+(PITCH_UNIT*4*draw_scale), 
+                                                    y+(PITCH_UNIT*4.5), 
                                                     str(evt['numerator']), 
                                                     color='black', 
                                                     tag=['timesignature'],
@@ -799,7 +799,7 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                     tag=['timesignature'],
                                                     dash=[2,2])
                                 io['view'].new_text(x_cursor-(PITCH_UNIT*7.5*draw_scale), 
-                                                    y-(PITCH_UNIT*3.5*draw_scale), 
+                                                    y-(PITCH_UNIT*3.5),
                                                     str(evt['denominator']), 
                                                     color='black', 
                                                     tag=['timesignature'],

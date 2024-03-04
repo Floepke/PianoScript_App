@@ -1,4 +1,4 @@
-import json, copy
+import json, copy, datetime
 from PySide6.QtWidgets import QFileDialog
 from imports.utils.constants import SCORE_TEMPLATE
 from PySide6.QtWidgets import QMessageBox
@@ -43,6 +43,9 @@ class FileOperations:
             with open('template.pianoscript', 'w') as file:
                 json.dump(SCORE_TEMPLATE, file, indent=4)
 
+        # write timestamp
+        self.io['score']['header']['timestamp'] = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+
         # load test file only for debug purposes:
         #self.io['score'] = json.load(open('pianoscriptfiles/Lamp.pianoscript', 'r'))
 
@@ -63,6 +66,9 @@ class FileOperations:
 
         # update window title
         self.io['gui'].main.setWindowTitle('PianoScript - new file')
+
+        # statusbar message
+        self.io['gui'].main.statusBar().showMessage('New file...', 10000)
 
 
     def load(self):
@@ -106,10 +112,14 @@ class FileOperations:
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
 
+            # statusbar message
+            self.io['gui'].main.statusBar().showMessage('File loaded...', 10000)
+
     def save(self):
         if self.savepath:
             with open(self.savepath, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)
+            self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
         else:
             self.saveas()
 
@@ -117,6 +127,7 @@ class FileOperations:
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
+            self.io['gui'].main.statusBar().showMessage('Save as...', 10000)
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, indent=4)
             self.savepath = file_path
@@ -127,6 +138,7 @@ class FileOperations:
         '''This function overwrites the template.pianoscript file with the current score'''
         with open('template.pianoscript', 'w') as file:
             json.dump(self.io['score'], file, indent=4)
+        self.io['gui'].main.statusBar().showMessage('Template saved...', 10000)
 
     def auto_save(self):
         if self.savepath and self.io['autosave']:
@@ -163,6 +175,25 @@ class FileOperations:
             return True
         elif response == QMessageBox.Cancel:
             return False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

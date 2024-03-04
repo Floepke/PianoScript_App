@@ -67,7 +67,7 @@
     "events": {
         "grid": [
             {
-                "tag": "grid",
+                "tag": "grid0",
                 "amount": 8,
                 "numerator": 4,
                 "denominator": 4,
@@ -85,6 +85,38 @@
             {
                 "tag": "lockedlinebreak",
                 "time": 0,
+                "staff1": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff2": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff3": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                },
+                "staff4": {
+                    "margins": [
+                        10.0,
+                        10.0
+                    ],
+                    "range": "auto"
+                }
+            },
+            {
+                "tag": "linebreak1",
+                "time": 4096,
                 "staff1": {
                     "margins": [
                         10.0,

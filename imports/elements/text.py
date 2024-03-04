@@ -1,4 +1,4 @@
-
+from PySide6.QtWidgets import QFontDialog
 
 class Text:
 
@@ -8,7 +8,11 @@ class Text:
 
         # left mouse button handling:
         if event_type == 'leftclick':
-            ...
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='text')
+            if detect:
+                print(detect)
+            else:
+                ok, font = QFontDialog.getFont()
 
         elif event_type == 'leftclick+move':
             ...

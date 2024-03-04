@@ -379,7 +379,8 @@ class Gui():
                 'linebreak'
                 ],
             'Phrase':[
-                'countline'
+                'countline',
+                'text'
             ]
         }
         for folder in tree:
