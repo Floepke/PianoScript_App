@@ -14,9 +14,9 @@ from PySide6.QtWidgets import QGraphicsView
 from imports.editor.grideditor.draw_2d import Draw2d
 from imports.utils.constants import BACKGROUND_COLOR
 
-_KEYBOARDVIEW_WIDTH = 532
-_KEYBOARDVIEW_HEIGHT = 60
-
+_KEYBOARDVIEW_WIDTH = 550
+_KEYBOARDVIEW_HEIGHT = 70
+_DRAWER_SCALE = 0.4
 
 class KeyboardView():
     """ display a measure """
@@ -81,7 +81,7 @@ class KeyboardView():
 
     def scale_x(self, value: int):
         """ the x size scaler """
-        return int(value * 0.5)
+        return int(value * _DRAWER_SCALE)
 
     # pylint: disable=too-many-locals
     def draw_keyboard(self):
@@ -131,14 +131,14 @@ class KeyboardView():
                                dash=dash,
                                fill='black')
 
-        x1 = self.scale_x(margin)
-        x2 = self.scale_x(margin + 40)
-        top_bottom = [(x1, 2, right), (x2 + 40, 2, right)]
+        y1 = self.scale_x(margin)
+        y2 = self.scale_x(margin + 40)
+        top_bottom = [(y1, 2), (y2 + 25, 2)]
 
-        for y_pos, width, size in top_bottom:
+        for y_pos, width in top_bottom:
             drawer.create_line(x1=0,
                                y1=y_pos,
-                               x2=size,
+                               x2=right,
                                y2=y_pos,
                                width=width,
                                color='black')
@@ -150,7 +150,7 @@ class KeyboardView():
         if txt is not None:
             self._scene.removeItem(txt)
 
-        pos, name = self._mapping[value]
+        pos, name = self._mapping.get(value, 3)
         txt = self._scene.addText(name)
         txt.setPos(self.scale_x(pos), 40)
         self.start_text = txt
@@ -162,7 +162,23 @@ class KeyboardView():
         if txt is not None:
             self._scene.removeItem(txt)
 
-        pos, name = self._mapping[value]
+        pos, name = self._mapping.get(value, 2)
         txt = self._scene.addText(name)
         txt.setPos(self.scale_x(pos), 40)
         self.finish_text = txt
+
+    def valid_start(self, value: int):
+        """ check the start position """
+
+        if value in self._mapping:
+            return value
+
+        return 3
+
+    def valid_finish(self, value: int):
+        """ check the finish position """
+
+        if value in self._mapping:
+            return value
+
+        return 86

@@ -329,8 +329,16 @@ class StaffSizerControl:
         self._staff_sizer.staff_auto = auto
         self._staff_start.setEnabled(not auto)
         self._staff_finish.setEnabled(not auto)
-        self.handle_start(self._staff_sizer.staff_start)
-        self.handle_finish(self._staff_sizer.staff_finish)
+
+        start = self._staff_sizer.staff_start
+        start = self._keyboard.valid_start(start)
+        self._staff_sizer.staff_start = start
+        self.handle_start(start)
+
+        finish = self._staff_sizer.staff_finish
+        finish = self._keyboard.valid_finish(finish)
+        self._staff_sizer.staff_finish = finish
+        self.handle_finish(finish)
 
     def _staff_start_index_changed(self, index: int):
         """ index of the staff_start has changed """
