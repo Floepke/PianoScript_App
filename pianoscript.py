@@ -22,9 +22,11 @@ from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 # from copy import deepcopy
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
-# from imports.editor.grideditor.grid import Grid
 from imports.editor.grideditor.popup import Popup
 
+from imports.editor.staff_sizer_editor.staff_io import StaffIo
+from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
+from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 
 class PianoScript():
 
@@ -165,7 +167,7 @@ class PianoScript():
         self.gui.exit_action.triggered.connect(self.root.close)
 
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
-
+        self.gui.line_break_editor_action.triggered.connect(self.open_line_break_editor)
         # shortcuts
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
         cut_shortcut.activated.connect(self.io['selectoperations'].cut)
@@ -199,7 +201,7 @@ class PianoScript():
         next_page_shortcut.activated.connect(self.io['gui'].next_page)
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
-    
+
 
         self.root.closeEvent = self.cleanup
         # run the application
@@ -210,6 +212,9 @@ class PianoScript():
 
         if self.editor_dialog:
             self.editor_dialog.close()
+
+        if self.line_break_dialog:
+            self.line_break_dialog.close()
 
     def open_grid_editor(self):
         """ open the Grid Editor """
@@ -234,15 +239,38 @@ class PianoScript():
             self.io['score']['events']['grid'] = grids
             self.io['maineditor'].update('grid_editor')
 
-    def open_staff_sizer_editor(self):
+    def open_line_break_editor(self):
         """ open the Staff Sizer Editor """
-        popup = Popup(message='Line break Editor: not yet integrated',
-                      max_lines=3,
-                      text_size=(100, 21))
+
+        linebreaks = self.io['score']['events']['linebreak']
+
+        self.line_break_dialog = StaffSizerDialog(parent=None,
+                                                  callback=self.close_line_break_editor)
+
+        sizers = []
+        for brk in linebreaks:
+            sizer = StaffIo.import_staffs(brk)
+            sizers.append(sizer)
+        self.line_break_dialog.staff_sizers = sizers[0]
+        self.line_break_dialog.show()
+
+    def close_line_break_editor(self, result: DialogResult, line_breaks: [dict]):
+        """ the line break editor has closed """
+
+        self.line_break_dialog = None
+
+        if result == DialogResult.OK:
+            # self.io['score']['events']['linebreak'][0] = line_breaks
+            self.io['maineditor'].update('grid_editor')
+            pass
+
+        _ = Popup(message=f'Line break Editor has closed\n{result}\nNOT UPDATED',
+                  max_lines=3,
+                  text_size=(100, 21))
 
 if __name__ == '__main__':
     PianoScript()
-
+    exit(0)
 
 
 

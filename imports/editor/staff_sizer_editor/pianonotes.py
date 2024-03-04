@@ -19,6 +19,8 @@ class PianoNotes:
         'G#', 'A ', 'A#', 'B '
     ]
 
+    _dictionary = {}
+
     @staticmethod
     def translate_note(piano_note: int) -> tuple:
         """ translate the number to a note name """
@@ -39,16 +41,28 @@ class PianoNotes:
             39, 44,
             51, 56,
             63, 68,
-            75]
+            75, 80]
 
     @staticmethod
     def finish_notes():
         """ possible start notes for the staff """
 
         return [
-            19, 26,  # B1, E1
-            31, 38,
-            43, 50,
-            55, 62,
-            67, 74,
-            79, 86]
+            2, 7,  # B1, E1
+            14, 19,
+            26, 31,
+            38, 43,
+            50, 55,
+            62, 67,
+            74, 79,
+            86]
+    @staticmethod
+    def revert_translation(wanted: str):
+        """ translate 'B1' back to 19, etc """
+
+        if not PianoNotes._dictionary:
+            for number in PianoNotes.start_notes() + PianoNotes.finish_notes():
+                _, _, note = PianoNotes.translate_note(number)
+                PianoNotes._dictionary[note] = number
+
+        return PianoNotes._dictionary.get(wanted, '?')
