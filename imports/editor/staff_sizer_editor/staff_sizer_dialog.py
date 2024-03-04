@@ -31,6 +31,7 @@ from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
 from imports.editor.grideditor.dialog_result import DialogResult
 
+from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
@@ -50,12 +51,17 @@ class StaffSizerDialog(QDialog):
 
         self.setWindowTitle('Line Preferences')
 
-        layout = QGridLayout()
+        layout = QGridLayout(parent=parent)
+
+        kbd = KeyboardView()
+        layout.addWidget(kbd.view, 0, 0, 1, 3)
+        kbd.draw_keyboard()
 
         self.control = StaffSizerControl(
             layout=layout,
-            row=0,
-            parent=self)
+            row=1,
+            parent=self,
+            keyboard=kbd)
 
         ok_cancel = QGroupBox()
         layout.addWidget(ok_cancel, 6, 0, 1, 3)
@@ -73,7 +79,9 @@ class StaffSizerDialog(QDialog):
         cancel_button.setText('Cancel')
         cancel_button.clicked.connect(self._on_cancel)
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
+
         self.setLayout(layout)
+
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa

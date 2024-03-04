@@ -63,10 +63,10 @@ class GridDialog(QDialog):
 
         super().__init__(parent)
         self.setWindowFlags(
-            Qt.Window
-            | Qt.CustomizeWindowHint
-            | Qt.WindowTitleHint
-            | Qt.WindowMinimizeButtonHint
+            Qt.Window |
+            Qt.CustomizeWindowHint |
+            Qt.WindowTitleHint |
+            Qt.WindowMinimizeButtonHint
         )
         self.setMinimumSize(620, 400)
         self.setMaximumSize(620, 400)

@@ -10,6 +10,8 @@ from typing import Dict
 from typing import List
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
+from imports.editor.staff_sizer_editor.my_exception import MyException
+
 
 class StaffIo:
     """ input output staff sizers """
@@ -54,21 +56,28 @@ class StaffIo:
     def import_staffs(data: Dict):
         """ import tag, time and staff definitions """
 
-        _ = data.get('tag', '')
-        _ = data.get('time', 0.0)
-        staff1 = data.get('staff1', {})
-        staff2 = data.get('staff2', {})
-        staff3 = data.get('staff3', {})
-        staff4 = data.get('staff4', {})
+        try:
 
-        result = [
-            StaffSizer.import_sizer(dct=staff1),
-            StaffSizer.import_sizer(dct=staff2),
-            StaffSizer.import_sizer(dct=staff3),
-            StaffSizer.import_sizer(dct=staff4),
-        ]
+            _ = data.get('tag', '')
+            _ = data.get('time', 0.0)
+            staff1 = data.get('staff1', {})
+            staff2 = data.get('staff2', {})
+            staff3 = data.get('staff3', {})
+            staff4 = data.get('staff4', {})
 
-        return result
+            result = [
+                StaffSizer.import_sizer(dct=staff1),
+                StaffSizer.import_sizer(dct=staff2),
+                StaffSizer.import_sizer(dct=staff3),
+                StaffSizer.import_sizer(dct=staff4),
+            ]
+            return result
+
+        except Exception:
+            err = MyException()
+            pass
+
+        return None
 
     @staticmethod
     def export_staffs(staffs: List[StaffSizer]) -> Dict:
