@@ -93,7 +93,7 @@ class DrawHelper:
             # Use Courier New as default font:
             family = 'Courier New'
 
-        return QFont((family, size))
+        return QFont(family, size)
 
 
 class Draw2d:

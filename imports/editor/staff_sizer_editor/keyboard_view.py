@@ -15,8 +15,8 @@ from imports.editor.grideditor.draw_2d import Draw2d
 from imports.utils.constants import BACKGROUND_COLOR
 
 _KEYBOARDVIEW_WIDTH = 550
-_KEYBOARDVIEW_HEIGHT = 70
-_DRAWER_SCALE = 0.4
+_KEYBOARDVIEW_HEIGHT = 60
+_DRAWER_SCALE = 0.40
 
 class KeyboardView():
     """ display a measure """
@@ -27,8 +27,9 @@ class KeyboardView():
         self._scene = None
         self._view = None
         self._drawer = None
-        self.start_text = None
-        self.finish_text = None
+        self._start = 0
+        self._finish = 86
+        self._auto = True
 
         self._mapping = {
             # auto
@@ -66,6 +67,17 @@ class KeyboardView():
             86: (510, 'B7'),
         }
 
+        self._octave_nrs = [
+            (3,  30, '1'),
+            (15, 100, '2'),
+            (27, 170, '3'),
+            (39, 240, '4'),
+            (51, 310, '5'),
+            (63, 380, '6'),
+            (75, 450, '7'),
+            # (87, 530, '8'),
+        ]
+
     @property
     def view(self) -> QGraphicsView:
         """ the view for the measure """
@@ -95,45 +107,46 @@ class KeyboardView():
         margin = 0
 
         octave = [
-            (0, 1), (10, 1),  # Cis1, Dis1
-            (30, 2), (40, 2), (50, 2),  # Fis1, Gis1, Ais2
+            (0, 1, 5), (10, 1, 7),  # Cis1, Dis1
+            (30, 2, 10), (40, 2, 12), (50, 2, 14),  # Fis1, Gis1, Ais2
             ]
 
         octaves = [
-            (10, 2)  # Bis1
+            (10, 2, 2)  # Bis1
         ]
 
         for idx1 in range(7):
-            for key, mode in octave:
+            for key, mode, nr in octave:
                 if idx1 == 3 and mode == 1:
                     mode = 3
                 pos = 30 + key + idx1 * 70
-                elem = (pos, mode)
+                note = nr + 12 * idx1
+                elem = (pos, mode, note)
                 octaves.append(elem)
 
         # draw the lines for the bar
-        for x_pos, mode in octaves:
-            width = 1
-            dash = None
-            match mode:
-                case 2:
-                    width = 2
-                case 3:
-                    dash = (3, 3)
+        for x_pos, mode, note in octaves:
+            flg = self._start <= note <= self._finish
+            if flg or self._auto:
+                width = 1
+                dash = None
+                match mode:
+                    case 2:
+                        width = 2
+                    case 3:
+                        dash = (3, 3)
 
-            x1 = self.scale_x(x_pos + 10)
-            x2 = self.scale_x(x_pos + 10)
-            drawer.create_line(x1=x1,
-                               y1=margin,
-                               x2=x2,
-                               y2=margin + 40,
-                               width=width,
-                               dash=dash,
-                               fill='black')
+                x1 = self.scale_x(x_pos + 10)
+                x2 = self.scale_x(x_pos + 10)
+                drawer.create_line(x1=x1,
+                                   y1=17,
+                                   x2=x2,
+                                   y2=40,
+                                   width=width,
+                                   dash=dash,
+                                   fill='black')
 
-        y1 = self.scale_x(margin)
-        y2 = self.scale_x(margin + 40)
-        top_bottom = [(y1, 2), (y2 + 25, 2)]
+        top_bottom = [(17, 2), (40, 2)]
 
         for y_pos, width in top_bottom:
             drawer.create_line(x1=0,
@@ -143,29 +156,47 @@ class KeyboardView():
                                width=width,
                                color='black')
 
-    def start(self, value: int):
+        pos, name = self._mapping.get(self._start, 3)
+
+        drawer.create_text(x=self.scale_x(pos),
+                           y=40,
+                           text=name,
+                           anchor='nw',
+                           family='Arial',
+                           size=8)
+
+        pos, name = self._mapping.get(self._finish, 2)
+
+        drawer.create_text(x=self.scale_x(pos),
+                           y=40,
+                           text=name,
+                           anchor='nw',
+                           family='Arial',
+                           size=8)
+
+        for note, pos, oct in self._octave_nrs:
+            flg = self._start < note < self._finish
+            if flg or self._auto:
+                drawer.create_text(x=self.scale_x(pos) - 5,
+                                   y=0,
+                                   text=oct,
+                                   anchor='nw',
+                                   family='Arial',
+                                   size=8)
+
+    def start(self, value: int, auto: bool):
         """ the staff start """
 
-        txt = self.start_text
-        if txt is not None:
-            self._scene.removeItem(txt)
+        self._start = value
+        self._auto = auto
+        self.draw_keyboard()
 
-        pos, name = self._mapping.get(value, 3)
-        txt = self._scene.addText(name)
-        txt.setPos(self.scale_x(pos), 40)
-        self.start_text = txt
-
-    def finish(self, value: int):
+    def finish(self, value: int, auto: bool):
         """ the staff finish """
 
-        txt = self.finish_text
-        if txt is not None:
-            self._scene.removeItem(txt)
-
-        pos, name = self._mapping.get(value, 2)
-        txt = self._scene.addText(name)
-        txt.setPos(self.scale_x(pos), 40)
-        self.finish_text = txt
+        self._finish = value
+        self._auto = auto
+        self.draw_keyboard()
 
     def valid_start(self, value: int):
         """ check the start position """

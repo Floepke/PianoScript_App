@@ -354,9 +354,11 @@ class StaffSizerControl:
         self._staff_sizer.staff_start = value
         index = self._staff_index
         self._staff_sizers[index] = self._staff_sizer
-        if self._staff_sizer.staff_auto:
+
+        auto = self._staff_sizer.staff_auto
+        if auto:
             value = -1
-        self._keyboard.start(value=value)
+        self._keyboard.start(value=value, auto=auto)
 
     def _staff_finish_index_changed(self, index: int):
         """ index of the staff_finish has changed """
@@ -373,9 +375,10 @@ class StaffSizerControl:
         index = self._staff_index
         self._staff_sizers[index] = self._staff_sizer
 
-        if self._staff_sizer.staff_auto:
+        auto = self._staff_sizer.staff_auto
+        if auto:
             value = -1
-        self._keyboard.finish(value=value)
+        self._keyboard.finish(value=value, auto=auto)
 
     def _radio_changed(self, idx: int):
         """ one of the radio buttons was changed """

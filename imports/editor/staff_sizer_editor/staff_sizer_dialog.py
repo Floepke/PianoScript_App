@@ -55,7 +55,7 @@ class StaffSizerDialog(QDialog):
 
         kbd = KeyboardView()
         layout.addWidget(kbd.view, 0, 0, 1, 3)
-        kbd.draw_keyboard()
+        # kbd.draw_keyboard()
 
         self.control = StaffSizerControl(
             layout=layout,
@@ -115,6 +115,7 @@ class StaffSizerDialog(QDialog):
         staff_sizers = []
         if self.result == DialogResult.OK:
             staff_sizers = self.staff_sizers
+            staff_sizers[0].time = 0
 
         if self.callback is not None:
             self.callback(self.result, staff_sizers)
