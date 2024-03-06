@@ -16,6 +16,7 @@ from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
+from imports.gui.staffswitcher import StaffSwitcher
 
 from imports.engraver.pdfexport import pdf_export
 
@@ -129,42 +130,6 @@ class Gui():
         self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
 
-        # Create a new menu
-        self.checkbox_menu = QMenu('Staff...')
-
-        # Create the actions
-        self.staff1_action = QAction('Staff 1', checkable=True)
-        self.staff1_action.setChecked(True)
-        self.staff2_action = QAction('Staff 2', checkable=True)
-        self.staff3_action = QAction('Staff 3', checkable=True)
-        self.staff4_action = QAction('Staff 4', checkable=True)
-
-        # Add the actions to the menu
-        self.checkbox_menu.addAction(self.staff1_action)
-        self.checkbox_menu.addAction(self.staff2_action)
-        self.checkbox_menu.addAction(self.staff3_action)
-        self.checkbox_menu.addAction(self.staff4_action)
-
-        # Connect the actions to a function that unchecks all other actions
-        def make_exclusive(checked_action):
-            checked_action.setChecked(True)
-            for idx, action in enumerate([self.staff1_action, self.staff2_action, self.staff3_action, self.staff4_action]):
-                if action != checked_action:
-                    action.setChecked(False)
-                if action == checked_action:
-                    self.io['selected_staff'] = idx
-                self.io['maineditor'].update('scroll')
-
-        self.staff1_action.triggered.connect(lambda: make_exclusive(self.staff1_action))
-        self.staff2_action.triggered.connect(lambda: make_exclusive(self.staff2_action))
-        self.staff3_action.triggered.connect(lambda: make_exclusive(self.staff3_action))
-        self.staff4_action.triggered.connect(lambda: make_exclusive(self.staff4_action))
-
-        # Add the menu to the menu bar
-        self.menu_bar.addMenu(self.checkbox_menu)
-        
-
-
         #end menu--------------------------------------------------------------------
 
         # Create the editor view
@@ -226,6 +191,11 @@ class Gui():
         self.stop_button.setToolTip("Stop MIDI")
         self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
         self.toolbar.addWidget(self.stop_button)
+
+        self.toolbar.addSeparator()
+
+        self.staff_switcher = StaffSwitcher(self.io)
+        self.toolbar.addWidget(self.staff_switcher)
 
         # Add the toolbar to the widget
         self.toolbar_layout = QVBoxLayout()
