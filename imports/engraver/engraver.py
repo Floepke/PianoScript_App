@@ -1,12 +1,6 @@
-import threading, traceback
-
 # we genereally import everything from this file for usage in the engraver, later we add the engraver specific imports here
 from imports.engraver.engraverstorage import *
 from imports.utils.constants import *
-from PySide6.QtCore import QThread, Signal, QObject, Slot
-
-
-from pprint import pprint
 
 '''
     The Renderer is a really long script. I chose to write it only in functions because 
@@ -204,13 +198,25 @@ def pre_render(io, render_type='default'): # render_type = 'default' (render onl
             # calculate the width of every staff
             for idx, res in enumerate(range_every_staff):
                 if idx == 0:
-                    staff1_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    if io['score']['properties']['staffs'][idx]['onoff']:
+                        staff1_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    else:
+                        staff1_width['staff_width'] = 0
                 elif idx == 1:
-                    staff2_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    if io['score']['properties']['staffs'][idx]['onoff']:
+                        staff2_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    else:
+                        staff2_width['staff_width'] = 0
                 elif idx == 2:
-                    staff3_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    if io['score']['properties']['staffs'][idx]['onoff']:
+                        staff3_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    else:
+                        staff3_width['staff_width'] = 0
                 elif idx == 3:
-                    staff4_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    if io['score']['properties']['staffs'][idx]['onoff']:
+                        staff4_width['staff_width'] = calculate_staff_width(res[0], res[1]) * draw_scale
+                    else:
+                        staff4_width['staff_width'] = 0
 
             # add the margins to the staff width if the staff is on
             if staff1_width['staff_width']: 
@@ -487,6 +493,9 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                         
                         # draw the notes
                         if evt['type'] in ['note', 'notesplit']:
+                            
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
 
                             if idx_staff == evt['staff']:
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
@@ -605,6 +614,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                         tag=['midinote'])
                         
                         if evt['type'] == 'notestop':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff']:
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
@@ -637,6 +650,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     
                         # draw continuation dot
                         if evt['type'] == 'continuationdot':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff']:
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y = tick2y_view(evt['time'], io, staff_height, idx_line)
@@ -670,6 +687,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                         
                         # connect stem
                         if evt['type'] == 'connectstem':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff']:
                                 x1 = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
                                 y1 = tick2y_view(evt['time'], io, staff_height, idx_line)
@@ -684,6 +705,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
 
                         # beams
                         if evt['type'] == 'beam':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff'] and beam_onoff:
                                 notes = [note for note in evt['notes'] if note['type'] == 'note']
                                 if len(notes) < 2 or all(EQUALS(note['time'], notes[0]['time']) for note in notes):
@@ -736,6 +761,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                                             tag=['beam'])
 
                         if evt['type'] == 'gracenote':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff'] and note_onoff:
                                 # draw grace note
                                 x = pitch2x_view(evt['pitch'], staff_range[idx_staff], draw_scale, x_cursor)
@@ -761,6 +790,10 @@ def render(io, DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno,
                                     
 
                         if evt['type'] == 'countline':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
                             if idx_staff == evt['staff'] and countline_onoff:
                                 # draw rest
                                 x1 = pitch2x_view(evt['pitch1'], staff_range[idx_staff], draw_scale, x_cursor)
