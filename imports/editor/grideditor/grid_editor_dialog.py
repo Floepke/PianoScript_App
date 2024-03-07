@@ -555,6 +555,8 @@ class GridDialog(QDialog):
             self.grids[row].numerator = num
             self._on_line_reset()
 
+        self._populate()
+
     def _yorn_box(self,
                   box: QGroupBox,
                   layout: QGridLayout,
@@ -696,6 +698,8 @@ class GridDialog(QDialog):
         if not self.mute:
             self.update_value(row=row, name='amount', value=str(amount))
             self.grids[row].amount = amount
+
+        self._populate()
 
     def _renumber_grids(self) -> None:
         """

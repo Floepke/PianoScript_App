@@ -154,6 +154,7 @@ class PianoScript():
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = FileOperations(self.io)
         self.editor_dialog = None
+        self.line_break_dialog = None
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
