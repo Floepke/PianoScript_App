@@ -278,8 +278,13 @@ class GridDialog(QDialog):
         data = []
         for grd in self.grids:
             value = GridDialog.visible_text(grd.visible)
+            sta = grd.start
+            num = grd.numerator
+            den = grd.denominator
+            amt = grd.amount
+            parent = f'{sta} - {num}/{den} x {amt}'
             dct = {
-                'parent': f'grid{grd.nr}',
+                'parent': parent,
                 'children': {
                     'start': str(grd.start),
                     'visible': value,

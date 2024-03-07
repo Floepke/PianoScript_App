@@ -13,6 +13,6 @@ PySide6==6.6.1
 PySide6-Addons==6.6.1
 PySide6-Essentials==6.6.1
 rtmidi==2.5.0
-shiboken6==6.6.2
+shiboken6==6.6.1
 tomlkit==0.12.4
 typish==1.9.3
