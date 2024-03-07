@@ -104,18 +104,19 @@ class Editor:
                     if (tm >= top and tm <= bttm or tm + d >= top and tm + d <= bttm or tm <= top and tm + d >= bttm) and event['staff'] == io['selected_staff']:
                         return True
                 else: # event has no duration
-                    if tm >= top and tm <= bttm:
-                        return True
+                    # check if key staff exists in event
+                    if 'staff' not in event:
+                        if tm >= top and tm <= bttm:
+                            return True
+                    else:
+                        if tm >= top and tm <= bttm and event['staff'] == io['selected_staff']:
+                            return True
                 
                 return False
            
             for e_type in io['viewport']['events'].keys():
                 if e_type in ['grid']: # skip all events that are not time based
                     continue
-
-                # delete duplicate events from viewport events (safety check)
-                events = io['viewport']['events'][e_type]
-                io['viewport']['events'][e_type] = [i for n, i in enumerate(events) if i not in events[n + 1:]]
                 
                 for event in io['score']['events'][e_type]:
 
@@ -129,15 +130,12 @@ class Editor:
                                 self.funcselector[e_type].draw_editor(io, event)
                             io['viewport']['events'][e_type].append(event)
                         else:
-                            # element was already drawn, do nothing
-                            ...
+                            ... # element was already drawn, do nothing
                     else:
                         # element is outside the viewport, delete it if it was drawn
                         if event in io['viewport']['events'][e_type]:
                             io['editor'].delete_with_tag([event['tag']])
                             io['viewport']['events'][e_type].remove(event)
-
-        #DrawEditor.add_soundingdots_and_stopsigns_to_viewport(self.io)
 
         draw_events(self.io)
 
@@ -145,9 +143,6 @@ class Editor:
         top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])
         bottom_y = self.io['calc'].tick2y_editor(self.io['viewport']['bottomtick'])
         DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io, top_y, bottom_y)
-
-        # Move the stafflines with the viewport
-        #DrawEditor.move_staff(self.io, top_y)
         
         self.drawing_order()
 

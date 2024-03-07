@@ -113,12 +113,12 @@ class ScoreOptionsDialog(QDialog):
         self.continuation_dot_style.setCurrentText(self.io['score']['properties']['continuation_dot_style'])
 
         self.color_right_midinote = QComboBox()
-        self.color_right_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_right_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
         self.color_right_midinote.setEditable(True)
         self.color_right_midinote.setCurrentText(self.io['score']['properties']['color_right_midinote'])
 
         self.color_left_midinote = QComboBox()
-        self.color_left_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_left_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
         self.color_left_midinote.setEditable(True)
         self.color_left_midinote.setCurrentText(self.io['score']['properties']['color_left_midinote'])
 
