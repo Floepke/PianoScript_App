@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTabWidget
 from PySide6.QtWidgets import QWidget, QFormLayout, QCheckBox, QDoubleSpinBox
-from PySide6.QtWidgets import QScrollArea, QPushButton, QComboBox
-from PySide6.QtWidgets import QPushButton, QLineEdit, QColorDialog
+from PySide6.QtWidgets import QScrollArea, QPushButton, QComboBox, QLabel, QGridLayout
+from PySide6.QtWidgets import QPushButton, QLineEdit, QColorDialog, QGroupBox
 from PySide6.QtGui import QColor
 
 class ScoreOptionsDialog(QDialog):
@@ -54,7 +54,7 @@ class ScoreOptionsDialog(QDialog):
         properties_scroll = QScrollArea()
         properties_scroll.setWidgetResizable(True)
         properties_scroll.setWidget(properties_tab)
-        tab_widget.addTab(properties_scroll, 'Properties')
+        tab_widget.addTab(properties_scroll, 'Doc Properties')
         properties_form_layout = QFormLayout()
         properties_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
@@ -84,7 +84,7 @@ class ScoreOptionsDialog(QDialog):
 
         self.draw_scale = QDoubleSpinBox()
         self.draw_scale.setRange(0.1, 10)
-        self.draw_scale.setSingleStep(0.1)
+        self.draw_scale.setSingleStep(0.05)
         self.draw_scale.setValue(float(self.io['score']['properties']['draw_scale']))
 
         self.header_height = QDoubleSpinBox()
@@ -101,7 +101,7 @@ class ScoreOptionsDialog(QDialog):
 
         self.threeline_scale = QDoubleSpinBox()
         self.threeline_scale.setRange(0.1, 10)
-        self.threeline_scale.setSingleStep(0.1)
+        self.threeline_scale.setSingleStep(0.05)
         self.threeline_scale.setValue(float(self.io['score']['properties']['threeline_scale']))
 
         self.stop_sign_style = QComboBox()
@@ -152,6 +152,7 @@ class ScoreOptionsDialog(QDialog):
         elements_form_layout = QFormLayout()
         elements_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
+        # onoff checkboxes
         self.staff_onoff = QCheckBox()
         self.staff_onoff.setChecked(self.io['score']['properties']['staff_onoff'])
         self.minipiano_onoff = QCheckBox()
@@ -183,6 +184,7 @@ class ScoreOptionsDialog(QDialog):
         self.leftdot_onoff = QCheckBox()
         self.leftdot_onoff.setChecked(self.io['score']['properties']['leftdot_onoff'])
 
+        # add the checkboxes
         elements_form_layout.addRow('Staff:', self.staff_onoff)
         elements_form_layout.addRow('MiniPiano:', self.minipiano_onoff)
         elements_form_layout.addRow('Stem:', self.stem_onoff)
@@ -201,14 +203,119 @@ class ScoreOptionsDialog(QDialog):
 
         elements_layout.addLayout(elements_form_layout)
 
+        # Create staff properties tab
+        staff_tab = QWidget()
+        staff_layout = QVBoxLayout(staff_tab)
+        staff_scroll = QScrollArea()
+        staff_scroll.setWidgetResizable(True)
+        staff_scroll.setWidget(staff_tab)
+        tab_widget.addTab(staff_scroll, 'Staff Properties')
+        staff_form_layout = QFormLayout()
+        staff_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+
+                # staff 1 properties
+        self.staff1_group = QGroupBox('Staff 1')
+        staff1_layout = QGridLayout(self.staff1_group)
+
+        self.staff1_name = QLineEdit()
+        self.staff1_name.setText(self.io['score']['properties']['staffs'][0]['name'])
+        staff1_layout.addWidget(QLabel('Name:'), 0, 0)
+        staff1_layout.addWidget(self.staff1_name, 0, 1)
+
+        self.staff1_scale = QDoubleSpinBox()
+        self.staff1_scale.setValue(self.io['score']['properties']['staffs'][0]['staff_scale'])
+        self.staff1_scale.setMinimum(0.25)
+        self.staff1_scale.setMaximum(4.0)
+        self.staff1_scale.setSingleStep(0.05)
+        staff1_layout.addWidget(QLabel('Scale:'), 1, 0)
+        staff1_layout.addWidget(self.staff1_scale, 1, 1)
+
+        self.staff1_engrave_name = QCheckBox()
+        self.staff1_engrave_name.setChecked(self.io['score']['properties']['staffs'][0]['engrave_name'])
+        staff1_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
+        staff1_layout.addWidget(self.staff1_engrave_name, 2, 1)
+
+        staff_form_layout.addRow(self.staff1_group)
+
+        # staff 2 properties
+        self.staff2_group = QGroupBox('Staff 2')
+        staff2_layout = QGridLayout(self.staff2_group)
+
+        self.staff2_name = QLineEdit()
+        self.staff2_name.setText(self.io['score']['properties']['staffs'][1]['name'])
+        staff2_layout.addWidget(QLabel('Name:'), 0, 0)
+        staff2_layout.addWidget(self.staff2_name, 0, 1)
+
+        self.staff2_scale = QDoubleSpinBox()
+        self.staff2_scale.setValue(self.io['score']['properties']['staffs'][1]['staff_scale'])
+        self.staff2_scale.setMinimum(0.25)
+        self.staff2_scale.setMaximum(4.0)
+        self.staff2_scale.setSingleStep(0.05)
+        staff2_layout.addWidget(QLabel('Scale:'), 1, 0)
+        staff2_layout.addWidget(self.staff2_scale, 1, 1)
+
+        self.staff2_engrave_name = QCheckBox()
+        self.staff2_engrave_name.setChecked(self.io['score']['properties']['staffs'][1]['engrave_name'])
+        staff2_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
+        staff2_layout.addWidget(self.staff2_engrave_name, 2, 1)
+
+        staff_form_layout.addRow(self.staff2_group)
+
+        # staff 3 properties
+        self.staff3_group = QGroupBox('Staff 3')
+        staff3_layout = QGridLayout(self.staff3_group)
+
+        self.staff3_name = QLineEdit()
+        self.staff3_name.setText(self.io['score']['properties']['staffs'][2]['name'])
+        staff3_layout.addWidget(QLabel('Name:'), 0, 0)
+        staff3_layout.addWidget(self.staff3_name, 0, 1)
+
+        self.staff3_scale = QDoubleSpinBox()
+        self.staff3_scale.setValue(self.io['score']['properties']['staffs'][2]['staff_scale'])
+        self.staff3_scale.setMinimum(0.25)
+        self.staff3_scale.setMaximum(4.0)
+        self.staff3_scale.setSingleStep(0.05)
+        staff3_layout.addWidget(QLabel('Scale:'), 1, 0)
+        staff3_layout.addWidget(self.staff3_scale, 1, 1)
+
+        self.staff3_engrave_name = QCheckBox()
+        self.staff3_engrave_name.setChecked(self.io['score']['properties']['staffs'][2]['engrave_name'])
+        staff3_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
+
+        staff_form_layout.addRow(self.staff3_group)
+
+        # create staff4
+        self.staff4_group = QGroupBox('Staff 4')
+        staff4_layout = QGridLayout(self.staff4_group)
+
+        self.staff4_name = QLineEdit()
+        self.staff4_name.setText(self.io['score']['properties']['staffs'][3]['name'])
+        staff4_layout.addWidget(QLabel('Name:'), 0, 0)
+        staff4_layout.addWidget(self.staff4_name, 0, 1)
+
+        self.staff4_scale = QDoubleSpinBox()
+        self.staff4_scale.setValue(self.io['score']['properties']['staffs'][3]['staff_scale'])
+        self.staff4_scale.setMinimum(0.25)
+        self.staff4_scale.setMaximum(4.0)
+        self.staff4_scale.setSingleStep(0.05)
+        staff4_layout.addWidget(QLabel('Scale:'), 1, 0)
+        staff4_layout.addWidget(self.staff4_scale, 1, 1)
+
+        self.staff4_engrave_name = QCheckBox()
+        self.staff4_engrave_name.setChecked(self.io['score']['properties']['staffs'][3]['engrave_name'])
+        staff4_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
+
+        staff_form_layout.addRow(self.staff4_group)
+
+        staff_layout.addLayout(staff_form_layout)
+
+        # Add the tab widget to the layout
+        layout.addWidget(tab_widget)
+
         # Create OK and Cancel buttons
         close_button = QPushButton('Close')
         apply_button = QPushButton('Apply')
-
-        # Connect the Cancel button to the reject slot
         close_button.clicked.connect(lambda: self.validate(close=True))
-
-        # Connect the OK button to the accept slot
         apply_button.clicked.connect(lambda: self.validate(close=False))
 
         # Add the buttons to a layout
@@ -220,6 +327,8 @@ class ScoreOptionsDialog(QDialog):
     
     def validate(self, close: bool):
         '''Validate the data entered in the dialog'''
+
+        # header tab
         self.io['score']['header']['title'] = self.title.text()
         self.io['score']['header']['composer'] = self.composer.text()
         self.io['score']['header']['copyright'] = self.copyright.text()
@@ -229,6 +338,7 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['header']['genre'] = self.genre.text()
         self.io['score']['header']['comment'] = self.comment.text()
 
+        # properties tab
         self.io['score']['properties']['page_width'] = self.page_width.value()
         self.io['score']['properties']['page_height'] = self.page_height.value()
         self.io['score']['properties']['page_margin_left'] = self.page_margin_left.value()
@@ -244,6 +354,8 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['continuation_dot_style'] = self.continuation_dot_style.currentText()
         self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.currentText()
         self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.currentText()
+        
+        # onoff tab
         self.io['score']['properties']['staff_onoff'] = self.staff_onoff.isChecked()
         self.io['score']['properties']['minipiano_onoff'] = self.minipiano_onoff.isChecked()
         self.io['score']['properties']['stem_onoff'] = self.stem_onoff.isChecked()
@@ -259,6 +371,20 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['accidental_onoff'] = self.accidental_onoff.isChecked()
         self.io['score']['properties']['soundingdot_onoff'] = self.soundingdot_onoff.isChecked()
         self.io['score']['properties']['leftdot_onoff'] = self.leftdot_onoff.isChecked()
+        
+        # staff tab
+        self.io['score']['properties']['staffs'][0]['name'] = self.staff1_name.text()
+        self.io['score']['properties']['staffs'][0]['staff_scale'] = self.staff1_scale.value()
+        self.io['score']['properties']['staffs'][0]['engrave_name'] = self.staff1_engrave_name.isChecked()
+        self.io['score']['properties']['staffs'][1]['name'] = self.staff2_name.text()
+        self.io['score']['properties']['staffs'][1]['staff_scale'] = self.staff2_scale.value()
+        self.io['score']['properties']['staffs'][1]['engrave_name'] = self.staff2_engrave_name.isChecked()
+        self.io['score']['properties']['staffs'][2]['name'] = self.staff3_name.text()
+        self.io['score']['properties']['staffs'][2]['staff_scale'] = self.staff3_scale.value()
+        self.io['score']['properties']['staffs'][2]['engrave_name'] = self.staff3_engrave_name.isChecked()
+        self.io['score']['properties']['staffs'][3]['name'] = self.staff4_name.text()
+        self.io['score']['properties']['staffs'][3]['staff_scale'] = self.staff4_scale.value()
+        self.io['score']['properties']['staffs'][3]['engrave_name'] = self.staff4_engrave_name.isChecked()
         
         self.io['maineditor'].update('score_options')
         

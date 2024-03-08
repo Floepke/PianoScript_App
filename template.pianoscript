@@ -5,7 +5,7 @@
         "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
         "app_name": "pianoscript",
         "app_version": 1.0,
-        "timestamp": "26-02-2024_04:49:03",
+        "timestamp": "08-03-2024_10:55:13",
         "genre": "",
         "comment": ""
     },
@@ -45,29 +45,33 @@
             {
                 "onoff": true,
                 "name": "Staff 1",
-                "staff_scale": 1.0
+                "staff_scale": 1.0,
+                "engrave_name": false
             },
             {
                 "onoff": false,
                 "name": "Staff 2",
-                "staff_scale": 1.0
+                "staff_scale": 1.0,
+                "engrave_name": false
             },
             {
                 "onoff": false,
                 "name": "Staff 3",
-                "staff_scale": 1.0
+                "staff_scale": 1.0,
+                "engrave_name": false
             },
             {
                 "onoff": false,
                 "name": "Staff 4",
-                "staff_scale": 1.0
+                "staff_scale": 1.0,
+                "engrave_name": false
             }
         ]
     },
     "events": {
         "grid": [
             {
-                "tag": "grid0",
+                "tag": "grid",
                 "amount": 8,
                 "numerator": 4,
                 "denominator": 4,
@@ -85,38 +89,6 @@
             {
                 "tag": "lockedlinebreak",
                 "time": 0,
-                "staff1": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff2": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff3": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                },
-                "staff4": {
-                    "margins": [
-                        10.0,
-                        10.0
-                    ],
-                    "range": "auto"
-                }
-            },
-            {
-                "tag": "linebreak1",
-                "time": 4096,
                 "staff1": {
                     "margins": [
                         10.0,

@@ -75,22 +75,26 @@ SCORE_TEMPLATE = {
             {
                 'onoff':True,
                 'name':'Staff 1',
-                'staff_scale':1.0
+                'staff_scale':1.0,
+                'engrave_name':False
             },
             {
                 'onoff':False,
                 'name':'Staff 2',
-                'staff_scale':1.0
+                'staff_scale':1.0,
+                'engrave_name':False
             },
             {
                 'onoff':False,
                 'name':'Staff 3',
-                'staff_scale':1.0
+                'staff_scale':1.0,
+                'engrave_name':False
             },
             {
                 'onoff':False,
                 'name':'Staff 4',
-                'staff_scale':1.0
+                'staff_scale':1.0,
+                'engrave_name':False
             }
         )
     },
