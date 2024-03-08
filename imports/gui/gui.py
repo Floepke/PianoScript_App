@@ -1,5 +1,6 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
 from imports.utils.constants import *
+from imports.icons.icons import *
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu
@@ -363,7 +364,7 @@ class Gui():
             for item in tree[folder]:
                 # Create a child item with an icon
                 icon = QIcon(f'imports/icons/{item}.png')
-                child = QStandardItem(item)
+                child = QStandardItem(icon, item)
                 child.setBackground(QBrush(QColor("white")))  # Set background color
                 child.setForeground(QBrush(QColor("black")))  # Set foreground (text) color
                 parent.appendRow(child)
