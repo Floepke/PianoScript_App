@@ -267,6 +267,7 @@ def draw_staff(x_cursor: float,
                staff_max: int,
                draw_min: int, 
                draw_max: int,
+               staff_idx: int,
                io: dict, 
                staff_length: float,
                minipiano: bool):
@@ -276,7 +277,7 @@ def draw_staff(x_cursor: float,
     if not staff_min and not staff_max:
         draw_min, draw_max = staff_min, staff_max
     draw_min, draw_max = trim_key_to_outer_sides_staff(draw_min, draw_max)
-    scale = io['score']['properties']['draw_scale']
+    scale = io['score']['properties']['draw_scale']*io['score']['properties']['staffs'][staff_idx]['staff_scale']
 
     # draw the staff
     x = x_cursor

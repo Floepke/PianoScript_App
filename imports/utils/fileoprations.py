@@ -47,7 +47,7 @@ class FileOperations:
         self.io['score']['header']['timestamp'] = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
 
         # load test file only for debug purposes:
-        #self.io['score'] = json.load(open('pianoscriptfiles/Lamp.pianoscript', 'r'))
+        self.io['score'] = json.load(open('pianoscriptfiles/test.pianoscript', 'r'))
 
         # renumber tags
         self.io['calc'].renumber_tags()
