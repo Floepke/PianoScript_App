@@ -85,7 +85,7 @@ class GridDialog(QDialog):
 
         self.nr = 0
 
-        self.setWindowTitle('Grid definitions')
+        self.setWindowTitle('Grid Editor')
         self.check_visible: Optional[QCheckBox] = None
         self.spin_start: Optional[QSpinBox] = None
         self.spin_amount: Optional[QSpinBox] = None
@@ -94,7 +94,7 @@ class GridDialog(QDialog):
         self.tree_view: Optional[GridTreeView] = None
         self.measure_view: Optional[MeasureView] = None
         self.line_view: Optional[LinesView] = None
-        self.grid: Optional[List[int]] = None
+        self.grid: Optional[Grid] = None
 
         dialog_layout = QGridLayout(parent=self)
         dialog_layout.setContentsMargins(0, 0, 0, 0)
@@ -126,6 +126,7 @@ class GridDialog(QDialog):
         # when mute is True, no data should be updated
         self.mute = False
         self._want_to_close = False
+        self.tree_view.select(row=0)
 
     def keyPressEvent(self, event):
         """ a key was pressed """
@@ -405,6 +406,9 @@ class GridDialog(QDialog):
     def _on_add(self):
         """ add the same grid """
 
+        if self.grid is None:
+            return
+
         row = self.cur_grid.nr - 1
         # self.note = f 'add grid after grid={row + 1}'
         self.grids.insert(row, deepcopy(self.cur_grid))
@@ -413,6 +417,9 @@ class GridDialog(QDialog):
 
     def _on_del(self):
         """ delete this grid """
+
+        if self.grid is None:
+            return
 
         row = self.cur_grid.nr - 1
         # self.note = f 'pop grid {row}'

@@ -60,21 +60,25 @@ class GridTreeView:
         """ populate the view """
 
         view = self.view
-        indices = view.get_parent_row_indices()
-        for index in indices:
-            print(f'grid index row {index.row()} col {index.column()}')
-
-        expanded = view.get_expanded_rows()
-        # print(f'expanded rows {expanded}')
+        # indices = view.get_parent_row_indices()
+        # for index in indices:
+        #    print(f'grid index row {index.row()} col {index.column()}')
 
         model = self.model
-        model.clear()
 
+        expanded = []
+        for i in range(model.rowCount()):
+            item = model.indexFromItem(model.item(i, 0))
+            if view.isExpanded(item):
+                expanded.append(i)
+
+        model.clear()
         model.setHorizontalHeaderLabels(columns)
 
         # populate data
         for i, item in enumerate(data):
             parent = QStandardItem(item['parent'])
+
             if item['parent.readonly']:
                 parent.setFlags(parent.flags() ^ Qt.ItemIsEditable)
 
@@ -89,14 +93,24 @@ class GridTreeView:
                     child2.setFlags(child2.flags() ^ Qt.ItemIsEditable)
 
                 parent.appendRow([child1, child2])
+
             model.appendRow(parent)
             # span container columns
             view.setFirstColumnSpanned(i, view.rootIndex(), True)
 
-        parent_indices = view.get_parent_row_indices()
-        for nr, index in enumerate(parent_indices):
-            print(f'row {nr} {index.row()}')
-        # view.restore_expanded_items(expanded)
+        # restore the expanded rows by index
+        for i in expanded:
+            item = model.indexFromItem(model.item(i, 0))
+            view.expand(item)
+
+    def select(self, row: int):
+        """ to expand a row  """
+
+        item = self.model.indexFromItem(self.model.item(row, 0))
+        self.view.expand(item)
+
+        index = self.model.indexFromItem(self.model.item(row, 0))
+        self._on_tree_view_clicked(index)
 
     def set_value(self, row, name: str, value: str = ''):
         """ change a value in model row """
