@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QGraphicsView
 
+
 class MouseHandlerPrinter(QGraphicsView):
     '''class that updates all mouse events in the io dict'''
 
@@ -25,15 +26,13 @@ class MouseHandlerPrinter(QGraphicsView):
         '''updates the mouse position in the io dict and calls the mouse handler'''
         self.mouse_update(event)
         print('mouse press')
-    
+
     def mouse_move(self, event):
         '''updates the mouse position in the io dict and calls the mouse handler'''
         self.mouse_update(event)
         print('mouse move')
-    
+
     def mouse_release(self, event):
         '''updates the mouse position in the io dict and calls the mouse handler'''
         self.mouse_update(event)
         print('mouse release')
-
-    

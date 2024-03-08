@@ -68,6 +68,7 @@ def test_0():
         _, _, note = PianoNotes.translate_note(piano_note=index)
         print(f'{index:<3} {note}')
 
+
 def test_1():
     """ test the dialog with four line breaks """
 

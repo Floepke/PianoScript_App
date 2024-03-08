@@ -36,7 +36,8 @@ class GridTreeView:
 
         self._on_selection_changed = on_selection_changed
         self.view = view = MyTreeView(parent=box)
-        view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        view.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.model = model = QStandardItemModel()
         view.setModel(model)
@@ -54,7 +55,8 @@ class GridTreeView:
         # print('on_tree_view_clicked')
         if self._on_selection_changed is not None:
             item = self.model.itemFromIndex(index)
-            self._on_selection_changed(item.row(), item.column(), item.parent())
+            self._on_selection_changed(
+                item.row(), item.column(), item.parent())
 
     def populate(self, columns: list, data: list):
         """ populate the view """

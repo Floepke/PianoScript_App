@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QVBoxLayout, QDialog, QSpinBox, QCheckBox, QFontComboBox, QPushButton
 from PySide6.QtGui import Qt
 
+
 class FontSelector(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)

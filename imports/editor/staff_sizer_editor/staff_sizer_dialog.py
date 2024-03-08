@@ -33,6 +33,7 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 
+
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
 
@@ -81,7 +82,6 @@ class StaffSizerDialog(QDialog):
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
 
         self.setLayout(layout)
-
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa

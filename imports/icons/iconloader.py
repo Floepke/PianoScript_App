@@ -7,6 +7,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import QByteArray, QBuffer, QIODevice
 import base64
 
+
 def base64_to_qicon(base64_str):
     data = base64.b64decode(base64_str)
     pixmap = QPixmap()

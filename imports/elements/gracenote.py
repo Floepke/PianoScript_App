@@ -2,6 +2,7 @@ from imports.utils.constants import *
 import copy
 from imports.utils.savefilestructure import SaveFileStructureSource
 
+
 class GraceNote:
 
     @staticmethod
@@ -11,7 +12,8 @@ class GraceNote:
         # left mouse button handling:
         if event_type == 'leftclick':
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='gracenote')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='gracenote')
             if detect:
                 # if we clicked on a note, we want to edit it so we create a copy of the note
                 GraceNote.delete_editor(io, detect)
@@ -42,7 +44,7 @@ class GraceNote:
 
                 # draw the note
                 GraceNote.draw_editor(io, io['edit_obj'])
-        
+
         elif event_type == 'leftrelease':
             if io['edit_obj']:
                 # delete the edit_obj
@@ -73,14 +75,15 @@ class GraceNote:
 
         # right mouse button handling:
         elif event_type == 'rightclick':
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='gracenote')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='gracenote')
             if detect:
                 # if we clicked on a note, we want to delete it
                 GraceNote.delete_editor(io, detect)
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...
 
@@ -94,7 +97,7 @@ class GraceNote:
             color = '#009cff'
         else:
             color = 'black'
-        
+
         # draw notehead
         x = io['calc'].pitch2x_editor(note['pitch'])
         y = io['calc'].tick2y_editor(note['time'])
@@ -102,23 +105,23 @@ class GraceNote:
         if note['pitch'] in BLACK_KEYS:
             # draw the black notehead down
             io['editor'].new_oval(x - unit * 4,
-                                y,
-                                x + unit * 4,
-                                y + unit * 8,
-                                tag=[note['tag'], 'noteheadblack'],
-                                fill_color=color,
-                                outline_width=2,
-                                outline_color=color)
+                                  y,
+                                  x + unit * 4,
+                                  y + unit * 8,
+                                  tag=[note['tag'], 'noteheadblack'],
+                                  fill_color=color,
+                                  outline_width=2,
+                                  outline_color=color)
         elif note['pitch'] in WHITE_KEYS:
             # draw the black notehead up
-            io['editor'].new_oval(x - unit * 4, 
-                                y,
-                                x + unit * 4,
-                                y + unit * 8,
-                                tag=[note['tag'], 'noteheadwhite'],
-                                fill_color='white',
-                                outline_width=2,
-                                outline_color=color)
+            io['editor'].new_oval(x - unit * 4,
+                                  y,
+                                  x + unit * 4,
+                                  y + unit * 8,
+                                  tag=[note['tag'], 'noteheadwhite'],
+                                  fill_color='white',
+                                  outline_width=2,
+                                  outline_color=color)
 
     @staticmethod
     def delete_editor(io, note):

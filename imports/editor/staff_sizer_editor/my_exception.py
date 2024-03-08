@@ -21,6 +21,7 @@ from typing import Any
 # pylint: enable=too-many-instance-attributes
 class MyException(BaseException):
     """ extract all useful information from the exception and the inspection """
+
     def __init__(self, extra: Any = None):
         exc = sys.exc_info()
         self.exception_type = exc[0].__name__

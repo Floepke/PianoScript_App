@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QFontDialog
 
+
 class Text:
 
     @staticmethod
@@ -8,7 +9,8 @@ class Text:
 
         # left mouse button handling:
         if event_type == 'leftclick':
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='text')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='text')
             if detect:
                 print(detect)
             else:
@@ -16,7 +18,7 @@ class Text:
 
         elif event_type == 'leftclick+move':
             ...
-        
+
         elif event_type == 'leftrelease':
             ...
 
@@ -36,13 +38,13 @@ class Text:
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...
-    
+
     @staticmethod
     def draw_editor(io, text):
-        
+
         ...
 
     @staticmethod

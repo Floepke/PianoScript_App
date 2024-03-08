@@ -1,7 +1,8 @@
 import datetime
 
+
 class Score:
-    
+
     def __init__(self):
 
         self.header = self.Header()
@@ -11,7 +12,7 @@ class Score:
     class Header:
 
         def __init__(self):
-            
+
             self.title = 'Untitled'
             self.composer = 'Pianoscript'
             self.copyright = 'Copyright (C) 2024, Pianoscript. All rights reserved.'
@@ -24,7 +25,7 @@ class Score:
     class Properties:
 
         def __init__(self):
-            
+
             # layout:
             self.page_width = 210
             self.page_height = 297
@@ -39,7 +40,8 @@ class Score:
             self.color_left_midinote = '#c8c8c8'
             self.editor_zoom = 80
             self.threelinescale = 1.
-            self.black_note_rule = ['AlwaysUp', 'AlwaysDown', 'OnlyChordUp', 'AlwaysDownExceptCollisions', 'AlwaysUpExceptCollisions'][2]
+            self.black_note_rule = ['AlwaysUp', 'AlwaysDown', 'OnlyChordUp',
+                                    'AlwaysDownExceptCollisions', 'AlwaysUpExceptCollisions'][2]
             self.stop_sign_style = ['PianoScript', 'Klavarskribo'][0]
 
             # onoff:
@@ -61,26 +63,25 @@ class Score:
 
             # staffs
             self.staffs = {
-                    '1':{
-                        'onoff':True,
-                        'staff-number':0,
-                        'staff-scale':1.0
-                    },
-                    '2':{
-                        'onoff':False,
-                        'staff-number':1,
-                        'staff-scale':1.0
-                    },
-                    '3':{
-                        'onoff':False,
-                        'staff-number':2,
-                        'staff-scale':1.0
-                    },
-                    '4':{
-                        'onoff':False,
-                        'name':'Staff 4',
-                        'staff-number':3,
-                        'staff-scale':1.0
-                    }
+                '1': {
+                    'onoff': True,
+                    'staff-number': 0,
+                    'staff-scale': 1.0
+                },
+                '2': {
+                    'onoff': False,
+                    'staff-number': 1,
+                    'staff-scale': 1.0
+                },
+                '3': {
+                    'onoff': False,
+                    'staff-number': 2,
+                    'staff-scale': 1.0
+                },
+                '4': {
+                    'onoff': False,
+                    'name': 'Staff 4',
+                    'staff-number': 3,
+                    'staff-scale': 1.0
                 }
-        
+            }

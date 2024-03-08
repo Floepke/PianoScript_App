@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QScrollArea, QPushButton, QComboBox, QLabel, QGrid
 from PySide6.QtWidgets import QPushButton, QLineEdit, QColorDialog, QGroupBox
 from PySide6.QtGui import QColor
 
+
 class ScoreOptionsDialog(QDialog):
     def __init__(self, io, parent=None):
         super().__init__(parent)
@@ -11,7 +12,7 @@ class ScoreOptionsDialog(QDialog):
 
         self.resize(500, 500)
         self.setWindowTitle("Score Options")
-        
+
         layout = QVBoxLayout(self)
         tab_widget = QTabWidget(self)
         layout.addWidget(tab_widget)
@@ -26,14 +27,18 @@ class ScoreOptionsDialog(QDialog):
 
         # Add header properties to header tab
         header_form_layout = QFormLayout()
-        header_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        header_form_layout.setFieldGrowthPolicy(
+            QFormLayout.AllNonFixedFieldsGrow)
 
         self.title = QLineEdit(str(self.io['score']['header']['title']))
         self.composer = QLineEdit(str(self.io['score']['header']['composer']))
-        self.copyright = QLineEdit(str(self.io['score']['header']['copyright']))
+        self.copyright = QLineEdit(
+            str(self.io['score']['header']['copyright']))
         self.app_name = QLineEdit(str(self.io['score']['header']['app_name']))
-        self.app_version = QLineEdit(str(self.io['score']['header']['app_version']))
-        self.timestamp = QLineEdit(str(self.io['score']['header']['timestamp']))
+        self.app_version = QLineEdit(
+            str(self.io['score']['header']['app_version']))
+        self.timestamp = QLineEdit(
+            str(self.io['score']['header']['timestamp']))
         self.genre = QLineEdit(str(self.io['score']['header']['genre']))
         self.comment = QLineEdit(str(self.io['score']['header']['comment']))
 
@@ -45,7 +50,7 @@ class ScoreOptionsDialog(QDialog):
         header_form_layout.addRow('Timestamp:', self.timestamp)
         header_form_layout.addRow('Genre:', self.genre)
         header_form_layout.addRow('Comment:', self.comment)
-        
+
         header_layout.addLayout(header_form_layout)
 
         # Create properties tab
@@ -56,89 +61,114 @@ class ScoreOptionsDialog(QDialog):
         properties_scroll.setWidget(properties_tab)
         tab_widget.addTab(properties_scroll, 'Doc Properties')
         properties_form_layout = QFormLayout()
-        properties_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        properties_form_layout.setFieldGrowthPolicy(
+            QFormLayout.AllNonFixedFieldsGrow)
 
         self.page_width = QDoubleSpinBox()
         self.page_width.setRange(10, 10000)
-        self.page_width.setValue(float(self.io['score']['properties']['page_width']))
-        
+        self.page_width.setValue(
+            float(self.io['score']['properties']['page_width']))
+
         self.page_height = QDoubleSpinBox()
         self.page_height.setRange(10, 10000)
-        self.page_height.setValue(float(self.io['score']['properties']['page_height']))
-        
+        self.page_height.setValue(
+            float(self.io['score']['properties']['page_height']))
+
         self.page_margin_left = QDoubleSpinBox()
         self.page_margin_left.setRange(0, 1000)
-        self.page_margin_left.setValue(float(self.io['score']['properties']['page_margin_left']))
+        self.page_margin_left.setValue(
+            float(self.io['score']['properties']['page_margin_left']))
 
         self.page_margin_right = QDoubleSpinBox()
         self.page_margin_right.setRange(0, 1000)
-        self.page_margin_right.setValue(float(self.io['score']['properties']['page_margin_right']))
+        self.page_margin_right.setValue(
+            float(self.io['score']['properties']['page_margin_right']))
 
         self.page_margin_up = QDoubleSpinBox()
         self.page_margin_up.setRange(0, 1000)
-        self.page_margin_up.setValue(float(self.io['score']['properties']['page_margin_up']))
+        self.page_margin_up.setValue(
+            float(self.io['score']['properties']['page_margin_up']))
 
         self.page_margin_down = QDoubleSpinBox()
         self.page_margin_down.setRange(0, 1000)
-        self.page_margin_down.setValue(float(self.io['score']['properties']['page_margin_down']))
+        self.page_margin_down.setValue(
+            float(self.io['score']['properties']['page_margin_down']))
 
         self.draw_scale = QDoubleSpinBox()
         self.draw_scale.setRange(0.1, 10)
         self.draw_scale.setSingleStep(0.05)
-        self.draw_scale.setValue(float(self.io['score']['properties']['draw_scale']))
+        self.draw_scale.setValue(
+            float(self.io['score']['properties']['draw_scale']))
 
         self.header_height = QDoubleSpinBox()
         self.header_height.setRange(0, 1000)
-        self.header_height.setValue(float(self.io['score']['properties']['header_height']))
+        self.header_height.setValue(
+            float(self.io['score']['properties']['header_height']))
 
         self.footer_height = QDoubleSpinBox()
         self.footer_height.setRange(0, 1000)
-        self.footer_height.setValue(float(self.io['score']['properties']['footer_height']))
+        self.footer_height.setValue(
+            float(self.io['score']['properties']['footer_height']))
 
         self.black_note_rule = QComboBox()
-        self.black_note_rule.addItems(['Up', 'Down'])#, 'DownExceptCollision', 'UpExceptCollision', 'OnlyChordUp'
-        self.black_note_rule.setCurrentText(self.io['score']['properties']['black_note_rule'])
+        # , 'DownExceptCollision', 'UpExceptCollision', 'OnlyChordUp'
+        self.black_note_rule.addItems(['Up', 'Down'])
+        self.black_note_rule.setCurrentText(
+            self.io['score']['properties']['black_note_rule'])
 
         self.threeline_scale = QDoubleSpinBox()
         self.threeline_scale.setRange(0.1, 10)
         self.threeline_scale.setSingleStep(0.05)
-        self.threeline_scale.setValue(float(self.io['score']['properties']['threeline_scale']))
+        self.threeline_scale.setValue(
+            float(self.io['score']['properties']['threeline_scale']))
 
         self.stop_sign_style = QComboBox()
         self.stop_sign_style.addItems(['PianoScript', 'Klavarskribo'])
-        self.stop_sign_style.setCurrentText(self.io['score']['properties']['stop_sign_style'])
+        self.stop_sign_style.setCurrentText(
+            self.io['score']['properties']['stop_sign_style'])
 
         self.continuation_dot_style = QComboBox()
         self.continuation_dot_style.addItems(['PianoScript', 'Klavarskribo'])
-        self.continuation_dot_style.setCurrentText(self.io['score']['properties']['continuation_dot_style'])
+        self.continuation_dot_style.setCurrentText(
+            self.io['score']['properties']['continuation_dot_style'])
 
         self.color_right_midinote = QComboBox()
-        self.color_right_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_right_midinote.addItems(
+            ['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
         self.color_right_midinote.setEditable(True)
-        self.color_right_midinote.setCurrentText(self.io['score']['properties']['color_right_midinote'])
+        self.color_right_midinote.setCurrentText(
+            self.io['score']['properties']['color_right_midinote'])
 
         self.color_left_midinote = QComboBox()
-        self.color_left_midinote.addItems(['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
+        self.color_left_midinote.addItems(
+            ['lightpink', 'lightgreen', 'lightskyblue', 'gold', '#aaa', '#bbb', '#ccc', '#ddd', '#eee'])
         self.color_left_midinote.setEditable(True)
-        self.color_left_midinote.setCurrentText(self.io['score']['properties']['color_left_midinote'])
+        self.color_left_midinote.setCurrentText(
+            self.io['score']['properties']['color_left_midinote'])
 
         properties_form_layout = QFormLayout()
 
         properties_form_layout.addRow('Page Width:', self.page_width)
         properties_form_layout.addRow('Page Height:', self.page_height)
-        properties_form_layout.addRow('Page Margin Left:', self.page_margin_left)
-        properties_form_layout.addRow('Page Margin Right:', self.page_margin_right)
+        properties_form_layout.addRow(
+            'Page Margin Left:', self.page_margin_left)
+        properties_form_layout.addRow(
+            'Page Margin Right:', self.page_margin_right)
         properties_form_layout.addRow('Page Margin Up:', self.page_margin_up)
-        properties_form_layout.addRow('Page Margin Down:', self.page_margin_down)
+        properties_form_layout.addRow(
+            'Page Margin Down:', self.page_margin_down)
         properties_form_layout.addRow('Draw Scale:', self.draw_scale)
         properties_form_layout.addRow('Header Height:', self.header_height)
         properties_form_layout.addRow('Footer Height:', self.footer_height)
         properties_form_layout.addRow('Black Note Rule:', self.black_note_rule)
         properties_form_layout.addRow('ThreeLine Scale:', self.threeline_scale)
         properties_form_layout.addRow('Stop Sign Style:', self.stop_sign_style)
-        properties_form_layout.addRow('Continuation Dot Style:', self.continuation_dot_style)
-        properties_form_layout.addRow('Color Right Midinote:', self.color_right_midinote)
-        properties_form_layout.addRow('Color Left Midinote:', self.color_left_midinote)
+        properties_form_layout.addRow(
+            'Continuation Dot Style:', self.continuation_dot_style)
+        properties_form_layout.addRow(
+            'Color Right Midinote:', self.color_right_midinote)
+        properties_form_layout.addRow(
+            'Color Left Midinote:', self.color_left_midinote)
 
         properties_layout.addLayout(properties_form_layout)
 
@@ -150,39 +180,55 @@ class ScoreOptionsDialog(QDialog):
         elements_scroll.setWidget(elements_tab)
         tab_widget.addTab(elements_scroll, 'Elements on/off')
         elements_form_layout = QFormLayout()
-        elements_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        elements_form_layout.setFieldGrowthPolicy(
+            QFormLayout.AllNonFixedFieldsGrow)
 
         # onoff checkboxes
         self.staff_onoff = QCheckBox()
-        self.staff_onoff.setChecked(self.io['score']['properties']['staff_onoff'])
+        self.staff_onoff.setChecked(
+            self.io['score']['properties']['staff_onoff'])
         self.minipiano_onoff = QCheckBox()
-        self.minipiano_onoff.setChecked(self.io['score']['properties']['minipiano_onoff'])
+        self.minipiano_onoff.setChecked(
+            self.io['score']['properties']['minipiano_onoff'])
         self.stem_onoff = QCheckBox()
-        self.stem_onoff.setChecked(self.io['score']['properties']['stem_onoff'])
+        self.stem_onoff.setChecked(
+            self.io['score']['properties']['stem_onoff'])
         self.beam_onoff = QCheckBox()
-        self.beam_onoff.setChecked(self.io['score']['properties']['beam_onoff'])
+        self.beam_onoff.setChecked(
+            self.io['score']['properties']['beam_onoff'])
         self.note_onoff = QCheckBox()
-        self.note_onoff.setChecked(self.io['score']['properties']['note_onoff'])
+        self.note_onoff.setChecked(
+            self.io['score']['properties']['note_onoff'])
         self.midinote_onoff = QCheckBox()
-        self.midinote_onoff.setChecked(self.io['score']['properties']['midinote_onoff'])
+        self.midinote_onoff.setChecked(
+            self.io['score']['properties']['midinote_onoff'])
         self.notestop_onoff = QCheckBox()
-        self.notestop_onoff.setChecked(self.io['score']['properties']['notestop_onoff'])
+        self.notestop_onoff.setChecked(
+            self.io['score']['properties']['notestop_onoff'])
         self.page_numbering_onoff = QCheckBox()
-        self.page_numbering_onoff.setChecked(self.io['score']['properties']['page_numbering_onoff'])
+        self.page_numbering_onoff.setChecked(
+            self.io['score']['properties']['page_numbering_onoff'])
         self.barlines_onoff = QCheckBox()
-        self.barlines_onoff.setChecked(self.io['score']['properties']['barlines_onoff'])
+        self.barlines_onoff.setChecked(
+            self.io['score']['properties']['barlines_onoff'])
         self.basegrid_onoff = QCheckBox()
-        self.basegrid_onoff.setChecked(self.io['score']['properties']['basegrid_onoff'])
+        self.basegrid_onoff.setChecked(
+            self.io['score']['properties']['basegrid_onoff'])
         self.countline_onoff = QCheckBox()
-        self.countline_onoff.setChecked(self.io['score']['properties']['countline_onoff'])
+        self.countline_onoff.setChecked(
+            self.io['score']['properties']['countline_onoff'])
         self.measure_numbering_onoff = QCheckBox()
-        self.measure_numbering_onoff.setChecked(self.io['score']['properties']['measure_numbering_onoff'])
+        self.measure_numbering_onoff.setChecked(
+            self.io['score']['properties']['measure_numbering_onoff'])
         self.accidental_onoff = QCheckBox()
-        self.accidental_onoff.setChecked(self.io['score']['properties']['accidental_onoff'])
+        self.accidental_onoff.setChecked(
+            self.io['score']['properties']['accidental_onoff'])
         self.soundingdot_onoff = QCheckBox()
-        self.soundingdot_onoff.setChecked(self.io['score']['properties']['soundingdot_onoff'])
+        self.soundingdot_onoff.setChecked(
+            self.io['score']['properties']['soundingdot_onoff'])
         self.leftdot_onoff = QCheckBox()
-        self.leftdot_onoff.setChecked(self.io['score']['properties']['leftdot_onoff'])
+        self.leftdot_onoff.setChecked(
+            self.io['score']['properties']['leftdot_onoff'])
 
         # add the checkboxes
         elements_form_layout.addRow('Staff:', self.staff_onoff)
@@ -192,11 +238,13 @@ class ScoreOptionsDialog(QDialog):
         elements_form_layout.addRow('Note:', self.note_onoff)
         elements_form_layout.addRow('MidiNote:', self.midinote_onoff)
         elements_form_layout.addRow('NoteStop:', self.notestop_onoff)
-        elements_form_layout.addRow('Page Numbering:', self.page_numbering_onoff)
+        elements_form_layout.addRow(
+            'Page Numbering:', self.page_numbering_onoff)
         elements_form_layout.addRow('Barlines:', self.barlines_onoff)
         elements_form_layout.addRow('Basegrid:', self.basegrid_onoff)
         elements_form_layout.addRow('Countline:', self.countline_onoff)
-        elements_form_layout.addRow('Measure Numbering:', self.measure_numbering_onoff)
+        elements_form_layout.addRow(
+            'Measure Numbering:', self.measure_numbering_onoff)
         elements_form_layout.addRow('Accidental:', self.accidental_onoff)
         elements_form_layout.addRow('SoundingDot:', self.soundingdot_onoff)
         elements_form_layout.addRow('LeftDot:', self.leftdot_onoff)
@@ -211,19 +259,24 @@ class ScoreOptionsDialog(QDialog):
         staff_scroll.setWidget(staff_tab)
         tab_widget.addTab(staff_scroll, 'Staff Properties')
         staff_form_layout = QFormLayout()
-        staff_form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        staff_form_layout.setFieldGrowthPolicy(
+            QFormLayout.AllNonFixedFieldsGrow)
 
-                # staff 1 properties
+        # staff 1 properties
         self.staff1_group = QGroupBox('Staff 1')
+        self.staff1_group.setStyleSheet(
+            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff1_layout = QGridLayout(self.staff1_group)
 
         self.staff1_name = QLineEdit()
-        self.staff1_name.setText(self.io['score']['properties']['staffs'][0]['name'])
+        self.staff1_name.setText(
+            self.io['score']['properties']['staffs'][0]['name'])
         staff1_layout.addWidget(QLabel('Name:'), 0, 0)
         staff1_layout.addWidget(self.staff1_name, 0, 1)
 
         self.staff1_scale = QDoubleSpinBox()
-        self.staff1_scale.setValue(self.io['score']['properties']['staffs'][0]['staff_scale'])
+        self.staff1_scale.setValue(
+            self.io['score']['properties']['staffs'][0]['staff_scale'])
         self.staff1_scale.setMinimum(0.25)
         self.staff1_scale.setMaximum(4.0)
         self.staff1_scale.setSingleStep(0.05)
@@ -231,7 +284,8 @@ class ScoreOptionsDialog(QDialog):
         staff1_layout.addWidget(self.staff1_scale, 1, 1)
 
         self.staff1_engrave_name = QCheckBox()
-        self.staff1_engrave_name.setChecked(self.io['score']['properties']['staffs'][0]['engrave_name'])
+        self.staff1_engrave_name.setChecked(
+            self.io['score']['properties']['staffs'][0]['engrave_name'])
         staff1_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
         staff1_layout.addWidget(self.staff1_engrave_name, 2, 1)
 
@@ -239,15 +293,19 @@ class ScoreOptionsDialog(QDialog):
 
         # staff 2 properties
         self.staff2_group = QGroupBox('Staff 2')
+        self.staff2_group.setStyleSheet(
+            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff2_layout = QGridLayout(self.staff2_group)
 
         self.staff2_name = QLineEdit()
-        self.staff2_name.setText(self.io['score']['properties']['staffs'][1]['name'])
+        self.staff2_name.setText(
+            self.io['score']['properties']['staffs'][1]['name'])
         staff2_layout.addWidget(QLabel('Name:'), 0, 0)
         staff2_layout.addWidget(self.staff2_name, 0, 1)
 
         self.staff2_scale = QDoubleSpinBox()
-        self.staff2_scale.setValue(self.io['score']['properties']['staffs'][1]['staff_scale'])
+        self.staff2_scale.setValue(
+            self.io['score']['properties']['staffs'][1]['staff_scale'])
         self.staff2_scale.setMinimum(0.25)
         self.staff2_scale.setMaximum(4.0)
         self.staff2_scale.setSingleStep(0.05)
@@ -255,7 +313,8 @@ class ScoreOptionsDialog(QDialog):
         staff2_layout.addWidget(self.staff2_scale, 1, 1)
 
         self.staff2_engrave_name = QCheckBox()
-        self.staff2_engrave_name.setChecked(self.io['score']['properties']['staffs'][1]['engrave_name'])
+        self.staff2_engrave_name.setChecked(
+            self.io['score']['properties']['staffs'][1]['engrave_name'])
         staff2_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
         staff2_layout.addWidget(self.staff2_engrave_name, 2, 1)
 
@@ -263,15 +322,19 @@ class ScoreOptionsDialog(QDialog):
 
         # staff 3 properties
         self.staff3_group = QGroupBox('Staff 3')
+        self.staff3_group.setStyleSheet(
+            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff3_layout = QGridLayout(self.staff3_group)
 
         self.staff3_name = QLineEdit()
-        self.staff3_name.setText(self.io['score']['properties']['staffs'][2]['name'])
+        self.staff3_name.setText(
+            self.io['score']['properties']['staffs'][2]['name'])
         staff3_layout.addWidget(QLabel('Name:'), 0, 0)
         staff3_layout.addWidget(self.staff3_name, 0, 1)
 
         self.staff3_scale = QDoubleSpinBox()
-        self.staff3_scale.setValue(self.io['score']['properties']['staffs'][2]['staff_scale'])
+        self.staff3_scale.setValue(
+            self.io['score']['properties']['staffs'][2]['staff_scale'])
         self.staff3_scale.setMinimum(0.25)
         self.staff3_scale.setMaximum(4.0)
         self.staff3_scale.setSingleStep(0.05)
@@ -279,22 +342,27 @@ class ScoreOptionsDialog(QDialog):
         staff3_layout.addWidget(self.staff3_scale, 1, 1)
 
         self.staff3_engrave_name = QCheckBox()
-        self.staff3_engrave_name.setChecked(self.io['score']['properties']['staffs'][2]['engrave_name'])
+        self.staff3_engrave_name.setChecked(
+            self.io['score']['properties']['staffs'][2]['engrave_name'])
         staff3_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
 
         staff_form_layout.addRow(self.staff3_group)
 
         # create staff4
         self.staff4_group = QGroupBox('Staff 4')
+        self.staff4_group.setStyleSheet(
+            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff4_layout = QGridLayout(self.staff4_group)
 
         self.staff4_name = QLineEdit()
-        self.staff4_name.setText(self.io['score']['properties']['staffs'][3]['name'])
+        self.staff4_name.setText(
+            self.io['score']['properties']['staffs'][3]['name'])
         staff4_layout.addWidget(QLabel('Name:'), 0, 0)
         staff4_layout.addWidget(self.staff4_name, 0, 1)
 
         self.staff4_scale = QDoubleSpinBox()
-        self.staff4_scale.setValue(self.io['score']['properties']['staffs'][3]['staff_scale'])
+        self.staff4_scale.setValue(
+            self.io['score']['properties']['staffs'][3]['staff_scale'])
         self.staff4_scale.setMinimum(0.25)
         self.staff4_scale.setMaximum(4.0)
         self.staff4_scale.setSingleStep(0.05)
@@ -302,7 +370,8 @@ class ScoreOptionsDialog(QDialog):
         staff4_layout.addWidget(self.staff4_scale, 1, 1)
 
         self.staff4_engrave_name = QCheckBox()
-        self.staff4_engrave_name.setChecked(self.io['score']['properties']['staffs'][3]['engrave_name'])
+        self.staff4_engrave_name.setChecked(
+            self.io['score']['properties']['staffs'][3]['engrave_name'])
         staff4_layout.addWidget(QLabel('Engrave Name:'), 2, 0)
 
         staff_form_layout.addRow(self.staff4_group)
@@ -324,7 +393,6 @@ class ScoreOptionsDialog(QDialog):
         button_layout.addWidget(apply_button)
         layout.addLayout(button_layout)
 
-    
     def validate(self, close: bool):
         '''Validate the data entered in the dialog'''
 
@@ -354,7 +422,7 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['continuation_dot_style'] = self.continuation_dot_style.currentText()
         self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.currentText()
         self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.currentText()
-        
+
         # onoff tab
         self.io['score']['properties']['staff_onoff'] = self.staff_onoff.isChecked()
         self.io['score']['properties']['minipiano_onoff'] = self.minipiano_onoff.isChecked()
@@ -371,7 +439,7 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['accidental_onoff'] = self.accidental_onoff.isChecked()
         self.io['score']['properties']['soundingdot_onoff'] = self.soundingdot_onoff.isChecked()
         self.io['score']['properties']['leftdot_onoff'] = self.leftdot_onoff.isChecked()
-        
+
         # staff tab
         self.io['score']['properties']['staffs'][0]['name'] = self.staff1_name.text()
         self.io['score']['properties']['staffs'][0]['staff_scale'] = self.staff1_scale.value()
@@ -385,10 +453,12 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['staffs'][3]['name'] = self.staff4_name.text()
         self.io['score']['properties']['staffs'][3]['staff_scale'] = self.staff4_scale.value()
         self.io['score']['properties']['staffs'][3]['engrave_name'] = self.staff4_engrave_name.isChecked()
-        
+
         self.io['maineditor'].update('score_options')
-        
-        if close: self.accept()
+
+        if close:
+            self.accept()
+
 
 class ColorPicker(QWidget):
     def __init__(self, initial_color, validate, parent=None):
@@ -407,28 +477,3 @@ class ColorPicker(QWidget):
         if color.isValid():
             self.line_edit.setText(color.name())
         self.validate()
-                                             
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

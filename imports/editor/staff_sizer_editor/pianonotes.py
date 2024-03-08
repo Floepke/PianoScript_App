@@ -56,6 +56,7 @@ class PianoNotes:
             62, 67,
             74, 79,
             86]
+
     @staticmethod
     def revert_translation(wanted: str):
         """ translate 'B1' back to 19, etc """

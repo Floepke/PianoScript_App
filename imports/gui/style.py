@@ -1,7 +1,7 @@
-color1 = 'pink' # background1
-color2 = 'pink' # background2
-color3 = '#eeeeee' # text
-color4 = '#5555ff' # highlight
+color1 = 'pink'  # background1
+color2 = 'pink'  # background2
+color3 = '#eeeeee'  # text
+color4 = '#5555ff'  # highlight
 
 STYLE = '''
 font-size: 16px;
@@ -143,4 +143,3 @@ QDockWidget, #gs_frame, QSplitter {{
     color: {color2};
 }}
 '''
-

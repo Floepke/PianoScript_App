@@ -3,6 +3,7 @@ from imports.utils.constants import *
 import copy
 from PySide6.QtCore import Qt
 
+
 class Beam:
 
     @staticmethod
@@ -12,7 +13,8 @@ class Beam:
         # left mouse button handling:
         if event_type == 'leftclick':
             # detect if we clicked on a beam
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='beam')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='beam')
 
             if detect:
                 io['edit_obj'] = detect
@@ -41,14 +43,13 @@ class Beam:
                 if io['edit_obj']['duration'] < 0:
                     io['edit_obj']['duration'] = 0
                 Beam.draw_editor(io, io['edit_obj'])
-        
+
         elif event_type == 'leftrelease':
             if io['edit_obj']:
-                io['score']['events']['beam'].append(copy.deepcopy(io['edit_obj']))
+                io['score']['events']['beam'].append(
+                    copy.deepcopy(io['edit_obj']))
                 Beam.draw_editor(io, io['edit_obj'])
                 io['edit_obj'] = None
-            
-
 
         # middle mouse button handling:
         elif event_type == 'middleclick':
@@ -63,7 +64,8 @@ class Beam:
         # right mouse button handling:
         elif event_type == 'rightclick':
             # detect if we clicked on a beam
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='beam')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='beam')
 
             if detect:
                 io['score']['events']['beam'].remove(detect)
@@ -71,10 +73,9 @@ class Beam:
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...
-
 
     def draw_editor(io, beam, inselection=False):
 
@@ -99,56 +100,36 @@ class Beam:
                               capstyle=Qt.FlatCap)
         if beam['hand'] == 'r':
             io['editor'].new_line(x, time,
-                              x-(EDITOR_MARGIN/3), time,
-                              tag=[beam['tag'], 'beam'],
-                              color='green',
-                              width=2)
+                                  x-(EDITOR_MARGIN/3), time,
+                                  tag=[beam['tag'], 'beam'],
+                                  color='green',
+                                  width=2)
             io['editor'].new_line(x, time2,
-                              x-(EDITOR_MARGIN/3), time2,
-                              tag=[beam['tag'], 'beam'],
-                              color='green',
-                              width=2)
+                                  x-(EDITOR_MARGIN/3), time2,
+                                  tag=[beam['tag'], 'beam'],
+                                  color='green',
+                                  width=2)
         else:
             io['editor'].new_line(x, time,
-                              x+(EDITOR_MARGIN/3), time,
-                              tag=[beam['tag'], 'beam'],
-                              color='green',
-                              width=2)
+                                  x+(EDITOR_MARGIN/3), time,
+                                  tag=[beam['tag'], 'beam'],
+                                  color='green',
+                                  width=2)
             io['editor'].new_line(x, time2,
-                              x+(EDITOR_MARGIN/3), time2,
-                              tag=[beam['tag'], 'beam'],
-                              color='green',
-                              width=2)
+                                  x+(EDITOR_MARGIN/3), time2,
+                                  tag=[beam['tag'], 'beam'],
+                                  color='green',
+                                  width=2)
         if beam['duration'] == 0:
             io['editor'].new_rectangle(x-5, time-5,
                                        x+5, time+5,
                                        tag=[beam['tag'], 'beam'],
                                        fill_color='green')
-        
-        
 
     def delete_editor(io, beam):
-        
+
         # delete old beam
         io['editor'].delete_with_tag([beam['tag']])
 
         # delete from score
         io['score']['events']['beam'].remove(beam)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -2,6 +2,7 @@ from imports.utils.savefilestructure import SaveFileStructureSource
 import copy
 from imports.utils.constants import *
 
+
 class CountLine:
 
     @staticmethod
@@ -11,8 +12,9 @@ class CountLine:
         # left mouse button handling:
         if event_type == 'leftclick':
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='countline')
-            
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='countline')
+
             if detect:
                 CountLine.delete_editor(io, detect)
                 io['edit_obj'] = copy.deepcopy(detect)
@@ -35,7 +37,8 @@ class CountLine:
             mouse_time = io['calc'].y2tick_editor(y, snap=True)
 
             # detect handle
-            handle = 'pitch1' if abs(io['edit_obj']['pitch1'] - mouse_pitch) < abs(io['edit_obj']['pitch2'] - mouse_pitch) else 'pitch2'
+            handle = 'pitch1' if abs(io['edit_obj']['pitch1'] - mouse_pitch) < abs(
+                io['edit_obj']['pitch2'] - mouse_pitch) else 'pitch2'
 
             # edit the countline
             io['edit_obj'][handle] = mouse_pitch
@@ -43,7 +46,7 @@ class CountLine:
 
             # draw the note
             CountLine.draw_editor(io, io['edit_obj'])
-        
+
         elif event_type == 'leftrelease':
             if io['edit_obj']:
                 # delete the edit_obj
@@ -79,20 +82,21 @@ class CountLine:
         # right mouse button handling:
         elif event_type == 'rightclick':
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='countline')
-            
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='countline')
+
             if detect:
                 CountLine.delete_editor(io, detect)
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...
 
     @staticmethod
     def draw_editor(io, countline):
-        
+
         # first delete the old countline
         io['editor'].delete_with_tag([countline['tag']])
 
@@ -107,23 +111,25 @@ class CountLine:
 
         # add the new countline
         io['editor'].new_line(x1, y, x2, y,
-                            tag=[countline['tag'], 'countline'],
-                            color='#000000',
-                            dash=(4,4),
-                            width=.5)
-        
+                              tag=[countline['tag'], 'countline'],
+                              color='#000000',
+                              dash=(4, 4),
+                              width=.5)
+
         # add handles
         io['editor'].new_rectangle(x1-5, y-5, x1+5, y+5,
-                                   tag=[countline['tag'], 'countline', 'handle'],
+                                   tag=[countline['tag'],
+                                        'countline', 'handle'],
                                    fill_color='#aaaa0099',
                                    width=0)
         io['editor'].new_rectangle(x2-5, y-5, x2+5, y+5,
-                                   tag=[countline['tag'], 'countline', 'handle'],
+                                   tag=[countline['tag'],
+                                        'countline', 'handle'],
                                    fill_color='#aaaa0099',
                                    width=0)
-        
+
     def delete_editor(io, countline):
-        
+
         # delete from file and editor
         io['score']['events']['countline'].remove(countline)
         io['editor'].delete_with_tag([countline['tag']])

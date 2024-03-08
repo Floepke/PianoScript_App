@@ -1,13 +1,16 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
-import mido, os, copy, threading
+import mido
+import os
+import copy
+import threading
 from midiutil.MidiFile import MIDIFile
 
 
 class Midi:
 
     def __init__(self, io):
-        
+
         self.io = io
 
         # midi play
@@ -20,13 +23,14 @@ class Midi:
 
         dialog = QMessageBox()
         dialog.setWindowTitle('Which Hand?')
-        dialog.setText(f'To which hand do you want to import?\nChannel: {channel}\nName: {name}')
-        
+        dialog.setText(
+            f'To which hand do you want to import?\nChannel: {channel}\nName: {name}')
+
         left_button = dialog.addButton('Left', QMessageBox.NoRole)
         right_button = dialog.addButton('Right', QMessageBox.YesRole)
-        
+
         dialog.exec()
-        
+
         if dialog.clickedButton() == left_button:
             return 'l'
         elif dialog.clickedButton() == right_button:
@@ -36,10 +40,11 @@ class Midi:
 
         if not self.io['fileoperations'].save_check():
             return
-        
+
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
-        
+        file_path, _ = file_dialog.getOpenFileName(
+            self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
+
         if not file_path:
             return
 
@@ -50,7 +55,8 @@ class Midi:
         self.io['midi_import'] = True
 
         # set title to name of the midi file
-        self.io['score']['header']['title'] = os.path.splitext(os.path.basename(file_path))[0]
+        self.io['score']['header']['title'] = os.path.splitext(
+            os.path.basename(file_path))[0]
 
         # clear grid
         self.io['score']['events']['grid'] = []
@@ -96,9 +102,9 @@ class Midi:
                 if msg['type'] in ['note_on', 'note_off', 'set_tempo', 'time_signature']:
                     msg['track'] = track
                     msg['track_name'] = track_name
-                    
+
                     all_msg.append(msg)
-        
+
         # calculate duration
         for idx, evt in enumerate(all_msg):
             if evt['type'] == 'note_on':
@@ -111,39 +117,41 @@ class Midi:
                     if t['type'] == 'time_signature' or t == all_msg[-1]:
                         evt['duration'] = t['time'] - evt['time']
                         break
-                
+
             # check if has property duration
             if 'duration' not in evt:
                 evt['duration'] = all_msg[-1]['time'] - evt['time']
-        
+
         # convert to pianoticks
         for msg in all_msg:
 
             msg['time'] = int(QUARTER_PIANOTICK / tpb * msg['time'])
-            
+
             if msg['type'] in ['note_on', 'time_signature']:
                 print(msg, msg['type'])
-                msg['duration'] = int(QUARTER_PIANOTICK / tpb * msg['duration'])
+                msg['duration'] = int(
+                    QUARTER_PIANOTICK / tpb * msg['duration'])
 
         # write time_signatures and notes:
         for i in all_msg:
             if i['type'] == 'time_signature':
 
                 # create grid
-                length = int(int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
+                length = int(int(
+                    i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
                 msg = {
-                    'tag':'grid',
-                    'amount':int(i['duration'] / length),
-                    'numerator':i['numerator'],
-                    'denominator':i['denominator'],
-                    'grid':[],
-                    'visible':True
+                    'tag': 'grid',
+                    'amount': int(i['duration'] / length),
+                    'numerator': i['numerator'],
+                    'denominator': i['denominator'],
+                    'grid': [],
+                    'visible': True
                 }
 
                 # calculate grid ticks
                 for g in range(i['numerator']):
                     msg['grid'].append(length * (g + 1))
-                
+
                 # add the message
                 self.io['score']['events']['grid'].append(msg)
 
@@ -152,14 +160,14 @@ class Midi:
 
                 note = {'time': i['time'],
                         'duration': i['duration'],
-                        'pitch': i['note'] - 20, 
-                        'hand': i['hand'], 
-                        'tag':'note',
-                        'stem-visible':True,
-                        'accidental':0,
-                        'staff':0,
-                        'notestop':True}
-                
+                        'pitch': i['note'] - 20,
+                        'hand': i['hand'],
+                        'tag': 'note',
+                        'stem-visible': True,
+                        'accidental': 0,
+                        'staff': 0,
+                        'notestop': True}
+
                 self.io['score']['events']['note'].append(note)
 
         # renumber tags
@@ -172,17 +180,18 @@ class Midi:
         self.io['ctlz'].reset_ctlz
 
     def export_midi(self, export=True):
-        
+
         if export:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getSaveFileName(self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
+            file_path, _ = file_dialog.getSaveFileName(
+                self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
         else:
             file_path = 'play.mid'
 
         if file_path:
             Score = self.io['score']
             # configure channels and names
-            longname = {'l':'left','r':'right'}
+            longname = {'l': 'left', 'r': 'right'}
             trackname = {}
             channel = {}
             nrchannels = 0
@@ -193,46 +202,49 @@ class Midi:
                     nrchannels += 1
 
             # some info for the midifile
-            clocks_per_tick=24
+            clocks_per_tick = 24
             denominator_dict = {
-                1:0,
-                2:1,
-                4:2,
-                8:3,
-                16:4,
-                32:5,
-                64:6,
-                128:7,
-                256:8
+                1: 0,
+                2: 1,
+                4: 2,
+                8: 3,
+                16: 4,
+                32: 5,
+                64: 6,
+                128: 7,
+                256: 8
             }
             ticks_per_quarternote = 2048
 
             # creating the midi file object
-            MyMIDI = MIDIFile(numTracks=nrchannels, 
-                            removeDuplicates=True, 
-                            deinterleave=False, 
-                            adjust_origin=False, 
-                            file_format=1, 
-                            ticks_per_quarternote=ticks_per_quarternote, 
-                            eventtime_is_ticks=True)
+            MyMIDI = MIDIFile(numTracks=nrchannels,
+                              removeDuplicates=True,
+                              deinterleave=False,
+                              adjust_origin=False,
+                              file_format=1,
+                              ticks_per_quarternote=ticks_per_quarternote,
+                              eventtime_is_ticks=True)
 
             for ts in Score['events']['grid']:
                 MyMIDI.addTimeSignature(track=0,
-                                        time=0, 
-                                        numerator=int(ts['numerator']), 
-                                        denominator=denominator_dict[int(ts['denominator'])], 
-                                        clocks_per_tick=clocks_per_tick, 
+                                        time=0,
+                                        numerator=int(ts['numerator']),
+                                        denominator=denominator_dict[int(
+                                            ts['denominator'])],
+                                        clocks_per_tick=clocks_per_tick,
                                         notes_per_quarter=8)
-                MyMIDI.addTempo(track=0,time=0, tempo=120)
-                MyMIDI.addTrackName(track=0,time=0, trackName='Track 0')
+                MyMIDI.addTempo(track=0, time=0, tempo=120)
+                MyMIDI.addTrackName(track=0, time=0, trackName='Track 0')
 
             # adding the notes
             for note in Score['events']['note']:
                 t = int(note['time']/256*ticks_per_quarternote)
                 d = int(note['duration']/256*ticks_per_quarternote)
                 c = 0
-                if note['hand'] == 'r': c = 1# l or r?? first fix the midi import
-                MyMIDI.addNote(track=0, channel=c, pitch=int(note['pitch']+20), time=t, duration=d,volume=80,annotation=None)
+                if note['hand'] == 'r':
+                    c = 1  # l or r?? first fix the midi import
+                MyMIDI.addNote(track=0, channel=c, pitch=int(
+                    note['pitch']+20), time=t, duration=d, volume=80, annotation=None)
 
             # saving the midi file
             with open(file_path, "wb") as output_file:
@@ -245,7 +257,8 @@ class Midi:
         mid = mido.MidiFile('play.mid')
 
         # Get all output ports
-        self.outports = [mido.open_output(name) for name in mido.get_output_names()]
+        self.outports = [mido.open_output(name)
+                         for name in mido.get_output_names()]
 
         # Set the playing flag to True
         self.playing = True
@@ -275,8 +288,10 @@ class Midi:
         with self.lock:  # Acquire the lock before sending messages
             for outport in self.outports:
                 for channel in range(16):  # MIDI channels are 0-15
-                    all_sound_off = mido.Message('control_change', channel=channel, control=120, value=0)
-                    all_notes_off = mido.Message('control_change', channel=channel, control=123, value=0)
+                    all_sound_off = mido.Message(
+                        'control_change', channel=channel, control=120, value=0)
+                    all_notes_off = mido.Message(
+                        'control_change', channel=channel, control=123, value=0)
                     outport.send(all_sound_off)
                     outport.send(all_notes_off)
 

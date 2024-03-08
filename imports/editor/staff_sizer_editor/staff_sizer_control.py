@@ -43,7 +43,7 @@ class StaffSizerControl:
 
     # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-few-public-methods
-    def  __init__(self,
+    def __init__(self,
                  layout: QGridLayout,
                  row: int,
                  parent: Any,
@@ -282,19 +282,19 @@ class StaffSizerControl:
 
         radio_1.setChecked(True)
         radio_layout.addWidget(radio_1,
-                                        0, 0, 1, 1)
+                               0, 0, 1, 1)
         radio_2 = QRadioButton('2', parent=parent)
         radio_2.setChecked(False)
         radio_layout.addWidget(radio_2,
-                                        0, 1, 1, 1)
+                               0, 1, 1, 1)
         radio_3 = QRadioButton('3', parent=parent)
         radio_3.setChecked(False)
         radio_layout.addWidget(radio_3,
-                                        0, 2, 1, 1)
+                               0, 2, 1, 1)
         radio_4 = QRadioButton('4', parent=parent)
         radio_4.setChecked(False)
         radio_layout.addWidget(radio_4,
-                                        0, 3, 1, 1)
+                               0, 3, 1, 1)
 
         return [radio_1, radio_2, radio_3, radio_4], staff_group
 
@@ -306,8 +306,10 @@ class StaffSizerControl:
         self._margin_right.valueChanged.connect(self._margin_right_changed)
         self._staff_auto.stateChanged.connect(self._staff_auto_changed)
         # self._staff_start.valueChanged.connect(self._staff_start_changed)
-        self._staff_start.currentIndexChanged.connect(self._staff_start_index_changed)
-        self._staff_finish.currentIndexChanged.connect(self._staff_finish_index_changed)
+        self._staff_start.currentIndexChanged.connect(
+            self._staff_start_index_changed)
+        self._staff_finish.currentIndexChanged.connect(
+            self._staff_finish_index_changed)
 
         for idx, radio in enumerate(self._radios, 0):
             radio.clicked.connect(partial(self._radio_changed, idx))

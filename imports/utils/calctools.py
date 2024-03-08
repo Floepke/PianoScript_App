@@ -1,5 +1,6 @@
 from imports.utils.constants import *
 
+
 class CalcTools:
     '''
         The CalcTools class contains all the methods that calculate basic things about the score.
@@ -25,18 +26,19 @@ class CalcTools:
         total_ticks = 0
 
         for gr in self.io['score']['events']['grid']:
-            
+
             # calculate the length of one measure based on the numerator and denominator.
             numerator = gr['numerator']
             denominator = gr['denominator']
-            measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
+            measure_length = int(
+                numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
-            
+
             # assign to total_ticks of one grid message
             total_ticks += measure_length * amount
-        
+
         return total_ticks
-    
+
     @staticmethod
     def get_measure_length(grid):
         '''
@@ -44,18 +46,19 @@ class CalcTools:
             based on the grid message from the score file
         '''
         return int(grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']))
-    
+
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor_zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
-    
+
     def y2tick_editor(self, y, snap=False, absolute=False):
         '''converts y position on the editor into pianoticks'''
         editor_zoom = self.io['score']['properties']['editor_zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
         if not absolute:
-            if y <= 0: y = 0
-        
+            if y <= 0:
+                y = 0
+
         if snap:
             # Snap to grid starting from the top of the editor
             grid_size = self.io['snap_grid']
@@ -66,19 +69,20 @@ class CalcTools:
     @staticmethod
     def pitch2x_editor(pitch):
         '''converts pitch into x position on the editor'''
-        
-        # evaluate pitch (between 1 and 88) and create initial x position 
+
+        # evaluate pitch (between 1 and 88) and create initial x position
         pitch = max(1, min(88, pitch))
         x = EDITOR_LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
-        
+
         # 21 is A0, 109 is C8 (based on midi note numbers); 12 is octave, 0 is C, 5 is F
         for n in range(1, 89):
-            x += STAFF_X_UNIT_EDITOR if n % 12 in [4, 9] else STAFF_X_UNIT_EDITOR / 2
+            x += STAFF_X_UNIT_EDITOR if n % 12 in [4,
+                                                   9] else STAFF_X_UNIT_EDITOR / 2
             if pitch == n:
                 break
-        
+
         return x
-    
+
     @staticmethod
     def x2pitch_editor(x):
         '''converts x position on the editor into pitch'''
@@ -87,31 +91,35 @@ class CalcTools:
         x_positions = []
         x_pos = EDITOR_LEFT + EDITOR_MARGIN - STAFF_X_UNIT_EDITOR
         for n in range(1, 89):
-            x_pos += STAFF_X_UNIT_EDITOR if n % 12 in [4, 9] else STAFF_X_UNIT_EDITOR / 2
+            x_pos += STAFF_X_UNIT_EDITOR if n % 12 in [
+                4, 9] else STAFF_X_UNIT_EDITOR / 2
             x_positions.append(x_pos)
 
         # find the closest mouse x position based from the x_positions list
-        closest_x = min(x_positions, key=lambda y:abs(y-x))
+        closest_x = min(x_positions, key=lambda y: abs(y-x))
         closest_x_index = x_positions.index(closest_x)
         return closest_x_index + 1
-    
+
     def add_and_return_tag(self):
         '''creates a new tag number and returns it'''
         tag = self.io['new_tag']
         self.io['new_tag'] += 1
         return tag
-    
-    def renumber_tags(self): # TODO: this function is not used yet
+
+    def renumber_tags(self):  # TODO: this function is not used yet
         '''
             This function takes the score and
             renumbers the event tags starting
             from zero again. It's needed if we
             load a new or existing project.
         '''
-        for k in self.io['score']['events'].keys(): # loop through all event types
-            for obj in self.io['score']['events'][k]: # loop through all objects of one event type
-                if not 'tag' in obj: continue # to skip any event that doesn't have a tag
-                if obj['tag'] == 'lockedlinebreak': continue # to prevent that only the first linebreak doesn't get deleted later in the program
+        for k in self.io['score']['events'].keys():  # loop through all event types
+            # loop through all objects of one event type
+            for obj in self.io['score']['events'][k]:
+                if not 'tag' in obj:
+                    continue  # to skip any event that doesn't have a tag
+                if obj['tag'] == 'lockedlinebreak':
+                    continue  # to prevent that only the first linebreak doesn't get deleted later in the program
                 obj['tag'] = f"{k}{self.io['new_tag']}"
                 if k in self.io['selection']['copy_types']:
                     obj['tag'] = obj['tag']
@@ -124,29 +132,33 @@ class CalcTools:
         editor_scene = gui.editor_scene
         editor_zoom = io['score']['properties']['editor_zoom']
         viewport = io['viewport']
-    
+
         scale_factor = editor_view.transform().m11()
         px_scene_height = editor_scene.sceneRect().height()
-    
+
         if px_scene_height == 0:
             px_scene_height = 1  # Fix for division by zero
-    
-        ticks_scene_height = (px_scene_height / (QUARTER_PIANOTICK / editor_zoom)) * scale_factor
+
+        ticks_scene_height = (
+            px_scene_height / (QUARTER_PIANOTICK / editor_zoom)) * scale_factor
         px_view_height = editor_view.height()
-        tick_view_height = (px_view_height * (QUARTER_PIANOTICK / editor_zoom)) / scale_factor
-        tick_editor_margin = io['calc'].y2tick_editor(EDITOR_MARGIN + EDITOR_MARGIN)
-    
+        tick_view_height = (
+            px_view_height * (QUARTER_PIANOTICK / editor_zoom)) / scale_factor
+        tick_editor_margin = io['calc'].y2tick_editor(
+            EDITOR_MARGIN + EDITOR_MARGIN)
+
         # Calculate the toptick and bottomtick
-        toptick = editor_view.verticalScrollBar().value() * (px_scene_height / ticks_scene_height) - tick_editor_margin
+        toptick = editor_view.verticalScrollBar().value() * (px_scene_height /
+                                                             ticks_scene_height) - tick_editor_margin
         bottomtick = toptick + tick_view_height
-    
+
         # Update the viewport toptick and bottomtick
         viewport['toptick'] = toptick - 1
         viewport['bottomtick'] = bottomtick + 1
 
     # process grid selector
     def process_grid(self):
-        
+
         # get selected radio button/length
         radio = None
         for i in range(self.io['gui'].radio_layout.count()):
@@ -154,11 +166,11 @@ class CalcTools:
             if radio_button.isChecked():
                 radio = i
                 break
-        
+
         # get selected divide and multiply
         divide = self.io['gui'].divide_spin_box.value()
         multiply = int(self.io['gui'].multiply_spin_box.value())
-        
+
         # calculate the snap grid
         length_dict = {
             0: 1024,
@@ -173,25 +185,22 @@ class CalcTools:
         self.io['snap_grid'] = length_dict[radio] / divide * multiply
 
         # update the the label
-        self.io['gui'].grid_selector_label.setText(f"Tick: {self.io['snap_grid']}")
-    
+        self.io['gui'].grid_selector_label.setText(
+            f"Tick: {self.io['snap_grid']}")
+
     # get barline ticks
     def get_barline_ticks(self):
         '''returns a list with all barline ticks'''
         barline_ticks = []
         for grid in self.io['score']['events']['grid']:
             for i in range(grid['amount']):
-                barline_ticks.append(grid['numerator'] * ((QUARTER_PIANOTICK*4) / grid['denominator']) * i)
+                barline_ticks.append(
+                    grid['numerator'] * ((QUARTER_PIANOTICK*4) / grid['denominator']) * i)
         return barline_ticks
-    
+
     def get_measure_number(self, time):
         '''returns the measure number based on the time'''
         barline_ticks = self.get_barline_ticks()
         for i in barline_ticks:
             if time < i:
                 return barline_ticks.index(i)
-
-
-
-
-

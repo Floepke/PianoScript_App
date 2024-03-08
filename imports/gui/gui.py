@@ -23,6 +23,7 @@ from imports.engraver.pdfexport import pdf_export
 
 import threading
 
+
 class Gui():
     def __init__(self, main, io):
         self.io = io
@@ -37,7 +38,7 @@ class Gui():
         self.statusbar = self.main.statusBar()
         self.statusbar.showMessage(STATUSBAR_DEFAULT_TEXT)
 
-        #start menu--------------------------------------------------------------------
+        # start menu--------------------------------------------------------------------
 
         self.menu_bar = self.main.menuBar()
         self.menu_bar.setNativeMenuBar(False)
@@ -52,7 +53,8 @@ class Gui():
         self.file_menu.addAction(self.load_action)
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
-        self.import_midi_action.triggered.connect(lambda: self.io['midi'].load_midi())
+        self.import_midi_action.triggered.connect(
+            lambda: self.io['midi'].load_midi())
         self.file_menu.addAction(self.import_midi_action)
         self.file_menu.addSeparator()
         self.save_action = QAction('Save', self.main)
@@ -61,9 +63,9 @@ class Gui():
         self.saveas_action = QAction('Save As', self.main)
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
-        self.save_template_action = QAction('Set As Default Template...', self.main)
+        self.save_template_action = QAction(
+            'Set As Default Template...', self.main)
         self.file_menu.addAction(self.save_template_action)
-        
 
         self.file_menu.addSeparator()
 
@@ -79,7 +81,8 @@ class Gui():
         self.file_menu.addAction(self.pdf_export_action)
 
         self.mid_export_action = QAction('Export MIDI', self.main)
-        self.mid_export_action.triggered.connect(lambda: self.io['midi'].export_midi())
+        self.mid_export_action.triggered.connect(
+            lambda: self.io['midi'].export_midi())
         self.file_menu.addAction(self.mid_export_action)
 
         self.file_menu.addSeparator()
@@ -122,7 +125,8 @@ class Gui():
         self.settings_menu.addAction(self.line_break_editor_action)
         self.score_options_action = QAction('Score Options', self.main)
         self.score_options_action.setShortcut('s')
-        self.score_options_action.triggered.connect(lambda: ScoreOptionsDialog(self.io).exec())
+        self.score_options_action.triggered.connect(
+            lambda: ScoreOptionsDialog(self.io).exec())
         self.settings_menu.addAction(self.score_options_action)
         self.settings_menu.addSeparator()
         self.auto_engrave_action = QAction('Auto engrave', self.main)
@@ -131,12 +135,13 @@ class Gui():
         self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
 
-        #end menu--------------------------------------------------------------------
+        # end menu--------------------------------------------------------------------
 
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
         self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
-        self.editor_view = GraphicsViewEditor(self.editor_scene, self.io, self.main)
+        self.editor_view = GraphicsViewEditor(
+            self.editor_scene, self.io, self.main)
         # set minimum width of the editor
         self.editor_view.setMinimumWidth(400)
         # Set the focus policy to Qt.StrongFocus to accept focus by tabbing and clicking
@@ -148,7 +153,8 @@ class Gui():
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
         self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
-        self.print_view = GraphicsViewEngraver(self.print_scene, self.io, self.main)
+        self.print_view = GraphicsViewEngraver(
+            self.print_scene, self.io, self.main)
 
         # Create a widget to hold the toolbar
         self.toolbar_widget = QWidget()
@@ -158,7 +164,6 @@ class Gui():
         self.toolbar = QToolBar()
         self.toolbar.setOrientation(Qt.Vertical)
         self.toolbar.setStyleSheet('''QToolButton { font-size: 25px; }''')
-
 
         # Add the buttons to the toolbar
         self.previous_button = QToolButton()
@@ -224,7 +229,8 @@ class Gui():
 
         # Create a dockable widget
         self.grid_selector_dock = QDockWidget('Input Grid', self.main)
-        self.grid_selector_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.grid_selector_dock.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         # self.grid_selector_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
         # set stylesheet
@@ -243,15 +249,18 @@ class Gui():
 
         # create label in the dockable widget
         self.grid_selector_label = QLabel('Tick: 128.0')
-        self.grid_selector_label.setToolTip('Select the base length of the grid(1=whole 2=half 4=quarter etc)')
+        self.grid_selector_label.setToolTip(
+            'Select the base length of the grid(1=whole 2=half 4=quarter etc)')
 
         # create a set of radiobuttons for selecting the base length of the grid: 1, 2, 4, 8, 16, 32, 64, 128
         self.radio_layout = QVBoxLayout()
-        base_lengths = ['1 Whole', '2 Half', '4 Quarter', '8 Eight', '16 ...', '32', '64', '128']
+        base_lengths = ['1 Whole', '2 Half', '4 Quarter',
+                        '8 Eight', '16 ...', '32', '64', '128']
         for length in base_lengths:
             radio_button = QRadioButton(length)
             self.radio_layout.addWidget(radio_button)
-            radio_button.clicked.connect(lambda: self.io['calc'].process_grid())
+            radio_button.clicked.connect(
+                lambda: self.io['calc'].process_grid())
         self.radio_layout.itemAt(3).widget().setChecked(True)
 
         # create label in the dockable widget under the listbox
@@ -264,7 +273,8 @@ class Gui():
         self.divide_spin_box.setMinimum(1)
         self.divide_spin_box.setValue(1)
         # create a callback function for the spinbox
-        self.divide_spin_box.valueChanged.connect(lambda: self.io['calc'].process_grid())
+        self.divide_spin_box.valueChanged.connect(
+            lambda: self.io['calc'].process_grid())
 
         # create label in the dockable widget under the spinbox
         self.Xlabel = QLabel('multiply (*) by:')
@@ -276,7 +286,8 @@ class Gui():
         self.multiply_spin_box.setMinimum(1)
         self.multiply_spin_box.setValue(1)
         # create a callback function for the spinbox
-        self.multiply_spin_box.valueChanged.connect(lambda: self.io['calc'].process_grid())
+        self.multiply_spin_box.valueChanged.connect(
+            lambda: self.io['calc'].process_grid())
 
         # add the widgets to the dockable widget
         self.gs_dock_layout.addWidget(self.grid_selector_label, 0)
@@ -286,10 +297,10 @@ class Gui():
         self.gs_dock_layout.addWidget(self.Xlabel, 0)
         self.gs_dock_layout.addWidget(self.multiply_spin_box, 0)
 
-
         # Create a second dockable widget on the left side
         self.tool_dock = QDockWidget('Tool', self.main)
-        self.tool_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.tool_dock.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
         # self.tool_dock.setStyleSheet("""background-color: #678;""")
 
@@ -312,8 +323,9 @@ class Gui():
         # set indent size
         self.tree_view.setIndentation(0)
         # set single selection
-        self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
-        #self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
+        self.tree_view.setSelectionMode(
+            QTreeView.SelectionMode.SingleSelection)
+        # self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
         self.tree_view.expandAll()
 
         # add the widgets to the dockable widget
@@ -322,13 +334,11 @@ class Gui():
         # connect the treeview to the select_tool function
         self.tree_view.clicked.connect(self.tree_view_click)
         # select the note tool by default
-        self.tree_view.setCurrentIndex(self.tree_view.model().index(0,0))
+        self.tree_view.setCurrentIndex(self.tree_view.model().index(0, 0))
         self.last_selected_child = None
-
 
     def show(self):
         self.main.show()
-
 
     def create_tree_model(self):
         '''
@@ -341,15 +351,15 @@ class Gui():
         model = QStandardItemModel()
 
         tree = {
-            'Harmony':[
+            'Harmony': [
                 'note',
                 'gracenote',
-                ],
-            'Layout':[
+            ],
+            'Layout': [
                 'beam',
                 'linebreak'
-                ],
-            'Phrase':[
+            ],
+            'Phrase': [
                 'countline',
                 'text'
             ]
@@ -357,16 +367,20 @@ class Gui():
         for folder in tree:
             # Create a parent item for the first branch
             parent = QStandardItem(folder)
-            parent.setBackground(QBrush(QColor("#777777")))  # Set background color
-            parent.setForeground(QBrush(QColor("white")))  # Set foreground (text) color
+            parent.setBackground(QBrush(QColor("#777777"))
+                                 )  # Set background color
+            # Set foreground (text) color
+            parent.setForeground(QBrush(QColor("white")))
             parent.setSelectable(False)
             model.appendRow(parent)
             for item in tree[folder]:
                 # Create a child item with an icon
-                icon = QIcon(f'imports/icons/{item}.png')
+                icon = base64_to_qicon(ACCIDENTAL_B64)
                 child = QStandardItem(icon, item)
-                child.setBackground(QBrush(QColor("white")))  # Set background color
-                child.setForeground(QBrush(QColor("black")))  # Set foreground (text) color
+                # Set background color
+                child.setBackground(QBrush(QColor("white")))
+                # Set foreground (text) color
+                child.setForeground(QBrush(QColor("black")))
                 parent.appendRow(child)
 
         return model
@@ -402,7 +416,7 @@ class Gui():
     def previous_page(self):
         self.io['selected_page'] -= 1
         self.io['maineditor'].update('page_change')
-    
+
     def next_page(self):
         self.io['selected_page'] += 1
         self.io['maineditor'].update('page_change')

@@ -2,8 +2,10 @@ from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QMenu
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 
+
 class StaffSwitcher(QWidget):
     """ staff switcher widget for the Toolbar """
+
     def __init__(self, io, parent=None):
         super().__init__(parent)
 
@@ -48,7 +50,8 @@ class StaffSwitcher(QWidget):
                     color = "red" if self.io['score']['properties']['staffs'][i]['onoff'] else "black"
                 except:
                     color = "black"
-                button.setStyleSheet(f"background-color: white; color: {color}")
+                button.setStyleSheet(
+                    f"background-color: white; color: {color}")
 
     def contextMenuEvent(self, event):
         context_menu = QMenu(self)
@@ -56,7 +59,8 @@ class StaffSwitcher(QWidget):
         for i in range(4):
             action = QAction(f"Staff {i+1} on/off", self)
             action.setCheckable(True)
-            action.setChecked(self.io['score']['properties']['staffs'][i]['onoff'])
+            action.setChecked(
+                self.io['score']['properties']['staffs'][i]['onoff'])
             action.triggered.connect(self.make_menu_callback(i))
             context_menu.addAction(action)
 
@@ -66,9 +70,8 @@ class StaffSwitcher(QWidget):
         return lambda checked: self.toggle_staff(i, checked)
 
     def toggle_staff(self, i, checked):
-        if not i: return
+        if not i:
+            return
         self.io['score']['properties']['staffs'][i]['onoff'] = checked
         self.update_button_colors()
         self.io['maineditor'].update('score_options')
-
-    
