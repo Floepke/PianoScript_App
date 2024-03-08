@@ -85,7 +85,7 @@ class GridDialog(QDialog):
 
         self.nr = 0
 
-        self.setWindowTitle('Grid definitions')
+        self.setWindowTitle('Grid Editor')
         self.check_visible: Optional[QCheckBox] = None
         self.spin_start: Optional[QSpinBox] = None
         self.spin_amount: Optional[QSpinBox] = None
@@ -94,7 +94,7 @@ class GridDialog(QDialog):
         self.tree_view: Optional[GridTreeView] = None
         self.measure_view: Optional[MeasureView] = None
         self.line_view: Optional[LinesView] = None
-        self.grid: Optional[List[int]] = None
+        self.grid: Optional[Grid] = None
 
         dialog_layout = QGridLayout(parent=self)
         dialog_layout.setContentsMargins(0, 0, 0, 0)
@@ -126,6 +126,7 @@ class GridDialog(QDialog):
         # when mute is True, no data should be updated
         self.mute = False
         self._want_to_close = False
+        self.tree_view.select(row=0)
 
     def keyPressEvent(self, event):
         """ a key was pressed """
@@ -322,13 +323,11 @@ class GridDialog(QDialog):
 
         lbl1 = QLabel(parent=box)
         lbl1.setText('Selected')
-        lbl1.setAlignment(Qt.AlignmentFlag.AlignLeft |
-                          Qt.AlignmentFlag.AlignTop)
+        lbl1.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         layout.addWidget(lbl1, row, 0)
 
         selected_lbl = QLabel(parent=box)
-        selected_lbl.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        selected_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self.selected_lbl = selected_lbl
 
         layout.addWidget(selected_lbl, row, 1)
@@ -407,6 +406,9 @@ class GridDialog(QDialog):
     def _on_add(self):
         """ add the same grid """
 
+        if self.grid is None:
+            return
+
         row = self.cur_grid.nr - 1
         # self.note = f 'add grid after grid={row + 1}'
         self.grids.insert(row, deepcopy(self.cur_grid))
@@ -415,6 +417,9 @@ class GridDialog(QDialog):
 
     def _on_del(self):
         """ delete this grid """
+
+        if self.grid is None:
+            return
 
         row = self.cur_grid.nr - 1
         # self.note = f 'pop grid {row}'
@@ -599,28 +604,17 @@ class GridDialog(QDialog):
         self.note = '[CLEAR]'
         builder.append_line('Brief Help for the grid editor')
         builder.append_line(' ')
-        builder.append_line(
-            'Select one of the grids on the left by clicking on the grid name')
-        builder.append_line(
-            'Edit the values with the controls on the left side')
-        builder.append_line(
-            'Create an empty measure by deselecting the "visible" check box')
-        builder.append_line(
-            'Add or delete the definition with the "Add" and "Del" button')
-        builder.append_line(
-            'Edit the count lines in the tree in the column in the middle')
-        builder.append_line(
-            'Select a location of a new line with the spin box below that column')
-        builder.append_line(
-            'The step for the location of the line is 64, equivalent to a 1/16 note')
-        builder.append_line(
-            'Add the location to the list of lines with the "Add" button on the right')
-        builder.append_line(
-            'Delete the current location with the "Del" button on the right')
-        builder.append_line(
-            'Reset the lines to the default with the "Reset" button')
-        builder.append_line(
-            'Also use the "Reset" button after changing the Signature')
+        builder.append_line('Select one of the grids on the left by clicking on the grid name')
+        builder.append_line('Edit the values with the controls on the left side')
+        builder.append_line('Create an empty measure by deselecting the "visible" check box')
+        builder.append_line('Add or delete the definition with the "Add" and "Del" button')
+        builder.append_line('Edit the count lines in the tree in the column in the middle')
+        builder.append_line('Select a location of a new line with the spin box below that column')
+        builder.append_line('The step for the location of the line is 64, equivalent to a 1/16 note')
+        builder.append_line('Add the location to the list of lines with the "Add" button on the right')
+        builder.append_line('Delete the current location with the "Del" button on the right')
+        builder.append_line('Reset the lines to the default with the "Reset" button')
+        builder.append_line('Also use the "Reset" button after changing the Signature')
         builder.append_line('A preview is drawn on the right column')
         self.note = builder.to_string()
 
