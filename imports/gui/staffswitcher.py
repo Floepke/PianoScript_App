@@ -66,7 +66,9 @@ class StaffSwitcher(QWidget):
         return lambda checked: self.toggle_staff(i, checked)
 
     def toggle_staff(self, i, checked):
+        if not i: return
         self.io['score']['properties']['staffs'][i]['onoff'] = checked
         self.update_button_colors()
+        self.io['maineditor'].update('score_options')
 
     

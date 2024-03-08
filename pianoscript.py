@@ -5,7 +5,6 @@ from imports.utils.constants import *
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui.gui import Gui
-from imports.gui.style import stylesheet
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
@@ -19,10 +18,10 @@ from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 
-# from copy import deepcopy
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
+from imports.gui.style import STYLE
 
 from imports.editor.staff_sizer_editor.staff_io import StaffIo
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -135,8 +134,11 @@ class PianoScript():
             'auto_engrave':True
         }
 
+        
+
         # setup
         self.app = QApplication(sys.argv)
+        self.app.setStyleSheet(STYLE)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
@@ -202,7 +204,6 @@ class PianoScript():
         next_page_shortcut.activated.connect(self.io['gui'].next_page)
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
-
 
         self.root.closeEvent = self.cleanup
         # run the application
