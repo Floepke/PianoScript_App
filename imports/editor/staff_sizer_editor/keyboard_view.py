@@ -18,7 +18,6 @@ _KEYBOARDVIEW_WIDTH = 550
 _KEYBOARDVIEW_HEIGHT = 60
 
 
-
 class KeyboardView():
     """ display a measure """
 
@@ -111,7 +110,7 @@ class KeyboardView():
         octave = [
             (0, 1, 5), (10, 1, 7),  # Cis1, Dis1
             (30, 2, 10), (40, 2, 12), (50, 2, 14),  # Fis1, Gis1, Ais2
-        ]
+            ]
 
         octaves = [
             (10, 2, 2)  # Bis1

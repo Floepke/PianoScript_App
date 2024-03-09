@@ -255,13 +255,10 @@ class PianoScript():
         linebreaks = self.io['score']['events']['linebreak']
 
         self.line_break_dialog = StaffSizerDialog(parent=None,
-                                                  callback=self.close_line_break_editor)
+                                                  callback=self.close_line_break_editor,
+                                                  linebreaks=linebreaks,
+                                                  time_calc=self.io['calc'].get_measure_number)
 
-        sizers = []
-        for brk in linebreaks:
-            sizer = StaffIo.import_staffs(brk)
-            sizers.append(sizer)
-        self.line_break_dialog.staff_sizers = sizers[0]
         self.line_break_dialog.show()
 
     def close_line_break_editor(self, result: DialogResult, line_breaks: [dict]):
@@ -270,13 +267,13 @@ class PianoScript():
         self.line_break_dialog = None
 
         if result == DialogResult.OK:
-            # self.io['score']['events']['linebreak'][0] = line_breaks
-            self.io['maineditor'].update('grid_editor')
-            pass
+            # self.io['score']['events']['linebreak'] = line_breaks
 
-        _ = Popup(message=f'Line break Editor has closed\n{result}\nNOT UPDATED',
+            Popup(message=f'Line break Editor has closed\n{result}\nNOT UPDATED',
                   max_lines=3,
                   text_size=(100, 21))
+
+            # self.io['maineditor'].update('grid_editor')
 
 
 if __name__ == '__main__':

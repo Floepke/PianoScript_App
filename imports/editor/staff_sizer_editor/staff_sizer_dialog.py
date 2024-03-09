@@ -39,7 +39,6 @@ from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 from imports.editor.staff_sizer_editor.staff_io import LineBreakImport
 
 
-
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
 
@@ -108,6 +107,7 @@ class StaffSizerDialog(QDialog):
 
         self.setLayout(layout)
         self.staff_sizers = self.linebreaks[0].staffs
+
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
