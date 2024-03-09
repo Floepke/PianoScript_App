@@ -23,8 +23,12 @@ from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QDialog
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QListWidget
+from PySide6.QtWidgets import QHBoxLayout
 
 from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QSize
+
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -32,6 +36,8 @@ from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerCont
 from imports.editor.grideditor.dialog_result import DialogResult
 
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
+from imports.editor.staff_sizer_editor.staff_io import LineBreakImport
+
 
 
 class StaffSizerDialog(QDialog):
@@ -39,7 +45,9 @@ class StaffSizerDialog(QDialog):
 
     def __init__(self,
                  parent: Optional[Any] = None,
-                 callback: Optional[Callable] = None):
+                 callback: Optional[Callable] = None,
+                 linebreaks: list = None,
+                 time_calc: Callable = None):
         """ initialize the dialog """
 
         super().__init__(parent=parent)
@@ -49,23 +57,40 @@ class StaffSizerDialog(QDialog):
 
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
+        self.linebreaks = LineBreakImport.importer(data=linebreaks,
+                                                   time_calc=time_calc)
 
         self.setWindowTitle('Line Preferences')
 
         layout = QGridLayout(parent=parent)
 
-        kbd = KeyboardView()
+        measures = [str(brk.measure_nr) for brk in self.linebreaks]
+
+        kbd = KeyboardView(scale=0.5)
         layout.addWidget(kbd.view, 0, 0, 1, 3)
-        # kbd.draw_keyboard()
+
+        box_layout = QHBoxLayout()
+        grp_measures = QGroupBox('Measures')
+        grp_measures.setLayout(QGridLayout())
+        grp_measures.setMaximumWidth(80)
+        box_layout.addWidget(grp_measures)
+
+        list_measures = QListWidget()
+        list_measures.setMaximumWidth(60)
+        list_measures.setMaximumHeight(148)
+        grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
+        list_measures.addItems(measures)
 
         self.control = StaffSizerControl(
-            layout=layout,
+            layout=box_layout,
             row=1,
+            column=1,
             parent=self,
             keyboard=kbd)
 
+        layout.addLayout(box_layout, 1, 0, 1, 1)
         ok_cancel = QGroupBox()
-        layout.addWidget(ok_cancel, 6, 0, 1, 3)
+        layout.addWidget(ok_cancel, 6, 0, 1, 2)
 
         ok_cancel.setLayout(QGridLayout())
         ok_button = QPushButton(parent=parent)
@@ -82,6 +107,7 @@ class StaffSizerDialog(QDialog):
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
 
         self.setLayout(layout)
+        self.staff_sizers = self.linebreaks[0].staffs
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa

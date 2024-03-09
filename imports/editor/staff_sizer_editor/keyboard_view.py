@@ -16,13 +16,13 @@ from imports.utils.constants import BACKGROUND_COLOR
 
 _KEYBOARDVIEW_WIDTH = 550
 _KEYBOARDVIEW_HEIGHT = 60
-_DRAWER_SCALE = 0.40
+
 
 
 class KeyboardView():
     """ display a measure """
 
-    def __init__(self):
+    def __init__(self, scale: float = 0.50):
         """ draw a measure example """
 
         self._scene = None
@@ -31,6 +31,7 @@ class KeyboardView():
         self._start = 0
         self._finish = 86
         self._auto = True
+        self._scale = scale
 
         self._mapping = {
             # auto
@@ -94,7 +95,7 @@ class KeyboardView():
 
     def scale_x(self, value: int):
         """ the x size scaler """
-        return int(value * _DRAWER_SCALE)
+        return int(value * self._scale)
 
     # pylint: disable=too-many-locals
     def draw_keyboard(self):

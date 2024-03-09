@@ -8,6 +8,11 @@ __copyright__ = '© Sihir 2023-2024 all rights reserved'
 
 from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Callable
+from typing import cast
+
+from dataclasses import dataclass
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.my_exception import MyException
@@ -53,33 +58,6 @@ class StaffIo:
     #     }
 
     @staticmethod
-    def import_staffs(data: Dict):
-        """ import tag, time and staff definitions """
-
-        try:
-
-            _ = data.get('tag', '')
-            _ = data.get('time', 0.0)
-            staff1 = data.get('staff1', {})
-            staff2 = data.get('staff2', {})
-            staff3 = data.get('staff3', {})
-            staff4 = data.get('staff4', {})
-
-            result = [
-                StaffSizer.import_sizer(dct=staff1),
-                StaffSizer.import_sizer(dct=staff2),
-                StaffSizer.import_sizer(dct=staff3),
-                StaffSizer.import_sizer(dct=staff4),
-            ]
-            return result
-
-        except Exception:
-            err = MyException()
-            pass
-
-        return None
-
-    @staticmethod
     def export_staffs(staffs: List[StaffSizer]) -> Dict:
         """ import from the program """
 
@@ -101,3 +79,50 @@ class StaffIo:
             }
 
         return result
+
+
+@dataclass
+class LineBreak:
+    """ the linebreak contains four staff_sizers and a timestamp """
+
+    def __init__(self, **kwargs):
+        """ initialize the class """
+
+        self.tag = kwargs.get('tag', None)
+        self.time = kwargs.get('time', 0)
+        self.measure_nr = kwargs.get('measure_nr', 0)
+        self.staffs = kwargs.get('staffs', cast(Optional[List], None))
+
+
+class LineBreakImport:
+    """ importing line breaks """
+
+    @staticmethod
+    def importer(data: list, time_calc: Callable) -> List[LineBreak]:
+        """ initialize all line breaks """
+
+        result = []
+        for brk_data in data:
+            staff1 = brk_data.get('staff1', None)
+            staff2 = brk_data.get('staff2', None)
+            staff3 = brk_data.get('staff3', None)
+            staff4 = brk_data.get('staff4', None)
+            staffs = [
+                StaffSizer.import_sizer(dct=staff1),
+                StaffSizer.import_sizer(dct=staff2),
+                StaffSizer.import_sizer(dct=staff3),
+                StaffSizer.import_sizer(dct=staff4),
+            ]
+
+            tag = brk_data.get('tag', '')
+            time = brk_data.get('time', 0.0)
+            measure_nr = time_calc(time)
+            brk = LineBreak( tag=tag,
+                             time=time,
+                             measure_nr=measure_nr,
+                             staffs=staffs)
+            result.append(brk)
+
+        result.sort(key=lambda elem: elem.measure_nr, reverse=False)
+        return result
+

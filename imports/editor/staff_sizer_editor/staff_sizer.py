@@ -37,7 +37,7 @@ class StaffSizer:
             staff_start, staff_finish = tuple(value)
         else:
             staff_start = 0
-            staff_finish = 127
+            staff_finish = 88
             staff_auto = True
 
         return StaffSizer(margin_left=margin_left,
