@@ -3,7 +3,7 @@ from imports.utils.constants import *
 from imports.icons.icons import *
 
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtWidgets import QMenu
+from PySide6.QtWidgets import QMenu, QSlider
 from PySide6.QtWidgets import QGraphicsScene, QToolBar
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
 from PySide6.QtWidgets import QSpinBox, QToolButton
@@ -36,7 +36,14 @@ class Gui():
 
         # Create the status bar
         self.statusbar = self.main.statusBar()
-        self.statusbar.showMessage(STATUSBAR_DEFAULT_TEXT)
+
+        # Create a slider
+        self.slider = QSlider(Qt.Horizontal, self.main)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(255)
+
+        # Add the slider to the status bar
+        self.statusbar.addPermanentWidget(self.slider)
 
         # start menu--------------------------------------------------------------------
 
@@ -338,6 +345,12 @@ class Gui():
         # select the note tool by default
         self.tree_view.setCurrentIndex(self.tree_view.model().index(0, 0))
         self.last_selected_child = None
+
+    def change_hue(self, value):
+        self.colorThread.set_hue(value)
+
+    def change_color(self, color):
+        self.setStyleSheet(f"background-color: {color.name()}")
 
     def show(self):
         self.main.show()

@@ -3,8 +3,8 @@ from imports.utils.constants import *
 
 # pyside6 imports
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow
-from imports.gui.gui import Gui, Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QSlider, QWidget, QDockWidget, QTabWidget, QMenuBar, QMenu, QRadioButton, QSplitter, QDialog, QTreeView, QGraphicsView, QToolBar
+from imports.gui.gui import Gui, Qt, QColor
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
@@ -16,6 +16,8 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
+from imports.gui.disco import ColorSliderWindow, ColorTransitionThread
+import math
 
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
@@ -28,6 +30,9 @@ from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialo
 class PianoScript():
 
     def __init__(self):
+
+        self.color1 = color1
+        self.color2 = color2
 
         # io == all objects in the application in one dict
         self.io = {
@@ -142,6 +147,10 @@ class PianoScript():
         self.io['root'] = self.root
         self.root.showFullScreen()
         self.io['gui'] = self.gui
+
+        # EE
+        self.io['gui'].slider.valueChanged.connect(lambda: self.change_color())
+        self.change_color()
         
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
@@ -275,6 +284,80 @@ class PianoScript():
                   text_size=(100, 21))
 
             # self.io['maineditor'].update('grid_editor')
+
+    def change_color(self):
+        
+        complementary_color = QColor.fromHsv(self.io['gui'].slider.value(), 175, 80)
+        self.color1 = complementary_color.name()
+
+        # Get the negative color
+        color1_hex = int(self.color1.lstrip('#'), 16)  # Convert color1 to hexadecimal
+        color2_hex = color1_hex ^ 0xFFFFFF  # Get the complementary color
+        self.color2 = f'#{color2_hex:06X}'  # Convert the complementary color back to a string
+
+        # Get the RGB values of color1 and add 50 to each component
+        add = 75
+        r = min(QColor(self.color1).red() + add, 255)
+        g = min(QColor(self.color1).green() + add, 255)
+        b = min(QColor(self.color1).blue() + add, 255)
+
+        # Create a new color from the modified RGB values
+        lighter_color = QColor(r, g, b).darker(150)
+        self.color1 = lighter_color.name()
+
+        style = f'''
+        QTreeView, QGraphicsView, 
+        QMainWindow, QToolBar, QToolBar,
+        QToolBar QAction, 
+        QMainWindow QMenuBar, QMenu, 
+        QRadioButton, QLabel, QDockWidget, 
+        QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
+            background-color: {self.color1};
+            color: {self.color2};
+            font-size: 16px;
+            font-family: Bookman Old Style;
+        }}
+        QMenuBar::item, QMenuBar::item:selected {{
+            background-color: {self.color1};
+            color: {self.color2};
+        }}
+        QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
+            background-color: {self.color1};
+            color: {self.color2};
+        }}
+        QTabWidget::tab-bar::tab:selected {{
+            background-color: {self.color2};
+            color: {self.color1};
+        }}
+        QPushButton {{
+            background-color: #000000;
+            color: {self.color2};
+        }}
+        QSlider::groove:horizontal {{
+            border: 15px solid #999999;
+            height: 15px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #c4c4c4);
+            margin: 2px 0;
+        }}
+
+        QSlider::add-page:horizontal {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color1}, stop:1 {self.color2});
+        }}
+
+        QSlider::sub-page:horizontal {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color2}, stop:1 {self.color1});
+        }}
+        '''
+
+        self.root.setStyleSheet(style)
+        
+
+        # complementary_color = QColor.fromHsv((value, 220, 220))
+        # print(complementary_color.name())
+        # self.root.setStyleSheet(f"background-color: {complementary_color.name()}")
+
+
+
 
 
 if __name__ == '__main__':

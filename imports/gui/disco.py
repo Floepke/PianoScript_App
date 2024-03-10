@@ -1,32 +1,68 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QSlider, QWidget
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QColor, QFont
-import time, math
+from PySide6.QtWidgets import QMainWindow, QSlider, QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
+from PySide6.QtCore import Signal as pyqtSignal
+from PySide6.QtCore import QThread
+from PySide6.QtWidgets import QSizePolicy
 
 class ColorTransitionThread(QThread):
-    colorChanged = Signal(QColor, QColor)
+    colorChanged = pyqtSignal(QColor)
 
-    def __init__(self, main_window, amp=1, speed=0.1, phase=0, min_val=30, max_val=60):
+    def __init__(self):
         super().__init__()
-        self.main_window = main_window
-        self.amp = amp
-        self.speed = speed
-        self.phase = phase
-        self.min_val = min_val
-        self.max_val = max_val
-        self.time = 0
-
-    def sine_wave(self, amp, speed, phase, min_val, max_val, time):
-        return int((amp * math.sin(2 * math.pi * speed * time + phase) + 1) / 2 * (max_val - min_val) + min_val)
+        self.hue = 0
 
     def run(self):
-        hue = 0
         while True:
-            val = self.sine_wave(amp=.6, speed=self.speed, phase=self.phase, min_val=self.min_val, max_val=self.max_val, time=self.time)
-            saturation = self.sine_wave(amp=.6, speed=self.speed, phase=self.phase, min_val=65, max_val=75, time=self.time)
-            color = QColor.fromHsv(hue, saturation, val)
-            color2 = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue())
-            self.colorChanged.emit(color, color2)
-            hue = self.sine_wave(amp=.6, speed=self.speed, phase=self.phase, min_val=150, max_val=200, time=self.time)
-            self.time += 0.01
-            time.sleep(0.01)
+            color = QColor.fromHsv(self.hue, 255, 255)
+            self.colorChanged.emit(color)
+            self.msleep(100)
+
+    def set_hue(self, hue):
+        self.hue = hue
+
+class ColorSliderWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(255)
+        self.slider.valueChanged.connect(self.change_hue)
+        
+        self.slider.setSizePolicy(
+            self.slider.sizePolicy().horizontalPolicy(),
+            QSizePolicy.Expanding)  # Expand to fill
+
+
+        self.statusBar().addWidget(self.slider)
+        self.statusBar().show()  # Ensure the status bar is visible
+
+        self.colorThread = ColorTransitionThread()
+        self.colorThread.colorChanged.connect(self.change_color)
+        self.colorThread.start()
+
+    def change_hue(self, value):
+        self.colorThread.set_hue(value)
+
+    def change_color(self, color):
+        self.setStyleSheet(f"background-color: {color.name()}")
+
+
+def test_color_slider_window():
+    app = QApplication([])
+
+    window = ColorSliderWindow()
+    window.show()
+
+    result = app.exec()
+
+    window.colorThread.quit()
+    window.colorThread.wait()
+
+    return result
+
+
+if __name__ == "__main__":
+    test_color_slider_window()
+
