@@ -31,6 +31,10 @@ from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
 
 from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QFontMetrics
+
+from PySide6.QtCore import Qt
+
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -82,8 +86,21 @@ class StaffSizerDialog(QDialog):
         box_layout.addWidget(grp_measures)
 
         list_measures = QListWidget()
-        list_measures.setMaximumWidth(60)
-        list_measures.setMaximumHeight(148)
+        # metr = QFontMetrics(list_measures.font())
+        # rect_m = metr.boundingRect('M', Qt.AlignCenter)
+        # width = rect_m.width()
+        # descent = metr.descent()
+        #
+        # offset = 1
+        # height = rect_m.height() + descent + offset
+        # the following parameters depend on the font, QFontMetrics does not help
+        width = 9
+        height = 21
+        count_lines = 7
+        count_characters = 8
+        list_measures.setMaximumWidth(count_characters * width)
+        list_measures.setMinimumHeight(count_lines * height)
+        list_measures.setMaximumHeight(count_lines * height)
         grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
         list_measures.addItems(measures)
 
