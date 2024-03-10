@@ -11,6 +11,7 @@ from typing import List
 from typing import Optional
 from typing import Callable
 from typing import cast
+from typing import Self
 
 from dataclasses import dataclass
 
@@ -94,7 +95,7 @@ class LineBreak:
         self.staffs = kwargs.get('staffs', cast(Optional[List], None))
 
 
-class LineBreakImport:
+class LineBreakIo:
     """ importing line breaks """
 
     @staticmethod
@@ -126,3 +127,51 @@ class LineBreakImport:
         result.sort(key=lambda elem: elem.measure_nr, reverse=False)
         return result
 
+    @staticmethod
+    def to_dict(data: LineBreak):
+        """ translate back to dictionary """
+
+        staff1 = data.staffs[0]
+        margins_1 = [staff1.margin_left, staff1.margin_right]
+        range_1 = 'auto' if staff1.staff_auto else [staff1.staff_start, staff1.staff_finish]
+
+        staff2 = data.staffs[1]
+        margins_2 = [staff2.margin_left, staff2.margin_right]
+        range_2 = 'auto' if staff2.staff_auto else [staff2.saff_start, staff2.staff_finish]
+
+        staff3 = data.staffs[2]
+        margins_3 = [staff3.margin_left, staff3.margin_right]
+        range_3 = 'auto' if staff3.staff_auto else [staff3.staff_start, staff3.staff_finish]
+
+        staff4 = data.staffs[3]
+        margins_4 = [staff4.margin_left, staff4.margin_right]
+        range_4 = 'auto' if staff3.staff_auto else [staff4.staff_start, staff4.staff_finish]
+
+        elem = {
+            'tag': data.tag,
+            'time': data.time,
+            'staff1': {
+                'margins': margins_1,
+                'range': range_1,
+            },
+            'staff2': {
+                'margins': margins_2,
+                'range': range_2,
+            },
+            'staff3': {
+                'margins': margins_3,
+                'range': range_3,
+            },
+            'staff4': {
+                'margins': margins_4,
+                'range': range_4,
+            },
+        }
+
+        return elem
+
+    @staticmethod
+    def exporter(linebreaks: [LineBreak]) -> list:
+        """ export to list of dictionary """
+
+        return [LineBreakIo.to_dict(brk) for brk in linebreaks]

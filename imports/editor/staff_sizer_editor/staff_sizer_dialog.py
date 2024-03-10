@@ -6,6 +6,7 @@
 __author__ = 'Sihir'
 __copyright__ = '© Sihir 2023-2024 all rights reserved'
 
+import pprint
 # Ik denk een dialoogje wanneer je op de linebreak marker klikt met de linker
 # muisknop waar de volgende eigenschapen in te stellen zijn:
 # margin left(staff1-4),
@@ -16,6 +17,9 @@ from typing import Optional
 from typing import Any
 from typing import List
 from typing import Callable
+from typing import Self
+
+# from jsons import dumps
 
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
@@ -27,8 +31,6 @@ from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
 
 from PySide6.QtGui import QPixmap
-from PySide6.QtCore import QSize
-
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -36,7 +38,7 @@ from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerCont
 from imports.editor.grideditor.dialog_result import DialogResult
 
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
-from imports.editor.staff_sizer_editor.staff_io import LineBreakImport
+from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
 
 
 class StaffSizerDialog(QDialog):
@@ -56,8 +58,13 @@ class StaffSizerDialog(QDialog):
 
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
-        self.linebreaks = LineBreakImport.importer(data=linebreaks,
-                                                   time_calc=time_calc)
+
+        # contents = dumps(linebreaks)
+        # with open(file='example.json', mode='w', encoding='utf8') as stream:
+        #    stream.write(contents)
+
+        self.linebreaks = LineBreakIo.importer(data=linebreaks,
+                                               time_calc=time_calc)
 
         self.setWindowTitle('Line Preferences')
 
@@ -133,17 +140,17 @@ class StaffSizerDialog(QDialog):
         self.result = DialogResult.CANCEL
         self.close()
 
+
     # pylint: disable=invalid-name
     def closeEvent(self, event):
         """ the close window control 'x' is clicked"""
 
         event.accept()
-        staff_sizers = []
-        if self.result == DialogResult.OK:
-            staff_sizers = self.staff_sizers
-            staff_sizers[0].time = 0
 
-        if self.callback is not None:
-            self.callback(self.result, staff_sizers)
+        if self.result == DialogResult.OK and \
+                self.callback is not None:
+
+            data = LineBreakIo.exporter(self.linebreaks)
+            self.callback(self.result, data)
 
     # pylint: enable=invalid-name

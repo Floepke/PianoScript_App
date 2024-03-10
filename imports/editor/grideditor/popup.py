@@ -9,6 +9,8 @@ from os.path import abspath
 
 from typing import Callable
 
+from threading import Timer
+
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QDialog
