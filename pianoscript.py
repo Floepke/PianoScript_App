@@ -4,7 +4,7 @@ from imports.utils.constants import *
 # pyside6 imports
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
-from imports.gui.gui import Gui
+from imports.gui.gui import Gui, Qt
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
@@ -20,11 +20,10 @@ from imports.engraver.engraver import Engraver
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
-from imports.gui.style import STYLE
+from imports.gui.style import STYLE, color1, color2
 
 from imports.editor.staff_sizer_editor.staff_io import StaffIo
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
-
 
 class PianoScript():
 
@@ -135,13 +134,15 @@ class PianoScript():
 
         # setup
         self.app = QApplication(sys.argv)
-        # self.app.setStyleSheet(STYLE)
+        self.app.setStyleSheet(STYLE)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
         self.io['app'] = self.app
         self.io['root'] = self.root
+        self.root.showFullScreen()
         self.io['gui'] = self.gui
+        
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)

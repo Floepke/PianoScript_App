@@ -2,7 +2,7 @@
 from imports.utils.constants import *
 from imports.icons.icons import *
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QMenu
 from PySide6.QtWidgets import QGraphicsScene, QToolBar
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
@@ -167,19 +167,20 @@ class Gui():
 
         # Add the buttons to the toolbar
         self.previous_button = QToolButton()
-        self.previous_button.setText("<")
+        self.previous_button.setIcon(base64_to_qicon(PREVIOUS_B64))
         self.previous_button.setToolTip("Previous page")
         self.previous_button.clicked.connect(self.previous_page)
         self.toolbar.addWidget(self.previous_button)
 
         self.next_button = QToolButton()
-        self.next_button.setText(">")
+        self.next_button.setIcon(base64_to_qicon(NEXT_B64))
         self.next_button.setToolTip("Next page")
         self.next_button.clicked.connect(self.next_page)
         self.toolbar.addWidget(self.next_button)
 
         self.refresh_button = QToolButton()
         self.refresh_button.setText("⟳")
+        self.refresh_button.setStyleSheet("color: #ffdddd; font-size: 35px;")
         self.refresh_button.setToolTip("Engrave the document")
         self.refresh_button.clicked.connect(self.refresh)
         self.toolbar.addWidget(self.refresh_button)
@@ -187,13 +188,13 @@ class Gui():
         self.toolbar.addSeparator()
 
         self.play_button = QToolButton()
-        self.play_button.setText("▶")
+        self.play_button.setIcon(base64_to_qicon(PLAY_B64))
         self.play_button.setToolTip("Play MIDI")
         self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
         self.toolbar.addWidget(self.play_button)
 
         self.stop_button = QToolButton()
-        self.stop_button.setText("■")
+        self.stop_button.setIcon(base64_to_qicon(STOP_B64))
         self.stop_button.setToolTip("Stop MIDI")
         self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
         self.toolbar.addWidget(self.stop_button)
@@ -320,6 +321,7 @@ class Gui():
         self.tree_view.setModel(self.create_tree_model())
         self.tree_view.header().hide()
         self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
+        self.tree_view.setIconSize(QSize(40, 40))
         # set indent size
         self.tree_view.setIndentation(0)
         # set single selection
@@ -375,13 +377,18 @@ class Gui():
             model.appendRow(parent)
             for item in tree[folder]:
                 # Create a child item with an icon
-                icon = base64_to_qicon(ACCIDENTAL_B64)
-                child = QStandardItem(icon, item)
-                # Set background color
-                child.setBackground(QBrush(QColor("white")))
-                # Set foreground (text) color
-                child.setForeground(QBrush(QColor("black")))
-                parent.appendRow(child)
+                icon_name = f"{item.upper()}_B64"
+                icon_b64 = globals().get(icon_name)
+                if icon_b64 is not None:
+                    icon = base64_to_qicon(icon_b64)
+                    child = QStandardItem(icon, item)
+                    # Set row height of child item
+                    child.setSizeHint(QSize(0, 50))
+                    # Set background color
+                    child.setBackground(QBrush(QColor("white")))
+                    # Set foreground (text) color
+                    child.setForeground(QBrush(QColor("black")))
+                    parent.appendRow(child)
 
         return model
 
