@@ -1,5 +1,6 @@
 color1 = "#140714"
 color2 = "#ffdddd"
+color3 = '#000000'
 
 STYLE = f'''
 QGroupBox, QListWidget,
@@ -36,11 +37,11 @@ QSlider::groove:horizontal {{
 }}
 
 QSlider::add-page:horizontal {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color1}, stop:1 {color2});
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color1}, stop:1 {color3});
 }}
 
 QSlider::sub-page:horizontal {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color2}, stop:1 {color1});
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color3}, stop:1 {color1});
 }}
 QMenuBar::item, QMenuBar::item:selected {{
     background-color: {color1};
@@ -69,6 +70,10 @@ QTabBar::tab:selected {{
 QSpinBox {{
     background-color: {color2};
     color: {color1};
+}}
+StatusBar {{
+    background-color: {color1};
+    color: {color2};
 }}
 '''
 

@@ -45,8 +45,8 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
         evt = copy.deepcopy(evt)
         evt['type'] = 'noteoff'
         note_on_off.append(copy.deepcopy(evt))
-    # note_on_off = sorted(note_on_off, key=lambda y: y['type'])
-    # note_on_off = sorted(note_on_off, key=lambda y: y['time'] if y['type'] == 'note' else y['endtime'])
+
+    # sorting the list
     note_on_off = sorted(
         note_on_off, key=lambda y: (
             round(
@@ -145,7 +145,18 @@ def continuation_dot_stopsign_and_connectstem_processor(io, DOC):
 
 
 def note_processor(io, note):
+    """
+    Processes a note and returns a list of output data.
 
+    Args:
+        io (dict): The IO dictionary containing all necessary data.
+        note (dict): The note to be processed.
+
+    Returns:
+        list: A list of output data.
+
+    """
+    
     output = []
 
     # split notes on barlines

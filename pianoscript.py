@@ -3,7 +3,7 @@ from imports.utils.constants import *
 
 # pyside6 imports
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QSlider, QWidget, QDockWidget, QTabWidget, QMenuBar, QMenu, QRadioButton, QSplitter, QDialog, QTreeView, QGraphicsView, QToolBar
+from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui.gui import Gui, Qt, QColor
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
@@ -16,8 +16,6 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
-from imports.gui.disco import ColorSliderWindow, ColorTransitionThread
-import math
 
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
@@ -26,6 +24,7 @@ from imports.gui.style import STYLE, color1, color2
 
 from imports.editor.staff_sizer_editor.staff_io import StaffIo
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+
 
 class PianoScript():
 
@@ -139,7 +138,7 @@ class PianoScript():
 
         # setup
         self.app = QApplication(sys.argv)
-        #self.app.setStyleSheet(STYLE)
+        # self.app.setStyleSheet(STYLE)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
@@ -149,9 +148,9 @@ class PianoScript():
         self.io['gui'] = self.gui
 
         # EE
-        self.io['gui'].slider.valueChanged.connect(lambda: self.change_color())
-        self.change_color()
-        
+        self.io['gui'].slider.valueChanged.connect(lambda: self.change_theme())
+        self.change_theme()
+
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)
@@ -224,6 +223,9 @@ class PianoScript():
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
 
         self.root.closeEvent = self.cleanup
+
+        self.change_theme()
+
         # run the application
         sys.exit(self.app.exec())
 
@@ -285,13 +287,15 @@ class PianoScript():
 
             self.io['maineditor'].update('grid_editor')
 
-    def change_color(self):
-        
-        complementary_color = QColor.fromHsv(self.io['gui'].slider.value(), 255/3*2, 128)
+    def change_theme(self):
+
+        complementary_color = QColor.fromHsv(
+            self.io['gui'].slider.value(), 255/3*2.5, 128)
         self.color1 = complementary_color.name()
 
         # Get the negative color
-        color1_hex = int(self.color1.lstrip('#'), 16)  # Convert color1 to hexadecimal
+        # Convert color1 to hexadecimal
+        color1_hex = int(self.color1.lstrip('#'), 16)
         color2_hex = color1_hex ^ 0xFFFFFF  # Get the complementary color
         self.color2 = '#ffffff'  # Convert the complementary color back to a string
 
@@ -306,31 +310,26 @@ class PianoScript():
         self.color1 = lighter_color.name()
 
         style = f'''
-        QTreeView, QGraphicsView, 
+        QTreeView, QGraphicsView,
         QMainWindow, QToolBar, QToolBar,
-        QToolBar QAction, 
-        QMainWindow QMenuBar, QMenu, 
-        QRadioButton, QLabel, QDockWidget, 
+        QToolBar QAction, QListWidget,
+        QMainWindow QMenuBar, QMenu, QDockWidget,
         QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
             background-color: {self.color1};
             color: {self.color2};
             font-size: 16px;
-            font-family: Bookman Old Style;
+            font-family: Edwin;
+        }}
+        QLabel, QRadioButton {{
+            background-color: transparent;
+            color: {self.color2};
         }}
         QMenuBar::item, QMenuBar::item:selected {{
             background-color: {self.color1};
             color: {self.color2};
         }}
-        QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        QTabWidget::tab-bar::tab:selected {{
-            background-color: {self.color2};
-            color: {self.color1};
-        }}
         QPushButton {{
-            background-color: #000000;
+            background-color: {self.color1};
             color: {self.color2};
         }}
         QSlider::groove:horizontal {{
@@ -341,23 +340,39 @@ class PianoScript():
         }}
 
         QSlider::add-page:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color1}, stop:1 {self.color2});
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color1}, stop:1 #333333);
         }}
 
         QSlider::sub-page:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color2}, stop:1 {self.color1});
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #333333, stop:1 {self.color1});
+        }}
+        QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
+            background-color: {self.color1};
+            color: {self.color2};
+        }}
+
+        QTabWidget QWidget {{
+            background-color: {self.color1};
+        }}
+        QTabBar::tab {{
+            background-color: {self.color1};
+            color: {self.color2};
+        }}
+        QTabBar::tab:selected {{
+            background-color: {self.color1};
+            color: {self.color2};
+        }}
+        QSpinBox {{
+            background-color: {self.color2};
+            color: {self.color1};
+        }}
+        StatusBar {{
+            background-color: {self.color1};
+            color: {self.color2};
         }}
         '''
 
-        self.root.setStyleSheet(style)
-        
-
-        # complementary_color = QColor.fromHsv((value, 220, 220))
-        # print(complementary_color.name())
-        # self.root.setStyleSheet(f"background-color: {complementary_color.name()}")
-
-
-
+        self.app.setStyleSheet(style)
 
 
 if __name__ == '__main__':

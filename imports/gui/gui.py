@@ -21,7 +21,7 @@ from imports.gui.staffswitcher import StaffSwitcher
 
 from imports.engraver.pdfexport import pdf_export
 
-import threading
+import threading, random
 
 
 class Gui():
@@ -41,6 +41,7 @@ class Gui():
         self.slider = QSlider(Qt.Horizontal, self.main)
         self.slider.setMinimum(0)
         self.slider.setMaximum(255)
+        self.slider.setValue(random.randint(0, 255))
 
         # Add the slider to the status bar
         self.statusbar.addPermanentWidget(self.slider)
@@ -376,7 +377,9 @@ class Gui():
             ],
             'Phrase': [
                 'countline',
-                'text'
+                'text',
+                'slur',
+                'finger'
             ]
         }
         for folder in tree:
