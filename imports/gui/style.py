@@ -2,6 +2,8 @@ color1 = "#140714"
 color2 = "#ffdddd"
 
 STYLE = f'''
+QGroupBox, QListWidget,
+QLabel, QComboBox, QSpinBox,
 QTreeView, QGraphicsView, 
 QMainWindow, QToolBar, QToolBar,
 QToolBar QAction, QGroupBox, QTabWidget, QTabWidget::pane, QTabWidget::tab-bar, QTabWidget::tab,
