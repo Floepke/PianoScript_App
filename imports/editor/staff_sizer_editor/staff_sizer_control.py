@@ -297,19 +297,25 @@ class StaffSizerControl:
         radio_layout = QGridLayout()
         staff_group.layout().addLayout(radio_layout, 0, 0, 1, 3)
 
+        lbl_measure = QLabel('meas')
+        lbl_measure.setMinimumWidth(50)
+        lbl_measure.setMaximumWidth(50)
+        radio_layout.addWidget(lbl_measure, 0, 0, 1, 2)
+        self.lbl_measure = lbl_measure
+
         radio_1 = QRadioButton('1', parent=parent)
 
         radio_1.setChecked(True)
-        radio_layout.addWidget(radio_1, 0, 0, 1, 2)
+        radio_layout.addWidget(radio_1, 0, 1, 1, 2)
         radio_2 = QRadioButton('2', parent=parent)
         radio_2.setChecked(False)
-        radio_layout.addWidget(radio_2, 0, 1, 1, 2)
+        radio_layout.addWidget(radio_2, 0, 2, 1, 2)
         radio_3 = QRadioButton('3', parent=parent)
         radio_3.setChecked(False)
-        radio_layout.addWidget(radio_3, 0, 2, 1, 2)
+        radio_layout.addWidget(radio_3, 0, 3, 1, 2)
         radio_4 = QRadioButton('4', parent=parent)
         radio_4.setChecked(False)
-        radio_layout.addWidget(radio_4, 0, 3, 1, 2)
+        radio_layout.addWidget(radio_4, 0, 4, 1, 2)
 
         return [radio_1, radio_2, radio_3, radio_4], staff_group
 
@@ -326,6 +332,11 @@ class StaffSizerControl:
 
         for idx, radio in enumerate(self._radios, 0):
             radio.clicked.connect(partial(self._radio_changed, idx))
+
+    def set_measure_nr(self, measure: int):
+        """ the measure number for this linebreak """
+
+        self.lbl_measure.setText(str(measure))
 
     def _margin_left_changed(self, value: int):
         """ margin on the left changed """
