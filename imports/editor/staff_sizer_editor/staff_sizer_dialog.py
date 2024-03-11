@@ -27,6 +27,7 @@ from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
 
 from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QModelIndex
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -94,6 +95,7 @@ class StaffSizerDialog(QDialog):
         list_measures.setMaximumWidth(StaffSizerDialog._list_width)
         list_measures.setMinimumHeight(StaffSizerDialog._list_height)
         list_measures.setMaximumHeight(StaffSizerDialog._list_height)
+        list_measures.clicked.connect(self.changed_list_index)
         grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
         list_measures.addItems(measures)
 
@@ -123,7 +125,15 @@ class StaffSizerDialog(QDialog):
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
 
         self.setLayout(layout)
-        self.staff_sizers = self.linebreaks[0].staffs
+
+        self.staff_index = 0
+        self.staff_sizers = self.linebreaks[self.staff_index].staffs
+
+    def changed_list_index(self, index: QModelIndex):
+        """ list index changed """
+
+        self.staff_index = index.row()
+        self.staff_sizers = self.linebreaks[self.staff_index].staffs
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
