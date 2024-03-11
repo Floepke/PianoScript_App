@@ -139,7 +139,9 @@ class StaffSizerDialog(QDialog):
         self.staff_index = row
         linebreak = self.linebreaks[row]
         self.staff_sizers = linebreak.staffs
-        self.control.set_measure_nr(linebreak.measure_nr)
+
+        measure = linebreak.measure_nr
+        self.control.set_measure_nr(measure)
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
