@@ -139,7 +139,7 @@ class PianoScript():
 
         # setup
         self.app = QApplication(sys.argv)
-        self.app.setStyleSheet(STYLE)
+        #self.app.setStyleSheet(STYLE)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
@@ -287,13 +287,13 @@ class PianoScript():
 
     def change_color(self):
         
-        complementary_color = QColor.fromHsv(self.io['gui'].slider.value(), 175, 80)
+        complementary_color = QColor.fromHsv(self.io['gui'].slider.value(), 255/3*2, 128)
         self.color1 = complementary_color.name()
 
         # Get the negative color
         color1_hex = int(self.color1.lstrip('#'), 16)  # Convert color1 to hexadecimal
         color2_hex = color1_hex ^ 0xFFFFFF  # Get the complementary color
-        self.color2 = f'#{color2_hex:06X}'  # Convert the complementary color back to a string
+        self.color2 = '#ffffff'  # Convert the complementary color back to a string
 
         # Get the RGB values of color1 and add 50 to each component
         add = 75

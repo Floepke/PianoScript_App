@@ -4,14 +4,15 @@ color2 = "#ffdddd"
 STYLE = f'''
 QTreeView, QGraphicsView, 
 QMainWindow, QToolBar, QToolBar,
-QToolBar QAction, 
-QMainWindow QMenuBar, QMenu, 
+QToolBar QAction, QGroupBox, QTabWidget, QTabWidget::pane, QTabWidget::tab-bar, QTabWidget::tab,
+QMainWindow QMenuBar, QMenu, QLineEdit, QComboBox,
 QRadioButton, QLabel, QDockWidget, 
 QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
     background-color: {color1};
     color: {color2};
     font-size: 16px;
     font-family: Bookman Old Style;
+    font-color: {color2};
 }}
 QMenuBar::item, QMenuBar::item:selected {{
     background-color: {color1};
@@ -21,12 +22,8 @@ QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
     background-color: {color1};
     color: {color2};
 }}
-QTabWidget::tab-bar::tab:selected {{
-    background-color: {color2};
-    color: {color1};
-}}
 QPushButton {{
-    background-color: #000000;
+    background-color: {color1};
     color: {color2};
 }}
 QSlider::groove:horizontal {{
@@ -42,6 +39,34 @@ QSlider::add-page:horizontal {{
 
 QSlider::sub-page:horizontal {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color2}, stop:1 {color1});
+}}
+QMenuBar::item, QMenuBar::item:selected {{
+    background-color: {color1};
+    color: {color2};
+}}
+QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
+    background-color: {color1};
+    color: {color2};
+}}
+QTabWidget::tab-bar::tab:selected {{
+    background-color: {color1};
+    color: {color2};
+}}
+QTabWidget QWidget {{
+    background-color: {color1};
+}}
+QTabBar::tab {{
+    background-color: {color1};
+    color: {color2};
+}}
+
+QTabBar::tab:selected {{
+    background-color: {color2};
+    color: {color1};
+}}
+QSpinBox {{
+    background-color: {color2};
+    color: {color1};
 }}
 '''
 
