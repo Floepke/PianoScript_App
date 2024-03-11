@@ -248,6 +248,9 @@ class StaffSizerControl:
 
         staff_start = QComboBox(parent=parent)
         staff_start.setEditable(False)
+        staff_start.setMaximumWidth(50)
+        staff_start.setMinimumWidth(50)
+
         for number in PianoNotes.start_notes():
             _, _, note = PianoNotes.translate_note(number)
             staff_start.addItem(note)
@@ -271,6 +274,9 @@ class StaffSizerControl:
         # FINISH
         staff_finish = QComboBox(parent=parent)
         staff_finish.setEditable(False)
+        staff_finish.setMaximumWidth(50)
+        staff_finish.setMinimumWidth(50)
+
         for number in PianoNotes.finish_notes():
             _, _, note = PianoNotes.translate_note(number)
             staff_finish.addItem(note)

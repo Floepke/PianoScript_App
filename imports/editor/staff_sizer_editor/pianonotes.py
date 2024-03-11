@@ -35,7 +35,7 @@ class PianoNotes:
         """ possible start notes for the staff """
 
         return [
-            # 1,      # A0
+            1,      # A0
             4, 9,   # C1, F1
             16, 21,
             28, 33,

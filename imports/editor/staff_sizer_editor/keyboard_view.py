@@ -36,6 +36,7 @@ class KeyboardView():
             # auto
             -1: (240, 'auto'),
             # start notes
+            1: (0, 'A0'),
             4: (30, 'C1'),
             9: (60, 'F1'),
             16: (100, 'C2'),
@@ -76,7 +77,7 @@ class KeyboardView():
             (52, 310, '5'),
             (64, 380, '6'),
             (76, 450, '7'),
-            # (88, 530, '8'),
+            (87, 530, '8'),
         ]
 
     @property
@@ -113,6 +114,7 @@ class KeyboardView():
             ]
 
         octaves = [
+            #(5, 2, 2),  # A0
             (10, 2, 2)  # Bis1
         ]
 
@@ -166,7 +168,7 @@ class KeyboardView():
                            family='Arial',
                            size=8)
 
-        pos, name = self._mapping.get(self._finish, 37)
+        pos, name = self._mapping.get(self._finish, (37, 'None'))
 
         drawer.create_text(x=self.scale_x(pos),
                            y=40,
