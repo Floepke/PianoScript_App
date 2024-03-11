@@ -36,47 +36,47 @@ class KeyboardView():
             # auto
             -1: (240, 'auto'),
             # start notes
-            3: (30, 'C1'),
-            8: (60, 'F1'),
-            15: (100, 'C2'),
-            20: (130, 'F2'),
-            27: (170, 'C3'),
-            32: (200, 'F3'),
-            39: (240, 'C4'),
-            44: (270, 'F4'),
-            51: (310, 'C5'),
-            56: (340, 'F5'),
-            63: (380, 'C6'),
-            68: (410, 'F6'),
-            75: (450, 'C7'),
-            80: (480, 'F7'),
+            4: (30, 'C1'),
+            9: (60, 'F1'),
+            16: (100, 'C2'),
+            21: (130, 'F2'),
+            28: (170, 'C3'),
+            33: (200, 'F3'),
+            40: (240, 'C4'),
+            45: (270, 'F4'),
+            52: (310, 'C5'),
+            57: (340, 'F5'),
+            64: (380, 'C6'),
+            69: (410, 'F6'),
+            76: (450, 'C7'),
+            81: (480, 'F7'),
             # finish notes
-            2: (20, 'B0'),
-            7: (50, 'E1'),
-            14: (90, 'B1'),
-            19: (120, 'E2'),
-            26: (160, 'B2'),
-            31: (190, 'E3'),
-            38: (230, 'B3'),
-            43: (260, 'E4'),
-            50: (300, 'B4'),
-            55: (330, 'E5'),
-            62: (370, 'B5'),
-            67: (400, 'E6'),
-            74: (440, 'B6'),
-            79: (470, 'E7'),
-            86: (510, 'B7'),
+            3: (20, 'B0'),
+            8: (50, 'E1'),
+            15: (90, 'B1'),
+            20: (120, 'E2'),
+            27: (160, 'B2'),
+            32: (190, 'E3'),
+            39: (230, 'B3'),
+            44: (260, 'E4'),
+            51: (300, 'B4'),
+            56: (330, 'E5'),
+            63: (370, 'B5'),
+            68: (400, 'E6'),
+            75: (440, 'B6'),
+            80: (470, 'E7'),
+            87: (510, 'B7'),
         }
 
         self._octave_nrs = [
-            (3,  30, '1'),
-            (15, 100, '2'),
-            (27, 170, '3'),
-            (39, 240, '4'),
-            (51, 310, '5'),
-            (63, 380, '6'),
-            (75, 450, '7'),
-            # (87, 530, '8'),
+            (4,  30, '1'),
+            (16, 100, '2'),
+            (28, 170, '3'),
+            (40, 240, '4'),
+            (52, 310, '5'),
+            (64, 380, '6'),
+            (76, 450, '7'),
+            # (88, 530, '8'),
         ]
 
     @property
@@ -157,7 +157,7 @@ class KeyboardView():
                                width=width,
                                color='black')
 
-        pos, name = self._mapping.get(self._start, 3)
+        pos, name = self._mapping.get(self._start, 4)
 
         drawer.create_text(x=self.scale_x(pos),
                            y=40,
@@ -166,7 +166,7 @@ class KeyboardView():
                            family='Arial',
                            size=8)
 
-        pos, name = self._mapping.get(self._finish, 2)
+        pos, name = self._mapping.get(self._finish, 37)
 
         drawer.create_text(x=self.scale_x(pos),
                            y=40,
@@ -205,7 +205,7 @@ class KeyboardView():
         if value in self._mapping:
             return value
 
-        return 3
+        return 4
 
     def valid_finish(self, value: int):
         """ check the finish position """
@@ -213,4 +213,4 @@ class KeyboardView():
         if value in self._mapping:
             return value
 
-        return 86
+        return 87

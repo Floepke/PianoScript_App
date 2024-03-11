@@ -21,8 +21,8 @@ class StaffSizer:
 
         self.margin_left = kwargs.get('margin_left', 0)
         self.margin_right = kwargs.get('margin_right', 0)
-        self.staff_start = kwargs.get('staff_start', 0)
-        self.staff_finish = kwargs.get('staff_finish', 127)
+        self.staff_start = kwargs.get('staff_start', 1)
+        self.staff_finish = kwargs.get('staff_finish', 87)
         self.staff_auto = kwargs.get('staff_auto', True)
 
     @classmethod
@@ -36,8 +36,8 @@ class StaffSizer:
             staff_auto = False
             staff_start, staff_finish = tuple(value)
         else:
-            staff_start = 0
-            staff_finish = 88
+            staff_start = 4
+            staff_finish = 87
             staff_auto = True
 
         return StaffSizer(margin_left=margin_left,

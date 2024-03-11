@@ -57,8 +57,8 @@ class StaffSizerControl:
             StaffSizer(margin_left=0,
                        margin_right=0,
                        staff_auto=True,
-                       staff_start=3,
-                       staff_finish=88)
+                       staff_start=4,
+                       staff_finish=87)
         ]
 
         self._keyboard = keyboard

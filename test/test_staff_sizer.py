@@ -45,18 +45,18 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 def test_0():
     """ test for the translate_note function """
-    for index in range(89):
+    for index in range(1, 89):
         name = PianoNotes.translate_note(piano_note=index)
         print(f'{index:<3} {name}')
 
     start_notes = [
-        3, 8,
-        15, 20,
-        27, 32,
-        39, 44,
-        51, 56,
-        63, 68,
-        75
+        4, 9,
+        16, 21,
+        28, 33,
+        40, 45,
+        52, 57,
+        64, 69,
+        76
     ]
     print('--- start notes --')
     for index in start_notes:
@@ -64,17 +64,18 @@ def test_0():
         print(f'{index:<3} {note}')
 
     finish_notes = [
-        19, 26,
-        31, 38,
-        43, 50,
-        55, 62,
-        67, 74,
-        79, 86
+        20, 27,
+        32, 39,
+        44, 51,
+        56, 63,
+        68, 75,
+        80, 87
     ]
     print('--- finish notes --')
     for index in finish_notes:
         _, _, note = PianoNotes.translate_note(piano_note=index)
         print(f'{index:<3} {note}')
+
 
 def find_file(fname: str) -> str:
     """ find a file somewhere in the folders """
@@ -87,6 +88,7 @@ def find_file(fname: str) -> str:
         current = dirname(current)
 
     return None
+
 
 def time_calc(time: int) -> int:
     """ simplified version of the actual function """
@@ -117,6 +119,7 @@ def test_1():
 
     _exit(app.exec())
 
+
 def test1_callback(result: DialogResult,
                    staffs: list):
     """ callback for results  """
@@ -137,15 +140,15 @@ def test_2():
         'time': 12345,
         'staff1': {
             'margins': [10, 12],
-            'range': [3, 79]
+            'range': [4, 80]
         },
         'staff2': {
             'margins': [11, 13],
-            'range': [8, 80]
+            'range': [9, 81]
         },
         'staff3': {
             'margins': [12, 14],
-            'range': [15, 81]
+            'range': [16, 82]
         },
         'staff4': {
             'margins': [13, 15],

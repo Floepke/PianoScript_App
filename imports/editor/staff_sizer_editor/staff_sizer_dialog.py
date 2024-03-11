@@ -6,7 +6,6 @@
 __author__ = 'Sihir'
 __copyright__ = '© Sihir 2023-2024 all rights reserved'
 
-import pprint
 # Ik denk een dialoogje wanneer je op de linebreak marker klikt met de linker
 # muisknop waar de volgende eigenschapen in te stellen zijn:
 # margin left(staff1-4),
@@ -17,9 +16,6 @@ from typing import Optional
 from typing import Any
 from typing import List
 from typing import Callable
-from typing import Self
-
-# from jsons import dumps
 
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QGridLayout
@@ -31,10 +27,6 @@ from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
 
 from PySide6.QtGui import QPixmap
-from PySide6.QtGui import QFontMetrics
-
-from PySide6.QtCore import Qt
-
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -47,6 +39,23 @@ from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
 
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
+
+    # the following parameters depend on the font, QFontMetrics does not help
+
+    # metr = QFontMetrics(list_measures.font())
+    # rect_m = metr.boundingRect('M', Qt.AlignCenter)
+    # width = rect_m.width()
+    # descent = metr.descent()
+    #
+    # offset = 2
+    # height = rect_m.height() + descent + offset
+
+    _char_width = 9
+    _line_spacing = 21  # char_height + descent + 2 for the used font
+    _count_lines = 7
+    _count_characters = 8
+    _list_width = _char_width * _count_characters
+    _list_height = _line_spacing * _count_lines
 
     def __init__(self,
                  parent: Optional[Any] = None,
@@ -62,10 +71,6 @@ class StaffSizerDialog(QDialog):
 
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
-
-        # contents = dumps(linebreaks)
-        # with open(file='example.json', mode='w', encoding='utf8') as stream:
-        #    stream.write(contents)
 
         self.linebreaks = LineBreakIo.importer(data=linebreaks,
                                                time_calc=time_calc)
@@ -86,21 +91,9 @@ class StaffSizerDialog(QDialog):
         box_layout.addWidget(grp_measures)
 
         list_measures = QListWidget()
-        # metr = QFontMetrics(list_measures.font())
-        # rect_m = metr.boundingRect('M', Qt.AlignCenter)
-        # width = rect_m.width()
-        # descent = metr.descent()
-        #
-        # offset = 1
-        # height = rect_m.height() + descent + offset
-        # the following parameters depend on the font, QFontMetrics does not help
-        width = 9
-        height = 21
-        count_lines = 7
-        count_characters = 8
-        list_measures.setMaximumWidth(count_characters * width)
-        list_measures.setMinimumHeight(count_lines * height)
-        list_measures.setMaximumHeight(count_lines * height)
+        list_measures.setMaximumWidth(StaffSizerDialog._list_width)
+        list_measures.setMinimumHeight(StaffSizerDialog._list_height)
+        list_measures.setMaximumHeight(StaffSizerDialog._list_height)
         grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
         list_measures.addItems(measures)
 
@@ -132,7 +125,6 @@ class StaffSizerDialog(QDialog):
         self.setLayout(layout)
         self.staff_sizers = self.linebreaks[0].staffs
 
-
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
         """ get the values """
@@ -156,7 +148,6 @@ class StaffSizerDialog(QDialog):
 
         self.result = DialogResult.CANCEL
         self.close()
-
 
     # pylint: disable=invalid-name
     def closeEvent(self, event):
