@@ -127,13 +127,19 @@ class StaffSizerDialog(QDialog):
         self.setLayout(layout)
 
         self.staff_index = 0
-        self.staff_sizers = self.linebreaks[self.staff_index].staffs
+        self.select_linebreak(0)
 
     def changed_list_index(self, index: QModelIndex):
         """ list index changed """
 
-        self.staff_index = index.row()
-        self.staff_sizers = self.linebreaks[self.staff_index].staffs
+        self.select_linebreak(index.row())
+
+    def select_linebreak(self, row: int):
+
+        self.staff_index = row
+        linebreak = self.linebreaks[row]
+        self.staff_sizers = linebreak.staffs
+        self.control.set_measure_nr(linebreak.measure_nr)
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
