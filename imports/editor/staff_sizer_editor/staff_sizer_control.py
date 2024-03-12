@@ -191,6 +191,8 @@ class StaffSizerControl:
         margin_left = QSpinBox(parent=parent)
         margin_left.setMinimum(0)
         margin_left.setMaximum(1000)
+        margin_left.setMinimumWidth(50)
+        margin_left.setMaximumWidth(50)
         layout.addWidget(margin_left, row, col + 1, 1, 1)
         return margin_left
 
@@ -207,6 +209,8 @@ class StaffSizerControl:
         layout.addWidget(label, row, col, 1, 1)
 
         margin_right = QSpinBox(parent=parent)
+        margin_right.setMinimumWidth(50)
+        margin_right.setMaximumWidth(50)
         margin_right.setMinimum(0)
         margin_right.setMaximum(1000)
         layout.addWidget(margin_right, row, col + 1, 1, 1)
@@ -326,7 +330,6 @@ class StaffSizerControl:
         self._margin_left.valueChanged.connect(self._margin_left_changed)
         self._margin_right.valueChanged.connect(self._margin_right_changed)
         self._staff_auto.stateChanged.connect(self._staff_auto_changed)
-        # self._staff_start.valueChanged.connect(self._staff_start_changed)
         self._staff_start.currentIndexChanged.connect(self._staff_start_index_changed)
         self._staff_finish.currentIndexChanged.connect(self._staff_finish_index_changed)
 
