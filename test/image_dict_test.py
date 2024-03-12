@@ -132,6 +132,15 @@ def stringify(image_dict: dict, filename: str):
     """ store the dictionary as python file """
 
     with open(file=filename, mode='w', encoding='utf8') as stream:
+
+        print('#! python3.11', file=stream)
+        print('# coding: utf8', file=stream)
+        print(file=stream)
+        print('""" the dictionary with images in string format """', file=stream)
+        print(file=stream)
+        print('# NOTE: this is a generated file, do not change the contents', file=stream)
+        print('# see test/image_dict_test.py for more info', file=stream)
+        print('#', file=stream)
         print('image_dict2 = {', file=stream)
         for key, value in image_dict.items():
             print(f'        "{key}":"""{value}""", ', file=stream)
