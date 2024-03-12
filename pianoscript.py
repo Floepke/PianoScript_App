@@ -2,7 +2,7 @@
 from imports.utils.constants import *
 
 # pyside6 imports
-import sys
+import sys, random
 from PySide6.QtWidgets import QApplication, QMainWindow
 from imports.gui.gui import Gui, Qt, QColor
 from imports.utils.drawutil import DrawUtil
@@ -289,8 +289,16 @@ class PianoScript():
 
     def change_theme(self):
 
+        slider_y = self.io['gui'].slider.slidery
+        if slider_y < 0:
+            slider_y = 0
+        elif slider_y > 255:
+            slider_y = 255
+
+        print(slider_y)
+
         complementary_color = QColor.fromHsv(
-            self.io['gui'].slider.value(), 255/3*2.5, 128)
+            self.io['gui'].slider.value(), 128, int(255-(slider_y)))
         self.color1 = complementary_color.name()
 
         # Get the negative color

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtGui import QColor, QBrush
 from imports.editor.graphicsview_editor import GraphicsViewEditor
+from PySide6.QtCore import QPoint
 # from imports.utils.fileoprations import FileOperations
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 # import QIcon
@@ -38,7 +39,7 @@ class Gui():
         self.statusbar = self.main.statusBar()
 
         # Create a slider
-        self.slider = QSlider(Qt.Horizontal, self.main)
+        self.slider = CustomSlider(Qt.Horizontal, self.main)
         self.slider.setMinimum(0)
         self.slider.setMaximum(255)
         self.slider.setValue(random.randint(0, 255))
@@ -455,3 +456,28 @@ class Gui():
 
     def refresh(self):
         self.io['maineditor'].update('page_change')
+
+
+
+class CustomSlider(QSlider):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.startPos = QPoint()
+        self.slidery = 0.0
+
+    def mousePressEvent(self, event):
+        self.slidery = 0.0
+        self.startPos = event.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        mainwindow_height = 1000
+        self.slidery = 1 - event.pos().y() / mainwindow_height * 255
+        self.setValue(self.slidery)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.startPos = QPoint()
+        super().mouseReleaseEvent(event)  # convert the value back to float
+
+
