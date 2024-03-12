@@ -137,7 +137,7 @@ class LineBreakIo:
 
         staff2 = data.staffs[1]
         margins_2 = [staff2.margin_left, staff2.margin_right]
-        range_2 = 'auto' if staff2.staff_auto else [staff2.saff_start, staff2.staff_finish]
+        range_2 = 'auto' if staff2.staff_auto else [staff2.staff_start, staff2.staff_finish]
 
         staff3 = data.staffs[2]
         margins_3 = [staff3.margin_left, staff3.margin_right]
