@@ -184,3 +184,8 @@ STAFF_X_UNIT_EDITOR = (EDITOR_WIDTH - (EDITOR_MARGIN * 2)) / 49
 # this is the staff x unit but in relation to mm. So the size in mm of the distance
 # between the c# and d# stafflines (if the draw_scale is set to 1.0).
 PITCH_UNIT = 1
+
+# RECENT FILES ----------------------------------------------------------------------------------------
+
+RECENT_FILES_LIMIT = 10
+RECENT_FILE_JSON_TEMPLATE = []

@@ -324,33 +324,25 @@ class PianoScript():
             background-color: transparent;
             color: {self.color2};
         }}
-        QMenuBar::item, QMenuBar::item:selected {{
+        QMenuBar::item {{
             background-color: {self.color1};
             color: {self.color2};
+        }}
+        QMenuBar, QMenu::item {{
+            padding: 5px 5px
+        }}
+        QMenuBar::item:selected, QMenu::Item::selected {{
+            background-color: white;
+            color: black;
         }}
         QPushButton {{
             background-color: {self.color1};
             color: {self.color2};
         }}
-        QSlider::groove:horizontal {{
-            border: 15px solid #999999;
-            height: 15px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #c4c4c4);
-            margin: 2px 0;
-        }}
-
-        QSlider::add-page:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {self.color1}, stop:1 #333333);
-        }}
-
-        QSlider::sub-page:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #333333, stop:1 {self.color1});
-        }}
         QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
             background-color: {self.color1};
             color: {self.color2};
         }}
-
         QTabWidget QWidget {{
             background-color: {self.color1};
         }}
@@ -359,8 +351,8 @@ class PianoScript():
             color: {self.color2};
         }}
         QTabBar::tab:selected {{
-            background-color: {self.color1};
-            color: {self.color2};
+            background-color: black;
+            color: white;
         }}
         QSpinBox {{
             background-color: {self.color2};

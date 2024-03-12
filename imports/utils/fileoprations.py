@@ -1,9 +1,7 @@
-import json
-import copy
-import datetime
-from PySide6.QtWidgets import QFileDialog
+import json, copy, os, datetime
+from PySide6.QtWidgets import QFileDialog, QMessageBox
+from PySide6.QtGui import QAction
 from imports.utils.constants import SCORE_TEMPLATE
-from PySide6.QtWidgets import QMessageBox
 from imports.utils.savefilestructure import SaveFileStructureSource
 
 
@@ -18,6 +16,19 @@ class FileOperations:
     def __init__(self, io):
         self.io = io
         self.savepath = None
+
+        # Initialize the list of recent file actions
+        self.recent_file_actions = []
+        for i in range(10):
+            action = QAction(QAction(self.io['gui'].main))
+            action.setVisible(False)
+            self.recent_file_actions.append(action)
+            self.io['gui'].recent_file_menu.addAction(action)
+
+        self.io['gui'].clear_recent_action.triggered.connect(self.clear_recent_file_menu)
+
+        # Update the "Recent Files" menu
+        self.update_recent_file_menu()
 
         self.new()
 
@@ -75,13 +86,15 @@ class FileOperations:
         # statusbar message
         self.io['gui'].main.statusBar().showMessage('New file...', 10000)
 
-    def load(self):
+    def load(self, file_path=None):
 
         if not self.save_check():
             return
 
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName()
+        if not file_path:
+            file_dialog = QFileDialog()
+            file_path, _ = file_dialog.getOpenFileName()
+
         if file_path:
             # load a score from a file into the score dict io['score']
             with open(file_path, 'r') as file:
@@ -119,6 +132,9 @@ class FileOperations:
             # statusbar message
             self.io['gui'].main.statusBar().showMessage(
                 'File loaded...', 10000)
+            
+            self.add_recent_file(file_path)
+            self.update_recent_file_menu()
 
     def save(self):
         if self.savepath:
@@ -181,3 +197,79 @@ class FileOperations:
             return True
         elif response == QMessageBox.Cancel:
             return False
+        
+    
+    
+    
+    # RECENT FILE FUNCTIONS:
+    def add_recent_file(self, path):
+
+        # Define the path to the recent.json file
+        recent_file_path = 'recent.json'
+
+        # Check if the recent.json file exists
+        if not os.path.exists(recent_file_path):
+            # If the file doesn't exist, create it with an empty list
+            with open(recent_file_path, 'w') as file:
+                json.dump([], file)
+
+        # Load the list of recent files from the recent.json file
+        with open(recent_file_path, 'r') as file:
+            recent_files = json.load(file)
+
+        # Check if the path is already in the list
+        if path not in recent_files:
+            # If the path is not in the list, append it
+            recent_files.append(path)
+            if len(recent_files) > 10:
+                recent_files.pop(0)
+
+            # Save the updated list back to the recent.json file
+            with open(recent_file_path, 'w') as file:
+                json.dump(recent_files, file)
+
+    def update_recent_file_menu(self):
+        
+        # Define the path to the recent.json file
+        recent_file_path = 'recent.json'
+
+        # Check if the recent.json file exists
+        if os.path.exists(recent_file_path):
+            # Load the list of recent files from the recent.json file
+            with open(recent_file_path, 'r') as file:
+                recent_files = json.load(file)
+
+            # Update the menu items with the list of recent files max 10
+            for i, path in enumerate(recent_files):
+                action = self.recent_file_actions[i]
+                action.setText(os.path.basename(path))
+                action.setVisible(True)
+                action.triggered.disconnect()
+                action.setData(path)
+                action.triggered.connect(lambda checked=False, action=action: self.open_recent_file(action))
+
+            # Hide any unused QAction objects
+            for i in range(len(recent_files), 10):
+                action = self.recent_file_actions[i]
+                action.setVisible(False)
+
+    def open_recent_file(self, file_path):
+        if os.path.exists(file_path.data()):
+            # Open the selected file
+            self.load(file_path.data())
+        else:
+            self.load()
+
+    def clear_recent_file_menu(self):
+        
+        # Define the path to the recent.json file
+        recent_file_path = 'recent.json'
+
+        # Check if the recent.json file exists
+        if os.path.exists(recent_file_path):
+            # Load the list of recent files from the recent.json file
+            with open(recent_file_path, 'w') as file:
+                json.dump([], file)
+
+        # Update the "Recent Files" menu
+        self.update_recent_file_menu()

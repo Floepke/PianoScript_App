@@ -21,7 +21,7 @@ from imports.gui.staffswitcher import StaffSwitcher
 
 from imports.engraver.pdfexport import pdf_export
 
-import threading, random
+import random
 
 
 class Gui():
@@ -59,6 +59,15 @@ class Gui():
         self.load_action = QAction('Load', self.main)
         self.load_action.setShortcut('Ctrl+O')
         self.file_menu.addAction(self.load_action)
+
+        # Create the "Recent Files" menu
+        self.recent_file_menu = QMenu('Recent Files', self.main)
+        self.file_menu.addMenu(self.recent_file_menu)
+
+        self.clear_recent_action = QAction('Clear Recent Files', self.main)
+        self.recent_file_menu.addAction(self.clear_recent_action)
+        self.recent_file_menu.addSeparator()
+
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
         self.import_midi_action.triggered.connect(
