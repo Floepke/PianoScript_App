@@ -15,7 +15,7 @@ from imports.editor.grideditor.draw_2d import Draw2d
 from imports.utils.constants import BACKGROUND_COLOR
 
 _KEYBOARDVIEW_WIDTH = 550
-_KEYBOARDVIEW_HEIGHT = 60
+_KEYBOARDVIEW_HEIGHT = 120
 
 
 class KeyboardView():
@@ -34,9 +34,9 @@ class KeyboardView():
 
         self._mapping = {
             # auto
-            -1: (240, 'auto'),
+            -1: (0, 'auto'),
             # start notes
-            1: (0, 'A0'),
+            1: (10, 'A0'),#changed from 0 to 10
             4: (30, 'C1'),
             9: (60, 'F1'),
             16: (100, 'C2'),
@@ -106,7 +106,6 @@ class KeyboardView():
         drawer.background(BACKGROUND_COLOR)
         rect = drawer.get_viewport_coords()
         right = rect.width()
-        margin = 0
 
         octave = [
             (0, 1, 5), (10, 1, 7),  # Cis1, Dis1
@@ -128,64 +127,87 @@ class KeyboardView():
                 octaves.append(elem)
 
         # draw the lines for the bar
-        for x_pos, mode, note in octaves:
-            flg = self._start <= note <= self._finish
-            if flg or self._auto:
-                width = 1
-                dash = None
-                match mode:
-                    case 2:
-                        width = 2
-                    case 3:
-                        dash = (3, 3)
+        if not self._auto:
+            for x_pos, mode, note in octaves:
+                flg = self._start <= note <= self._finish
+                if flg or self._auto:
+                    width = 1
+                    dash = None
+                    match mode:
+                        case 2:
+                            width = 2
+                        case 3:
+                            dash = (3, 3)
 
-                x1 = self.scale_x(x_pos + 10)
-                x2 = self.scale_x(x_pos + 10)
-                drawer.create_line(x1=x1,
-                                   y1=17,
-                                   x2=x2,
-                                   y2=40,
-                                   width=width,
-                                   dash=dash,
-                                   fill='black')
+                    x1 = self.scale_x(x_pos + 10)
+                    x2 = self.scale_x(x_pos + 10)
+                    drawer.create_line(x1=x1,
+                                    y1=25,
+                                    x2=x2,
+                                    y2=150,
+                                    width=width,
+                                    dash=dash,
+                                    fill='black')
 
-        top_bottom = [(17, 2), (40, 2)]
+            top_bottom = [(25, 2)]
+            _x1, _ = self._mapping.get(self._start, 40)
+            _x2, _ = self._mapping.get(self._finish, 45)
 
-        for y_pos, width in top_bottom:
-            drawer.create_line(x1=0,
-                               y1=y_pos,
-                               x2=right,
-                               y2=y_pos,
-                               width=width,
-                               color='black')
+            for y_pos, width in top_bottom:
+                drawer.create_line(x1=self.scale_x(_x1)+5,
+                                y1=y_pos,
+                                x2=self.scale_x(_x2),
+                                y2=y_pos,
+                                width=width,
+                                color='black')
+                drawer.create_line(x1=self.scale_x(_x1)+5,
+                                y1=y_pos+40,
+                                x2=self.scale_x(_x2),
+                                y2=y_pos+40,
+                                width=1,
+                                dash=(3, 3))
+                drawer.create_line(x1=self.scale_x(_x1)+5,
+                                y1=y_pos+80,
+                                x2=self.scale_x(_x2),
+                                y2=y_pos+80,
+                                width=1,
+                                dash=(3, 3))
 
-        pos, name = self._mapping.get(self._start, 4)
+            pos, name = self._mapping.get(self._start, 4)
 
-        drawer.create_text(x=self.scale_x(pos),
-                           y=40,
-                           text=name,
-                           anchor='nw',
-                           family='Arial',
-                           size=8)
+            drawer.create_text(x=self.scale_x(pos),
+                            y=40,
+                            text=name + '  >',
+                            anchor='e',
+                            family='Arial',
+                            size=12)
 
-        pos, name = self._mapping.get(self._finish, (37, 'None'))
+            pos, name = self._mapping.get(self._finish, (37, 'None'))
 
-        drawer.create_text(x=self.scale_x(pos),
-                           y=40,
-                           text=name,
-                           anchor='nw',
-                           family='Arial',
-                           size=8)
+            drawer.create_text(x=self.scale_x(pos),
+                            y=40,
+                            text='<  ' + name,
+                            anchor='w',
+                            family='Arial',
+                            size=12)
 
-        for note, pos, oct in self._octave_nrs:
-            flg = self._start < note < self._finish
-            if flg or self._auto:
-                drawer.create_text(x=self.scale_x(pos) - 5,
-                                   y=0,
-                                   text=oct,
-                                   anchor='nw',
-                                   family='Arial',
-                                   size=8)
+            # draw the octave numbers
+            for note, pos, oct in self._octave_nrs:
+                flg = self._start < note < self._finish
+                if flg or self._auto:
+                    drawer.create_text(x=self.scale_x(pos) + 2,
+                                    y=5,
+                                    text=oct,
+                                    anchor='n',
+                                    family='Arial',
+                                    size=12)
+        else:
+            drawer.create_text(x=right / 2,
+                            y=rect.height() / 2,
+                            anchor='c',
+                            text='Automatic',
+                            family='Edwin',
+                            size=32)
 
     def start(self, value: int, auto: bool):
         """ the staff start """
@@ -207,7 +229,7 @@ class KeyboardView():
         if value in self._mapping:
             return value
 
-        return 4
+        return 1
 
     def valid_finish(self, value: int):
         """ check the finish position """

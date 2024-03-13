@@ -36,7 +36,7 @@ class StaffSizer:
             staff_auto = False
             staff_start, staff_finish = tuple(value)
         else:
-            staff_start = 4
+            staff_start = 1
             staff_finish = 87
             staff_auto = True
 

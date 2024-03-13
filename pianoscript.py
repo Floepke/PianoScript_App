@@ -320,10 +320,15 @@ class PianoScript():
         style = f'''
         QTreeView, QGraphicsView,
         QMainWindow, QToolBar, QToolBar,
-        QToolBar QAction, QListWidget,
+        QToolBar QAction, QListWidget, QPushButton,
         QMainWindow QMenuBar, QMenu, QDockWidget,
         QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
             background-color: {self.color1};
+            color: {self.color2};
+            font-size: 16px;
+            font-family: Edwin;
+        }}
+        QGroupBox {{
             color: {self.color2};
             font-size: 16px;
             font-family: Edwin;
