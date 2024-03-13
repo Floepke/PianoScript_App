@@ -27,8 +27,8 @@ class KeyboardView():
         self._scene = None
         self._view = None
         self._drawer = None
-        self._start = 0
-        self._finish = 86
+        self._start = 1
+        self._finish = 87
         self._auto = True
         self._scale = scale
 
@@ -113,7 +113,6 @@ class KeyboardView():
             ]
 
         octaves = [
-            #(5, 2, 2),  # A0
             (10, 2, 2)  # Bis1
         ]
 
@@ -142,54 +141,58 @@ class KeyboardView():
                     x1 = self.scale_x(x_pos + 10)
                     x2 = self.scale_x(x_pos + 10)
                     drawer.create_line(x1=x1,
-                                    y1=25,
-                                    x2=x2,
-                                    y2=150,
-                                    width=width,
-                                    dash=dash,
-                                    fill='black')
+                                       y1=25,
+                                       x2=x2,
+                                       y2=150,
+                                       width=width,
+                                       dash=dash,
+                                       fill='black')
 
+            mmm = self._mapping
             top_bottom = [(25, 2)]
-            _x1, _ = self._mapping.get(self._start, 40)
-            _x2, _ = self._mapping.get(self._finish, 45)
+
+            _x1, _ = self._mapping.get(self._start, (None, None))
+            _x2, _ = self._mapping.get(self._finish, (None, None))
 
             for y_pos, width in top_bottom:
-                drawer.create_line(x1=self.scale_x(_x1)+5,
+                drawer.create_line(x1=self.scale_x(_x1) + 5,
                                 y1=y_pos,
                                 x2=self.scale_x(_x2),
                                 y2=y_pos,
                                 width=width,
                                 color='black')
-                drawer.create_line(x1=self.scale_x(_x1)+5,
+
+                drawer.create_line(x1=self.scale_x(_x1) + 5,
                                 y1=y_pos+40,
                                 x2=self.scale_x(_x2),
                                 y2=y_pos+40,
                                 width=1,
                                 dash=(3, 3))
-                drawer.create_line(x1=self.scale_x(_x1)+5,
+
+                drawer.create_line(x1=self.scale_x(_x1) + 5,
                                 y1=y_pos+80,
                                 x2=self.scale_x(_x2),
                                 y2=y_pos+80,
                                 width=1,
                                 dash=(3, 3))
 
-            pos, name = self._mapping.get(self._start, 4)
+            pos, name = self._mapping.get(self._start, (None, None))
 
             drawer.create_text(x=self.scale_x(pos),
-                            y=40,
-                            text=name + '  >',
-                            anchor='e',
-                            family='Arial',
-                            size=12)
+                               y=40,
+                               text=name + '\n  ►',
+                               anchor='e',
+                               family='Arial',
+                               size=12)
 
             pos, name = self._mapping.get(self._finish, (37, 'None'))
 
             drawer.create_text(x=self.scale_x(pos),
-                            y=40,
-                            text='<  ' + name,
-                            anchor='w',
-                            family='Arial',
-                            size=12)
+                               y=40,
+                               text=name + '\n◄',
+                               anchor='w',
+                               family='Arial',
+                               size=12)
 
             # draw the octave numbers
             for note, pos, oct in self._octave_nrs:
@@ -203,11 +206,11 @@ class KeyboardView():
                                     size=12)
         else:
             drawer.create_text(x=right / 2,
-                            y=rect.height() / 2,
-                            anchor='c',
-                            text='Automatic',
-                            family='Edwin',
-                            size=32)
+                               y=rect.height() / 2,
+                               anchor='c',
+                               text='Automatic',
+                               family='Edwin',
+                               size=32)
 
     def start(self, value: int, auto: bool):
         """ the staff start """
