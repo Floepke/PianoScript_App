@@ -27,30 +27,22 @@ from PySide6.QtWidgets import QToolBar
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QSpinBox
-# from PySide6.QtWidgets import QCommonStyle
 
-# from PySide6.QtGui import QPixmap
-from PySide6.QtGui import QIcon
 from PySide6.QtGui import QAction
-# from PySide6 import QtGui as _gui
 
 from PySide6.QtCore import QSize
 from PySide6.QtCore import Qt
 # pylint: enable=no-name-in-module
 
 from imports.editor.grideditor.dialog_result import DialogResult
-
 from imports.editor.grideditor.grid import Grid
-
 from imports.editor.grideditor.grid_treeview import GridTreeView
-
 from imports.editor.grideditor.measure_view import MeasureView
-
 from imports.editor.grideditor.lines_view import LinesView
-
 from imports.editor.grideditor.popup import Popup
-
 from imports.editor.grideditor.string_builder import StringBuilder
+
+from imports.icons.icons import get_icon
 
 
 class GridDialog(QDialog):
@@ -105,9 +97,7 @@ class GridDialog(QDialog):
 
         self.setLayout(dialog_layout)
 
-        # this does not work
-        fname = abspath('./imports/icons/GridEditor.png')
-        self.setWindowIcon(QIcon(fname))
+        self.setWindowIcon(get_icon('grideditor.png'))
         self.close_callback = None
 
         # pylint: disable=invalid-name
@@ -554,6 +544,7 @@ class GridDialog(QDialog):
         delta = Grid.base(den)
         max_line = delta * num
         self.line_spin.setMaximum(max_line)
+        self.line_spin.setSingleStep(int(delta / 2))
 
         if not self.mute:
             self.update_value(row=row, name='denominator', value=str(den))
@@ -803,6 +794,7 @@ class GridDialog(QDialog):
         toolbar.addAction(action_reset)
 
         layout.addWidget(toolbar, row, col, row_span, col_span)
+
 
     def line_spin_changed(self, value):
         """ the value of the line_edit changed """

@@ -26,7 +26,7 @@ from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
 
-from PySide6.QtGui import QPixmap
+# from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QModelIndex
 # pylint: enable=no-name-in-module
 
@@ -36,7 +36,7 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
-
+from imports.icons.icons import get_pixmap
 
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
@@ -67,8 +67,7 @@ class StaffSizerDialog(QDialog):
 
         super().__init__(parent=parent)
 
-        self.my_pixmap = QPixmap('./icons/GridEditor.png')
-        self.setWindowIcon(self.my_pixmap)
+        self.setWindowIcon(get_pixmap('grideditor.png'))
 
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
