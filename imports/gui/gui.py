@@ -1,6 +1,6 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
 from imports.utils.constants import *
-from imports.icons.icons import *
+from imports.icons.icons_001 import *
 
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QMenu, QSlider
