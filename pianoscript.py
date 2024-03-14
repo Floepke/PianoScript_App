@@ -18,7 +18,6 @@ from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
 from imports.gui.style import color1, color2
-from imports.editor.staff_sizer_editor.staff_io import StaffIo
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.utils.constants import *
 
@@ -356,6 +355,19 @@ class PianoScript():
             color: {self.color2};
         }}
         '''
+
+        # style = f'''
+        #     * {{
+        #         background-color: {self.color1};
+        #         color: {self.color2};
+        #     }}
+        #     QTabBar::tab:selected {{
+        #         background-color: black;
+        #         color: white;
+        #     }}
+        # '''
+
+        self.app.setStyleSheet(style)
 
         self.app.setStyleSheet(style)
 

@@ -10,7 +10,7 @@ from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 from imports.gui.staffswitcher import StaffSwitcher
 from imports.engraver.pdfexport import pdf_export
-from imports.icons.icons_001 import *
+from imports.icons.icons import get_icon
 from imports.utils.constants import *
 
 import random
@@ -178,13 +178,13 @@ class Gui():
 
         # Add the buttons to the toolbar
         self.previous_button = QToolButton()
-        self.previous_button.setIcon(base64_to_qicon(PREVIOUS_B64))
+        self.previous_button.setIcon(get_icon('previous.png'))
         self.previous_button.setToolTip("Previous page")
         self.previous_button.clicked.connect(self.previous_page)
         self.toolbar.addWidget(self.previous_button)
 
         self.next_button = QToolButton()
-        self.next_button.setIcon(base64_to_qicon(NEXT_B64))
+        self.next_button.setIcon(get_icon('next.png'))
         self.next_button.setToolTip("Next page")
         self.next_button.clicked.connect(self.next_page)
         self.toolbar.addWidget(self.next_button)
@@ -199,13 +199,13 @@ class Gui():
         self.toolbar.addSeparator()
 
         self.play_button = QToolButton()
-        self.play_button.setIcon(base64_to_qicon(PLAY_B64))
+        self.play_button.setIcon(get_icon('play.png'))
         self.play_button.setToolTip("Play MIDI")
         self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
         self.toolbar.addWidget(self.play_button)
 
         self.stop_button = QToolButton()
-        self.stop_button.setIcon(base64_to_qicon(STOP_B64))
+        self.stop_button.setIcon(get_icon('stop.png'))
         self.stop_button.setToolTip("Stop MIDI")
         self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
         self.toolbar.addWidget(self.stop_button)
@@ -396,18 +396,16 @@ class Gui():
             model.appendRow(parent)
             for item in tree[folder]:
                 # Create a child item with an icon
-                icon_name = f"{item.upper()}_B64"
-                icon_b64 = globals().get(icon_name)
-                if icon_b64 is not None:
-                    icon = base64_to_qicon(icon_b64)
-                    child = QStandardItem(icon, item)
-                    # Set row height of child item
-                    child.setSizeHint(QSize(0, 50))
-                    # Set background color
-                    child.setBackground(QBrush(QColor("white")))
-                    # Set foreground (text) color
-                    child.setForeground(QBrush(QColor("black")))
-                    parent.appendRow(child)
+                icon_name = str(item) + '.png'
+                icon = get_icon(icon_name)
+                child = QStandardItem(icon, item)
+                # Set row height of child item
+                child.setSizeHint(QSize(0, 50))
+                # Set background color
+                child.setBackground(QBrush(QColor("white")))
+                # Set foreground (text) color
+                child.setForeground(QBrush(QColor("black")))
+                parent.appendRow(child)
 
         return model
 
