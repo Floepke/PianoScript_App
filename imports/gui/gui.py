@@ -11,6 +11,7 @@ from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 from imports.gui.staffswitcher import StaffSwitcher
 from imports.engraver.pdfexport import pdf_export
 from imports.icons.icons import get_icon
+from imports.gui.toolbar import ToolBar
 from imports.utils.constants import *
 
 import random
@@ -167,55 +168,10 @@ class Gui():
         self.print_view = GraphicsViewEngraver(
             self.print_scene, self.io, self.main)
 
-        # Create a widget to hold the toolbar
+        # Create the toolbar
         self.toolbar_widget = QWidget()
         self.toolbar_widget.setFixedWidth(30)
-
-        # Create the toolbar
-        self.toolbar = QToolBar()
-        self.toolbar.setOrientation(Qt.Vertical)
-        self.toolbar.setStyleSheet('''QToolButton { font-size: 25px; }''')
-
-        # Add the buttons to the toolbar
-        self.previous_button = QToolButton()
-        self.previous_button.setIcon(get_icon('previous.png'))
-        self.previous_button.setToolTip("Previous page")
-        self.previous_button.clicked.connect(self.previous_page)
-        self.toolbar.addWidget(self.previous_button)
-
-        self.next_button = QToolButton()
-        self.next_button.setIcon(get_icon('next.png'))
-        self.next_button.setToolTip("Next page")
-        self.next_button.clicked.connect(self.next_page)
-        self.toolbar.addWidget(self.next_button)
-
-        self.refresh_button = QToolButton()
-        self.refresh_button.setText("⟳")
-        self.refresh_button.setStyleSheet("color: #ffdddd; font-size: 35px;")
-        self.refresh_button.setToolTip("Engrave the document")
-        self.refresh_button.clicked.connect(self.refresh)
-        self.toolbar.addWidget(self.refresh_button)
-
-        self.toolbar.addSeparator()
-
-        self.play_button = QToolButton()
-        self.play_button.setIcon(get_icon('play.png'))
-        self.play_button.setToolTip("Play MIDI")
-        self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
-        self.toolbar.addWidget(self.play_button)
-
-        self.stop_button = QToolButton()
-        self.stop_button.setIcon(get_icon('stop.png'))
-        self.stop_button.setToolTip("Stop MIDI")
-        self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
-        self.toolbar.addWidget(self.stop_button)
-
-        self.toolbar.addSeparator()
-
-        self.staff_switcher = StaffSwitcher(self.io)
-        self.toolbar.addWidget(self.staff_switcher)
-
-        # Add the toolbar to the widget
+        self.toolbar = ToolBar(self.io)
         self.toolbar_layout = QVBoxLayout()
         self.toolbar_layout.addWidget(self.toolbar)
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
@@ -230,6 +186,7 @@ class Gui():
 
         # Set the initial sizes of the widgets in the splitter
         self.splitter.setSizes([10, 10, 290])
+        
         # set the minimum width of the splitter
         self.splitter.setMinimumWidth(500)
 
@@ -243,10 +200,7 @@ class Gui():
         self.grid_selector_dock = QDockWidget('Input Grid', self.main)
         self.grid_selector_dock.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        # self.grid_selector_dock.setFixedWidth(200)
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
-        # set stylesheet
-        # self.grid_selector_dock.setStyleSheet("""background-color: #678;""")
 
         # create a layout in the dockable widget
         self.gs_dock_layout = QVBoxLayout()
