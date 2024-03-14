@@ -25,6 +25,7 @@ from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QListWidget
 from PySide6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QVBoxLayout
 
 # from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QModelIndex
@@ -77,14 +78,15 @@ class StaffSizerDialog(QDialog):
 
         self.setWindowTitle('Line Preferences')
 
-        layout = QGridLayout(parent=parent)
+        win_layout = QVBoxLayout(parent=parent)
 
         measures = [str(brk.measure_nr) for brk in self.linebreaks]
 
         kbd = KeyboardView(scale=0.5)
-        layout.addWidget(kbd.view, 0, 0, 1, 3)
+        win_layout.addWidget(kbd.view)
 
         box_layout = QHBoxLayout()
+
         grp_measures = QGroupBox('Measures')
         grp_measures.setLayout(QGridLayout())
         grp_measures.setMaximumWidth(80)
@@ -105,9 +107,10 @@ class StaffSizerDialog(QDialog):
             parent=self,
             keyboard=kbd)
 
-        layout.addLayout(box_layout, 1, 0, 1, 1)
+        win_layout.addLayout(box_layout)
+
         ok_cancel = QGroupBox()
-        layout.addWidget(ok_cancel, 6, 0, 1, 2)
+        win_layout.addWidget(ok_cancel)
 
         ok_cancel.setLayout(QGridLayout())
         ok_button = QPushButton(parent=parent)
@@ -123,7 +126,7 @@ class StaffSizerDialog(QDialog):
         cancel_button.clicked.connect(self._on_cancel)
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
 
-        self.setLayout(layout)
+        self.setLayout(win_layout)
 
         self.staff_index = 0
         self.select_linebreak(0)

@@ -38,6 +38,8 @@ from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.pianonotes import PianoNotes
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 
+from imports.gui.style import color2
+
 
 class StaffSizerControl:
     """ controls for one linebreak """
@@ -304,22 +306,26 @@ class StaffSizerControl:
         lbl_measure = QLabel('meas')
         lbl_measure.setMinimumWidth(50)
         lbl_measure.setMaximumWidth(50)
+
+        color3 = '#ffffff'
+        lbl_measure.setStyleSheet(f"border: 1px solid {color3}; margin-left: 5px;")
+
         radio_layout.addWidget(lbl_measure, 0, 0, 1, 2)
         self.lbl_measure = lbl_measure
 
         radio_1 = QRadioButton('1', parent=parent)
 
         radio_1.setChecked(True)
-        radio_layout.addWidget(radio_1, 0, 1, 1, 2)
+        radio_layout.addWidget(radio_1, 0, 2, 1, 2)
         radio_2 = QRadioButton('2', parent=parent)
         radio_2.setChecked(False)
-        radio_layout.addWidget(radio_2, 0, 2, 1, 2)
+        radio_layout.addWidget(radio_2, 0, 3, 1, 2)
         radio_3 = QRadioButton('3', parent=parent)
         radio_3.setChecked(False)
-        radio_layout.addWidget(radio_3, 0, 3, 1, 2)
+        radio_layout.addWidget(radio_3, 0, 4, 1, 2)
         radio_4 = QRadioButton('4', parent=parent)
         radio_4.setChecked(False)
-        radio_layout.addWidget(radio_4, 0, 4, 1, 2)
+        radio_layout.addWidget(radio_4, 0, 5, 1, 2)
 
         return [radio_1, radio_2, radio_3, radio_4], staff_group
 
