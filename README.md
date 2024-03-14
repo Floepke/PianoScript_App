@@ -6,3 +6,6 @@ PianoScript is a music notation format for the piano. It's based on Klavarskribo
 - MIDI file export; you can use it as a basic MIDI editor.
 - Keyboard layout point and click editor
 - more...
+
+  ![image](https://github.com/Floepke/PianoScript_App/assets/59042700/da7f26e0-4398-4962-ab43-b9f8b20ec5a7)
+
