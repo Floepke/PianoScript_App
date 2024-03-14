@@ -1,28 +1,21 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from imports.utils.constants import *
-from imports.icons.icons_001 import *
-
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtWidgets import QMenu, QSlider
-from PySide6.QtWidgets import QGraphicsScene, QToolBar
+from PySide6.QtCore import Qt, QSize, QPoint
+from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene, QToolBar
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
-from PySide6.QtWidgets import QSpinBox, QToolButton
-from PySide6.QtWidgets import QLabel, QDockWidget, QTreeView
-from PySide6.QtGui import QAction, QFont
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtWidgets import QSpinBox, QToolButton, QLabel, QDockWidget, QTreeView
+from PySide6.QtGui import QAction, QColor, QBrush, QIcon, QStandardItemModel, QStandardItem
+
 from imports.editor.graphicsview_editor import GraphicsViewEditor
-from PySide6.QtCore import QPoint
-# from imports.utils.fileoprations import FileOperations
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
-# import QIcon
-from PySide6.QtGui import QIcon
-from PySide6.QtGui import QStandardItemModel, QStandardItem
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 from imports.gui.staffswitcher import StaffSwitcher
-
 from imports.engraver.pdfexport import pdf_export
+from imports.icons.icons_001 import *
+from imports.utils.constants import *
 
 import random
+
+
 
 
 class Gui():
@@ -335,26 +328,26 @@ class Gui():
         self.tool_label.setToolTip('Select the tool you want to use.')
 
         # Create a QTreeView and set the model (create_tree_model is defined below)
-        self.tree_view = QTreeView()
-        self.tree_view.setModel(self.create_tree_model())
-        self.tree_view.header().hide()
-        self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
-        self.tree_view.setIconSize(QSize(40, 40))
+        self.tool_selector = QTreeView()
+        self.tool_selector.setModel(self.create_tree_model())
+        self.tool_selector.header().hide()
+        self.tool_selector.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
+        self.tool_selector.setIconSize(QSize(40, 40))
         # set indent size
-        self.tree_view.setIndentation(0)
+        self.tool_selector.setIndentation(0)
         # set single selection
-        self.tree_view.setSelectionMode(
+        self.tool_selector.setSelectionMode(
             QTreeView.SelectionMode.SingleSelection)
         # self.tree_view.setStyleSheet('background-color: #666666; color: #ffffff')
-        self.tree_view.expandAll()
+        self.tool_selector.expandAll()
 
         # add the widgets to the dockable widget
         self.tool_layout.addWidget(self.tool_label)
-        self.tool_layout.addWidget(self.tree_view)
+        self.tool_layout.addWidget(self.tool_selector)
         # connect the treeview to the select_tool function
-        self.tree_view.clicked.connect(self.tree_view_click)
+        self.tool_selector.clicked.connect(self.tree_view_click)
         # select the note tool by default
-        self.tree_view.setCurrentIndex(self.tree_view.model().index(0, 0))
+        self.tool_selector.setCurrentIndex(self.tool_selector.model().index(0, 0))
         self.last_selected_child = None
 
     def change_hue(self, value):
@@ -419,24 +412,24 @@ class Gui():
         return model
 
     def tree_view_click(self, index):
-        if self.tree_view.model().hasChildren(index):
+        if self.tool_selector.model().hasChildren(index):
             # if it's a parent
             if self.last_selected_child.parent() == index:
                 # if the last selected child is a child of the clicked parent
-                if self.tree_view.isExpanded(index):
-                    self.tree_view.collapse(index)
+                if self.tool_selector.isExpanded(index):
+                    self.tool_selector.collapse(index)
                     return
                 else:
-                    self.tree_view.expand(index)
-                    self.tree_view.setCurrentIndex(self.last_selected_child)
+                    self.tool_selector.expand(index)
+                    self.tool_selector.setCurrentIndex(self.last_selected_child)
                     return
             else:
                 # if the last selected child is not a child of the clicked parent
-                if self.tree_view.isExpanded(index):
-                    self.tree_view.collapse(index)
+                if self.tool_selector.isExpanded(index):
+                    self.tool_selector.collapse(index)
                 else:
-                    self.tree_view.expand(index)
-                self.tree_view.setCurrentIndex(self.last_selected_child)
+                    self.tool_selector.expand(index)
+                self.tool_selector.setCurrentIndex(self.last_selected_child)
                 return
 
         # if index is a child

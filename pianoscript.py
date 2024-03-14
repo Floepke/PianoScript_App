@@ -1,10 +1,9 @@
 #
-from imports.utils.constants import *
-
-# pyside6 imports
-import sys, random
+import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
-from imports.gui.gui import Gui, Qt, QColor
+from PySide6.QtGui import QShortcut, QKeySequence
+
+from imports.gui.gui import Gui, QColor
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import FileOperations
@@ -12,18 +11,16 @@ from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.editor.selectoperations import SelectOperations
-from PySide6.QtGui import QShortcut, QKeySequence
 from imports.editor.ctlz import CtlZ
 from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
-
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
-from imports.gui.style import STYLE, color1, color2
-
+from imports.gui.style import color1, color2
 from imports.editor.staff_sizer_editor.staff_io import StaffIo
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.utils.constants import *
 
 
 class PianoScript():
@@ -295,27 +292,10 @@ class PianoScript():
         elif slider_y > 255:
             slider_y = 255
 
-        print(slider_y)
-
         complementary_color = QColor.fromHsv(
-            self.io['gui'].slider.value(), 128, int(255-(slider_y)))
+            self.io['gui'].slider.value(), 128, int(150-(slider_y)))
         self.color1 = complementary_color.name()
-
-        # Get the negative color
-        # Convert color1 to hexadecimal
-        color1_hex = int(self.color1.lstrip('#'), 16)
-        color2_hex = color1_hex ^ 0xFFFFFF  # Get the complementary color
         self.color2 = '#ffffff'  # Convert the complementary color back to a string
-
-        # Get the RGB values of color1 and add 50 to each component
-        add = 75
-        r = min(QColor(self.color1).red() + add, 255)
-        g = min(QColor(self.color1).green() + add, 255)
-        b = min(QColor(self.color1).blue() + add, 255)
-
-        # Create a new color from the modified RGB values
-        lighter_color = QColor(r, g, b).darker(150)
-        self.color1 = lighter_color.name()
 
         style = f'''
         QTreeView, QGraphicsView,

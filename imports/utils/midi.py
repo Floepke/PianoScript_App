@@ -1,9 +1,6 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
-import mido
-import os
-import copy
-import threading
+import mido, os, copy, threading
 from midiutil.MidiFile import MIDIFile
 
 
@@ -186,7 +183,13 @@ class Midi:
             file_path, _ = file_dialog.getSaveFileName(
                 self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
         else:
-            file_path = 'play.mid'
+            file_path = os.path.expanduser('~/.pianoscript/play.mid')
+
+            # Check if the directory for the play.mid file exists
+            dir = os.path.dirname(file_path)
+            if not os.path.exists(dir):
+                # If the directory doesn't exist, create it
+                os.makedirs(dir)
 
         if file_path:
             Score = self.io['score']
@@ -254,7 +257,7 @@ class Midi:
         self.export_midi(export=False)
 
         # Load the MIDI file
-        mid = mido.MidiFile('play.mid')
+        mid = mido.MidiFile(os.path.expanduser('~/.pianoscript/play.mid'))
 
         # Get all output ports
         self.outports = [mido.open_output(name)

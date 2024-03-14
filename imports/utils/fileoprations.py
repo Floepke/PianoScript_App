@@ -11,6 +11,11 @@ class FileOperations:
             - load(); loads a score from a file
             - save(); saves a score to a file
             - saveas(); saves a score to a file with a new name
+            - new(); creates a new score
+            - save_check(); checks if the score has been saved
+            - update_recent_file_menu(); updates the "Recent Files" menu
+            - clear_recent_file_menu(); clears the "Recent Files" menu
+            - load_recent_file(); loads a score from a recent file
     '''
 
     def __init__(self, io):
@@ -25,7 +30,8 @@ class FileOperations:
             self.recent_file_actions.append(action)
             self.io['gui'].recent_file_menu.addAction(action)
 
-        self.io['gui'].clear_recent_action.triggered.connect(self.clear_recent_file_menu)
+        self.io['gui'].clear_recent_action.triggered.connect(
+            self.clear_recent_file_menu)
 
         # Update the "Recent Files" menu
         self.update_recent_file_menu()
@@ -49,21 +55,22 @@ class FileOperations:
         self.io['selection']['rectangle_on'] = False
         self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
-        # load the score into the editor
-        try:
-            with open('template.pianoscript', 'r') as file:
-                self.io['score'] = json.load(file)
-        except FileNotFoundError:
-            self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
-            with open('template.pianoscript', 'w') as file:
+        # ensure there is a template.pianoscript in ~/.pianoscript
+        path = os.path.expanduser('~/.pianoscript/template.pianoscript')
+        dir = os.path.dirname(path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if not os.path.exists(path):
+            with open(path, 'w') as file:
                 json.dump(SCORE_TEMPLATE, file, indent=4)
+
+        # load the template.pianoscript
+        with open(path, 'r') as file:
+            self.io['score'] = json.load(file)
 
         # write timestamp
         self.io['score']['header']['timestamp'] = datetime.datetime.now().strftime(
             '%d-%m-%Y_%H:%M:%S')
-
-        # load test file only for debug purposes:
-        # self.io['score'] = json.load(open('pianoscriptfiles/test.pianoscript', 'r'))
 
         # renumber tags
         self.io['calc'].renumber_tags()
@@ -132,7 +139,7 @@ class FileOperations:
             # statusbar message
             self.io['gui'].main.statusBar().showMessage(
                 'File loaded...', 10000)
-            
+
             self.add_recent_file(file_path)
             self.update_recent_file_menu()
 
@@ -197,15 +204,18 @@ class FileOperations:
             return True
         elif response == QMessageBox.Cancel:
             return False
-        
-    
-    
-    
-    # RECENT FILE FUNCTIONS:
-    def add_recent_file(self, path):
 
+    # RECENT FILE FUNCTIONS:
+
+    def add_recent_file(self, path):
         # Define the path to the recent.json file
-        recent_file_path = 'recent.json'
+        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
+
+        # Check if the directory for the recent.json file exists
+        recent_file_dir = os.path.dirname(recent_file_path)
+        if not os.path.exists(recent_file_dir):
+            # If the directory doesn't exist, create it
+            os.makedirs(recent_file_dir)
 
         # Check if the recent.json file exists
         if not os.path.exists(recent_file_path):
@@ -229,9 +239,8 @@ class FileOperations:
                 json.dump(recent_files, file)
 
     def update_recent_file_menu(self):
-        
         # Define the path to the recent.json file
-        recent_file_path = 'recent.json'
+        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
 
         # Check if the recent.json file exists
         if os.path.exists(recent_file_path):
@@ -246,7 +255,8 @@ class FileOperations:
                 action.setVisible(True)
                 action.triggered.disconnect()
                 action.setData(path)
-                action.triggered.connect(lambda checked=False, action=action: self.open_recent_file(action))
+                action.triggered.connect(
+                    lambda checked=False, action=action: self.open_recent_file(action))
 
             # Hide any unused QAction objects
             for i in range(len(recent_files), 10):
@@ -261,13 +271,12 @@ class FileOperations:
             self.load()
 
     def clear_recent_file_menu(self):
-        
         # Define the path to the recent.json file
-        recent_file_path = 'recent.json'
+        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
 
         # Check if the recent.json file exists
         if os.path.exists(recent_file_path):
-            # Load the list of recent files from the recent.json file
+            # Clear the list of recent files in the recent.json file
             with open(recent_file_path, 'w') as file:
                 json.dump([], file)
 
