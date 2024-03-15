@@ -4,20 +4,20 @@
         "composer": "PianoScript",
         "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
         "app_name": "pianoscript",
-        "app_version": "1.0",
-        "timestamp": "13-03-2024_08:35:24",
+        "app_version": 1.0,
+        "timestamp": "15-03-2024_08:26:53",
         "genre": "",
         "comment": ""
     },
     "properties": {
-        "page_width": 210.0,
-        "page_height": 297.0,
-        "page_margin_left": 5.0,
-        "page_margin_right": 5.0,
-        "page_margin_up": 10.0,
-        "page_margin_down": 10.0,
-        "draw_scale": 1.0,
-        "header_height": 20.0,
+        "page_width": 210,
+        "page_height": 297,
+        "page_margin_left": 5,
+        "page_margin_right": 5,
+        "page_margin_up": 10,
+        "page_margin_down": 10,
+        "draw_scale": 1,
+        "header_height": 20,
         "footer_height": 12.5,
         "color_right_midinote": "#c8c8c8",
         "color_left_midinote": "#c8c8c8",
@@ -73,11 +73,13 @@
             {
                 "nr": 1,
                 "tag": "grid1",
-                "amount": 8,
-                "numerator": 6,
-                "denominator": 8,
+                "amount": 7,
+                "numerator": 4,
+                "denominator": 4,
                 "grid": [
-                    384
+                    256,
+                    512,
+                    768
                 ],
                 "visible": true
             }

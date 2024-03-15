@@ -1,4 +1,7 @@
-import json, copy, os, datetime
+import json
+import copy
+import os
+import datetime
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QAction
 from imports.utils.constants import SCORE_TEMPLATE
@@ -164,7 +167,15 @@ class FileOperations:
 
     def save_template(self):
         '''This function overwrites the template.pianoscript file with the current score'''
-        with open('template.pianoscript', 'w') as file:
+
+        # ensure there is a template.pianoscript in ~/.pianoscript
+        path = os.path.expanduser('~/.pianoscript/template.pianoscript')
+        dir = os.path.dirname(path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
+        # save the template.pianoscript
+        with open(path, 'w') as file:
             json.dump(self.io['score'], file, indent=4)
         self.io['gui'].main.statusBar().showMessage('Template saved...', 10000)
 

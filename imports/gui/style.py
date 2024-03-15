@@ -55,6 +55,10 @@ class Style():
                 font-family: Edwin;
                 font-size: 16px;
             }}
+            QTreeView QHeaderView::section {{
+                background-color: {self.color1};  /* Change this to the desired color */
+                color: {self.color2};  /* Change this to the desired color */
+            }}
         '''
 
         self.io['app'].setStyleSheet(style)

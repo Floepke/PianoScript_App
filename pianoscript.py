@@ -29,7 +29,7 @@ class PianoScript():
         # io == all objects in the application in one dict
         self.io = {
             # save file json structure loaded here
-            'score': {},
+            'score': SCORE_TEMPLATE,
 
             # new_tag; counter to keep track of new tags for notation elements
             'new_tag': 0,
