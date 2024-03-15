@@ -10,7 +10,7 @@ class ScoreOptionsDialog(QDialog):
         super().__init__(parent)
         self.io = io
 
-        self.resize(500, 500)
+        self.resize(700, 500)
         self.setWindowTitle("Score Options")
 
         layout = QVBoxLayout(self)
@@ -55,14 +55,17 @@ class ScoreOptionsDialog(QDialog):
 
         # Create properties tab
         properties_tab = QWidget()
+        properties_form_layout = QFormLayout()
         properties_layout = QVBoxLayout(properties_tab)
+
+        properties_layout.addLayout(properties_form_layout)
+        properties_layout.addStretch(1)  # Add this line
+
         properties_scroll = QScrollArea()
         properties_scroll.setWidgetResizable(True)
         properties_scroll.setWidget(properties_tab)
+        properties_scroll.setMinimumWidth(300)
         tab_widget.addTab(properties_scroll, 'Doc Properties')
-        properties_form_layout = QFormLayout()
-        properties_form_layout.setFieldGrowthPolicy(
-            QFormLayout.AllNonFixedFieldsGrow)
 
         self.page_width = QDoubleSpinBox()
         self.page_width.setRange(10, 10000)
@@ -145,8 +148,6 @@ class ScoreOptionsDialog(QDialog):
         self.color_left_midinote.setEditable(True)
         self.color_left_midinote.setCurrentText(
             self.io['score']['properties']['color_left_midinote'])
-
-        properties_form_layout = QFormLayout()
 
         properties_form_layout.addRow('Page Width:', self.page_width)
         properties_form_layout.addRow('Page Height:', self.page_height)
@@ -265,7 +266,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 1 properties
         self.staff1_group = QGroupBox('Staff 1')
         self.staff1_group.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff1_layout = QGridLayout(self.staff1_group)
 
         self.staff1_name = QLineEdit()
@@ -294,7 +295,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 2 properties
         self.staff2_group = QGroupBox('Staff 2')
         self.staff2_group.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff2_layout = QGridLayout(self.staff2_group)
 
         self.staff2_name = QLineEdit()
@@ -323,7 +324,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 3 properties
         self.staff3_group = QGroupBox('Staff 3')
         self.staff3_group.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff3_layout = QGridLayout(self.staff3_group)
 
         self.staff3_name = QLineEdit()
@@ -351,7 +352,7 @@ class ScoreOptionsDialog(QDialog):
         # create staff4
         self.staff4_group = QGroupBox('Staff 4')
         self.staff4_group.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff4_layout = QGridLayout(self.staff4_group)
 
         self.staff4_name = QLineEdit()

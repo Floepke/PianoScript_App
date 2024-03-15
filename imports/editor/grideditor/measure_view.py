@@ -85,9 +85,9 @@ class MeasureView():
         top_bottom = [(margin, 2, right), (bottom - margin, 2, right)]
 
         for y_pos, width, size in top_bottom:
-            drawer.create_line(x1=20,
+            drawer.create_line(x1=35,
                                y1=y_pos,
-                               x2=size,
+                               x2=size-15,
                                y2=y_pos,
                                width=width,
                                color='black')
@@ -101,9 +101,9 @@ class MeasureView():
             # the indicator line:
             y_pos = int(float(indicator) / scale * step)
             width = 2
-            drawer.create_line(x1=20,
+            drawer.create_line(x1=35,
                                y1=y_pos,
-                               x2=right,
+                               x2=right-15,
                                y2=y_pos,
                                width=width,
                                color='red')
@@ -137,17 +137,18 @@ class MeasureView():
             for idx in range(0, data.numerator):
                 y_pos = 8 + idx * step
                 x_pos = 10
-                drawer.create_text(x=x_pos,
+                drawer.create_text(x=x_pos+7,
                                    y=y_pos,
                                    text=str(idx + 1),
                                    family='Arial',
-                                   size=font_size)
+                                   size=font_size,
+                                   anchor='c')
 
         for y_pos, width, size in lines:
-            drawer.create_line(x1=20,
+            drawer.create_line(x1=35,
                                y1=y_pos,
-                               x2=size,
+                               x2=size-15,
                                y2=y_pos,
                                width=width,
                                color='black',
-                               dash=(5, 5))
+                               dash=(3, 3))

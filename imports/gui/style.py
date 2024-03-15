@@ -25,13 +25,17 @@ class Style():
             slider_y = 255
 
         complementary_color = QColor.fromHsv(
-            self.io['gui'].slider.value(), 128, int(150-(slider_y)))
+            self.io['gui'].slider.value(), 25, 200)
         self.color1 = complementary_color.name()
-        self.color2 = '#ffffff'  # Convert the complementary color back to a string
+        # negative color self.color2
+        negative_color = QColor(self.color1).rgb() ^ 0xFFFFFF
+        self.color2 = QColor(negative_color).name()
 
         style = f'''
-            QPushButton, QStatusBar, QMenuBar, QMenu, QSpinBox,
-            QSplitter, QMainWindow, QDockWidget, QDialog, QListWidget
+            QPushButton, QStatusBar, QMenuBar, QMenu, 
+            QSpinBox, QRadioButton, QTabBar,
+            QSplitter, QMainWindow, QDockWidget,
+            QDialog, QListWidget, QLabel, QGroupBox
             {{
                 background-color: {self.color1};
                 color: {self.color2};
@@ -52,12 +56,19 @@ class Style():
             }}
             QTreeView {{
                 background-color: {self.color1};
+                color: {self.color2};
                 font-family: Edwin;
                 font-size: 16px;
             }}
             QTreeView QHeaderView::section {{
                 background-color: {self.color1};  /* Change this to the desired color */
                 color: {self.color2};  /* Change this to the desired color */
+            }}
+            QTabWidget QWidget {{
+                background-color: {self.color1};
+                color: {self.color2};
+                font-family: Edwin;
+                font-size: 16px;
             }}
         '''
 
