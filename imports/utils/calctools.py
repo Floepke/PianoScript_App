@@ -1,6 +1,5 @@
 from imports.utils.constants import *
 
-
 class CalcTools:
     '''
         The CalcTools class contains all the methods that calculate basic things about the score.
@@ -42,7 +41,7 @@ class CalcTools:
     @staticmethod
     def get_measure_length(grid):
         '''
-            returns the length of a measure in pianoticks 
+            returns the length of a measure in pianoticks
             based on the grid message from the score file
         '''
         return int(grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']))
@@ -204,3 +203,28 @@ class CalcTools:
         for i in barline_ticks:
             if time < i:
                 return barline_ticks.index(i)
+
+    def get_measure_tick(self, time) -> tuple[int, int]:
+        ''' returns the measure number and the tick in that measure '''
+
+        grids = self.io['score']['events']['grid']
+        pos = 0
+        measure = 1
+
+        for gr in grids:
+            # calculate the length of one tick for this grid
+            numerator = gr['numerator']
+            denominator = gr['denominator']
+            amount = int(gr['amount'])
+
+            tick_length = int(((QUARTER_PIANOTICK * 4) / denominator))
+            for cnt in range(amount):
+                tick = 0
+                for num in range(numerator):
+                    pos += tick_length
+                    tick += 1
+                    if time < pos:
+                        return measure, tick
+                measure += 1
+
+        return -1, -1

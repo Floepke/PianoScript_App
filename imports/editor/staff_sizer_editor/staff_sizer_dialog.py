@@ -80,7 +80,7 @@ class StaffSizerDialog(QDialog):
 
         win_layout = QVBoxLayout(parent=parent)
 
-        measures = [str(brk.measure_nr) for brk in self.linebreaks]
+        measures = [f'{brk.measure_nr}:{brk.tick}' for brk in self.linebreaks]
 
         kbd = KeyboardView(scale=0.5)
         win_layout.addWidget(kbd.view)
@@ -143,7 +143,8 @@ class StaffSizerDialog(QDialog):
         self.staff_sizers = linebreak.staffs
 
         measure = linebreak.measure_nr
-        self.control.set_measure_nr(measure)
+        tick = linebreak.tick
+        self.control.set_measure_nr(measure, tick)
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa

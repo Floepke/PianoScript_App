@@ -256,7 +256,7 @@ class PianoScript():
         self.line_break_dialog = StaffSizerDialog(parent=None,
                                                   callback=self.close_line_break_editor,
                                                   linebreaks=linebreaks,
-                                                  time_calc=self.io['calc'].get_measure_number)
+                                                  time_calc=self.io['calc'].get_measure_tick)
 
         self.line_break_dialog.show()
 

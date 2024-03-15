@@ -92,6 +92,7 @@ class LineBreak:
         self.tag = kwargs.get('tag', None)
         self.time = kwargs.get('time', 0)
         self.measure_nr = kwargs.get('measure_nr', 0)
+        self.tick = kwargs.get('tick', 0)
         self.staffs = kwargs.get('staffs', cast(Optional[List], None))
 
 
@@ -117,14 +118,20 @@ class LineBreakIo:
 
             tag = brk_data.get('tag', '')
             time = brk_data.get('time', 0.0)
-            measure_nr = time_calc(time)
+            measure_nr, tick = time_calc(time)
+
             brk = LineBreak( tag=tag,
                              time=time,
                              measure_nr=measure_nr,
+                             tick=tick,
                              staffs=staffs)
             result.append(brk)
 
-        result.sort(key=lambda elem: elem.measure_nr, reverse=False)
+        result.sort(key=lambda elem: (elem.measure_nr, elem.tick), reverse=False)
+
+        for brk in result:
+            print(f'time {brk.time} measure {brk.measure_nr} tick {brk.tick}')
+
         return result
 
     @staticmethod

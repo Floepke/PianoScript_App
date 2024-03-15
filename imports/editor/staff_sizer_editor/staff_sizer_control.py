@@ -339,10 +339,10 @@ class StaffSizerControl:
         for idx, radio in enumerate(self._radios, 0):
             radio.clicked.connect(partial(self._radio_changed, idx))
 
-    def set_measure_nr(self, measure: int):
+    def set_measure_nr(self, measure: int, tick: int):
         """ the measure number for this linebreak """
 
-        self.lbl_measure.setText(str(measure))
+        self.lbl_measure.setText(f'{measure}:{tick}')
 
     def _margin_left_changed(self, value: int):
         """ margin on the left changed """
