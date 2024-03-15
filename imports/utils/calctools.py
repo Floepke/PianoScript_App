@@ -204,7 +204,7 @@ class CalcTools:
             if time < i:
                 return barline_ticks.index(i)
 
-    def get_measure_tick(self, time) -> tuple[int, int]:
+    def get_measure_tick(self, time) -> tuple[int, int, int]:
         ''' returns the measure number and the tick in that measure '''
 
         grids = self.io['score']['events']['grid']
@@ -219,12 +219,15 @@ class CalcTools:
 
             tick_length = int(((QUARTER_PIANOTICK * 4) / denominator))
             for cnt in range(amount):
-                tick = 0
+                count = 0
+                start = pos
                 for num in range(numerator):
                     pos += tick_length
-                    tick += 1
+
+                    count += 1
                     if time < pos:
-                        return measure, tick
+                        return measure, time - start, count
+
                 measure += 1
 
         return -1, -1

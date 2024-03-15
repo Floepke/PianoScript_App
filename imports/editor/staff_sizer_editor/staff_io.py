@@ -118,7 +118,7 @@ class LineBreakIo:
 
             tag = brk_data.get('tag', '')
             time = brk_data.get('time', 0.0)
-            measure_nr, tick = time_calc(time)
+            measure_nr, tick, count = time_calc(time)
 
             brk = LineBreak( tag=tag,
                              time=time,

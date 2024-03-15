@@ -55,7 +55,7 @@ class StaffSizerDialog(QDialog):
     _char_width = 9
     _line_spacing = 21  # char_height + descent + 2 for the used font
     _count_lines = 7
-    _count_characters = 10
+    _count_characters = 14
     _list_width = _char_width * _count_characters
     _list_height = _line_spacing * _count_lines
 
@@ -80,7 +80,7 @@ class StaffSizerDialog(QDialog):
 
         win_layout = QVBoxLayout(parent=parent)
 
-        measures = [f'{brk.measure_nr}:{brk.tick}' for brk in self.linebreaks]
+        measures = [f'{brk.measure_nr}:{round(brk.tick, 1)}' for brk in self.linebreaks]
 
         kbd = KeyboardView(scale=0.5)
         win_layout.addWidget(kbd.view)

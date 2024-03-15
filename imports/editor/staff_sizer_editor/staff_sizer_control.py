@@ -345,7 +345,7 @@ class StaffSizerControl:
     def set_measure_nr(self, measure: int, tick: int):
         """ the measure number for this linebreak """
 
-        self.lbl_measure.setText(f'{measure}:{tick}')
+        self.lbl_measure.setText(f'{measure}:{round(tick, 1)}')
 
     def _margin_left_changed(self, value: int):
         """ margin on the left changed """
