@@ -8,3 +8,4 @@ page.pdf
 **/*.pdf
 **/*.DS_Store
 /play.mid
+/pianoscriptfiles/test_ticks.pianoscript

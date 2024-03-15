@@ -55,7 +55,7 @@ class StaffSizerDialog(QDialog):
     _char_width = 9
     _line_spacing = 21  # char_height + descent + 2 for the used font
     _count_lines = 7
-    _count_characters = 8
+    _count_characters = 10
     _list_width = _char_width * _count_characters
     _list_height = _line_spacing * _count_lines
 
@@ -89,13 +89,12 @@ class StaffSizerDialog(QDialog):
 
         grp_measures = QGroupBox('Measures')
         grp_measures.setLayout(QGridLayout())
-        grp_measures.setMaximumWidth(80)
+        grp_measures.setFixedWidth(self._list_width + 20)
         box_layout.addWidget(grp_measures)
 
         list_measures = QListWidget()
-        list_measures.setMaximumWidth(StaffSizerDialog._list_width)
-        list_measures.setMinimumHeight(StaffSizerDialog._list_height)
-        list_measures.setMaximumHeight(StaffSizerDialog._list_height)
+        list_measures.setFixedWidth(StaffSizerDialog._list_width)
+        list_measures.setFixedHeight(StaffSizerDialog._list_height)
         list_measures.clicked.connect(self.changed_list_index)
         grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
         list_measures.addItems(measures)

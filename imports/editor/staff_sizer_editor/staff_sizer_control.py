@@ -298,31 +298,34 @@ class StaffSizerControl:
         staff_group.setLayout(QGridLayout())
 
         radio_layout = QGridLayout()
-        staff_group.layout().addLayout(radio_layout, 0, 0, 1, 3)
+        staff_group.layout().addLayout(radio_layout, 0, 0, 1, 4)
 
-        lbl_measure = QLabel('meas')
-        lbl_measure.setMinimumWidth(50)
-        lbl_measure.setMaximumWidth(50)
-
-        color3 = '#ffffff'
-        lbl_measure.setStyleSheet(f"border: 1px solid {color3}; margin-left: 5px;")
-
-        radio_layout.addWidget(lbl_measure, 0, 0, 1, 2)
+        lbl_meas_tick = QLabel('Measure:Tick')
+        radio_layout.addWidget(lbl_meas_tick, 0, 0, 1, 2)
+        lbl_measure = QLabel('')
+        lbl_measure.setMinimumWidth(150)
+        lbl_measure.setMaximumWidth(150)
+        radio_layout.addWidget(lbl_measure, 0, 2, 1, 2)
         self.lbl_measure = lbl_measure
 
-        radio_1 = QRadioButton('1', parent=parent)
+        inner_radio = QGridLayout()
+        radio_layout.addLayout(inner_radio, 1, 0, 1, 4)
 
+        radio_1 = QRadioButton('1', parent=parent)
         radio_1.setChecked(True)
-        radio_layout.addWidget(radio_1, 0, 2, 1, 2)
+        inner_radio.addWidget(radio_1, 0, 0, 1, 1)
+
         radio_2 = QRadioButton('2', parent=parent)
         radio_2.setChecked(False)
-        radio_layout.addWidget(radio_2, 0, 3, 1, 2)
+        inner_radio.addWidget(radio_2, 0, 1, 1, 1)
+
         radio_3 = QRadioButton('3', parent=parent)
         radio_3.setChecked(False)
-        radio_layout.addWidget(radio_3, 0, 4, 1, 2)
+        inner_radio.addWidget(radio_3, 0, 2, 1, 1)
+
         radio_4 = QRadioButton('4', parent=parent)
         radio_4.setChecked(False)
-        radio_layout.addWidget(radio_4, 0, 5, 1, 2)
+        inner_radio.addWidget(radio_4, 0, 3, 1, 1)
 
         return [radio_1, radio_2, radio_3, radio_4], staff_group
 

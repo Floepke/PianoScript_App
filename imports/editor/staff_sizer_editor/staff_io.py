@@ -129,8 +129,8 @@ class LineBreakIo:
 
         result.sort(key=lambda elem: (elem.measure_nr, elem.tick), reverse=False)
 
-        for brk in result:
-            print(f'time {brk.time} measure {brk.measure_nr} tick {brk.tick}')
+        # for brk in result:
+        #    print(f'time {brk.time} measure {brk.measure_nr} tick {brk.tick}')
 
         return result
 
