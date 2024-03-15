@@ -210,6 +210,8 @@ class CalcTools:
         grids = self.io['score']['events']['grid']
         pos = 0
         measure = 1
+        start = 0
+        count = 0
 
         for gr in grids:
             # calculate the length of one tick for this grid
@@ -230,4 +232,4 @@ class CalcTools:
 
                 measure += 1
 
-        return -1, -1
+        return measure, time - start, count
