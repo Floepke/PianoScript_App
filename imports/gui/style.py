@@ -1,80 +1,60 @@
-color1 = "#140714"
-color2 = "#ffdddd"
-color3 = '#000000'
+from PySide6.QtGui import QColor
 
-STYLE = f'''
-QGroupBox, QListWidget,
-QLabel, QComboBox, QSpinBox,
-QTreeView, QGraphicsView, 
-QMainWindow, QToolBar, QToolBar,
-QToolBar QAction, QGroupBox, QTabWidget, QTabWidget::pane, QTabWidget::tab-bar, QTabWidget::tab,
-QMainWindow QMenuBar, QMenu, QLineEdit, QComboBox,
-QRadioButton, QLabel, QDockWidget, 
-QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
-    background-color: {color1};
-    color: {color2};
-    font-size: 16px;
-    font-family: Bookman Old Style;
-    font-color: {color2};
-}}
-QMenuBar::item, QMenuBar::item:selected {{
-    background-color: {color1};
-    color: {color2};
-}}
-QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
-    background-color: {color1};
-    color: {color2};
-}}
-QPushButton {{
-    background-color: {color1};
-    color: {color2};
-}}
-QSlider::groove:horizontal {{
-    border: 15px solid #999999;
-    height: 15px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #c4c4c4);
-    margin: 2px 0;
-}}
+class Style():
+    def __init__(self, io):
+        
+        self.io = io
 
-QSlider::add-page:horizontal {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color1}, stop:1 {color3});
-}}
+        # default stylesheet
+        self.default_stylesheet = io['app'].styleSheet()
 
-QSlider::sub-page:horizontal {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {color3}, stop:1 {color1});
-}}
-QMenuBar::item, QMenuBar::item:selected {{
-    background-color: {color1};
-    color: {color2};
-}}
-QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
-    background-color: {color1};
-    color: {color2};
-}}
-QTabWidget::tab-bar::tab:selected {{
-    background-color: {color1};
-    color: {color2};
-}}
-QTabWidget QWidget {{
-    background-color: {color1};
-}}
-QTabBar::tab {{
-    background-color: {color1};
-    color: {color2};
-}}
+        # colors
+        self.color1 = '#ffffff'
+        self.color2 = '#ffffff'
+        
+        # set the mood slider
+        self.io['gui'].slider.valueChanged.connect(self.update_mood_slider)
+        self.update_mood_slider()
 
-QTabBar::tab:selected {{
-    background-color: {color2};
-    color: {color1};
-}}
-QSpinBox {{
-    background-color: {color2};
-    color: {color1};
-}}
-StatusBar {{
-    background-color: {color1};
-    color: {color2};
-}}
-'''
+    def update_mood_slider(self):
 
-# Now you can use the STYLE variable in your PyQt application
+        slider_y = self.io['gui'].slider.slidery
+        if slider_y < 0:
+            slider_y = 0
+        elif slider_y > 255:
+            slider_y = 255
+
+        complementary_color = QColor.fromHsv(
+            self.io['gui'].slider.value(), 128, int(150-(slider_y)))
+        self.color1 = complementary_color.name()
+        self.color2 = '#ffffff'  # Convert the complementary color back to a string
+
+        style = f'''
+            QPushButton, QStatusBar, QMenuBar, QMenu, QSpinBox,
+            QSplitter, QMainWindow, QDockWidget, QDialog, QListWidget
+            {{
+                background-color: {self.color1};
+                color: {self.color2};
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+            QMenuBar, QMenu::item {{
+                padding: 7.5px 7.5px
+            }}
+            QMenuBar::item:selected, QMenu::Item::selected {{
+                background-color: white;
+                color: black;
+            }}
+            QLabel, QGroupBox, QCheckBox, QRadioButton {{
+                background-color: transparent;
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+            QTreeView {{
+                background-color: {self.color1};
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+        '''
+
+        self.io['app'].setStyleSheet(style)

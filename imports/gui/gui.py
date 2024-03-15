@@ -1,17 +1,17 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
 from PySide6.QtCore import Qt, QSize, QPoint
-from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene, QToolBar
-from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
-from PySide6.QtWidgets import QSpinBox, QToolButton, QLabel, QDockWidget, QTreeView
-from PySide6.QtGui import QAction, QColor, QBrush, QIcon, QStandardItemModel, QStandardItem
+from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene
+from PySide6.QtWidgets import QSplitter, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton
+from PySide6.QtWidgets import QSpinBox, QLabel, QDockWidget, QTreeView
+from PySide6.QtGui import QAction, QColor, QBrush, QStandardItemModel, QStandardItem
 
 from imports.editor.graphicsview_editor import GraphicsViewEditor
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
 from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
-from imports.gui.staffswitcher import StaffSwitcher
 from imports.engraver.pdfexport import pdf_export
 from imports.icons.icons import get_icon
 from imports.gui.toolbar import ToolBar
+from imports.gui.moodslider import MoodSlider
 from imports.utils.constants import *
 
 import random
@@ -33,13 +33,25 @@ class Gui():
         self.statusbar = self.main.statusBar()
 
         # Create a slider
-        self.slider = CustomSlider(Qt.Horizontal, self.main)
+        self.slider = MoodSlider(Qt.Horizontal, self.main)
         self.slider.setMinimum(0)
         self.slider.setMaximum(255)
         self.slider.setValue(random.randint(0, 255))
 
-        # Add the slider to the status bar
-        self.statusbar.addPermanentWidget(self.slider)
+        # add a label
+        self.label = QLabel()
+        self.label.setText(str('Mood Slider ='))
+        self.label.setStyleSheet('color: white; font-family: Edwin; font-size: 14px;')
+
+        # Create a layout and add the label and slider to it
+        self.slider_layout = QHBoxLayout()
+        self.slider_layout.addWidget(self.label)
+        self.slider_layout.addWidget(self.slider)
+
+        # Create a widget with the layout and add it to the status bar
+        self.slider_widget = QWidget()
+        self.slider_widget.setLayout(self.slider_layout)
+        self.statusbar.addPermanentWidget(self.slider_widget)
 
         # start menu--------------------------------------------------------------------
 
@@ -401,28 +413,5 @@ class Gui():
 
     def refresh(self):
         self.io['maineditor'].update('page_change')
-
-
-
-class CustomSlider(QSlider):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.startPos = QPoint()
-        self.slidery = 0.0
-
-    def mousePressEvent(self, event):
-        self.slidery = 0.0
-        self.startPos = event.pos()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        mainwindow_height = 1000
-        self.slidery = 1 - event.pos().y() / mainwindow_height * 255
-        self.setValue(self.slidery)
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        self.startPos = QPoint()
-        super().mouseReleaseEvent(event)  # convert the value back to float
 
 

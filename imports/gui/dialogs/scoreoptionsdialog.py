@@ -265,7 +265,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 1 properties
         self.staff1_group = QGroupBox('Staff 1')
         self.staff1_group.setStyleSheet(
-            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff1_layout = QGridLayout(self.staff1_group)
 
         self.staff1_name = QLineEdit()
@@ -294,7 +294,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 2 properties
         self.staff2_group = QGroupBox('Staff 2')
         self.staff2_group.setStyleSheet(
-            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff2_layout = QGridLayout(self.staff2_group)
 
         self.staff2_name = QLineEdit()
@@ -323,7 +323,7 @@ class ScoreOptionsDialog(QDialog):
         # staff 3 properties
         self.staff3_group = QGroupBox('Staff 3')
         self.staff3_group.setStyleSheet(
-            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff3_layout = QGridLayout(self.staff3_group)
 
         self.staff3_name = QLineEdit()
@@ -351,7 +351,7 @@ class ScoreOptionsDialog(QDialog):
         # create staff4
         self.staff4_group = QGroupBox('Staff 4')
         self.staff4_group.setStyleSheet(
-            "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
+            "QGroupBox { border: 1px solid white; border-radius: 5px; margin-top: 0.5em; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }")
         staff4_layout = QGridLayout(self.staff4_group)
 
         self.staff4_name = QLineEdit()

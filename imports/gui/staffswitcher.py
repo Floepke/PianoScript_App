@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QMenu
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 
 
@@ -44,14 +43,13 @@ class StaffSwitcher(QWidget):
     def update_button_colors(self):
         for i, button in enumerate(self.buttons):
             if button.isChecked():
-                button.setStyleSheet("background-color: blue; color: white")
+                button.setStyleSheet('font-style: italic;')
             else:
                 try:
-                    color = "red" if self.io['score']['properties']['staffs'][i]['onoff'] else "black"
+                    style = "text-decoration: underline" if self.io['score']['properties']['staffs'][i]['onoff'] else ""
                 except:
-                    color = "black"
-                button.setStyleSheet(
-                    f"background-color: white; color: {color}")
+                    style = ""
+                button.setStyleSheet(style)
 
     def contextMenuEvent(self, event):
         context_menu = QMenu(self)

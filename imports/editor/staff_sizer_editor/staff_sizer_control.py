@@ -38,9 +38,6 @@ from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.pianonotes import PianoNotes
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 
-from imports.gui.style import color2
-
-
 class StaffSizerControl:
     """ controls for one linebreak """
 

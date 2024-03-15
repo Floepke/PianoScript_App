@@ -17,17 +17,14 @@ from imports.engraver.engraver import Engraver
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
-from imports.gui.style import color1, color2
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.gui.style import Style
 from imports.utils.constants import *
 
 
 class PianoScript():
 
     def __init__(self):
-
-        self.color1 = color1
-        self.color2 = color2
 
         # io == all objects in the application in one dict
         self.io = {
@@ -134,7 +131,6 @@ class PianoScript():
 
         # setup
         self.app = QApplication(sys.argv)
-        # self.app.setStyleSheet(STYLE)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
         self.gui.show()
@@ -142,10 +138,6 @@ class PianoScript():
         self.io['root'] = self.root
         self.root.showFullScreen()
         self.io['gui'] = self.gui
-
-        # EE
-        self.io['gui'].slider.valueChanged.connect(lambda: self.change_theme())
-        self.change_theme()
 
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
@@ -159,6 +151,7 @@ class PianoScript():
         self.io['fileoperations'] = FileOperations(self.io)
         self.editor_dialog = None
         self.line_break_dialog = None
+        self.io['style'] = Style(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -220,8 +213,6 @@ class PianoScript():
 
         self.root.closeEvent = self.cleanup
 
-        self.change_theme()
-
         # run the application
         sys.exit(self.app.exec())
 
@@ -282,94 +273,6 @@ class PianoScript():
                   text_size=(100, 21))
 
             self.io['maineditor'].update('grid_editor')
-
-    def change_theme(self):
-
-        slider_y = self.io['gui'].slider.slidery
-        if slider_y < 0:
-            slider_y = 0
-        elif slider_y > 255:
-            slider_y = 255
-
-        complementary_color = QColor.fromHsv(
-            self.io['gui'].slider.value(), 128, int(150-(slider_y)))
-        self.color1 = complementary_color.name()
-        self.color2 = '#ffffff'  # Convert the complementary color back to a string
-
-        style = f'''
-        QTreeView, QGraphicsView,
-        QMainWindow, QToolBar, QToolBar,
-        QToolBar QAction, QListWidget, QPushButton,
-        QMainWindow QMenuBar, QMenu, QDockWidget,
-        QSplitter, QDialog, QVBoxLayout, QHBoxLayout {{
-            background-color: {self.color1};
-            color: {self.color2};
-            font-size: 16px;
-            font-family: Edwin;
-        }}
-        QGroupBox {{
-            color: {self.color2};
-            font-size: 16px;
-            font-family: Edwin;
-        }}
-        QLabel, QRadioButton {{
-            background-color: transparent;
-            color: {self.color2};
-        }}
-        QMenuBar::item {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        QMenuBar, QMenu::item {{
-            padding: 5px 5px
-        }}
-        QMenuBar::item:selected, QMenu::Item::selected {{
-            background-color: white;
-            color: black;
-        }}
-        QPushButton {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        QTabWidget, QTabWidget::pane, QTabWidget::tab-bar {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        QTabWidget QWidget {{
-            background-color: {self.color1};
-        }}
-        QTabBar::tab {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        QTabBar::tab:selected {{
-            background-color: black;
-            color: white;
-        }}
-        QSpinBox {{
-            background-color: {self.color2};
-            color: {self.color1};
-        }}
-        StatusBar {{
-            background-color: {self.color1};
-            color: {self.color2};
-        }}
-        '''
-
-        # style = f'''
-        #     * {{
-        #         background-color: {self.color1};
-        #         color: {self.color2};
-        #     }}
-        #     QTabBar::tab:selected {{
-        #         background-color: black;
-        #         color: white;
-        #     }}
-        # '''
-
-        self.app.setStyleSheet(style)
-
-        self.app.setStyleSheet(style)
 
 
 if __name__ == '__main__':

@@ -24,7 +24,8 @@ class ToolBar(QWidget):
         self.next_button.setIconSize(QSize(30, 30))
         self.next_button.clicked.connect(self._next_page)
 
-        self.refresh_button = QPushButton('⟳', self)
+        self.refresh_button = QPushButton('', self)
+        self.refresh_button.setIcon(get_icon('engrave.png'))
         self.refresh_button.setStyleSheet("color: #ffdddd; font-size: 35px;")
         self.refresh_button.setToolTip("Engrave the document")
         self.refresh_button.setIconSize(QSize(30, 30))
@@ -44,11 +45,11 @@ class ToolBar(QWidget):
 
         self.separator1 = QWidget()
         self.separator1.setFixedHeight(1)
-        self.separator1.setStyleSheet("background-color: #000000;")
+        self.separator1.setStyleSheet("background-color: #ffffff;")
 
         self.separator2 = QWidget()
         self.separator2.setFixedHeight(1)
-        self.separator2.setStyleSheet("background-color: #000000;")
+        self.separator2.setStyleSheet("background-color: #ffffff;")
         
         self.staff_switcher = StaffSwitcher(self.io)
 
