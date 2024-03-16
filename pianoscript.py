@@ -19,6 +19,8 @@ from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.popup import Popup
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.gui.style import Style
+from imports.scripting.scriptutils import ScriptUtils
+from imports.scripting.loadscripts import LoadScripts
 from imports.utils.constants import *
 
 
@@ -152,6 +154,8 @@ class PianoScript():
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
+        self.io['script'] = ScriptUtils(self.io)
+        self.io['loadscript'] = LoadScripts(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)

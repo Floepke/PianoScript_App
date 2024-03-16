@@ -159,6 +159,10 @@ class Gui():
         self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
 
+        self.pianoscripts_menu = QMenu('Scripts', self.main)
+        self.menu_bar.addMenu(self.pianoscripts_menu)
+
+
         # end menu--------------------------------------------------------------------
 
         # Create the editor view
