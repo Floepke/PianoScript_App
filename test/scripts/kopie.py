@@ -8,6 +8,8 @@ __copyright__ = '© Sihir 2024-2024 all rights reserved'
 from sys import exit as _exit
 
 from os import listdir
+from os import remove
+from os import walk
 
 from os.path import abspath
 from os.path import expanduser
@@ -15,6 +17,7 @@ from os.path import basename
 from os.path import splitext
 from os.path import join
 from os.path import dirname
+from os.path import isfile
 
 from shutil import copy as _copy
 
@@ -24,8 +27,10 @@ def this() -> str:
 
     return basename(__file__)
 
+
 def here() -> str:
     """ py script folder """
+
 
 def has_ext(filename: str, wanted: str) -> bool:
     """ true when the filename has the extension """
@@ -40,12 +45,22 @@ def main() -> int:
     source = dirname(__file__)
     target = expanduser('~/.pianoscript/pianoscripts')  # noqa
 
+    cache = join(target, '__pycache__')
+    for file in listdir(cache):
+        cache_file = join(cache, file)
+        remove(cache_file)
+
     for file in listdir(source):
         if has_ext(file, '.py') and (file != this()):
             source_file = abspath(join(source, file))
             target_file = abspath(join(target, file))
+
+            if isfile(target_file):
+                remove(target_file)
+
             _copy(source_file, target_file)
             print(target_file)
+
     return 0
 
 
