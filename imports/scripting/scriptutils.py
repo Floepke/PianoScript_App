@@ -14,7 +14,7 @@ class ScriptUtils:
         if ok:
             return text
         else:
-            return ''
+            return None
         
     def ask_int(self, message='Enter an integer:', min_value=0, max_value=100, default_value=0):
         '''Opens an input dialog for the script and returns the input integer.'''
@@ -23,7 +23,7 @@ class ScriptUtils:
         if ok:
             return value
         else:
-            return 0
+            return None
         
     def ask_float(self, message='Enter a float:', min_value=0, max_value=100, default_value=0):
         '''Opens an input dialog for the script and returns the input float.'''
@@ -32,21 +32,21 @@ class ScriptUtils:
         if ok:
             return value
         else:
-            return 0.0
+            return None
   
     def ask_yesno(self, message='Yes or No?'):
         '''Opens a yes/no dialog for the script and returns the input.'''
         
         return QMessageBox.question(self.io['root'], 'PianoScript', message)
     
-    def ask_list_select(self, message='Select an item:', items=['Item 1', 'Item 2', 'Item 3']):
+    def ask_list(self, message='Select an item:', items=['Item 1', 'Item 2', 'Item 3']):
         '''Opens a combobox dialog for the script and returns the input.'''
         
         item, ok = QInputDialog.getItem(self.io['root'], 'PianoScript', message, items, 0, False)
         if ok:
             return item
         else:
-            return ''
+            return None
     
     # Message functions:
     def error(self, message='Error'):

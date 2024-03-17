@@ -194,7 +194,7 @@ class CalcTools:
         for grid in self.io['score']['events']['grid']:
             for i in range(grid['amount']):
                 barline_ticks.append(
-                    grid['numerator'] * ((QUARTER_PIANOTICK*4) / grid['denominator']) * i)
+                    grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']) * i)
         return barline_ticks
 
     def get_measure_number(self, time):
