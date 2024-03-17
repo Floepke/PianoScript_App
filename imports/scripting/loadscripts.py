@@ -2,7 +2,9 @@ import os
 import importlib.util
 import inspect
 import traceback
-from PySide6.QtGui import QAction
+import random
+from PySide6.QtGui import QAction, QColor
+from PySide6.QtWidgets import QMenu
 
 
 class LoadScripts:
@@ -17,21 +19,22 @@ class LoadScripts:
             os.makedirs(self.user_directory)
         self.script_menu = io['gui'].pianoscripts_menu
 
-        factory_menu = self.script_menu.addMenu('Factory')
-        self.load(self.factory_directory, factory_menu)
-
-        # Load the scripts from the user directory if there are any
-        user_menu = self.script_menu.addMenu('User')
-        self.load(self.user_directory, user_menu)
+        # run the menu building function on the script menu
+        self.script_menu.aboutToShow.connect(lambda: self.build_menu(self.script_menu))
 
     def build_menu(self, menu):
-        for name in os.listdir(self.user_directory):
-            if name == '__pycache__':
-                continue
-            path = os.path.join(self.user_directory, name)
-            if os.path.isdir(path):
-                submenu = menu.addMenu(name)
-                self.build_menu(submenu)
+        # empty the menu
+        menu.clear()
+
+        # Load the scripts from the factory directory
+        factory_menu = SubMenu('Factory  ', self.script_menu)
+        self.load(self.factory_directory, factory_menu)
+        self.script_menu.addMenu(factory_menu)
+
+        # Load the scripts from the user directory if there are any
+        user_menu = SubMenu('User  ', self.script_menu)
+        self.load(self.user_directory, user_menu)
+        self.script_menu.addMenu(user_menu)
 
     def load(self, directory=None, menu=None):
         if directory is None:
@@ -54,17 +57,45 @@ class LoadScripts:
                 spec.loader.exec_module(module)
 
                 for func_name, func in inspect.getmembers(module, inspect.isfunction):
-                    action = QAction('⚙ ' + func_name, menu)
+                    if not func_name.startswith('script_'):
+                        continue
+                    action = QAction('⚙ ' + func_name[7:], menu)
                     action.triggered.connect(lambda func=func, module=module: self.eval_func(func, module))
                     menu.addAction(action)
 
     def eval_func(self, func, module):
         try:
             func(self.io)
-            print(f'Script "{module.__name__}" executed successfully')
+            print(f'Script "{func.__name__}" executed successfully')
             self.io['maineditor'].update('page_change')
             self.io['maineditor'].redraw_editor()
         except Exception as e:
-            print(f'-------------ERROR IN SCRIPT "{module.__name__}"-----------------')
+            print(f'-------------ERROR IN SCRIPT "{func.__name__}"-----------------')
             traceback.print_exc()
             print('---------------------------------------------------------------')
+
+
+class SubMenu(QMenu):
+    
+    def __init__(self, title, parent=None):
+        super().__init__(title, parent)
+        self.offset = 5
+        complementary_color = QColor.fromHsv(
+            random.randint(0, 255), 25, 200)
+        self.color1 = complementary_color.name()
+        # negative color self.color2
+        negative_color = QColor(self.color1).rgb() ^ 0xFFFFFF
+        self.color2 = QColor(negative_color).name()
+        self.b_color = 'black'
+        self.color = 'white'
+        self.setStyleSheet(f'background-color: {self.color1}; color: {self.color2};')
+    
+    def showEvent(self, event):
+        super().showEvent(event)
+        pos = self.pos()
+        self.move(pos.x() + self.offset, pos.y())
+
+    def addMenu(self, title):
+        submenu = SubMenu(title + '  ', self)
+        super().addMenu(submenu)
+        return submenu
