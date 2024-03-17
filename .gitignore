@@ -9,3 +9,5 @@ page.pdf
 **/*.DS_Store
 /play.mid
 /pianoscriptfiles/test_ticks.pianoscript
+/test/scripts/popup.py
+/test/scripts/excel.py
