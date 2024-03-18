@@ -442,13 +442,17 @@ def render(
                 if idx_page == 0:
                     if idx_line == 0 and minipiano_onoff:
                         staff_height = page_height - page_margin_top - page_margin_bottom - \
-                            io['score']['properties']['header_height'] - io['score']['properties']['footer_height'] - PITCH_UNIT * 8 * draw_scale
+                            io['score']['properties']['header_height'] - \
+                            io['score']['properties']['footer_height'] - \
+                            PITCH_UNIT * 8 * draw_scale
                     else:
                         staff_height = page_height - page_margin_top - page_margin_bottom - \
-                            io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
+                            io['score']['properties']['header_height'] - \
+                            io['score']['properties']['footer_height']
                 else:
                     staff_height = page_height - page_margin_top - \
-                        page_margin_bottom - io['score']['properties']['footer_height']
+                        page_margin_bottom - \
+                        io['score']['properties']['footer_height']
 
                 # draw the staffs
                 for idx_staff, staff_prefs in enumerate(dimensions):
@@ -503,10 +507,12 @@ def render(
                                         if i > 0:
                                             x2 += w['margin_left']
                                         x2 += w['staff_width'] + w['margin_right'] + \
-                                            (leftover / (len(page) * enabled_staffs + 1))
+                                            (leftover / (len(page)
+                                             * enabled_staffs + 1))
                                         last_r_marg = w['margin_right']
                                 x2 -= last_r_marg + \
-                                    (leftover / (len(page) * enabled_staffs + 1)) + (PITCH_UNIT * 2 * draw_scale * staff_scale)
+                                    (leftover / (len(page) * enabled_staffs + 1)) + \
+                                    (PITCH_UNIT * 2 * draw_scale * staff_scale)
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
                                 if evt['type'] in ['barline', 'barlinedouble']:
@@ -540,7 +546,8 @@ def render(
                                 x1 = x_cursor + \
                                     (PITCH_UNIT * 2 * draw_scale * staff_scale)
                                 x2 = x_cursor + \
-                                    staff_prefs['staff_width'] - (PITCH_UNIT * 2 * draw_scale * staff_scale)
+                                    staff_prefs['staff_width'] - \
+                                    (PITCH_UNIT * 2 * draw_scale * staff_scale)
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
                                 if basegrid_onoff:
@@ -610,9 +617,13 @@ def render(
                                         if evt['hand'] == 'l':
                                             if not evt['pitch'] in BLACK_KEYS:
                                                 io['view'].new_oval(x - PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                    y_cursor + y1 + (PITCH_UNIT * (2.25 / 2 - .25) * draw_scale * staff_scale),
+                                                                    y_cursor + y1 +
+                                                                    (PITCH_UNIT * (2.25 / 2 - .25)
+                                                                     * draw_scale * staff_scale),
                                                                     x + PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                    y_cursor + y1 + (PITCH_UNIT * (2.25 / 2 + .25) * draw_scale * staff_scale),
+                                                                    y_cursor + y1 +
+                                                                    (PITCH_UNIT * (2.25 / 2 + .25)
+                                                                     * draw_scale * staff_scale),
                                                                     fill_color='#000000',
                                                                     outline_color='',
                                                                     tag=['leftdotwhite'])
@@ -620,17 +631,25 @@ def render(
                                             else:
                                                 if black_note_rule == 'Up':
                                                     io['view'].new_oval(x - PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                        y_cursor + y1 - (PITCH_UNIT * (2.25 / 2 + .25) * draw_scale * staff_scale),
+                                                                        y_cursor + y1 -
+                                                                        (PITCH_UNIT * (2.25 / 2 + .25)
+                                                                         * draw_scale * staff_scale),
                                                                         x + PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                        y_cursor + y1 - (PITCH_UNIT * (2.25 / 2 - .25) * draw_scale * staff_scale),
+                                                                        y_cursor + y1 -
+                                                                        (PITCH_UNIT * (2.25 / 2 - .25)
+                                                                         * draw_scale * staff_scale),
                                                                         fill_color='#ffffff',
                                                                         outline_color='',
                                                                         tag=['leftdotblack'])
                                                 elif black_note_rule == 'Down':
                                                     io['view'].new_oval(x - PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                        y_cursor + y1 + (PITCH_UNIT * (2.25 / 2 - .25) * draw_scale * staff_scale),
+                                                                        y_cursor + y1 +
+                                                                        (PITCH_UNIT * (2.25 / 2 - .25)
+                                                                         * draw_scale * staff_scale),
                                                                         x + PITCH_UNIT * .25 * draw_scale * staff_scale,
-                                                                        y_cursor + y1 + (PITCH_UNIT * (2.25 / 2 + .25) * draw_scale * staff_scale),
+                                                                        y_cursor + y1 +
+                                                                        (PITCH_UNIT * (2.25 / 2 + .25)
+                                                                         * draw_scale * staff_scale),
                                                                         fill_color='#ffffff',
                                                                         outline_color='',
                                                                         tag=['leftdotblack'])
@@ -787,9 +806,13 @@ def render(
                                 if soundingdot_onoff:
                                     if continuation_dot_style == 'Klavarskribo':
                                         io['view'].new_oval(x - PITCH_UNIT * .5 * draw_scale * staff_scale,
-                                                            y_cursor + y + (PITCH_UNIT * .75 * draw_scale * staff_scale),
+                                                            y_cursor + y +
+                                                            (PITCH_UNIT * .75 *
+                                                             draw_scale * staff_scale),
                                                             x + PITCH_UNIT * .5 * draw_scale * staff_scale,
-                                                            y_cursor + y + (PITCH_UNIT * 1.75 * draw_scale * staff_scale),
+                                                            y_cursor + y +
+                                                            (PITCH_UNIT * 1.75 *
+                                                             draw_scale * staff_scale),
                                                             fill_color='#000000',
                                                             outline_color='',
                                                             tag=['continuationdot'])
@@ -894,8 +917,8 @@ def render(
                                             io['view'].new_line(x1,
                                                                 y_cursor + y1,
                                                                 x - PITCH_UNIT * 5 * draw_scale * staff_scale - PITCH_UNIT * normalize(notes[0]['time'],
-                                                                                                                         notes[-1]['time'],
-                                                                                                                         n['time']),
+                                                                                                                                       notes[-1]['time'],
+                                                                                                                                       n['time']),
                                                                 y_cursor + y1,
                                                                 color='black',
                                                                 width=stem_thickness * draw_scale * staff_scale,
@@ -929,8 +952,8 @@ def render(
                                             io['view'].new_line(x1,
                                                                 y_cursor + y1,
                                                                 x + PITCH_UNIT * 5 * draw_scale * staff_scale + PITCH_UNIT * normalize(notes[0]['time'],
-                                                                                                                         notes[-1]['time'],
-                                                                                                                         n['time']),
+                                                                                                                                       notes[-1]['time'],
+                                                                                                                                       n['time']),
                                                                 y_cursor + y1,
                                                                 color='black',
                                                                 width=stem_thickness * draw_scale * staff_scale,
@@ -946,22 +969,33 @@ def render(
                                 x = pitch2x_view(
                                     evt['pitch'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 y = y_cursor + \
-                                    tick2y_view(evt['time'], io, staff_height, idx_line)
+                                    tick2y_view(evt['time'], io,
+                                                staff_height, idx_line)
                                 if evt['pitch'] in BLACK_KEYS:
                                     io['view'].new_oval(x - (PITCH_UNIT * 0.75 * draw_scale * staff_scale),
                                                         y,
-                                                        x + (PITCH_UNIT * 0.75 * draw_scale * staff_scale),
-                                                        y + (PITCH_UNIT * 2 * 0.75 * draw_scale * staff_scale),
-                                                        tag=[evt['tag'], 'noteheadblack'],
+                                                        x +
+                                                        (PITCH_UNIT * 0.75 *
+                                                         draw_scale * staff_scale),
+                                                        y +
+                                                        (PITCH_UNIT * 2 * 0.75 *
+                                                         draw_scale * staff_scale),
+                                                        tag=[evt['tag'],
+                                                             'noteheadblack'],
                                                         fill_color='black',
                                                         outline_width=0,
                                                         outline_color='black')
                                 elif evt['pitch'] in WHITE_KEYS:
                                     io['view'].new_oval(x - (PITCH_UNIT * 0.75 * draw_scale * staff_scale),
                                                         y,
-                                                        x + (PITCH_UNIT * 0.75 * draw_scale * staff_scale),
-                                                        y + (PITCH_UNIT * 2 * 0.75 * draw_scale * staff_scale),
-                                                        tag=[evt['tag'], 'noteheadblack'],
+                                                        x +
+                                                        (PITCH_UNIT * 0.75 *
+                                                         draw_scale * staff_scale),
+                                                        y +
+                                                        (PITCH_UNIT * 2 * 0.75 *
+                                                         draw_scale * staff_scale),
+                                                        tag=[evt['tag'],
+                                                             'noteheadblack'],
                                                         fill_color='white',
                                                         outline_width=0.3,
                                                         outline_color='black')
@@ -978,7 +1012,8 @@ def render(
                                 x2 = pitch2x_view(
                                     evt['pitch2'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 y = y_cursor + \
-                                    tick2y_view(evt['time'], io, staff_height, idx_line)
+                                    tick2y_view(evt['time'], io,
+                                                staff_height, idx_line)
                                 io['view'].new_line(x1, y, x2, y,
                                                     color='black',
                                                     width=0.2,
@@ -988,7 +1023,8 @@ def render(
                         if evt['type'] == 'timesignature':
                             if idx_staff == 0:
                                 y = y_cursor + \
-                                    tick2y_view(evt['time'], io, staff_height, idx_line)
+                                    tick2y_view(evt['time'], io,
+                                                staff_height, idx_line)
                                 io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
                                                     y + (PITCH_UNIT * 4.5),
                                                     str(evt['numerator']),
@@ -999,14 +1035,18 @@ def render(
                                                     anchor='s')
                                 io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
                                                     y,
-                                                    x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
+                                                    x_cursor -
+                                                    (PITCH_UNIT * 10 *
+                                                     draw_scale * staff_scale),
                                                     y,
                                                     color='black',
                                                     width=.5,
                                                     tag=['timesignature'])
                                 io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
                                                     y,
-                                                    x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
+                                                    x_cursor -
+                                                    (PITCH_UNIT * 10 *
+                                                     draw_scale * staff_scale),
                                                     y,
                                                     color='black',
                                                     width=.2,

@@ -45,7 +45,8 @@ class LinesView:
         self.view = view = MyTreeView(parent=box)
 
         view.setColumnWidth(0, width)
-        view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        view.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.model = model = QStandardItemModel()
         view.setModel(model)

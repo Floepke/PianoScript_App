@@ -2,6 +2,7 @@ from imports.utils.constants import *
 import copy
 from imports.utils.savefilestructure import SaveFileStructureSource
 
+
 class Note:
     '''
         The Note class handles:
@@ -28,7 +29,8 @@ class Note:
             io['editor'].delete_with_tag(['notecursor'])
 
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to edit it so we create a copy of the note
                 Note.delete_editor(io, detect)
@@ -67,15 +69,17 @@ class Note:
 
             # draw the note
             Note.draw_editor(io, io['edit_obj'])
-        
+
         elif event_type == 'leftrelease':
             if io['edit_obj']:
                 # delete the edit_obj
                 io['editor'].delete_with_tag([io['edit_obj']['tag']])
 
                 # delete the note from file
-                try: io['score']['events']['note'].remove(io['edit_obj']) 
-                except ValueError: pass
+                try:
+                    io['score']['events']['note'].remove(io['edit_obj'])
+                except ValueError:
+                    pass
 
                 # create copy of the edit_obj, give it a identical tag and add it to the score
                 new = copy.deepcopy(io['edit_obj'])
@@ -88,7 +92,6 @@ class Note:
                 # delete the edit_obj
                 io['edit_obj'] = None
 
-
         # middle mouse button handling:
         elif event_type == 'middleclick':
             ...
@@ -99,21 +102,20 @@ class Note:
         elif event_type == 'middlerelease':
             ...
 
-
         # right mouse button handling:
         elif event_type == 'rightclick':
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to delete it
                 Note.delete_editor(io, detect)
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...
-
 
         # move mouse handling: (mouse is moved while no button is pressed)
         elif event_type == 'move':
@@ -126,15 +128,15 @@ class Note:
             # else:
             # note cursor on mouse position
             io['cursor'] = {
-                'tag':'notecursor',
-                'time':io['calc'].y2tick_editor(y, snap=True),
-                'duration':0,
-                'pitch':io['calc'].x2pitch_editor(x),
-                'hand':'r' if io['hand'] == 'r' else 'l',
-                'stem-visible':True,
-                'accidental':0,
-                'staff':None,
-                'notestop':False,
+                'tag': 'notecursor',
+                'time': io['calc'].y2tick_editor(y, snap=True),
+                'duration': 0,
+                'pitch': io['calc'].x2pitch_editor(x),
+                'hand': 'r' if io['hand'] == 'r' else 'l',
+                'stem-visible': True,
+                'accidental': 0,
+                'staff': None,
+                'notestop': False,
             }
             Note.draw_editor(io, io['cursor'])
 
@@ -145,18 +147,6 @@ class Note:
 
         elif event_type == 'leave':
             io['editor'].delete_with_tag(['notecursor'])
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
 
     @staticmethod
     def draw_editor(io, note, inselection=False, noteheadup=False):
@@ -168,7 +158,7 @@ class Note:
         io['editor'].delete_with_tag([note['tag']])
 
         # update drawn object
-        if note in io['viewport']['events']['note']: 
+        if note in io['viewport']['events']['note']:
             io['viewport']['events']['note'].remove(note)
 
         # get the x and y position of the note
@@ -177,165 +167,111 @@ class Note:
 
         # set colors
         if note['tag'] == 'notecursor' or inselection:
-            color = '#009cff' # TODO: set color depending on settings
+            color = '#009cff'  # TODO: set color depending on settings
         else:
-            color = '#000000' # TODO: set color depending on settings
+            color = '#000000'  # TODO: set color depending on settings
 
         unit = STAFF_X_UNIT_EDITOR / 2
-            
+
         # draw the stem
         thickness = 5
         if note['hand'] == 'l':
             io['editor'].new_line(x, y, x - (unit * 5), y,
-                                tag=[note['tag'], 'stem'],
-                                width=thickness,
-                                color=color)
+                                  tag=[note['tag'], 'stem'],
+                                  width=thickness,
+                                  color=color)
         elif note['hand'] == 'r':
             io['editor'].new_line(x, y, x + (unit * 5), y,
-                                tag=[note['tag'], 'stem'],
-                                width=thickness,
-                                color=color)
-            
+                                  tag=[note['tag'], 'stem'],
+                                  width=thickness,
+                                  color=color)
+
         # draw the midi note
         if note['tag'] == 'edit_obj':
             midicolor = '#aa0'
-        elif inselection:# if note is in selection
+        elif inselection:  # if note is in selection
             midicolor = '#009cff'
-        else:# if normal note
+        else:  # if normal note
             if note['hand'] == 'l':
                 midicolor = io['score']['properties']['color_left_midinote']
             elif note['hand'] == 'r':
                 midicolor = io['score']['properties']['color_right_midinote']
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
-        io['editor'].new_polygon([(x, y), 
-                                  (x + unit, y + (unit/2)), 
-                                  (x + unit, endy), (x - unit, endy), 
+        io['editor'].new_polygon([(x, y),
+                                  (x + unit, y + (unit/2)),
+                                  (x + unit, endy), (x - unit, endy),
                                   (x - unit, y + (unit/2))],
-                                  tag=[note['tag'], 'midinote'], 
-                                  fill_color=midicolor, 
-                                  outline_color='')
-        
+                                 tag=[note['tag'], 'midinote'],
+                                 fill_color=midicolor,
+                                 outline_color='')
+
         # draw notehead
         x = io['calc'].pitch2x_editor(note['pitch'])
         y = io['calc'].tick2y_editor(note['time'])
         if note['pitch'] in BLACK_KEYS and not noteheadup:
             # draw the black notehead down
             io['editor'].new_oval(x - (unit * .75),
-                                y,
-                                x + (unit * .75),
-                                y + unit * 2,
-                                tag=[note['tag'], 'noteheadblack'],
-                                fill_color=color,
-                                outline_width=2,
-                                outline_color=color)
+                                  y,
+                                  x + (unit * .75),
+                                  y + unit * 2,
+                                  tag=[note['tag'], 'noteheadblack'],
+                                  fill_color=color,
+                                  outline_width=2,
+                                  outline_color=color)
         elif note['pitch'] in BLACK_KEYS and noteheadup:
             # draw the black notehead up
-            io['editor'].new_oval(x - (unit * .75), 
-                                y - unit * 2,
-                                x + (unit * .75),
-                                y,
-                                tag=[note['tag'], 'noteheadblack'],
-                                fill_color=color,
-                                outline_width=2,
-                                outline_color=color)
+            io['editor'].new_oval(x - (unit * .75),
+                                  y - unit * 2,
+                                  x + (unit * .75),
+                                  y,
+                                  tag=[note['tag'], 'noteheadblack'],
+                                  fill_color=color,
+                                  outline_width=2,
+                                  outline_color=color)
         else:
             # draw the white notehead always down
             io['editor'].new_oval(x - unit,
-                                y,
-                                x + unit,
-                                y + unit * 2,
-                                tag=[note['tag'], 'noteheadwhite'],
-                                fill_color='white',
-                                outline_width=2,
-                                outline_color=color)
+                                  y,
+                                  x + unit,
+                                  y + unit * 2,
+                                  tag=[note['tag'], 'noteheadwhite'],
+                                  fill_color='white',
+                                  outline_width=2,
+                                  outline_color=color)
 
-        # draw left dot 
+        # draw left dot
         yy = y + unit
         if noteheadup:
             # draw up
             yy = y - unit
-        if note['hand'] == 'l' and note['pitch'] in BLACK_KEYS: # black note left dot
+        if note['hand'] == 'l' and note['pitch'] in BLACK_KEYS:  # black note left dot
             radius = (unit * .5) / 2
             io['editor'].new_oval(x - radius,
-                                yy - radius,
-                                x + radius,
-                                yy + radius,
-                                tag=[note['tag'], 'leftdotblack'],
-                                fill_color='white',
-                                outline_width=1,
-                                outline_color='white')
-        elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS: # white note left dot
+                                  yy - radius,
+                                  x + radius,
+                                  yy + radius,
+                                  tag=[note['tag'], 'leftdotblack'],
+                                  fill_color='white',
+                                  outline_width=1,
+                                  outline_color='white')
+        elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS:  # white note left dot
             yy = y + unit
             radius = (unit * .5) / 2
             io['editor'].new_oval(x - radius,
-                                yy - radius,
-                                x + radius,
-                                yy + radius,
-                                tag=[note['tag'], 'leftdotwhite'],
-                                fill_color=color,
-                                outline_width=1,
-                                outline_color=color)
-            
+                                  yy - radius,
+                                  x + radius,
+                                  yy + radius,
+                                  tag=[note['tag'], 'leftdotwhite'],
+                                  fill_color=color,
+                                  outline_width=1,
+                                  outline_color=color)
 
     def delete_editor(io, note):
         '''deletes a note'''
-        
+
         # delete from file and editor
         io['score']['events']['note'].remove(note)
         if note in io['viewport']['events']['note']:
             io['viewport']['events']['note'].remove(note)
         io['editor'].delete_with_tag([note['tag']])
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

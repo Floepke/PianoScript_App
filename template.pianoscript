@@ -5,7 +5,7 @@
         "copyright": "Copyright (C) 2024, Pianoscript. All rights reserved.",
         "app_name": "pianoscript",
         "app_version": 1.0,
-        "timestamp": "08-03-2024_10:55:13",
+        "timestamp": "15-03-2024_08:26:53",
         "genre": "",
         "comment": ""
     },
@@ -71,8 +71,9 @@
     "events": {
         "grid": [
             {
-                "tag": "grid",
-                "amount": 8,
+                "nr": 1,
+                "tag": "grid1",
+                "amount": 7,
                 "numerator": 4,
                 "denominator": 4,
                 "grid": [

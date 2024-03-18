@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QPainter
 
+
 class GraphicsViewEditor(QGraphicsView):
 
     def __init__(self, scene, io, parent=None):
@@ -32,7 +33,8 @@ class GraphicsViewEditor(QGraphicsView):
 
         self.scene = scene
 
-        self.verticalScrollBar().valueChanged.connect(lambda: self.io['maineditor'].update('scroll'))
+        self.verticalScrollBar().valueChanged.connect(
+            lambda: self.io['maineditor'].update('scroll'))
 
     def resizeEvent(self, event):
         # get the old scroll position and maximum
@@ -53,8 +55,10 @@ class GraphicsViewEditor(QGraphicsView):
             new_scroll = old_scroll * new_max / old_max
         vbar.setValue(new_scroll)
 
-        try: self.io['maineditor'].update('resize')
-        except KeyError: pass
+        try:
+            self.io['maineditor'].update('resize')
+        except KeyError:
+            pass
 
         # call the original resizeEvent
         super().resizeEvent(event)
@@ -79,14 +83,13 @@ class GraphicsViewEditor(QGraphicsView):
             self.left_mouse_button = True
             self.shift_modifier = True
             self.io['maineditor'].update('leftclick+shift', x, y)
-        
 
     def mouseMoveEvent(self, event):
 
         scene_point = self.mapToScene(event.pos())
         x = scene_point.x()
         y = scene_point.y()
-        
+
         if not any([self.left_mouse_button, self.middle_mouse_button, self.right_mouse_button]):
             self.io['maineditor'].update('move', x, y)
         elif self.left_mouse_button and not self.shift_modifier:
@@ -97,14 +100,13 @@ class GraphicsViewEditor(QGraphicsView):
             self.io['maineditor'].update('rightclick+move', x, y)
         elif self.left_mouse_button and self.shift_modifier:
             self.io['maineditor'].update('leftclick+shift+move', x, y)
-        
 
     def mouseReleaseEvent(self, event):
 
         scene_point = self.mapToScene(event.pos())
         x = scene_point.x()
         y = scene_point.y()
-        
+
         if event.button() == Qt.LeftButton:
             self.left_mouse_button = False
             self.shift_modifier = False
@@ -121,7 +123,7 @@ class GraphicsViewEditor(QGraphicsView):
         if event.key() == Qt.Key_Space:
             self.io['maineditor'].update('space')
         return super().keyPressEvent(event)
-    
+
     # connect a action if mouse leaves the view
     def leaveEvent(self, event):
         self.io['maineditor'].update('leave')
@@ -136,5 +138,3 @@ class GraphicsViewEditor(QGraphicsView):
         x = scene_point.x()
         y = scene_point.y()
         self.io['maineditor'].update('scroll', x, y)
-
-        

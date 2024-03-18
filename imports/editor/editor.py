@@ -22,16 +22,16 @@ class Editor:
 
         self.io = io
         self.funcselector = {
-            'note':Note,
-            'slur':Slur,
-            'beam':Beam,
-            'countline':CountLine,
-            'arpeggio':Arpeggio,
-            'gracenote':GraceNote,
-            'trill':Trill,
-            'linebreak':LineBreak,
-            'dot':Dot,
-            'text':Text
+            'note': Note,
+            'slur': Slur,
+            'beam': Beam,
+            'countline': CountLine,
+            'arpeggio': Arpeggio,
+            'gracenote': GraceNote,
+            'trill': Trill,
+            'linebreak': LineBreak,
+            'dot': Dot,
+            'text': Text
         }
 
     def update(self, event_type: str, x: int = None, y: int = None):
@@ -40,7 +40,7 @@ class Editor:
         if 'move' in event_type:
             # write the mouse position to the io['mouse'] dict
             self.io['mouse']['x'] = x
-            self.io['mouse']['y'] = y # TODO: check if this is neccessary
+            self.io['mouse']['y'] = y  # TODO: check if this is neccessary
 
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
@@ -61,21 +61,25 @@ class Editor:
                 self.io['engraver'].do_engrave()
             print(self.io['autosave'])
             if self.io['autosave']:
-                try: self.io['fileoperations'].auto_save()
-                except KeyError: ...
+                try:
+                    self.io['fileoperations'].auto_save()
+                except KeyError:
+                    ...
 
         if event_type in ['page_change']:
             self.io['engraver'].do_engrave()
 
         # save if there is a change in the score
-        if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and 
-            not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
-            if self.io['auto_engrave']: 
+        if (self.io['score'] != self.io['ctlz'].buffer[self.io['ctlz'].index] and
+                not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
+            if self.io['auto_engrave']:
                 self.io['engraver'].do_engrave()
             if self.io['autosave']:
-                try: self.io['fileoperations'].auto_save()
-                except KeyError: ...
-        
+                try:
+                    self.io['fileoperations'].auto_save()
+                except KeyError:
+                    ...
+
         # draw the cursor
         if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
@@ -85,7 +89,7 @@ class Editor:
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''
-        
+
         self.io['calc'].update_viewport_ticks(self.io)
 
         def draw_events(io):
@@ -98,12 +102,12 @@ class Editor:
                     d = event['duration']
                 except KeyError:
                     d = None
-                
-                if d: # event has a duration
+
+                if d:  # event has a duration
                     # check if the event is in the viewports range being visible or not
                     if (tm >= top and tm <= bttm or tm + d >= top and tm + d <= bttm or tm <= top and tm + d >= bttm) and event['staff'] == io['selected_staff']:
                         return True
-                else: # event has no duration
+                else:  # event has no duration
                     # check if key staff exists in event
                     if 'staff' not in event:
                         if tm >= top and tm <= bttm:
@@ -111,13 +115,13 @@ class Editor:
                     else:
                         if tm >= top and tm <= bttm and event['staff'] == io['selected_staff']:
                             return True
-                
+
                 return False
-           
+
             for e_type in io['viewport']['events'].keys():
-                if e_type in ['grid']: # skip all events that are not time based
+                if e_type in ['grid']:  # skip all events that are not time based
                     continue
-                
+
                 for event in io['score']['events'][e_type]:
 
                     if is_in_viewport(event, io['viewport']['toptick'], io['viewport']['bottomtick']):
@@ -125,12 +129,14 @@ class Editor:
                         if not event in io['viewport']['events'][e_type]:
                             # add event to viewport
                             if event in io['selection']['selection_buffer'][e_type]:
-                                self.funcselector[e_type].draw_editor(io, event, inselection=True)
+                                self.funcselector[e_type].draw_editor(
+                                    io, event, inselection=True)
                             else:
-                                self.funcselector[e_type].draw_editor(io, event)
+                                self.funcselector[e_type].draw_editor(
+                                    io, event)
                             io['viewport']['events'][e_type].append(event)
                         else:
-                            ... # element was already drawn, do nothing
+                            ...  # element was already drawn, do nothing
                     else:
                         # element is outside the viewport, delete it if it was drawn
                         if event in io['viewport']['events'][e_type]:
@@ -141,13 +147,14 @@ class Editor:
 
         # draw the grid and barlines
         top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])
-        bottom_y = self.io['calc'].tick2y_editor(self.io['viewport']['bottomtick'])
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io, top_y, bottom_y)
-        
+        bottom_y = self.io['calc'].tick2y_editor(
+            self.io['viewport']['bottomtick'])
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(
+            self.io, top_y, bottom_y)
+
         self.drawing_order()
 
         self.io['gui'].editor_view.update()
-        
 
     def drawing_order(self):
         '''
@@ -156,12 +163,12 @@ class Editor:
         '''
 
         drawing_order = [
-            'midinote', 
+            'midinote',
             'staffline',
             'titlebackground',
             'titletext',
-            'barline', 
-            'gridline', 
+            'barline',
+            'gridline',
             'barnumbering',
             'stem',
             'soundingdot',
@@ -170,7 +177,7 @@ class Editor:
             'leftdotwhite',
             'noteheadblack',
             'leftdotblack',
-            'timesignature', 
+            'timesignature',
             'measurenumber',
             'selectionrectangle',
             'notestop',
@@ -200,9 +207,12 @@ class Editor:
         DrawEditor.draw_staff(self.io)
 
         # set scene size
-        height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * self.io['score']['properties']['editor_zoom'] + EDITOR_MARGIN + EDITOR_MARGIN
-        self.io['gui'].editor_scene.setSceneRect(EDITOR_LEFT, EDITOR_TOP, EDITOR_WIDTH, height)
-        
+        height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * \
+            self.io['score']['properties']['editor_zoom'] + \
+            EDITOR_MARGIN + EDITOR_MARGIN
+        self.io['gui'].editor_scene.setSceneRect(
+            EDITOR_LEFT, EDITOR_TOP, EDITOR_WIDTH, height)
+
         # draw all events in viewport
         self.draw_viewport()
 
@@ -214,19 +224,3 @@ class Editor:
         else:
             self.io['auto_engrave'] = True
             self.io['gui'].auto_engrave_action.setChecked(True)
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,146 +1,75 @@
-color1 = 'pink' # background1
-color2 = 'pink' # background2
-color3 = '#eeeeee' # text
-color4 = '#5555ff' # highlight
+from PySide6.QtGui import QColor
 
-STYLE = '''
-font-size: 16px;
-background-color: #777777;
-color: #777777;
-selection-background-color: #445577;
-selection-color: white;
-QMenuBar::item:selected {
-    background-color: #555555;
-    color: black;
-}
-'''
+class Style():
+    def __init__(self, io):
+        
+        self.io = io
 
+        # default stylesheet
+        self.default_stylesheet = io['app'].styleSheet()
 
-STYLE = '''
-QMainWindow {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 {}, stop:1 #222222);
-    color: #FFFFFF;
-}
-QToolBar {
-    background-color: #555555;
-    color: #555555;
-}
-QDockWidget {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-    color: #FFFFFF;
-}
-QLineEdit, QSpinBox, QLabel {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-    color: #FFFFFF;
-}
-QGraphicsView {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-    border: 1px solid qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-}
-QSplitter::handle {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #666666, stop:1 #222222);
-    color: #FFFFFF;
-}
-QDockWidget {
-    background-color: #555555;  /* Set the overall background color, including title bar */
-    color: #FFFFFF;  /* Set the text color */
-}
-QMenuBar {
-    background-color: #555555;
-    color: #FFFFFF;
-}
-QDockWidget {
-    border: 1px solid black;
-}
-QStatusbar {
-    background-color: #555555;
-    color: #FFFFFF;
-}
-QMenu {
-    background-color: #555555;
-    color: pink;
-}
-'''
+        # colors
+        self.color1 = '#ffffff'
+        self.color2 = '#ffffff'
+        
+        # set the mood slider
+        self.io['gui'].slider.valueChanged.connect(self.update_mood_slider)
+        self.update_mood_slider()
 
-STYLE = '''
-QMainWindow {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #8B0000, stop:1 #222222);
-    color: #FFFFFF;
-}
-QToolBar {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-QDockWidget {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #8B0000, stop:1 #222222);
-    color: #FFFFFF;
-}
-QLineEdit, QSpinBox, QLabel {
-    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #8B0000, stop:1 #222222);
-    color: #FFFFFF;
-}
-QGraphicsView {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-'''
+    def update_mood_slider(self):
 
-STYLE = '''
-QMainWindow {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-QToolBar {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-QDockWidget {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-QLineEdit, QSpinBox, QLabel {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-QGraphicsView {
-    background-color: #8B0000;
-    color: #FFFFFF;
-}
-'''
+        slider_y = self.io['gui'].slider.slidery
+        if slider_y < 0:
+            slider_y = 0
+        elif slider_y > 255:
+            slider_y = 255
 
-color1 = "#00414e"
-color2 = "#ffffff"
-color3 = "darkred"
-color4 = "darkblue"
+        complementary_color = QColor.fromHsv(
+            self.io['gui'].slider.value(), 25, 200)
+        self.color1 = complementary_color.name()
+        # negative color self.color2
+        negative_color = QColor(self.color1).rgb() ^ 0xFFFFFF
+        self.color2 = QColor(negative_color).name()
 
-STYLE = f'''
-QLineEdit, QSpinBox, QLabel, QTreeView, QToolBar, QDockWidget, QGraphicsView, QMainWindow {{
-    background-color: {color1};
-    color: {color2};
-}}
-QWidget {{
-    background-color: {color1};
-    color: {color2};
-}}
-'''
+        style = f'''
+            QPushButton, QStatusBar, QMenuBar, QMenu, 
+            QSpinBox, QRadioButton, QTabBar,
+            QSplitter, QMainWindow, QDockWidget,
+            QDialog, QListWidget, QLabel, QGroupBox
+            {{
+                background-color: {self.color1};
+                color: {self.color2};
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+            QMenuBar, QMenu::item {{
+                padding: 7.5px 7.5px
+            }}
+            QMenuBar::item:selected, QMenu::Item::selected {{
+                background-color: white;
+                color: black;
+            }}
+            QLabel, QGroupBox, QCheckBox, QRadioButton {{
+                background-color: transparent;
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+            QTreeView {{
+                background-color: {self.color1};
+                color: {self.color2};
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+            QTreeView QHeaderView::section {{
+                background-color: {self.color1};  /* Change this to the desired color */
+                color: {self.color2};  /* Change this to the desired color */
+            }}
+            QTabWidget QWidget {{
+                background-color: {self.color1};
+                color: {self.color2};
+                font-family: Edwin;
+                font-size: 16px;
+            }}
+        '''
 
-STYLE = f'''
-QTreeView, QGraphicsView, QMainWindow, QToolBar, QToolBar QPushButton, QToolBar QAction {{
-    background-color: {color1};
-    color: {color2};
-}}
-QDockWidget, #gs_frame, QSplitter {{
-    background-color: {color1};
-    color: {color2};
-}}
-'''
-
+        self.io['app'].setStyleSheet(style)

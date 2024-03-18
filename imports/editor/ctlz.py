@@ -1,5 +1,6 @@
-# imports   
+# imports
 import copy
+
 
 class CtlZ:
     def __init__(self, io):
@@ -20,9 +21,9 @@ class CtlZ:
         if self.io['score'] == self.buffer[self.index]:
             # no change, do nothing
             return
-        
+
         # if we are in the past(undo/redo):
-        if not self.index == len(self.buffer) - 1:    
+        if not self.index == len(self.buffer) - 1:
             self.buffer = self.buffer[:self.index + 1]
 
         # Add a new version of the score to the buffer
@@ -31,12 +32,12 @@ class CtlZ:
         # undo limit
         if len(self.buffer) > self.max_ctlz_num:
             self.buffer.pop(0)
-        
+
         self.index = len(self.buffer) - 1
 
-    def undo(self): 
+    def undo(self):
         print('undo')
-        
+
         # load undo version
         self.index -= 1
         if self.index < 0:
@@ -45,7 +46,7 @@ class CtlZ:
 
         # update editor and engraver
         self.io['maineditor'].update('ctlz')
-        #self.io['engraver'].trigger_render()
+        # self.io['engraver'].trigger_render()
 
     def redo(self):
         print('redo')
@@ -58,4 +59,4 @@ class CtlZ:
 
         # update editor and engraver
         self.io['maineditor'].update('ctlz')
-        #self.io['engraver'].trigger_render()
+        # self.io['engraver'].trigger_render()

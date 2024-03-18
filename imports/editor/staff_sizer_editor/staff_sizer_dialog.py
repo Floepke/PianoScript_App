@@ -23,8 +23,12 @@ from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QDialog
 from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QListWidget
+from PySide6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QVBoxLayout
 
-from PySide6.QtGui import QPixmap
+# from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QModelIndex
 # pylint: enable=no-name-in-module
 
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
@@ -32,39 +36,80 @@ from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerCont
 from imports.editor.grideditor.dialog_result import DialogResult
 
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
+from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
+from imports.icons.icons import get_pixmap
 
 class StaffSizerDialog(QDialog):
     """ the example with four line breaks """
 
+    # the following parameters depend on the font, QFontMetrics does not help
+
+    # metr = QFontMetrics(list_measures.font())
+    # rect_m = metr.boundingRect('M', Qt.AlignCenter)
+    # width = rect_m.width()
+    # descent = metr.descent()
+    #
+    # offset = 2
+    # height = rect_m.height() + descent + offset
+
+    _char_width = 9
+    _line_spacing = 21  # char_height + descent + 2 for the used font
+    _count_lines = 7
+    _count_characters = 14
+    _list_width = _char_width * _count_characters
+    _list_height = _line_spacing * _count_lines
+
     def __init__(self,
                  parent: Optional[Any] = None,
-                 callback: Optional[Callable] = None):
+                 callback: Optional[Callable] = None,
+                 linebreaks: list = None,
+                 time_calc: Callable = None):
         """ initialize the dialog """
 
         super().__init__(parent=parent)
 
-        self.my_pixmap = QPixmap('./icons/GridEditor.png')
-        self.setWindowIcon(self.my_pixmap)
+        self.setWindowIcon(get_pixmap('grideditor.png'))
 
         self.callback = callback
         self.result = DialogResult.CLOSE_WINDOW
 
+        self.linebreaks = LineBreakIo.importer(data=linebreaks,
+                                               time_calc=time_calc)
+
         self.setWindowTitle('Line Preferences')
 
-        layout = QGridLayout(parent=parent)
+        win_layout = QVBoxLayout(parent=parent)
 
-        kbd = KeyboardView()
-        layout.addWidget(kbd.view, 0, 0, 1, 3)
-        # kbd.draw_keyboard()
+        measures = [f'{brk.measure_nr}:{round(brk.tick, 1)}' for brk in self.linebreaks]
+
+        kbd = KeyboardView(scale=0.5)
+        win_layout.addWidget(kbd.view)
+
+        box_layout = QHBoxLayout()
+
+        grp_measures = QGroupBox('Measures')
+        grp_measures.setLayout(QGridLayout())
+        grp_measures.setFixedWidth(self._list_width + 20)
+        box_layout.addWidget(grp_measures)
+
+        list_measures = QListWidget()
+        list_measures.setFixedWidth(StaffSizerDialog._list_width)
+        list_measures.setFixedHeight(StaffSizerDialog._list_height)
+        list_measures.clicked.connect(self.changed_list_index)
+        grp_measures.layout().addWidget(list_measures, 0, 0, 4, 1)
+        list_measures.addItems(measures)
 
         self.control = StaffSizerControl(
-            layout=layout,
+            layout=box_layout,
             row=1,
+            column=1,
             parent=self,
             keyboard=kbd)
 
+        win_layout.addLayout(box_layout)
+
         ok_cancel = QGroupBox()
-        layout.addWidget(ok_cancel, 6, 0, 1, 3)
+        win_layout.addWidget(ok_cancel)
 
         ok_cancel.setLayout(QGridLayout())
         ok_button = QPushButton(parent=parent)
@@ -80,8 +125,25 @@ class StaffSizerDialog(QDialog):
         cancel_button.clicked.connect(self._on_cancel)
         ok_cancel.layout().addWidget(cancel_button, 0, 3, 1, 1)
 
-        self.setLayout(layout)
+        self.setLayout(win_layout)
 
+        self.staff_index = 0
+        self.select_linebreak(0)
+
+    def changed_list_index(self, index: QModelIndex):
+        """ list index changed """
+
+        self.select_linebreak(index.row())
+
+    def select_linebreak(self, row: int):
+
+        self.staff_index = row
+        linebreak = self.linebreaks[row]
+        self.staff_sizers = linebreak.staffs
+
+        measure = linebreak.measure_nr
+        tick = linebreak.tick
+        self.control.set_measure_nr(measure, tick)
 
     @property
     def staff_sizers(self) -> List[StaffSizer]:  # noqa
@@ -112,12 +174,11 @@ class StaffSizerDialog(QDialog):
         """ the close window control 'x' is clicked"""
 
         event.accept()
-        staff_sizers = []
-        if self.result == DialogResult.OK:
-            staff_sizers = self.staff_sizers
-            staff_sizers[0].time = 0
 
-        if self.callback is not None:
-            self.callback(self.result, staff_sizers)
+        if self.result == DialogResult.OK and \
+                self.callback is not None:
+
+            data = LineBreakIo.exporter(self.linebreaks)
+            self.callback(self.result, data)
 
     # pylint: enable=invalid-name

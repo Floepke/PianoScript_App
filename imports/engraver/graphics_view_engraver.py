@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtGui import QCursor
 
+
 class GraphicsViewEngraver(QGraphicsView):
 
     def __init__(self, scene, io, parent=None):
@@ -35,8 +36,10 @@ class GraphicsViewEngraver(QGraphicsView):
         old_max = vbar.maximum()
 
         # perform the resizing
-        try: self.standard_width = self.io['score']['properties']['page_width']
-        except AttributeError: ...
+        try:
+            self.standard_width = self.io['score']['properties']['page_width']
+        except AttributeError:
+            ...
         scale_factor = self.width() / self.standard_width
         self.resetTransform()
         self.scale(scale_factor, scale_factor)
@@ -79,14 +82,13 @@ class GraphicsViewEngraver(QGraphicsView):
 
     def update_page_dimensions(self):
         self.standard_width = self.io['score']['properties']['page_width']
-    
+
         # Recalculate the scale factor
         scale_factor = self.width() / self.standard_width
-        
+
         # Apply the new scale
         self.resetTransform()
         self.scale(scale_factor, scale_factor)
-        
+
         # Trigger a resize event to update the view
         self.resizeEvent(None)
-        

@@ -15,8 +15,16 @@ __copyright__ = '© Sihir 2023-2024 all rights reserved'
 # For Midi the range is from C2 (note #0) to G8 (note #127),
 # middle C is note #60 (known as C3 in MIDI terminology).
 
+from os import curdir
+from os.path import dirname
+from os.path import join
+from os.path import abspath
+from os.path import isfile
+
 from sys import argv
 from sys import exit as _exit
+
+from jsons import loads
 
 from copy import deepcopy
 
@@ -37,18 +45,18 @@ from imports.editor.grideditor.dialog_result import DialogResult
 
 def test_0():
     """ test for the translate_note function """
-    for index in range(89):
+    for index in range(1, 89):
         name = PianoNotes.translate_note(piano_note=index)
         print(f'{index:<3} {name}')
 
     start_notes = [
-        3, 8,
-        15, 20,
-        27, 32,
-        39, 44,
-        51, 56,
-        63, 68,
-        75
+        4, 9,
+        16, 21,
+        28, 33,
+        40, 45,
+        52, 57,
+        64, 69,
+        76
     ]
     print('--- start notes --')
     for index in start_notes:
@@ -56,49 +64,54 @@ def test_0():
         print(f'{index:<3} {note}')
 
     finish_notes = [
-        19, 26,
-        31, 38,
-        43, 50,
-        55, 62,
-        67, 74,
-        79, 86
+        20, 27,
+        32, 39,
+        44, 51,
+        56, 63,
+        68, 75,
+        80, 87
     ]
     print('--- finish notes --')
     for index in finish_notes:
         _, _, note = PianoNotes.translate_note(piano_note=index)
         print(f'{index:<3} {note}')
 
+
+def find_file(fname: str) -> str:
+    """ find a file somewhere in the folders """
+
+    current = abspath(curdir)
+    while len(current) > 4:  # as in 'C:\\x'
+        result = join(current, fname)
+        if isfile(result):
+            return result
+        current = dirname(current)
+
+    return None
+
+
+def time_calc(time: int) -> int:
+    """ simplified version of the actual function """
+
+    result = 1 + int(time / 768)
+    print(f'{time:0>5} {result:0>3}')
+    return result
+
+
 def test_1():
     """ test the dialog with four line breaks """
 
+    filename = find_file('example.json')
+    assert filename
+    with open(file=filename, mode='r', encoding='utf8') as stream:
+        linebreaks = loads(stream.read())
+
     app = QApplication(argv)
-    dialog = StaffSizerDialog(callback=test1_callback)
 
-    sizer = StaffSizer(margin_left=10,
-                       margin_right=12,
-                       staff_start=8,
-                       staff_finish=79,
-                       staff_auto=False)
+    dialog = StaffSizerDialog(callback=test1_callback,
+                              linebreaks=linebreaks,
+                              time_calc=time_calc)
 
-    sizers = [deepcopy(sizer),
-              deepcopy(sizer),
-              deepcopy(sizer),
-              deepcopy(sizer)]
-
-    sizers[0].margin_left = 10
-    sizers[1].margin_left = 20
-
-    sizers[1].staff_start = 15
-    sizers[1].staff_finish = 55
-
-    sizers[2].margin_left = 30
-    sizers[1].staff_start = 27
-    sizers[2].staff_finish = 67
-
-    sizers[3].margin_left = 40
-    sizers[3].staff_auto = True
-
-    dialog.staff_sizers = sizers
     layout = QGridLayout()
     layout.addWidget(dialog, 0, 0, 1, 1)
 
@@ -108,14 +121,15 @@ def test_1():
 
 
 def test1_callback(result: DialogResult,
-                   staffs: [StaffSizer]):
+                   staffs: list):
     """ callback for results  """
 
     print(f'{result}')
-    output = StaffIo.export_staffs(staffs=staffs)
 
     ppr = pprint.PrettyPrinter(indent=4)
-    ppr.pprint(output)
+
+    output = ppr.pformat(staffs)
+    print(output)
 
 
 def test_2():
@@ -126,15 +140,15 @@ def test_2():
         'time': 12345,
         'staff1': {
             'margins': [10, 12],
-            'range': [3, 79]
+            'range': [4, 80]
         },
         'staff2': {
             'margins': [11, 13],
-            'range': [8, 80]
+            'range': [9, 81]
         },
         'staff3': {
             'margins': [12, 14],
-            'range': [15, 81]
+            'range': [16, 82]
         },
         'staff4': {
             'margins': [13, 15],

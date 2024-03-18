@@ -9,6 +9,8 @@ from os.path import abspath
 
 from typing import Callable
 
+from threading import Timer
+
 # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QDialog
@@ -48,7 +50,8 @@ class Popup(QDialog):
 
         lbl_message = QLabel(parent=self)
         lbl_message.setMinimumSize(*text_size)
-        lbl_message.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        lbl_message.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         popup_layout.addWidget(lbl_message, 0, 0, 1, 3)
 
         self.lbl_message = lbl_message

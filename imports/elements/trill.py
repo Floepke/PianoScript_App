@@ -12,7 +12,7 @@ class Trill:
 
         elif event_type == 'leftclick+move':
             ...
-        
+
         elif event_type == 'leftrelease':
             ...
 
@@ -32,6 +32,6 @@ class Trill:
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...

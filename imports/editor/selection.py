@@ -2,6 +2,7 @@ import re
 from imports.elements.note import Note
 from imports.utils.savefilestructure import SaveFileStructureSource
 
+
 class Selection:
 
     @staticmethod
@@ -17,7 +18,8 @@ class Selection:
             Selection.delete_selection(io)
 
             # detect if we are clicking an object (tag ending on a number)
-            detect = io['editor'].detect_item(io['score'], float(x), float(y), event_type='all')
+            detect = io['editor'].detect_item(
+                io['score'], float(x), float(y), event_type='all')
             if not detect:
                 # if we are not clicking an object we want to start a selection rectangle
                 io['selection']['rectangle_on'] = True
@@ -28,14 +30,12 @@ class Selection:
 
                 # empty the selection buffer
                 io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
-                
 
         elif event_type in ['leftclick+shift+move', 'scroll']:
             if io['selection']['rectangle_on']:
                 # if we are in rectangle selection mode we want to update the rectangle and detect the containing objects
                 Selection.draw_selection_rectangle(io, x, y)
 
-        
         elif event_type == 'leftrelease':
             # delete the selection rectangle
             io['editor'].delete_with_tag(['selectionrectangle'])
@@ -51,11 +51,11 @@ class Selection:
             io['selection']['x2'] = 0
             io['selection']['y2'] = 0
 
-        #io['maineditor'].draw_viewport()
+        # io['maineditor'].draw_viewport()
 
     @staticmethod
     def organize_selection_add(io, selected):
-        
+
         # organize selection into a dictionary with the same structure as score['events']:
         selection = {}
         for event_type in io['selection']['copy_types']:
@@ -68,17 +68,18 @@ class Selection:
                         io['viewport']['events'][event_type].remove(event)
 
         return selection
-    
+
     @staticmethod
     def delete_selection(io):
 
         io['selection']['inrectangle'] = []
-        
+
         # delete all drawn_obj that where in the previous selection (selection_buffer)
         for event_type in io['selection']['selection_buffer'].keys():
             for event in io['selection']['selection_buffer'][event_type]:
                 if event in io['viewport']['events'][event_type]:
-                    io['viewport']['events'][event_type].remove(event) # TODO check if I can use new_events_folder() here instead
+                    # TODO check if I can use new_events_folder() here instead
+                    io['viewport']['events'][event_type].remove(event)
 
     @staticmethod
     def draw_selection_rectangle(io, x, y):
@@ -94,8 +95,9 @@ class Selection:
             bottom_right_x = max(x1, x2)
             bottom_right_y = max(y1, y2)
             return top_left_x, top_left_y, bottom_right_x, bottom_right_y
-        
-        x1, y1, x2, y2 = standardize_coordinates(io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
+
+        x1, y1, x2, y2 = standardize_coordinates(
+            io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
 
         # delete the selection rectangle
         io['editor'].delete_with_tag(['selectionrectangle'])
@@ -109,7 +111,7 @@ class Selection:
                                    fill_color='',
                                    width=4,
                                    outline_color='ff0000ff',
-                                   dash=(2,2))
+                                   dash=(2, 2))
         io['editor'].tag_raise(['selectionrectangle'])
 
         io['editor'].tag_raise(['selectionrectangle'])
@@ -124,8 +126,9 @@ class Selection:
             bottom_right_x = max(x1, x2)
             bottom_right_y = max(y1, y2)
             return top_left_x, top_left_y, bottom_right_x, bottom_right_y
-        
-        x1, y1, x2, y2 = standardize_coordinates(io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
+
+        x1, y1, x2, y2 = standardize_coordinates(
+            io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
 
         # define the boundaries of the selection rectangle
         start_time = io['calc'].y2tick_editor(y1, snap=False)
@@ -137,7 +140,7 @@ class Selection:
             if evt_type == 'grid' or evt_type not in io['selection']['transpose_types']:
                 continue
 
-            # add all events that are in the selection rectangle to the selection buffer    
+            # add all events that are in the selection rectangle to the selection buffer
             for event in io['score']['events'][evt_type]:
                 if event['time'] < start_time or event['time'] > end_time:
                     continue
@@ -147,10 +150,3 @@ class Selection:
                     io['selection']['selection_buffer'][evt_type].append(event)
                 if event in io['viewport']['events'][evt_type]:
                     io['viewport']['events'][evt_type].remove(event)
-
-
-
-
-        
-
-        

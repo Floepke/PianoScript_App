@@ -4,11 +4,12 @@ from PySide6.QtWidgets import QGraphicsScene, QGraphicsItem
 from PySide6.QtGui import QPolygonF, QFont
 from PySide6.QtGui import QFontDatabase
 
-import sys, re, time
+import sys
+import re
+import time
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtCore import QRectF
-
 
 
 class Worker(QThread):
@@ -97,9 +98,9 @@ class DrawUtil:
             * y2: y-coordinate of the bottom right corner
             * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
         - get_viewport(); get the viewport coordinates
-        
+
         '''
-    
+
     def __init__(self, canvas: QGraphicsScene):
         self.canvas = canvas
 
@@ -111,18 +112,18 @@ class DrawUtil:
 
     # basic shapes
     def new_line(self, x1: float, y1: float, x2: float, y2: float,
-                  dash: list = None,
-                  width: float = 1.0, 
-                  capstyle: Qt.PenCapStyle = Qt.RoundCap,
-                  joinstyle: Qt.PenJoinStyle = Qt.RoundJoin,
-                  color: str = '#000000',
-                  tag: list = []):
+                 dash: list = None,
+                 width: float = 1.0,
+                 capstyle: Qt.PenCapStyle = Qt.RoundCap,
+                 joinstyle: Qt.PenJoinStyle = Qt.RoundJoin,
+                 color: str = '#000000',
+                 tag: list = []):
         '''Add a line to the scene.'''
-        
+
         # Create a line from (x1, y1) to (x2, y2)
         start = QPointF(x1, y1)
         end = QPointF(x2, y2)
-        
+
         # Create a pen with the given properties
         pen = self.pen
         pen.setWidthF(width)
@@ -135,26 +136,26 @@ class DrawUtil:
         else:
             pen.setStyle(Qt.SolidLine)
             pen.setDashPattern([])
-        
+
         # Add the line to the scene
         line = self.canvas.addLine(start.x(), start.y(), end.x(), end.y(), pen)
-        
+
         # Add a tag to the line item
         line.setData(0, tag)
-    
+
     def new_rectangle(self, x1: float, y1: float, x2: float, y2: float,
-                        dash: list = None,
-                        width: float = 1.0, 
-                        capstyle: Qt.PenCapStyle = Qt.RoundCap,
-                        outline_color: str = '#000000ff',
-                        fill_color: str = '#404040ff',
-                        tag: list = []):
+                      dash: list = None,
+                      width: float = 1.0,
+                      capstyle: Qt.PenCapStyle = Qt.RoundCap,
+                      outline_color: str = '#000000ff',
+                      fill_color: str = '#404040ff',
+                      tag: list = []):
         '''Add a rectangle to the scene.'''
-        
+
         # Create a rectangle from (x1, y1) to (x2, y2)
         start = QPointF(x1, y1)
         end = QPointF(x2, y2)
-        
+
         # Create a pen with the given properties
         pen = self.pen
         pen.setWidthF(width)
@@ -176,24 +177,25 @@ class DrawUtil:
             brush.setStyle(Qt.NoBrush)
 
         # Add the rectangle to the scene
-        rect = self.canvas.addRect(start.x(), start.y(), end.x() - start.x(), end.y() - start.y(), pen, brush)
-        
+        rect = self.canvas.addRect(start.x(), start.y(), end.x(
+        ) - start.x(), end.y() - start.y(), pen, brush)
+
         # Add a tag to the line item
         rect.setData(0, tag)
 
     def new_oval(self, x1: float, y1: float, x2: float, y2: float,
-                dash: list = None,
-                outline_width: float = 1.0,
-                outline_color: str = '#000000',
-                fill_color: str = '#FFFFFF',
-                tag: list = []):
+                 dash: list = None,
+                 outline_width: float = 1.0,
+                 outline_color: str = '#000000',
+                 fill_color: str = '#FFFFFF',
+                 tag: list = []):
         '''Add an oval to the scene.'''
-        
+
         # Create an oval from (x1, y1) to (x2, y2)
         start = QPointF(x1, y1)
         width = abs(x2 - x1)
         height = abs(y2 - y1)
-        
+
         # Change the pen with the given properties
         pen = self.pen
         pen.setWidthF(outline_width)
@@ -214,10 +216,11 @@ class DrawUtil:
         else:
             brush.setColor(QColor(fill_color))
             brush.setStyle(Qt.SolidPattern)
-        
+
         # Add the oval to the scene
-        oval = self.canvas.addEllipse(start.x(), start.y(), width, height, pen, brush)
-        
+        oval = self.canvas.addEllipse(
+            start.x(), start.y(), width, height, pen, brush)
+
         # Add a tag to the line item
         oval.setData(0, tag)
 
@@ -228,10 +231,10 @@ class DrawUtil:
                     fill_color: str = '#000000ff',
                     tag: list = []):
         '''Add a polygon to the scene.'''
-        
+
         # Create a polygon from the given points
         polygon = QPolygonF([QPointF(x, y) for x, y in points])
-        
+
         # change the pen with the given properties
         pen = self.pen
         pen.setWidthF(width)
@@ -256,22 +259,22 @@ class DrawUtil:
         else:
             brush.setColor(QColor(fill_color))
             brush.setStyle(Qt.SolidPattern)
-        
+
         # Add the polygon to the scene
         polygon_item = self.canvas.addPolygon(polygon, pen, brush)
-        
+
         # Add a tag to the line item
         polygon_item.setData(0, tag)
 
     def new_text(self, x: float, y: float, text: str,
                  font: str = 'Arial',
-                 size: float = 12.0, 
-                 color: str = '#000000', 
+                 size: float = 12.0,
+                 color: str = '#000000',
                  tag: list = [],
                  anchor: str = 'c',
                  angle: float = 0.0):
         '''Add text to the scene.'''
-        
+
         # Create a font with the given properties
         if (font.endswith('.ttf') or font.endswith('.otf')) and font.startswith('/'):
             # If the font is a path to a ttf or otf font:
@@ -294,7 +297,8 @@ class DrawUtil:
         # Set the anchor of the text item (options: 'c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw')
         if anchor == 'c' or anchor not in ['c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
             bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width() / 2, y - bounding_rect.height() / 2)
+            text_item.setPos(x - bounding_rect.width() / 2,
+                             y - bounding_rect.height() / 2)
         elif anchor == 'n':
             bounding_rect = text_item.boundingRect()
             text_item.setPos(x - bounding_rect.width() / 2, y)
@@ -303,13 +307,16 @@ class DrawUtil:
             text_item.setPos(x - bounding_rect.width(), y)
         elif anchor == 'e':
             bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width(), y - bounding_rect.height() / 2)
+            text_item.setPos(x - bounding_rect.width(),
+                             y - bounding_rect.height() / 2)
         elif anchor == 'se':
             bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width(), y - bounding_rect.height())
+            text_item.setPos(x - bounding_rect.width(),
+                             y - bounding_rect.height())
         elif anchor == 's':
             bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width() / 2, y - bounding_rect.height())
+            text_item.setPos(x - bounding_rect.width() /
+                             2, y - bounding_rect.height())
         elif anchor == 'sw':
             bounding_rect = text_item.boundingRect()
             text_item.setPos(x, y - bounding_rect.height())
@@ -320,36 +327,15 @@ class DrawUtil:
             bounding_rect = text_item.boundingRect()
             text_item.setPos(x, y)
 
-        text_item.setTransformOriginPoint(bounding_rect.width() / 2, bounding_rect.height() / 2)
+        text_item.setTransformOriginPoint(
+            bounding_rect.width() / 2, bounding_rect.height() / 2)
 
         # Add a tag to the line item
         text_item.setData(0, tag)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     '''This part are the methods that handle the tags of the items.'''
-    def find_with_tag(self, tag: list): # TODO: check if it works
+
+    def find_with_tag(self, tag: list):  # TODO: check if it works
         '''Find all items with the given tag or tags and return a list of items.'''
         items = []
         for item in self.canvas.items():
@@ -381,13 +367,15 @@ class DrawUtil:
 
     def tag_raise(self, tag: list):
         '''Raise items with the given tag or tags to the top of the scene.'''
-        try: zvalue = self.canvas.items()[-1].zValue()
-        except IndexError: zvalue = 0
+        try:
+            zvalue = self.canvas.items()[-1].zValue()
+        except IndexError:
+            zvalue = 0
         for t in tag:
             for item in self.find_with_tag([t]):
                 item.setZValue(zvalue)
                 zvalue += 1
-            
+
     def tag_lower(self, tag: list):
         '''Lower items with the given tag or tags to the bottom of the scene.'''
         zvalue = self.canvas.items()[0].zValue()
@@ -402,7 +390,7 @@ class DrawUtil:
         if tag is not None:
             return [item for item in scene_items if item.data(0) in tag]
         return scene_items
-    
+
     def detect_item(self, io, x: float, y: float, event_type: str = 'all'):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         scene_items = self.canvas.items(QPointF(x, y))
@@ -411,21 +399,22 @@ class DrawUtil:
                 tag = item.data(0)[0]
                 if event_type == 'all':
                     # we are searching for any object type; if ending on a number it means it is a object in the score file
-                    if bool(re.search(r'\d$', tag)): # if ending on a number
+                    if bool(re.search(r'\d$', tag)):  # if ending on a number
                         for evttypes in io['score']['events'].keys():
-                            if evttypes in ['grid']: # skip all events that are not selectable by the selection rectangle
+                            # skip all events that are not selectable by the selection rectangle
+                            if evttypes in ['grid']:
                                 continue
                             for obj in io['score']['events'][evttypes]:
                                 if obj['tag'] == tag:
                                     return obj
                 else:
-                    # we are searching for a specific object type    
+                    # we are searching for a specific object type
                     if event_type in tag and bool(re.search(r'\d$', tag)):
                         for obj in io['score']['events'][event_type]:
                             if obj['tag'] == tag:
                                 return obj
-        return None #TODO: make compitable with all event types
-    
+        return None  # TODO: make compitable with all event types
+
     def detect_objects_rectangle(self, io, x1: float, y1: float, x2: float, y2: float, event_type: str = 'all'):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         # evaluate the rectangle coordinates
@@ -435,32 +424,35 @@ class DrawUtil:
             y1, y2 = y2, y1
 
         # find all items in the rectangle
-        scene_items = self.canvas.items(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
+        scene_items = self.canvas.items(
+            QRectF(QPointF(x1, y1), QPointF(x2, y2)))
         if event_type is not None:
             detected_objects = []
             for item in scene_items:
                 tag = item.data(0)[0]
                 if event_type == 'all':
                     # we are searching for any object type; if ending on a number it means it is a object in the score file
-                    if bool(re.search(r'\d$', tag)): # if ending on a number
+                    if bool(re.search(r'\d$', tag)):  # if ending on a number
                         for evttypes in io['score']['events'].keys():
-                            if evttypes in ['grid']: # skip all events that are not selectable by the selection rectangle
+                            # skip all events that are not selectable by the selection rectangle
+                            if evttypes in ['grid']:
                                 continue
                             for obj in io['score']['events'][evttypes]:
                                 if obj['tag'] == tag:
                                     detected_objects.append(obj)
                 else:
-                    # we are searching for a specific object type    
+                    # we are searching for a specific object type
                     if event_type in tag and bool(re.search(r'\d$', tag)):
                         for note in io['score']['events'][event_type]:
                             if note['tag'] == tag:
                                 detected_objects.append(note)
             if detected_objects:
                 # remove duplicates
-                detected_objects = list({v['tag']:v for v in detected_objects}.values())
+                detected_objects = list(
+                    {v['tag']: v for v in detected_objects}.values())
                 return detected_objects
         return None
-    
+
     def find_with_tag(self, tag: str):
         '''Find all items with the given tag or tags and return a list of items.'''
         items = []
@@ -470,7 +462,7 @@ class DrawUtil:
                 if t in item_data:
                     items.append(item)
         return items
-    
+
     def get_xy_tags(self, x: float, y: float):
         '''Get all tags at the given position.'''
         point = QPointF(x, y)
@@ -481,49 +473,9 @@ class DrawUtil:
             for t in d:
                 out.append(t)
         return out
-    
-    
-
-
-
-
-
-
-
-
-
 
     # get viewport coordinates
+
     def get_viewport_coords(self):
         '''Get the viewport coordinates.'''
         return self.canvas.sceneRect()
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -10,7 +10,7 @@ class Slur:
 
         elif event_type == 'leftclick+move':
             ...
-        
+
         elif event_type == 'leftrelease':
             ...
 
@@ -30,6 +30,6 @@ class Slur:
 
         elif event_type == 'rightclick+move':
             ...
-        
+
         elif event_type == 'rightrelease':
             ...

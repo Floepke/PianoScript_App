@@ -8,10 +8,10 @@ __copyright__ = '© Philip Bergwerf 2023-2023 all rights reserved'  # noqa
 
 
 Score = {
-  "events":
+    "events":
     {
-      "grid": [],
-      "note": []
+        "grid": [],
+        "note": []
     }
 }
 
