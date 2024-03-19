@@ -5,13 +5,18 @@ import traceback
 import random
 from PySide6.QtGui import QAction, QColor
 from PySide6.QtWidgets import QMenu
+from imports.scripting.script import Script
 
 
 class LoadScripts:
+    '''
+    Loads scripts from the factory and user directories and adds them to the menu
+    '''
 
     def __init__(self, io):
         self.io = io
         self.factory_directory = 'imports/scripting/factory_scripts/'
+        self.script = Script(io)
 
         # Load the scripts from the user directory
         self.user_directory = os.path.expanduser('~/.pianoscript/pianoscripts/')
@@ -59,13 +64,14 @@ class LoadScripts:
                 for func_name, func in inspect.getmembers(module, inspect.isfunction):
                     if not func_name.startswith('script_'):
                         continue
-                    action = QAction('⚙ ' + func_name[7:], menu)
+                    action = QAction('⚙ ' + func_name[7:].replace('_', ' '), menu)
                     action.triggered.connect(lambda func=func, module=module: self.eval_func(func, module))
                     menu.addAction(action)
 
     def eval_func(self, func, module):
         try:
-            func(self.io)
+            self.io['script_name'] = 'Script: ' + func.__name__[7:].replace('_', ' ')
+            func(self.script)
             print(f'Script "{func.__name__}" executed successfully')
             self.io['maineditor'].update('page_change')
             self.io['maineditor'].redraw_editor()
@@ -76,6 +82,9 @@ class LoadScripts:
 
 
 class SubMenu(QMenu):
+    ''' 
+    A little customized QMenu with advanced color system 
+    '''
     
     def __init__(self, title, parent=None):
         super().__init__(title, parent)
