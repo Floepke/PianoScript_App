@@ -35,13 +35,13 @@ class ToolBar(QWidget):
         self.play_button.setIcon(get_icon('play.png'))
         self.play_button.setToolTip("Play MIDI (not working yet)")
         self.play_button.setIconSize(QSize(30, 30))
-        self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
+        #self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
 
         self.stop_button = QPushButton('', self)
         self.stop_button.setIcon(get_icon('stop.png'))
         self.stop_button.setToolTip("Stop MIDI (not working yet)")
         self.stop_button.setIconSize(QSize(30, 30))
-        self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
+        #self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
 
         self.separator1 = QWidget()
         self.separator1.setFixedHeight(1)

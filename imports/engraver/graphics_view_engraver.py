@@ -57,28 +57,21 @@ class GraphicsViewEngraver(QGraphicsView):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            print('Left button pressed')
             self.io['selected_page'] -= 1
             self.io['maineditor'].update('page_change')
         elif event.button() == Qt.RightButton:
-            print('Right button pressed')
             self.io['selected_page'] += 1
             self.io['maineditor'].update('page_change')
         elif event.button() == Qt.MiddleButton:
-            print('Middle button pressed')
-        print('Mouse position:', event.pos())
-
-    def mouseMoveEvent(self, event):
-        print('move', event.pos())
+            ...
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
-            print('Left button released')
+            ...
         elif event.button() == Qt.RightButton:
-            print('Right button released')
+            ...
         elif event.button() == Qt.MiddleButton:
-            print('Middle button released')
-        print('Mouse position:', event.pos())
+            ...
 
     def update_page_dimensions(self):
         self.standard_width = self.io['score']['properties']['page_width']

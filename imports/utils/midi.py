@@ -176,7 +176,7 @@ class Midi:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
 
-    def export_midi(self, export=True):
+    def export_midi(self, export=True, tempo=120):
 
         if export:
             file_dialog = QFileDialog()
@@ -236,7 +236,7 @@ class Midi:
                                             ts['denominator'])],
                                         clocks_per_tick=clocks_per_tick,
                                         notes_per_quarter=8)
-                MyMIDI.addTempo(track=0, time=0, tempo=120)
+                MyMIDI.addTempo(track=0, time=0, tempo=tempo)
                 MyMIDI.addTrackName(track=0, time=0, trackName='Track 0')
 
             # adding the notes
@@ -253,51 +253,60 @@ class Midi:
             with open(file_path, "wb") as output_file:
                 MyMIDI.writeFile(output_file)
 
-    def play_midi(self):
-        self.export_midi(export=False)
+    # def play_midi(self):
+    #     self.export_midi(export=False)
 
-        # Load the MIDI file
-        mid = mido.MidiFile(os.path.expanduser('~/.pianoscript/play.mid'))
+    #     # disable the play button
+    #     self.io['gui'].toolbar.play_button.setEnabled(False)
 
-        # Get all output ports
-        self.outports = [mido.open_output(name)
-                         for name in mido.get_output_names()]
+    #     # Load the MIDI file
+    #     mid = mido.MidiFile(os.path.expanduser('~/.pianoscript/play.mid'))
 
-        # Set the playing flag to True
-        self.playing = True
+    #     # Get all output ports
+    #     self.outports = [mido.open_output(name)
+    #                      for name in mido.get_output_names()]
 
-        # Play the MIDI file on all output ports
-        def play():
-            for msg in mid.play():
-                # If the playing flag is False, stop playing
-                if not self.playing:
-                    break
-                with self.lock:  # Acquire the lock before sending messages
-                    for outport in self.outports:
-                        outport.send(msg)
+    #     # Set the playing flag to True
+    #     self.playing = True
 
-            # Close all output ports
-            for outport in self.outports:
-                outport.close()
+    #     # Play the MIDI file on all output ports
+    #     def play():
+    #         for msg in mid.play():
+    #             # If the playing flag is False, stop playing
+    #             if not self.playing:
+    #                 break
+    #             with self.lock:  # Acquire the lock before sending messages
+    #                 for outport in self.outports:
+    #                     outport.send(msg)
 
-        self.play_thread = threading.Thread(target=play)
-        self.play_thread.start()
+    #         # Close all output ports
+    #         for outport in self.outports:
+    #             outport.close()
 
-    def stop_midi(self):
-        # Set the playing flag to False
-        self.playing = False
+    #         # Enable the play button
+    #         self.io['gui'].toolbar.play_button.setEnabled(True)
 
-        # Send an "All Sound Off" or "All Notes Off" message to each channel
-        with self.lock:  # Acquire the lock before sending messages
-            for outport in self.outports:
-                for channel in range(16):  # MIDI channels are 0-15
-                    all_sound_off = mido.Message(
-                        'control_change', channel=channel, control=120, value=0)
-                    all_notes_off = mido.Message(
-                        'control_change', channel=channel, control=123, value=0)
-                    outport.send(all_sound_off)
-                    outport.send(all_notes_off)
+    #     self.play_thread = threading.Thread(target=play)
+    #     self.play_thread.start()
 
-        # Wait for the play thread to finish
-        if self.play_thread is not None:
-            self.play_thread.join()
+    # def stop_midi(self):
+    #     # Set the playing flag to False
+    #     self.playing = False
+
+    #     # Send an "All Sound Off" or "All Notes Off" message to each channel
+    #     with self.lock:  # Acquire the lock before sending messages
+    #         for outport in self.outports:
+    #             for channel in range(16):  # MIDI channels are 0-15
+    #                 all_sound_off = mido.Message(
+    #                     'control_change', channel=channel, control=120, value=0)
+    #                 all_notes_off = mido.Message(
+    #                     'control_change', channel=channel, control=123, value=0)
+    #                 outport.send(all_sound_off)
+    #                 outport.send(all_notes_off)
+
+    #     # Wait for the play thread to finish
+    #     if self.play_thread is not None:
+    #         self.play_thread.join()
+
+    #     # Enable the play button
+    #     self.io['gui'].toolbar.play_button.setEnabled(True)

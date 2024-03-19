@@ -6,7 +6,7 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from imports.gui.gui import Gui, QColor
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
-from imports.utils.fileoprations import FileOperations
+from imports.utils.fileoprations import File
 from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
 from imports.utils.savefilestructure import SaveFileStructureSource
@@ -21,6 +21,7 @@ from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialo
 from imports.gui.style import Style
 from imports.scripting.scriptutils import ScriptUtils
 from imports.scripting.loadscripts import LoadScripts
+from imports.utils.midiplayer import MidiPlayer
 from imports.utils.constants import *
 
 
@@ -150,12 +151,13 @@ class PianoScript():
         self.io['selectoperations'] = SelectOperations(self.io)
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
-        self.io['fileoperations'] = FileOperations(self.io)
+        self.io['fileoperations'] = File(self.io)
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
         self.io['script'] = ScriptUtils(self.io)
         self.io['loadscript'] = LoadScripts(self.io)
+        self.io['midiplayer'] = MidiPlayer(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)

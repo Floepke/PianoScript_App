@@ -22,10 +22,10 @@
         "color_right_midinote": "pink",
         "color_left_midinote": "lightblue",
         "editor_zoom": 130,
-        "black_note_rule": "Down",
+        "black_note_rule": "Up",
         "threeline_scale": 2.5,
         "stop_sign_style": "PianoScript",
-        "continuation_dot_style": "Klavarskribo",
+        "continuation_dot_style": "PianoScript",
         "staff_onoff": true,
         "minipiano_onoff": true,
         "stem_onoff": true,
@@ -45,26 +45,22 @@
             {
                 "onoff": true,
                 "name": "Staff 1",
-                "staff_scale": 1.0,
-                "engrave_name": false
+                "staff_scale": 1.0
             },
             {
                 "onoff": false,
                 "name": "Staff 2",
-                "staff_scale": 1.0,
-                "engrave_name": false
+                "staff_scale": 1.0
             },
             {
                 "onoff": false,
                 "name": "Staff 3",
-                "staff_scale": 1.0,
-                "engrave_name": false
+                "staff_scale": 1.0
             },
             {
                 "onoff": false,
                 "name": "Staff 4",
-                "staff_scale": 1.0,
-                "engrave_name": false
+                "staff_scale": 1.0
             }
         ]
     },

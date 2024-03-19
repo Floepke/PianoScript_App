@@ -71,7 +71,7 @@ SCORE_TEMPLATE = {
         'accidental_onoff': True,
         'soundingdot_onoff': True,
         'leftdot_onoff': True,
-        'staffs': (
+        'staffs': [
             {
                 'onoff': True,
                 'name': 'Staff 1',
@@ -96,7 +96,7 @@ SCORE_TEMPLATE = {
                 'staff_scale': 1.0,
                 'engrave_name': False
             }
-        )
+        ]
     },
     'events': {
         'grid': [
@@ -110,20 +110,27 @@ SCORE_TEMPLATE = {
                 'visible': True
             }
         ],
-        'note': [],
-        'countline': [],
+        'note': [
+            SaveFileStructureSource.new_note('blueprint')
+        ],
+        'countline': [
+            SaveFileStructureSource.new_countline('blueprint')
+        ],
         'linebreak': [
             SaveFileStructureSource.new_linebreak('lockedlinebreak', 0)
         ],
-        'staffsizer': [],
         'startrepeat': [],
         'endrepeat': [],
         'starthook': [],
         'endhook': [],
         'dot': [],
         'stop': [],
-        'beam': [],
-        'gracenote': [],
+        'beam': [
+            SaveFileStructureSource.new_beam('blueprint')
+        ],
+        'gracenote': [
+            SaveFileStructureSource.new_gracenote('blueprint')
+        ],
         'text': [],
         'pedal': [],
         'slur': []

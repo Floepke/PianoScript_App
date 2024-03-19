@@ -5,7 +5,7 @@ class SaveFileStructureSource:
     '''
         Stores all event types standard json structures for saving 
         to a score file or creating new messages from. That way we 
-        can add new preferences to for example note_msg() and change 
+        can add new preferences to for example new_note() and change 
         that only in this file.
     '''
 
@@ -51,12 +51,12 @@ class SaveFileStructureSource:
 
     def new_note(
             tag: str,  # note+tagnumber to make tag unique
-            pitch: int,  # piano note number 1 to 88
+            pitch: int = 40,  # piano note number 1 to 88
             # in linear time in pianoticks 0 to infinity (quarter note == 256)
-            time: float,
-            duration: float,  # in linear time in pianoticks 0 to infinity
-            hand: str,  # 'l' or 'r'
-            staff: int,  # staff number 0 to 3 there is a total of 4 staffs available
+            time: float = 0,
+            duration: float = 256,  # in linear time in pianoticks 0 to infinity
+            hand: str = 'l',  # 'l' or 'r'
+            staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
             attached: str = ''  # possible are the following symbols in any order: '>' = accent, '.' = staccato, '-' = tenuto, 'v' = staccatissimo, '#' = sharp, 'b' = flat, '^' = marcato
     ):
         '''The note event structure.'''
@@ -71,10 +71,10 @@ class SaveFileStructureSource:
         }
 
     def new_grid(
-            amount: int,  # amount of measures to repeat
-            numerator: int,  # numerator of the grid
-            denominator: int,  # denominator of the grid
-            grid: list,  # list of ticks relative to the start of every measure. every tick is a gridline
+            amount: int = 8,  # amount of measures to repeat
+            numerator: int = 4,  # numerator of the grid
+            denominator: int = 4,  # denominator of the grid
+            grid: list = [256, 512, 768],  # list of ticks relative to the start of every measure. every tick is a gridline
             # are the stafflines and the gridlines visible if False in the editor the background is redish
             visible: bool = True,
     ):
@@ -90,9 +90,9 @@ class SaveFileStructureSource:
 
     def new_countline(
             tag: str,  # countline+tagnumber to make tag unique
-            time: float,  # in linear time in pianoticks 0 to infinity
-            pitch1: int,  # piano note number 1 to 88
-            pitch2: int,  # piano note number 1 to 88
+            time: float = 0,  # in linear time in pianoticks 0 to infinity
+            pitch1: int = 40,  # piano note number 1 to 88
+            pitch2: int = 44,  # piano note number 1 to 88
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The countline event structure.'''
@@ -106,7 +106,7 @@ class SaveFileStructureSource:
 
     def new_linebreak(
             tag: str,  # linebreak+tagnumber to make tag unique
-            time: float,  # in linear time in pianoticks 0 to infinity
+            time: float = 0,  # in linear time in pianoticks 0 to infinity
             # list with two values: (leftmargin, rightmargin) in mm
             staff1_lr_margins: list = [10.0, 10.0],
             staff2_lr_margins: list = [10.0, 10.0],  # ...
@@ -142,10 +142,10 @@ class SaveFileStructureSource:
 
     def new_beam(
             tag: str,  # beam+tagnumber to make tag unique
-            time: float,  # in linear time in pianoticks 0 to infinity
-            duration: float,  # in linear time in pianoticks 0 to infinity
-            hand: str,  # 'l' or 'r'
-            staff: int,  # staff number 0 to 3 there is a total of 4 staffs available
+            time: float = 0,  # in linear time in pianoticks 0 to infinity
+            duration: float = 256,  # in linear time in pianoticks 0 to infinity
+            hand: str = 'l',  # 'l' or 'r'
+            staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The beam event structure.'''
         return {
@@ -158,11 +158,11 @@ class SaveFileStructureSource:
 
     def new_gracenote(
             tag: str,  # note+tagnumber to make tag unique
-            pitch: int,  # piano note number 1 to 88
+            pitch: int = 40,  # piano note number 1 to 88
             # in linear time in pianoticks 0 to infinity (quarter note == 256)
-            time: float,
-            hand: str,  # 'l' or 'r'
-            staff: int,  # staff number 0 to 3 there is a total of 4 staffs available
+            time: float = 0,
+            hand: str = 'l',  # 'l' or 'r'
+            staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The note event structure.'''
         return {
@@ -175,12 +175,12 @@ class SaveFileStructureSource:
 
     def new_text(
             tag: str,  # text+tagnumber to make tag unique
-            text: str,  # text
-            time: float,  # in linear time in pianoticks 0 to infinity
-            pitch: int,  # piano note number 1 to 88
-            font: str,  # font
-            font_size: int,  # size
-            staff: int,  # staff number 0 to 3 there is a total of 4 staffs available
+            text: str = 'text',  # text
+            time: float = 0,  # in linear time in pianoticks 0 to infinity
+            pitch: int = 40,  # piano note number 1 to 88
+            font: str = 'Edwin',  # font
+            font_size: int = 16,  # size
+            staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The text event structure.'''
         return {

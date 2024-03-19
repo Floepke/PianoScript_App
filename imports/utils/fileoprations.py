@@ -8,17 +8,19 @@ from imports.utils.constants import SCORE_TEMPLATE
 from imports.utils.savefilestructure import SaveFileStructureSource
 
 
-class FileOperations:
+class File:
     '''
-        The Score class handles all file IO for the application. methods:
-            - load(); loads a score from a file
-            - save(); saves a score to a file
+        The FileOperations class handles all file IO for the application. 
+        It has the following methods:
+            - load(); loads a score from a .pianoscript file
+            - save(); saves a score to a .pianoscript file
             - saveas(); saves a score to a file with a new name
             - new(); creates a new score
             - save_check(); checks if the score has been saved
             - update_recent_file_menu(); updates the "Recent Files" menu
             - clear_recent_file_menu(); clears the "Recent Files" menu
             - load_recent_file(); loads a score from a recent file
+            - backwards_compatibility_check(); handles the backwards compatibility of the .pianoscript file
     '''
 
     def __init__(self, io):
@@ -109,6 +111,9 @@ class FileOperations:
             # load a score from a file into the score dict io['score']
             with open(file_path, 'r') as file:
                 self.io['score'] = json.load(file)
+
+            self.io['score'] = self.backwards_compitability_check(
+                self.io['score'], SCORE_TEMPLATE)  # TODO: Test
 
             # set to None to prevent auto save from overwriting the previously loaded file
             self.savepath = None
@@ -293,3 +298,18 @@ class FileOperations:
 
         # Update the "Recent Files" menu
         self.update_recent_file_menu()
+
+    # function to make .pianoscript files backwards compitabel
+    def backwards_compitability_check(self, score, template):
+        for key, value in template.items():
+            if key not in score:
+                score[key] = value
+            elif isinstance(value, dict):
+                self.backwards_compitability_check(score[key], value)
+            elif isinstance(value, list) and value:
+                blueprint = value[0]
+                if isinstance(score[key], list):
+                    for item in score[key]:
+                        if isinstance(item, dict):
+                            self.backwards_compitability_check(item, blueprint)
+        return score
