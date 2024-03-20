@@ -41,7 +41,7 @@ from imports.editor.grideditor.measure_view import MeasureView
 from imports.editor.grideditor.lines_view import LinesView
 from imports.editor.grideditor.popup import Popup
 from imports.editor.grideditor.string_builder import StringBuilder
-
+from imports.editor.grideditor.show_help import ShowHelp
 from imports.icons.icons import get_icon
 
 
@@ -117,6 +117,7 @@ class GridDialog(QDialog):
         self.mute = False
         self._want_to_close = False
         self.tree_view.select(row=0)
+        self.show_help = None
 
     def keyPressEvent(self, event):
         """ a key was pressed """
@@ -588,30 +589,32 @@ class GridDialog(QDialog):
     def _on_help(self):
         """ show or hide the popup """
 
-        if not self.popup:
-            self.create_popup()
+        self.show_help = ShowHelp().show('Pianoscript')
 
-        builder = StringBuilder()
-        self.note = '[CLEAR]'
-        builder.append_line('Brief Help for the grid editor')
-        builder.append_line(' ')
-        builder.append_line('Select one of the grids on the left by clicking on the grid name')
-        builder.append_line('Edit the values with the controls on the left side')
-        builder.append_line('Create an empty measure by deselecting the "visible" check box')
-        builder.append_line('Add or delete the definition with the "Add" and "Del" button')
-        builder.append_line('Edit the count lines in the tree in the column in the middle')
-        builder.append_line('Select a location of a new line with the spin box below that column')
-        builder.append_line('The step for the location of the line is 64, equivalent to a 1/16 note')
-        builder.append_line('Add the location to the list of lines with the "Add" button on the right')
-        builder.append_line('Delete the current location with the "Del" button on the right')
-        builder.append_line('Reset the lines to the default with the "Reset" button')
-        builder.append_line('Also use the "Reset" button after changing the Signature')
-        builder.append_line('A preview is drawn on the right column')
-        self.note = builder.to_string()
-
-        # 256 quarter
-        # 128 eights
-        # 64 sixteenth
+        # if not self.popup:
+        #     self.create_popup()
+        #
+        # builder = StringBuilder()
+        # self.note = '[CLEAR]'
+        # builder.append_line('Brief Help for the grid editor')
+        # builder.append_line(' ')
+        # builder.append_line('Select one of the grids on the left by clicking on the grid name')
+        # builder.append_line('Edit the values with the controls on the left side')
+        # builder.append_line('Create an empty measure by deselecting the "visible" check box')
+        # builder.append_line('Add or delete the definition with the "Add" and "Del" button')
+        # builder.append_line('Edit the count lines in the tree in the column in the middle')
+        # builder.append_line('Select a location of a new line with the spin box below that column')
+        # builder.append_line('The step for the location of the line is 64, equivalent to a 1/16 note')
+        # builder.append_line('Add the location to the list of lines with the "Add" button on the right')
+        # builder.append_line('Delete the current location with the "Del" button on the right')
+        # builder.append_line('Reset the lines to the default with the "Reset" button')
+        # builder.append_line('Also use the "Reset" button after changing the Signature')
+        # builder.append_line('A preview is drawn on the right column')
+        # self.note = builder.to_string()
+        #
+        # # 256 quarter
+        # # 128 eights
+        # # 64 sixteenth
 
     @property
     def selected(self) -> str:
