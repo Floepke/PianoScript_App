@@ -2,6 +2,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtCore import Qt
 
 from imports.gui.gui import Gui, QColor
 from imports.utils.drawutil import DrawUtil
@@ -16,6 +17,7 @@ from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
+from imports.editor.grideditor.show_help import ShowHelp
 from imports.editor.grideditor.popup import Popup
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.gui.style import Style
@@ -177,7 +179,11 @@ class PianoScript():
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
         self.gui.line_break_editor_action.triggered.connect(
             self.open_line_break_editor)
+
         # shortcuts
+        help_shortcut = QShortcut(QKeySequence(Qt.Key_F1), self.root)
+        help_shortcut.activated.connect(self._show_help)
+
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
         cut_shortcut.activated.connect(self.io['selectoperations'].cut)
         copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.root)
@@ -279,6 +285,11 @@ class PianoScript():
                   text_size=(100, 21))
 
             self.io['maineditor'].update('grid_editor')
+
+    def _show_help(self):
+        """ show the introduction for the help """
+
+        ShowHelp().show("Pianoscript")
 
 
 if __name__ == '__main__':
