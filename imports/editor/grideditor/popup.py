@@ -31,7 +31,8 @@ class Popup(QDialog):
                  message: str,
                  text_size: tuple = (400, 240),
                  max_lines: int = 16,
-                 result_callback: Callable = None):
+                 result_callback: Callable = None,
+                 timeout: int = None):
         """ initialize the class """
 
         super().__init__(parent=None)
@@ -76,6 +77,9 @@ class Popup(QDialog):
         # pylint: enable=invalid-name
         self.setLayout(popup_layout)
         self.append(message)
+
+        if timeout is not None:
+            self.timer = Timer(interval=timout, function=self.close)
 
         self.show()
 
