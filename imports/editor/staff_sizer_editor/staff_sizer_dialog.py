@@ -31,10 +31,10 @@ from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtCore import QModelIndex
 # pylint: enable=no-name-in-module
 
+from imports.editor.grideditor.dialog_result import DialogResult
+from imports.editor.grideditor.show_help import ShowHelp
 from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
 from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
-from imports.editor.grideditor.dialog_result import DialogResult
-
 from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
 from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
 from imports.icons.icons import get_pixmap
@@ -117,8 +117,10 @@ class StaffSizerDialog(QDialog):
         ok_button.clicked.connect(self._on_ok)
         ok_cancel.layout().addWidget(ok_button, 0, 0, 1, 1)
 
-        filler_label = QLabel()
-        ok_cancel.layout().addWidget(filler_label, 0, 1, 1, 1)
+        help_button = QPushButton(parent=parent)
+        help_button.setText('Help')
+        help_button.clicked.connect(self._on_help)
+        ok_cancel.layout().addWidget(help_button, 0, 1, 1, 1)
 
         cancel_button = QPushButton(parent=parent)
         cancel_button.setText('Cancel')
@@ -182,3 +184,8 @@ class StaffSizerDialog(QDialog):
             self.callback(self.result, data)
 
     # pylint: enable=invalid-name
+
+    def _on_help(self):
+        """ show the help page """
+
+        self.show_help = ShowHelp().show('LineBreakEditor')
