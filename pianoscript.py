@@ -51,8 +51,8 @@ class PianoScript():
                 'y2': 0,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
                 'selection_buffer': SaveFileStructureSource.new_events_folder(),
-                # the buffer that holds any copied or cutted selection; same structure as above
-                'copycut_buffer': SaveFileStructureSource.new_events_folder(),
+                # the clipboard that holds any copied or cutted selection; same structure as above
+                'clipboard': SaveFileStructureSource.new_events_folder(),
                 # all event types that are alowed to copy, cut, paste
                 'copy_types': ['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that are alowed to transpose (are pitch based)

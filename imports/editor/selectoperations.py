@@ -31,7 +31,7 @@ class SelectOperations:
 
     def cut(self):
         '''cuts the selected events into the clipboard'''
-        self.io['selection']['copycut_buffer'] = copy.deepcopy(
+        self.io['selection']['clipboard'] = copy.deepcopy(
             self.io['selection']['selection_buffer'])
 
         # delete the selected events
@@ -45,7 +45,7 @@ class SelectOperations:
 
     def copy(self):
         '''copies the selected events into the clipboard'''
-        self.io['selection']['copycut_buffer'] = copy.deepcopy(
+        self.io['selection']['clipboard'] = copy.deepcopy(
             self.io['selection']['selection_buffer'])
 
         print('copy')
@@ -56,12 +56,12 @@ class SelectOperations:
         first_evt = False
 
         # paste the events from the clipboard into the score
-        for event_type in self.io['selection']['copycut_buffer'].keys():
-            for event in self.io['selection']['copycut_buffer'][event_type]:
+        for event_type in self.io['selection']['clipboard'].keys():
+            for event in self.io['selection']['clipboard'][event_type]:
                 # find lowest time value in the clipboard
                 if not first_evt:
                     first_evt = min(
-                        self.io['selection']['copycut_buffer'][event_type], key=lambda x: x['time'])['time']
+                        self.io['selection']['clipboard'][event_type], key=lambda x: x['time'])['time']
                 mouse_time = self.io['calc'].y2tick_editor(
                     self.io['mouse']['y'], snap=True)
                 new = copy.deepcopy(event)

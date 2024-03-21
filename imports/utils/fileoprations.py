@@ -4,7 +4,7 @@ import os
 import datetime
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QAction
-from imports.utils.constants import SCORE_TEMPLATE
+from imports.utils.constants import SCORE_TEMPLATE, BLUEPRINT
 from imports.utils.savefilestructure import SaveFileStructureSource
 
 
@@ -113,7 +113,7 @@ class File:
                 self.io['score'] = json.load(file)
 
             self.io['score'] = self.backwards_compitability_check(
-                self.io['score'], SCORE_TEMPLATE)  # TODO: Test
+                self.io['score'], BLUEPRINT)  # TODO: Test
 
             # set to None to prevent auto save from overwriting the previously loaded file
             self.savepath = None

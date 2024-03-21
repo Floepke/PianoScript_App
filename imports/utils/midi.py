@@ -83,7 +83,7 @@ class Midi:
                     track_name = msg['name']
                     track_hand = self.leftorright(track, msg['name'])
 
-                # en_of_track means we need to reset the time to zero
+                # end_of_track means we need to reset the time to zero
                 if msg['type'] == 'end_of_track':
                     msg['track'] = track
                     all_msg.append(msg)
@@ -134,11 +134,12 @@ class Midi:
             if i['type'] == 'time_signature':
 
                 # create grid
-                length = int(int(
+                measure_ticks = int(int(
                     i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
+                print('midiimport', measure_ticks)
                 msg = {
                     'tag': 'grid',
-                    'amount': int(i['duration'] / length),
+                    'amount': int(i['duration'] / measure_ticks),
                     'numerator': i['numerator'],
                     'denominator': i['denominator'],
                     'grid': [],
@@ -147,7 +148,7 @@ class Midi:
 
                 # calculate grid ticks
                 for g in range(i['numerator']):
-                    msg['grid'].append(length * (g + 1))
+                    msg['grid'].append(measure_ticks * (g + 1))
 
                 # add the message
                 self.io['score']['events']['grid'].append(msg)
@@ -252,61 +253,3 @@ class Midi:
             # saving the midi file
             with open(file_path, "wb") as output_file:
                 MyMIDI.writeFile(output_file)
-
-    # def play_midi(self):
-    #     self.export_midi(export=False)
-
-    #     # disable the play button
-    #     self.io['gui'].toolbar.play_button.setEnabled(False)
-
-    #     # Load the MIDI file
-    #     mid = mido.MidiFile(os.path.expanduser('~/.pianoscript/play.mid'))
-
-    #     # Get all output ports
-    #     self.outports = [mido.open_output(name)
-    #                      for name in mido.get_output_names()]
-
-    #     # Set the playing flag to True
-    #     self.playing = True
-
-    #     # Play the MIDI file on all output ports
-    #     def play():
-    #         for msg in mid.play():
-    #             # If the playing flag is False, stop playing
-    #             if not self.playing:
-    #                 break
-    #             with self.lock:  # Acquire the lock before sending messages
-    #                 for outport in self.outports:
-    #                     outport.send(msg)
-
-    #         # Close all output ports
-    #         for outport in self.outports:
-    #             outport.close()
-
-    #         # Enable the play button
-    #         self.io['gui'].toolbar.play_button.setEnabled(True)
-
-    #     self.play_thread = threading.Thread(target=play)
-    #     self.play_thread.start()
-
-    # def stop_midi(self):
-    #     # Set the playing flag to False
-    #     self.playing = False
-
-    #     # Send an "All Sound Off" or "All Notes Off" message to each channel
-    #     with self.lock:  # Acquire the lock before sending messages
-    #         for outport in self.outports:
-    #             for channel in range(16):  # MIDI channels are 0-15
-    #                 all_sound_off = mido.Message(
-    #                     'control_change', channel=channel, control=120, value=0)
-    #                 all_notes_off = mido.Message(
-    #                     'control_change', channel=channel, control=123, value=0)
-    #                 outport.send(all_sound_off)
-    #                 outport.send(all_notes_off)
-
-    #     # Wait for the play thread to finish
-    #     if self.play_thread is not None:
-    #         self.play_thread.join()
-
-    #     # Enable the play button
-    #     self.io['gui'].toolbar.play_button.setEnabled(True)

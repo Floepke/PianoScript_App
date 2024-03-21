@@ -105,37 +105,36 @@ SCORE_TEMPLATE = {
                 'amount': 8,
                 'numerator': 4,
                 'denominator': 4,
-                # a list of ticks relative to the start of every measure. every tick is a gridline
-                'grid': [256, 512, 768],
+                'grid': [256, 512, 768], # a list of ticks relative to the start of every measure. every tick is a gridline
                 'visible': True
             }
         ],
-        'note': [
-            SaveFileStructureSource.new_note('blueprint')
-        ],
-        'countline': [
-            SaveFileStructureSource.new_countline('blueprint')
-        ],
-        'linebreak': [
-            SaveFileStructureSource.new_linebreak('lockedlinebreak', 0)
-        ],
+        'note': [],
+        'countline': [],
+        'linebreak': [],
         'startrepeat': [],
         'endrepeat': [],
         'starthook': [],
         'endhook': [],
         'dot': [],
         'stop': [],
-        'beam': [
-            SaveFileStructureSource.new_beam('blueprint')
-        ],
-        'gracenote': [
-            SaveFileStructureSource.new_gracenote('blueprint')
-        ],
+        'beam': [],
+        'gracenote': [],
         'text': [],
         'pedal': [],
         'slur': []
     }
 }
+
+# blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event
+import copy
+BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
+BLUEPRINT['note'] = [SaveFileStructureSource.new_note('blueprint')]
+BLUEPRINT['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
+BLUEPRINT['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
+BLUEPRINT['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
 
 # the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88
 BLACK_KEYS = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46,
@@ -193,6 +192,5 @@ STAFF_X_UNIT_EDITOR = (EDITOR_WIDTH - (EDITOR_MARGIN * 2)) / 49
 PITCH_UNIT = 1
 
 # RECENT FILES ----------------------------------------------------------------------------------------
-
 RECENT_FILES_LIMIT = 10
 RECENT_FILE_JSON_TEMPLATE = []

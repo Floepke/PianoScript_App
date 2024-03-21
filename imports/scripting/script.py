@@ -28,7 +28,10 @@ class Script:
 
     def __init__(self, io):
         self.__io = io
-        self.score = io['score']
+    
+    @property
+    def score(self):
+        return self.__io['score']
 
     # User input functions:
     def ask_str(self, message='Enter text:'):

@@ -1,4 +1,3 @@
-from typing import Tuple
 
 
 class SaveFileStructureSource:
@@ -57,7 +56,8 @@ class SaveFileStructureSource:
             duration: float = 256,  # in linear time in pianoticks 0 to infinity
             hand: str = 'l',  # 'l' or 'r'
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
-            attached: str = ''  # possible are the following symbols in any order: '>' = accent, '.' = staccato, '-' = tenuto, 'v' = staccatissimo, '#' = sharp, 'b' = flat, '^' = marcato
+            attached: str = '',  # possible are the following symbols in any order: '>' = accent, '.' = staccato, '-' = tenuto, 'v' = staccatissimo, '#' = sharp, 'b' = flat, '^' = marcato
+            track: int = 0  # track number
     ):
         '''The note event structure.'''
         return {
@@ -67,7 +67,8 @@ class SaveFileStructureSource:
             'duration': duration,
             'hand': hand,
             'staff': staff,
-            'attached': attached
+            'attached': attached,
+            'track': track
         }
 
     def new_grid(
@@ -164,7 +165,7 @@ class SaveFileStructureSource:
             hand: str = 'l',  # 'l' or 'r'
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
-        '''The note event structure.'''
+        '''The gracenote event structure.'''
         return {
             'tag': tag,
             'pitch': pitch,
