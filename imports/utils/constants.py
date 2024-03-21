@@ -111,7 +111,9 @@ SCORE_TEMPLATE = {
         ],
         'note': [],
         'countline': [],
-        'linebreak': [],
+        'linebreak': [
+            SaveFileStructureSource.new_linebreak('lockedlinebreak')
+        ],
         'startrepeat': [],
         'endrepeat': [],
         'starthook': [],

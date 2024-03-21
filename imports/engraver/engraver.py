@@ -117,7 +117,7 @@ def pre_render(io, render_type='default'):
         # add endbarline event
         DOC.append({'type': 'endbarline',
                     'time': io['calc'].get_total_score_ticks() - FRACTION})
-
+        
         # add all events from io['score]['events] to the doc
         for key in io['score']['events'].keys():
             if key not in ['grid', 'linebreak']:

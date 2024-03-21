@@ -2,6 +2,7 @@ from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
 import mido, os, copy, threading
 from midiutil.MidiFile import MIDIFile
+from imports.utils.savefilestructure import SaveFileStructureSource
 
 
 class Midi:
@@ -110,7 +111,7 @@ class Midi:
                         evt['duration'] = n['time'] - evt['time']
                         break
             elif evt['type'] == 'time_signature':
-                for idx2, t in enumerate(all_msg[idx+1:]):
+                for idx_tsig, t in enumerate(all_msg[idx+1:]):
                     if t['type'] == 'time_signature' or t == all_msg[-1]:
                         evt['duration'] = t['time'] - evt['time']
                         break
@@ -134,9 +135,8 @@ class Midi:
             if i['type'] == 'time_signature':
 
                 # create grid
-                measure_ticks = int(int(
-                    i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
-                print('midiimport', measure_ticks)
+                measure_ticks = int(int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
+                print('iduration', i['duration'], 'measure_ticks', measure_ticks)
                 msg = {
                     'tag': 'grid',
                     'amount': int(i['duration'] / measure_ticks),
@@ -165,6 +165,15 @@ class Midi:
                         'accidental': 0,
                         'staff': 0,
                         'notestop': True}
+                
+                note = SaveFileStructureSource.new_note(time=i['time'],
+                                                        duration=i['duration'],
+                                                        pitch=i['note'] - 20,
+                                                        hand=i['hand'],
+                                                        tag='note',
+                                                        staff=0,
+                                                        track=i['track'],
+                                                        )
 
                 self.io['score']['events']['note'].append(note)
 
