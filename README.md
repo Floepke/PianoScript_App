@@ -7,5 +7,6 @@ PianoScript is a music notation format for the piano. It's based on Klavarskribo
 - Keyboard layout point and click editor
 - more...
 
-  ![image](https://github.com/Floepke/PianoScript_App/assets/59042700/da7f26e0-4398-4962-ab43-b9f8b20ec5a7)
+![image](https://github.com/Floepke/PianoScript_App/assets/59042700/544c7aff-76a1-4c75-a1f1-043d7f189da3)
+
 
