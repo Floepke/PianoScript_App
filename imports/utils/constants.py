@@ -96,7 +96,8 @@ SCORE_TEMPLATE = {
                 'staff_scale': 1.0,
                 'engrave_name': False
             }
-        ]
+        ],
+        'timestamp_onoff': True
     },
     'events': {
         'grid': [
@@ -125,7 +126,8 @@ SCORE_TEMPLATE = {
         'text': [],
         'pedal': [],
         'slur': []
-    }
+    },
+    'midi_data': []
 }
 
 # blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event

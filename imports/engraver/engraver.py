@@ -398,20 +398,23 @@ def render(
             if idx_page == 0:
                 # draw the title
                 io['view'].new_text(page_margin_left,
-                                    y_cursor,
+                                    y_cursor-5,
                                     io['score']['header']['title'],
                                     size=8,
                                     tag=['title'],
-                                    font='Courier new',
-                                    anchor='w')
+                                    font='Edwin',
+                                    anchor='nw')
                 # draw the composer
+                composer_text = io['score']['header']['composer']
+                if io['score']['properties']['timestamp_onoff']:
+                    composer_text += '\n' + io['score']['header']['timestamp']
                 io['view'].new_text(Right - page_margin_right,
-                                    y_cursor,
-                                    io['score']['header']['composer'],
+                                    y_cursor-5,
+                                    composer_text,
                                     size=4,
                                     tag=['composer'],
-                                    font='Courier new',
-                                    anchor='e')
+                                    font='Edwin',
+                                    anchor='ne')
 
             #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 y_cursor += io['score']['properties']['header_height']

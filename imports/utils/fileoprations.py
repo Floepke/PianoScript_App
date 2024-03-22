@@ -154,7 +154,7 @@ class File:
     def save(self):
         if self.savepath:
             with open(self.savepath, 'w') as file:
-                json.dump(self.io['score'], file, indent=4)
+                json.dump(self.io['score'], file, separators=(',', ':'))
             self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
         else:
             self.saveas()
@@ -165,7 +165,7 @@ class File:
         if file_path:
             self.io['gui'].main.statusBar().showMessage('Save as...', 10000)
             with open(file_path, 'w') as file:
-                json.dump(self.io['score'], file, indent=4)
+                json.dump(self.io['score'], file, separators=(',', ':'))
             self.savepath = file_path
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
@@ -187,7 +187,7 @@ class File:
     def auto_save(self):
         if self.savepath and self.io['autosave']:
             with open(self.savepath, 'w') as file:
-                json.dump(self.io['score'], file, indent=4)
+                json.dump(self.io['score'], file, separators=(',', ':'))
 
     def toggle_autosave(self):
         self.io['autosave'] = not self.io['autosave']

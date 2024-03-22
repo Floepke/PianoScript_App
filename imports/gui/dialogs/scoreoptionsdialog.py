@@ -183,72 +183,17 @@ class ScoreOptionsDialog(QDialog):
         elements_form_layout = QFormLayout()
         elements_form_layout.setFieldGrowthPolicy(
             QFormLayout.AllNonFixedFieldsGrow)
-
-        # onoff checkboxes
-        self.staff_onoff = QCheckBox()
-        self.staff_onoff.setChecked(
-            self.io['score']['properties']['staff_onoff'])
-        self.minipiano_onoff = QCheckBox()
-        self.minipiano_onoff.setChecked(
-            self.io['score']['properties']['minipiano_onoff'])
-        self.stem_onoff = QCheckBox()
-        self.stem_onoff.setChecked(
-            self.io['score']['properties']['stem_onoff'])
-        self.beam_onoff = QCheckBox()
-        self.beam_onoff.setChecked(
-            self.io['score']['properties']['beam_onoff'])
-        self.note_onoff = QCheckBox()
-        self.note_onoff.setChecked(
-            self.io['score']['properties']['note_onoff'])
-        self.midinote_onoff = QCheckBox()
-        self.midinote_onoff.setChecked(
-            self.io['score']['properties']['midinote_onoff'])
-        self.notestop_onoff = QCheckBox()
-        self.notestop_onoff.setChecked(
-            self.io['score']['properties']['notestop_onoff'])
-        self.page_numbering_onoff = QCheckBox()
-        self.page_numbering_onoff.setChecked(
-            self.io['score']['properties']['page_numbering_onoff'])
-        self.barlines_onoff = QCheckBox()
-        self.barlines_onoff.setChecked(
-            self.io['score']['properties']['barlines_onoff'])
-        self.basegrid_onoff = QCheckBox()
-        self.basegrid_onoff.setChecked(
-            self.io['score']['properties']['basegrid_onoff'])
-        self.countline_onoff = QCheckBox()
-        self.countline_onoff.setChecked(
-            self.io['score']['properties']['countline_onoff'])
-        self.measure_numbering_onoff = QCheckBox()
-        self.measure_numbering_onoff.setChecked(
-            self.io['score']['properties']['measure_numbering_onoff'])
-        self.accidental_onoff = QCheckBox()
-        self.accidental_onoff.setChecked(
-            self.io['score']['properties']['accidental_onoff'])
-        self.soundingdot_onoff = QCheckBox()
-        self.soundingdot_onoff.setChecked(
-            self.io['score']['properties']['soundingdot_onoff'])
-        self.leftdot_onoff = QCheckBox()
-        self.leftdot_onoff.setChecked(
-            self.io['score']['properties']['leftdot_onoff'])
-
-        # add the checkboxes
-        elements_form_layout.addRow('Staff:', self.staff_onoff)
-        elements_form_layout.addRow('MiniPiano:', self.minipiano_onoff)
-        elements_form_layout.addRow('Stem:', self.stem_onoff)
-        elements_form_layout.addRow('Beam:', self.beam_onoff)
-        elements_form_layout.addRow('Note:', self.note_onoff)
-        elements_form_layout.addRow('MidiNote:', self.midinote_onoff)
-        elements_form_layout.addRow('NoteStop:', self.notestop_onoff)
-        elements_form_layout.addRow(
-            'Page Numbering:', self.page_numbering_onoff)
-        elements_form_layout.addRow('Barlines:', self.barlines_onoff)
-        elements_form_layout.addRow('Basegrid:', self.basegrid_onoff)
-        elements_form_layout.addRow('Countline:', self.countline_onoff)
-        elements_form_layout.addRow(
-            'Measure Numbering:', self.measure_numbering_onoff)
-        elements_form_layout.addRow('Accidental:', self.accidental_onoff)
-        elements_form_layout.addRow('SoundingDot:', self.soundingdot_onoff)
-        elements_form_layout.addRow('LeftDot:', self.leftdot_onoff)
+        
+        # build all checkboxes from the .pianoscript file; all keys that have 'onoff' in the keyname will be automatically added to the dialog
+        for onoff in self.io['score']['properties'].keys():
+            if 'onoff' in onoff:
+                # create a checkbox
+                checkbox = QCheckBox()
+                checkbox.setChecked(self.io['score']['properties'][onoff])
+                # add the checkbox to the form layout
+                elements_form_layout.addRow(f'{onoff}: ', checkbox)
+                # create an instance variable for the checkbox
+                setattr(self, f'{onoff}', checkbox)
 
         elements_layout.addLayout(elements_form_layout)
 
@@ -424,36 +369,16 @@ class ScoreOptionsDialog(QDialog):
         self.io['score']['properties']['color_right_midinote'] = self.color_right_midinote.currentText()
         self.io['score']['properties']['color_left_midinote'] = self.color_left_midinote.currentText()
 
-        # onoff tab
-        self.io['score']['properties']['staff_onoff'] = self.staff_onoff.isChecked()
-        self.io['score']['properties']['minipiano_onoff'] = self.minipiano_onoff.isChecked()
-        self.io['score']['properties']['stem_onoff'] = self.stem_onoff.isChecked()
-        self.io['score']['properties']['beam_onoff'] = self.beam_onoff.isChecked()
-        self.io['score']['properties']['note_onoff'] = self.note_onoff.isChecked()
-        self.io['score']['properties']['midinote_onoff'] = self.midinote_onoff.isChecked()
-        self.io['score']['properties']['notestop_onoff'] = self.notestop_onoff.isChecked()
-        self.io['score']['properties']['page_numbering_onoff'] = self.page_numbering_onoff.isChecked()
-        self.io['score']['properties']['barlines_onoff'] = self.barlines_onoff.isChecked()
-        self.io['score']['properties']['basegrid_onoff'] = self.basegrid_onoff.isChecked()
-        self.io['score']['properties']['countline_onoff'] = self.countline_onoff.isChecked()
-        self.io['score']['properties']['measure_numbering_onoff'] = self.measure_numbering_onoff.isChecked()
-        self.io['score']['properties']['accidental_onoff'] = self.accidental_onoff.isChecked()
-        self.io['score']['properties']['soundingdot_onoff'] = self.soundingdot_onoff.isChecked()
-        self.io['score']['properties']['leftdot_onoff'] = self.leftdot_onoff.isChecked()
+        # onoff tab; we read all properties that have 'onoff' in the key name which are always bool in .pianoscript files.
+        for key in self.io['score']['properties'].keys():
+            if 'onoff' in key:
+                self.io['score']['properties'][key] = getattr(self, key).isChecked()
 
         # staff tab
-        self.io['score']['properties']['staffs'][0]['name'] = self.staff1_name.text()
-        self.io['score']['properties']['staffs'][0]['staff_scale'] = self.staff1_scale.value()
-        self.io['score']['properties']['staffs'][0]['engrave_name'] = self.staff1_engrave_name.isChecked()
-        self.io['score']['properties']['staffs'][1]['name'] = self.staff2_name.text()
-        self.io['score']['properties']['staffs'][1]['staff_scale'] = self.staff2_scale.value()
-        self.io['score']['properties']['staffs'][1]['engrave_name'] = self.staff2_engrave_name.isChecked()
-        self.io['score']['properties']['staffs'][2]['name'] = self.staff3_name.text()
-        self.io['score']['properties']['staffs'][2]['staff_scale'] = self.staff3_scale.value()
-        self.io['score']['properties']['staffs'][2]['engrave_name'] = self.staff3_engrave_name.isChecked()
-        self.io['score']['properties']['staffs'][3]['name'] = self.staff4_name.text()
-        self.io['score']['properties']['staffs'][3]['staff_scale'] = self.staff4_scale.value()
-        self.io['score']['properties']['staffs'][3]['engrave_name'] = self.staff4_engrave_name.isChecked()
+        for st in range(4):
+            self.io['score']['properties']['staffs'][st]['name'] = eval(f'self.staff{st+1}_name.text()')
+            self.io['score']['properties']['staffs'][st]['staff_scale'] = self.staff1_scale.value()
+            self.io['score']['properties']['staffs'][st]['engrave_name'] = self.staff1_engrave_name.isChecked()
 
         self.io['maineditor'].update('score_options')
 

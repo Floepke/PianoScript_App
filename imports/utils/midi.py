@@ -79,6 +79,7 @@ class Midi:
 
             # check for every track if it contains any note. if not we delete all events from that track.
             placeholder = []
+            track_names = {}
             for tracks in range(16):
                 track_events = [evt for evt in events if evt['track'] == tracks]
                 contains_desired = False
@@ -87,6 +88,10 @@ class Midi:
                         contains_desired = True
                         break
                 if contains_desired:
+                    # search for track name
+                    for evt2 in track_events:
+                        if evt2['type'] == 'track_name':
+                            track_names[tracks] = evt2['name']
                     for evt in track_events:
                         placeholder.append(evt)
             events = placeholder
@@ -131,20 +136,17 @@ class Midi:
             filter = ['note_off', 'end_of_track']
             events = [evt for evt in events if not evt['type'] in filter]
 
-            return events
-        
-        def default_grid(n, d, evt):
+            # for eye candy I like to change the name note_on to note because it's noth note on and off
+            for note in events: 
+                if note['type'] == 'note_on':
+                    note['type'] = 'note'
 
-            m_length = self.io['calc'].get_measure_length(evt)
-            out = []
-            for i in range(n):
-                out.append(m_length / n * (i+1))
-            return out
+            return events
         
         # get a dict from which we can add the notes
         events = read_midi(file_path)
         for evt in events:
-            if evt['type'] == 'note_on':
+            if evt['type'] == 'note':
                 new = SaveFileStructureSource.new_note(
                     tag = 0,
                     pitch = evt['note'] - 20,
@@ -160,7 +162,7 @@ class Midi:
                 measure_length = self.io['calc'].get_measure_length(evt)
                 amount = int(evt['duration'] / measure_length)
                 grid = []
-                for numerator_count in range(evt['numerator']):
+                for numerator_count in range(evt['numerator']-1):
                     grid.append(measure_length / evt['numerator'] * (numerator_count+1))
                 new = SaveFileStructureSource.new_grid(
                     amount = amount,
@@ -169,6 +171,9 @@ class Midi:
                     grid = grid,
                 )
                 self.io['score']['events']['grid'].append(new)
+
+        # add the imported midi message to the .pianoscript file
+        self.io['score']['midi_data'] = events
 
         # renumber tags
         self.io['calc'].renumber_tags()
