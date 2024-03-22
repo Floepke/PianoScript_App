@@ -79,7 +79,7 @@ class Popup(QDialog):
         self.append(message)
 
         if timeout is not None:
-            self.timer = Timer(interval=timout, function=self.close)
+            self.timer = Timer(interval=timeout, function=self.close)
 
         self.show()
 

@@ -186,6 +186,9 @@ class Note:
                                   width=thickness,
                                   color=color)
 
+        # assign a default value to midicolor
+        midicolor = '#000000'  # default color is black, change as needed
+
         # draw the midi note
         if note['tag'] == 'edit_obj':
             midicolor = '#aa0'
@@ -196,6 +199,7 @@ class Note:
                 midicolor = io['score']['properties']['color_left_midinote']
             elif note['hand'] == 'r':
                 midicolor = io['score']['properties']['color_right_midinote']
+        ...
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
         io['editor'].new_polygon([(x, y),

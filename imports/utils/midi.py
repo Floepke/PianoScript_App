@@ -1,6 +1,6 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
-import mido, os, copy, threading
+import mido, os, copy, threading, json
 from midiutil.MidiFile import MIDIFile
 from imports.utils.savefilestructure import SaveFileStructureSource
 
@@ -46,136 +46,129 @@ class Midi:
         if not file_path:
             return
 
-        # as starting point we load the source Blueprint/template and empty the neccessary fields
-        self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
-
-        # we set the midi import propery to true
-        self.io['midi_import'] = True
-
-        # set title to name of the midi file
+        # load the template
+        path = os.path.expanduser('~/.pianoscript/template.pianoscript')
+        dir = os.path.dirname(path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if not os.path.exists(path):
+            with open(path, 'w') as file:
+                json.dump(SCORE_TEMPLATE, file, indent=4)
+        with open(path, 'r') as file:
+            self.io['score'] = json.load(file)
+        
+        # ensure the contents of the file are empty
         self.io['score']['header']['title'] = os.path.splitext(
             os.path.basename(file_path))[0]
-
-        # clear grid
+        self.io['events'] = SaveFileStructureSource.new_events_folder()
         self.io['score']['events']['grid'] = []
 
-        # Import the midi file and place the messages in dict
-        mid = mido.MidiFile(file_path)
+        def read_midi(filepath):
+            midi = mido.MidiFile(filepath)
 
-        tpb = mid.ticks_per_beat
-        all_msg = []
-        track = 0
-        track_name = 'Nameless Track'
-        track_hand = 'l'
+            events = []
+            
+            # create dict of all events and filter only the desired types
+            for i, track in enumerate(midi.tracks):
+                for msg in track:
+                    new = msg.dict()
+                    new['track'] = i
+                    events.append(new)
+            filter = ['time_signature', 'set_tempo', 'end_of_track', 'track_name', 'note_on', 'note_off']
+            events = [evt for evt in events if evt['type'] in filter]
 
-        # loop for creating a list of all messages that include relative time, track number
-        for tracks in mid.tracks:
+            # check for every track if it contains any note. if not we delete all events from that track.
+            placeholder = []
+            for tracks in range(16):
+                track_events = [evt for evt in events if evt['track'] == tracks]
+                contains_desired = False
+                for evt in track_events:
+                    if evt['type'] in ['note_on', 'note_off', 'set_tempo']:
+                        contains_desired = True
+                        break
+                if contains_desired:
+                    for evt in track_events:
+                        placeholder.append(evt)
+            events = placeholder
+
+            # change note_on with zero velocity to note_off.
+            for evt in events:
+                if evt['type'] == 'note_on':
+                    if evt['velocity'] == 0:
+                        evt['type'] = 'note_off'
+
+            # delta to relative time.
             time = 0
-            for msg in tracks:
-                msg = msg.dict()
+            for evt in events:
+                time += evt['time']
+                evt['time'] = time
+                if evt['type'] == 'end_of_track':
+                    time = 0
 
-                # delta time to relative time
-                msg['time'] += time
-                time = msg['time']
+            # convert time to pianoticks.
+            ticks_per_quarter = midi.ticks_per_beat
+            pianoticks_per_quarter = 256
+            for evt in events:
+                evt['time'] = evt['time'] * (pianoticks_per_quarter / ticks_per_quarter)
 
-                # track name
-                if msg['type'] == 'track_name':
-                    # asking user for input using pyside dialog
-                    track_name = msg['name']
-                    track_hand = self.leftorright(track, msg['name'])
+            # sort on time key
+            events = sorted(events, key=lambda evt: evt['time'])
 
-                # end_of_track means we need to reset the time to zero
-                if msg['type'] == 'end_of_track':
-                    msg['track'] = track
-                    all_msg.append(msg)
-                    track += 1
+            # calculate duration of note_on, time_signature
+            for idx, evt in enumerate(events):
+                if evt['type'] == 'note_on':
+                    for dur in events[idx+1:]:
+                        if dur['type'] == 'note_off' and dur['note'] == evt['note']:
+                            evt['duration'] = dur['time'] - evt['time']
+                            break
+                if evt['type'] == 'time_signature':
+                    for idx_dur, dur in enumerate(events[idx+1:]):
+                        if dur['type'] == 'time_signature' or len(events[idx+1:])-1 == idx_dur:
+                            evt['duration'] = dur['time'] - evt['time']
+                            break
+            
+            # delete note_off and end_of_track, we don't need them
+            filter = ['note_off', 'end_of_track']
+            events = [evt for evt in events if not evt['type'] in filter]
 
-                # note_off check
-                if msg['type'] == 'note_on' and msg['velocity'] == 0:
-                    msg['type'] = 'note_off'
+            return events
+        
+        def default_grid(n, d, evt):
 
-                if msg['type'] == 'note_on':
-                    msg['hand'] = track_hand
-
-                if msg['type'] in ['note_on', 'note_off', 'set_tempo', 'time_signature']:
-                    msg['track'] = track
-                    msg['track_name'] = track_name
-
-                    all_msg.append(msg)
-
-        # calculate duration
-        for idx, evt in enumerate(all_msg):
+            m_length = self.io['calc'].get_measure_length(evt)
+            out = []
+            for i in range(n):
+                out.append(m_length / n * (i+1))
+            return out
+        
+        # get a dict from which we can add the notes
+        events = read_midi(file_path)
+        for evt in events:
             if evt['type'] == 'note_on':
-                for n in all_msg[idx+1:]:
-                    if n['type'] == 'note_off' and evt['note'] == n['note'] and n['track'] == evt['track']:
-                        evt['duration'] = n['time'] - evt['time']
-                        break
+                new = SaveFileStructureSource.new_note(
+                    tag = 0,
+                    pitch = evt['note'] - 20,
+                    time = evt['time'],
+                    duration = evt['duration'],
+                    hand = 'l',
+                    staff = 0,
+                    track = evt['track'],
+                )
+                self.io['score']['events']['note'].append(new)
+
             elif evt['type'] == 'time_signature':
-                for idx_tsig, t in enumerate(all_msg[idx+1:]):
-                    if t['type'] == 'time_signature' or t == all_msg[-1]:
-                        evt['duration'] = t['time'] - evt['time']
-                        break
-
-            # check if has property duration
-            if 'duration' not in evt:
-                evt['duration'] = all_msg[-1]['time'] - evt['time']
-
-        # convert to pianoticks
-        for msg in all_msg:
-
-            msg['time'] = int(QUARTER_PIANOTICK / tpb * msg['time'])
-
-            if msg['type'] in ['note_on', 'time_signature']:
-                print(msg, msg['type'])
-                msg['duration'] = int(
-                    QUARTER_PIANOTICK / tpb * msg['duration'])
-
-        # write time_signatures and notes:
-        for i in all_msg:
-            if i['type'] == 'time_signature':
-
-                # create grid
-                measure_ticks = int(int(i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
-                print('iduration', i['duration'], 'measure_ticks', measure_ticks)
-                msg = {
-                    'tag': 'grid',
-                    'amount': int(i['duration'] / measure_ticks),
-                    'numerator': i['numerator'],
-                    'denominator': i['denominator'],
-                    'grid': [],
-                    'visible': True
-                }
-
-                # calculate grid ticks
-                for g in range(i['numerator']):
-                    msg['grid'].append(measure_ticks * (g + 1))
-
-                # add the message
-                self.io['score']['events']['grid'].append(msg)
-
-            # write notes
-            elif i['type'] == 'note_on':
-
-                note = {'time': i['time'],
-                        'duration': i['duration'],
-                        'pitch': i['note'] - 20,
-                        'hand': i['hand'],
-                        'tag': 'note',
-                        'stem-visible': True,
-                        'accidental': 0,
-                        'staff': 0,
-                        'notestop': True}
-                
-                note = SaveFileStructureSource.new_note(time=i['time'],
-                                                        duration=i['duration'],
-                                                        pitch=i['note'] - 20,
-                                                        hand=i['hand'],
-                                                        tag='note',
-                                                        staff=0,
-                                                        track=i['track'],
-                                                        )
-
-                self.io['score']['events']['note'].append(note)
+                measure_length = self.io['calc'].get_measure_length(evt)
+                amount = int(evt['duration'] / measure_length)
+                grid = []
+                for numerator_count in range(evt['numerator']):
+                    grid.append(measure_length / evt['numerator'] * (numerator_count+1))
+                new = SaveFileStructureSource.new_grid(
+                    amount = amount,
+                    numerator = evt['numerator'],
+                    denominator = evt['denominator'],
+                    grid = grid,
+                )
+                self.io['score']['events']['grid'].append(new)
 
         # renumber tags
         self.io['calc'].renumber_tags()
