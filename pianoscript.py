@@ -140,19 +140,16 @@ class PianoScript():
             'settings':None
         }
 
-        # load app settings:
-        # ensure there is a template.pianoscript in ~/.pianoscript
-        self._path = os.path.expanduser('~/.pianoscript/settings.json')
-        _dir = os.path.dirname(self._path)
-        if not os.path.exists(_dir):
-            os.makedirs(_dir)
-        if not os.path.exists(self._path):
-            with open(self._path, 'w') as file:
-                json.dump(INITIAL_SETTINGS, file, indent=4)
+        
+        # # ensure there is a settings.json in ~/.pianoscript
+        # self._path = os.path.expanduser('~/.pianoscript/settings.json')
+        # _dir = os.path.dirname(self._path)
+        # if not os.path.exists(_dir):
+        #     os.makedirs(_dir)
+        # if not os.path.exists(self._path):
+        #     with open(self._path, 'w') as file:
+        #         json.dump(INITIAL_SETTINGS, file, indent=4)
 
-        # load the settings.json
-        with open(self._path, 'r') as file:
-            self.io['settings'] = json.load(file)
 
         # setup
         self.app = QApplication(sys.argv)
@@ -174,6 +171,12 @@ class PianoScript():
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = File(self.io)
+        
+        # load app settings:
+        self.settings_path = self.io['fileoperations'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
+        with open(self.settings_path, 'r') as file:
+            self.io['settings'] = json.load(file)
+        
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
@@ -260,7 +263,7 @@ class PianoScript():
             self.line_break_dialog.close()
 
         # save the settings to the drive
-        with open(self._path, 'w') as f:
+        with open(self.settings_path, 'w') as f:
             json.dump(self.io['settings'], f)
 
     def open_grid_editor(self):

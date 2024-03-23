@@ -63,13 +63,7 @@ class File:
         self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
         # ensure there is a template.pianoscript in ~/.pianoscript
-        path = os.path.expanduser('~/.pianoscript/template.pianoscript')
-        dir = os.path.dirname(path)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if not os.path.exists(path):
-            with open(path, 'w') as file:
-                json.dump(SCORE_TEMPLATE, file, indent=4)
+        path = self.ensure_json('~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
 
         # load the template.pianoscript
         with open(path, 'r') as file:
@@ -319,12 +313,27 @@ class File:
                             self.backwards_compitability_check(item, blueprint)
         return score
 
-    # Connect the item clicked signal to a slot
     def handle_item_clicked(self, index):
-        file_info = self.io['gui'].file_browser.tree_view.model().fileInfo(index)
+        source_index = self.io['gui'].file_browser.tree_view.model().mapToSource(index)
+        file_info = self.io['gui'].file_browser.model.fileInfo(source_index)
         if file_info.isFile():
             file_path = file_info.filePath()
             if file_path.endswith(".pianoscript"):
                 self.load(file_path)
             elif file_path.endswith(".mid"):
                 self.io['midi'].load_midi(file_path)
+
+    def ensure_json(self, json_path, fallback_json):
+        '''This function checks: 
+            1. if the file_path exists
+            2. if not it creates the directory
+            3. places the file in the new or already existing directory'''
+
+        json_path = os.path.expanduser(json_path)
+        dir = os.path.dirname(json_path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if not os.path.exists(json_path):
+            with open(json_path, 'w') as file:
+                json.dump(fallback_json, file, indent=4)
+        return json_path
