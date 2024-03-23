@@ -50,3 +50,27 @@ def script_3_User_input_for_scripts(script):
         script.score['header']['title'] = user_input
         script.info(f'''This script changed the title of the current header title to "{user_input}".''')
 
+
+def script_4_Script_template(script):
+    text = f'''If you want you can now create your first script by creating: 
+    "USERNAME/.pianoscript/pianoscripts/myscript.py"and write your own script 
+    by copying the {script_4_Script_template.__name__}() function to your
+    myscript.py file.
+    Run the script using menu Scripts>User>4 Script template.'''
+
+    script.info(text)
+
+    text = '''This script is showing some examples of what you can do with scripts.
+    A list of all available functions you can call from "script":'''
+
+    list_of_available_functions = [
+        (script.ask_str, 'asks for a string and returns user_input or None.'),
+        (script.ask_int, 'asks for a int; returns int or None'),
+        (script.ask_float, 'asks for a float; returns float or None'),
+        (script.ask_yesno, 'asks for yes or no; returns True or False'),
+        (script.ask_list, 'asks the user for a string and returns a tuple (chosen_value, chosen_index)')
+    ]
+    for available_functions in list_of_available_functions:
+        available_functions[0](available_functions[1])
+
+    

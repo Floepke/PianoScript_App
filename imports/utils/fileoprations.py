@@ -43,7 +43,9 @@ class File:
 
         self.new()
 
-    def new(self):
+        self.io['gui'].file_browser.tree_view.clicked.connect(self.handle_item_clicked)
+
+    def new(self, _path=None):
 
         if self.savepath:
             if not self.save_check():
@@ -201,6 +203,9 @@ class File:
 
     def save_check(self):
 
+        if self.io['settings']['autosave']:
+            return True
+
         # check if current file was changed
         if self.savepath:
             with open(self.savepath, 'r') as file:
@@ -313,3 +318,13 @@ class File:
                         if isinstance(item, dict):
                             self.backwards_compitability_check(item, blueprint)
         return score
+
+    # Connect the item clicked signal to a slot
+    def handle_item_clicked(self, index):
+        file_info = self.io['gui'].file_browser.tree_view.model().fileInfo(index)
+        if file_info.isFile():
+            file_path = file_info.filePath()
+            if file_path.endswith(".pianoscript"):
+                self.load(file_path)
+            elif file_path.endswith(".mid"):
+                self.io['midi'].load_midi(file_path)

@@ -40,7 +40,10 @@ def pre_render(io, render_type='default'):
         key=lambda y: y['time'])
 
     def pre_calculate(io):
-        print('-------------------------ENGRAVE-------------------------')
+        io['engrave_counter']
+        print(f'...........ENGRAVING...........')
+        print(f'engraving number: {io['engrave_counter']}')
+        print('pre calculating...')
 
         # --------------------------------------------------------------------------------------------------------------------------------------
         # DOC structure:
@@ -333,6 +336,7 @@ def render(
         barline_times):
 
     def draw(io):
+        print('starting to draw...')
 
         # delete old drawing
         io['view'].delete_all()
@@ -389,6 +393,8 @@ def render(
                 barnumber = update_barnumber(DOC, idx_page + 1)
                 continue
 
+            print(f'PAGE: {idx_page+1}')
+
             # update the cursors
             x_cursor = page_margin_left
             y_cursor = page_margin_top
@@ -437,7 +443,7 @@ def render(
                 tag=['copyright'],
                 font='Courier new',
                 anchor='w')
-
+            
             for line, dimensions, staff_range in zip(
                     page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
 
@@ -1067,6 +1073,7 @@ def render(
                     x_cursor += staff_prefs['staff_width'] + \
                         staff_prefs['margin_right']
 
+                print(f'LINE: {idx_line+1}')
                 idx_line += 1
 
     draw(io)
@@ -1130,3 +1137,4 @@ class Engraver:
             linebreaks,
             draw_scale,
             barline_times)
+        print('.......ENGRAVER FINISHED.......\n')

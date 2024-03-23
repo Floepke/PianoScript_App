@@ -198,3 +198,11 @@ PITCH_UNIT = 1
 # RECENT FILES ----------------------------------------------------------------------------------------
 RECENT_FILES_LIMIT = 10
 RECENT_FILE_JSON_TEMPLATE = []
+
+# initial app settings template
+INITIAL_SETTINGS = {
+    'recent_files': [],
+    'browser_path': '',
+    'last_opened_file': '',
+    'autosave': True
+}

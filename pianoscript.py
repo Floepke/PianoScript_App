@@ -1,5 +1,5 @@
 #
-import sys
+import sys, os, json
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtCore import Qt
@@ -102,7 +102,7 @@ class PianoScript():
                 'events': SaveFileStructureSource.new_events_folder_viewport(),
                 'already_drawn': []
             },
-
+         
             # total ticks
             'total_ticks': 0,
 
@@ -125,14 +125,34 @@ class PianoScript():
             'num_pages': 0,
 
             # auto save onoff
-            'autosave': False,
+            'autosave': True,
 
             # current selected staff to edit
             'selected_staff': 0,
 
             # checkbox auto engrave
-            'auto_engrave': True
+            'auto_engrave': False,
+
+            # render counter
+            'engrave_counter': 0,
+
+            # file_browser_path
+            'settings':None
         }
+
+        # load app settings:
+        # ensure there is a template.pianoscript in ~/.pianoscript
+        self._path = os.path.expanduser('~/.pianoscript/settings.json')
+        _dir = os.path.dirname(self._path)
+        if not os.path.exists(_dir):
+            os.makedirs(_dir)
+        if not os.path.exists(self._path):
+            with open(self._path, 'w') as file:
+                json.dump(INITIAL_SETTINGS, file, indent=4)
+
+        # load the settings.json
+        with open(self._path, 'r') as file:
+            self.io['settings'] = json.load(file)
 
         # setup
         self.app = QApplication(sys.argv)
@@ -160,6 +180,8 @@ class PianoScript():
         self.io['script'] = ScriptUtils(self.io)
         self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
+
+        self.io['gui'].file_browser.select_custom_path(self.io['settings']['browser_path'])
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -223,19 +245,23 @@ class PianoScript():
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
 
-        self.root.closeEvent = self.cleanup
+        self.root.closeEvent = self.deinit
 
         # run the application
         sys.exit(self.app.exec())
 
-    def cleanup(self, event):
-        """ close open dialogs """
+    def deinit(self, event):
+        """ What needs to happen on closing the application"""
 
         if self.editor_dialog:
             self.editor_dialog.close()
 
         if self.line_break_dialog:
             self.line_break_dialog.close()
+
+        # save the settings to the drive
+        with open(self._path, 'w') as f:
+            json.dump(self.io['settings'], f)
 
     def open_grid_editor(self):
         """ open the Grid Editor """

@@ -13,10 +13,9 @@ from imports.icons.icons import get_icon
 from imports.gui.toolbar import ToolBar
 from imports.gui.moodslider import MoodSlider
 from imports.utils.constants import *
+from imports.gui.dialogs.filebrowser import FileBrowser
 
 import random
-
-
 
 
 class Gui():
@@ -41,7 +40,8 @@ class Gui():
         # add a label
         self.label = QLabel()
         self.label.setText(str('Mood Slider ='))
-        self.label.setStyleSheet('color: white; font-family: Edwin; font-size: 14px;')
+        self.label.setStyleSheet(
+            'color: white; font-family: Edwin; font-size: 14px;')
 
         # Create a layout and add the label and slider to it
         self.slider_layout = QHBoxLayout()
@@ -162,7 +162,6 @@ class Gui():
         self.pianoscripts_menu = QMenu('Scripts', self.main)
         self.menu_bar.addMenu(self.pianoscripts_menu)
 
-
         # end menu--------------------------------------------------------------------
 
         # Create the editor view
@@ -202,7 +201,7 @@ class Gui():
 
         # Set the initial sizes of the widgets in the splitter
         self.splitter.setSizes([10, 10, 290])
-        
+
         # set the minimum width of the splitter
         self.splitter.setMinimumWidth(500)
 
@@ -301,7 +300,8 @@ class Gui():
         self.tool_selector = QTreeView()
         self.tool_selector.setModel(self.create_tree_model())
         self.tool_selector.header().hide()
-        self.tool_selector.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
+        self.tool_selector.setEditTriggers(
+            QTreeView.EditTrigger.NoEditTriggers)
         self.tool_selector.setIconSize(QSize(40, 40))
         # set indent size
         self.tool_selector.setIndentation(0)
@@ -317,8 +317,23 @@ class Gui():
         # connect the treeview to the select_tool function
         self.tool_selector.clicked.connect(self.tree_view_click)
         # select the note tool by default
-        self.tool_selector.setCurrentIndex(self.tool_selector.model().index(0, 0))
+        self.tool_selector.setCurrentIndex(
+            self.tool_selector.model().index(0, 0))
         self.last_selected_child = None
+
+        # create file browser
+        # Create a second dockable widget on the left side
+        self.file_dock = QDockWidget('File browser', self.main)
+        self.file_dock.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.main.addDockWidget(Qt.LeftDockWidgetArea, self.file_dock)
+
+        self.file_browser_layout = QVBoxLayout()
+        self.file_browser = FileBrowser(self.io)
+        self.file_browser.setMinimumHeight(400)
+
+        self.file_dock.setWidget(self.file_browser)
+        self.file_dock.setMinimumHeight(0)
 
     def change_hue(self, value):
         self.colorThread.set_hue(value)
@@ -389,7 +404,8 @@ class Gui():
                     return
                 else:
                     self.tool_selector.expand(index)
-                    self.tool_selector.setCurrentIndex(self.last_selected_child)
+                    self.tool_selector.setCurrentIndex(
+                        self.last_selected_child)
                     return
             else:
                 # if the last selected child is not a child of the clicked parent
@@ -417,5 +433,3 @@ class Gui():
 
     def refresh(self):
         self.io['maineditor'].update('page_change')
-
-

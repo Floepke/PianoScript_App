@@ -1,8 +1,13 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
-import mido, os, copy, threading, json
+import mido
+import os
+import threading
+import json
+import statistics
 from midiutil.MidiFile import MIDIFile
 from imports.utils.savefilestructure import SaveFileStructureSource
+
 
 
 class Midi:
@@ -34,14 +39,15 @@ class Midi:
         elif dialog.clickedButton() == right_button:
             return 'r'
 
-    def load_midi(self):
+    def load_midi(self, file_path=None):
 
         if not self.io['fileoperations'].save_check():
             return
 
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
-            self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
+        if not file_path: 
+            file_path, _ = file_dialog.getOpenFileName(
+                self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
 
         if not file_path:
             return
@@ -141,18 +147,33 @@ class Midi:
                 if note['type'] == 'note_on':
                     note['type'] = 'note'
 
-            return events
+            return events, track_names
         
-        # get a dict from which we can add the notes
-        events = read_midi(file_path)
+        events, track_names = read_midi(file_path)
+
+        # gues the hand based on the avarage pitch and track number.
+        avarage_tracks = {}
+        for t in range(16):
+            avarage_pitch = []
+            for evt in events:
+                if evt['type'] == 'note' and evt['track'] == t:
+                    avarage_pitch.append(evt['note'])
+            avarage_pitch = statistics.mean(avarage_pitch) if avarage_pitch else None
+            avarage_tracks[t] = avarage_pitch
+        highest_track = max((k for k, v in avarage_tracks.items() if v is not None), key=avarage_tracks.get, default=None)
+
+        
+        # add the events to the .pianoscript file
         for evt in events:
             if evt['type'] == 'note':
+                if not highest_track == None: hand = 'r' if highest_track == evt['track'] else 'l'
+                else: hand = 'l'
                 new = SaveFileStructureSource.new_note(
                     tag = 0,
                     pitch = evt['note'] - 20,
                     time = evt['time'],
                     duration = evt['duration'],
-                    hand = 'l',
+                    hand = hand,
                     staff = 0,
                     track = evt['track'],
                 )
@@ -161,6 +182,7 @@ class Midi:
             elif evt['type'] == 'time_signature':
                 measure_length = self.io['calc'].get_measure_length(evt)
                 amount = int(evt['duration'] / measure_length)
+                print(amount)
                 grid = []
                 for numerator_count in range(evt['numerator']-1):
                     grid.append(measure_length / evt['numerator'] * (numerator_count+1))

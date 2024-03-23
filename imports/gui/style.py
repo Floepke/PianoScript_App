@@ -31,6 +31,13 @@ class Style():
         negative_color = QColor(self.color1).rgb() ^ 0xFFFFFF
         self.color2 = QColor(negative_color).name()
 
+        def make_darker(color, factor):
+            color = QColor(color)
+            h, s, v, a = color.getHsv()
+            v = max(0, v - factor)
+            color.setHsv(h, s, v, a)
+            return color.name()
+
         style = f'''
             QPushButton, QStatusBar, QMenuBar, QMenu, 
             QSpinBox, QRadioButton, QTabBar,
@@ -69,6 +76,9 @@ class Style():
                 color: {self.color2};
                 font-family: Edwin;
                 font-size: 16px;
+            }}
+            QTreeView::item:alternate {{
+                background-color: {make_darker(self.color1, factor=20)}
             }}
         '''
 

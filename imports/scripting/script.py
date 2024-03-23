@@ -75,7 +75,7 @@ class Script:
         item, ok = QInputDialog.getItem(
             self.__io['root'], self.__io['script_name'], message, items, 0, False)
         if ok:
-            return item
+            return (item, items.index(item))
         else:
             return None
 

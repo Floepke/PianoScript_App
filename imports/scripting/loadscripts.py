@@ -71,8 +71,9 @@ class LoadScripts:
     def eval_func(self, func, module):
         try:
             self.io['script_name'] = 'Script: ' + func.__name__[7:].replace('_', ' ')
+            print(f'Script "{func.__name__}" starts running...............')
             func(self.script)
-            print(f'Script "{func.__name__}" executed successfully')
+            print(f'...............Script "{func.__name__}" executed successfully')
             self.io['maineditor'].update('page_change')
             self.io['maineditor'].redraw_editor()
         except Exception as e:
