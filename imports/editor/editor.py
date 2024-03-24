@@ -59,8 +59,7 @@ class Editor:
             self.redraw_editor()
             if self.io['auto_engrave'] or event_type in ['score_options', 'grid_editor']:
                 self.io['engraver'].do_engrave()
-            print(self.io['autosave'])
-            if self.io['autosave']:
+            if self.io['settings']['autosave']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
@@ -74,7 +73,7 @@ class Editor:
                 not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
             if self.io['auto_engrave']:
                 self.io['engraver'].do_engrave()
-            if self.io['autosave']:
+            if self.io['settings']['autosave']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
@@ -84,8 +83,13 @@ class Editor:
         if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
-        # add to ctlz stack (in this function we check if there is indeed a change in the score)
+        # add to ctlz stack (in this function we check if there is indeed a change in the score file)
         self.io['ctlz'].add_ctlz()
+
+        # add check if the file is edited. this is the case if we click with left or right mousebutton or keyedit
+        if event_type in ['keyedit', 'grid_editor', 'score_options', 'leftclick', 'rightclick']:
+            self.io['fileoperations'].filechanged = True
+
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''
@@ -202,10 +206,13 @@ class Editor:
         self.io['editor'].delete_all()
         self.io['viewport']['events'] = SaveFileStructureSource.new_events_folder_viewport()
 
+        # update total ticks
+        self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
+        
         # draw the editor
         DrawEditor.draw_titles(self.io)
         DrawEditor.draw_staff(self.io)
-
+        
         # set scene size
         height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * \
             self.io['score']['properties']['editor_zoom'] + \
@@ -215,6 +222,7 @@ class Editor:
 
         # draw all events in viewport
         self.draw_viewport()
+
 
     def toggle_auto_engrave(self):
         '''toggles the autorender function'''

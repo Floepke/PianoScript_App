@@ -44,8 +44,9 @@ class FileBrowser(QWidget):
         self.tree_view.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         # Create the button to select a custom path
-        self.select_path_button = QPushButton("Select Path", self)
+        self.select_path_button = QPushButton("Select Home Folder", self)
         layout.addWidget(self.select_path_button)
+        self.select_path_button.clicked.connect(lambda: self.select_custom_path())
 
     def select_custom_path(self, path=None):
         if path == None:

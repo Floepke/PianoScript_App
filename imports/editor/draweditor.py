@@ -249,7 +249,6 @@ class DrawEditor:
                             note['staff'] == n['staff'] and
                                 note['hand'] == n['hand']):
                             continuation_dot(note['time'], n['pitch'], note)
-                            print('!!!')
 
             elif note['type'] == 'noteoff':
                 for n in active_notes:

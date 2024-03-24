@@ -16,6 +16,7 @@ from imports.utils.constants import *
 from imports.gui.dialogs.filebrowser import FileBrowser
 
 import random
+from PySide6.QtWidgets import QSizePolicy
 
 
 class Gui():
@@ -77,8 +78,8 @@ class Gui():
 
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
-        self.import_midi_action.triggered.connect(
-            lambda: self.io['midi'].load_midi())
+        # self.import_midi_action.triggered.connect(
+        #     lambda: self.io['midi'].load_midi())
         self.file_menu.addAction(self.import_midi_action)
         self.file_menu.addSeparator()
         self.save_action = QAction('Save', self.main)
@@ -95,7 +96,7 @@ class Gui():
 
         self.autosave_action = QAction('Autosave', self.main)
         self.autosave_action.setCheckable(True)
-        self.autosave_action.setChecked(False)
+        self.autosave_action.setChecked(True)
         self.file_menu.addAction(self.autosave_action)
 
         self.file_menu.addSeparator()
@@ -170,7 +171,7 @@ class Gui():
         self.editor_view = GraphicsViewEditor(
             self.editor_scene, self.io, self.main)
         # set minimum width of the editor
-        self.editor_view.setMinimumWidth(400)
+        #self.editor_view.setMinimumWidth(400)
         # Set the focus policy to Qt.StrongFocus to accept focus by tabbing and clicking
         self.editor_view.setFocusPolicy(Qt.StrongFocus)
 
@@ -203,10 +204,11 @@ class Gui():
         self.splitter.setSizes([10, 10, 290])
 
         # set the minimum width of the splitter
-        self.splitter.setMinimumWidth(500)
+        #self.splitter.setMinimumWidth(500)
 
         # Set up the main layout
         self.central_widget = QWidget(self.main)
+        self.central_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.main.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.addWidget(self.splitter)
@@ -214,7 +216,8 @@ class Gui():
         # Create a dockable widget
         self.grid_selector_dock = QDockWidget('Input Grid', self.main)
         self.grid_selector_dock.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.grid_selector_dock.setObjectName('ToolDock')
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.grid_selector_dock)
 
         # create a layout in the dockable widget
@@ -281,7 +284,8 @@ class Gui():
         # Create a second dockable widget on the left side
         self.tool_dock = QDockWidget('Tool', self.main)
         self.tool_dock.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.tool_dock.setObjectName('ToolDock')
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
         # self.tool_dock.setStyleSheet("""background-color: #678;""")
 
@@ -325,15 +329,17 @@ class Gui():
         # Create a second dockable widget on the left side
         self.file_dock = QDockWidget('File browser', self.main)
         self.file_dock.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.file_dock.setObjectName('FileBrowserDock')  # Set the object name
         self.main.addDockWidget(Qt.LeftDockWidgetArea, self.file_dock)
 
         self.file_browser_layout = QVBoxLayout()
         self.file_browser = FileBrowser(self.io)
         self.file_browser.setMinimumHeight(400)
 
+        
+
         self.file_dock.setWidget(self.file_browser)
-        self.file_dock.setMinimumHeight(0)
 
     def change_hue(self, value):
         self.colorThread.set_hue(value)

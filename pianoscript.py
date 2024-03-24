@@ -2,7 +2,7 @@
 import sys, os, json
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSettings, QByteArray
 
 from imports.gui.gui import Gui, QColor
 from imports.utils.drawutil import DrawUtil
@@ -140,18 +140,8 @@ class PianoScript():
             'settings':None
         }
 
-        
-        # # ensure there is a settings.json in ~/.pianoscript
-        # self._path = os.path.expanduser('~/.pianoscript/settings.json')
-        # _dir = os.path.dirname(self._path)
-        # if not os.path.exists(_dir):
-        #     os.makedirs(_dir)
-        # if not os.path.exists(self._path):
-        #     with open(self._path, 'w') as file:
-        #         json.dump(INITIAL_SETTINGS, file, indent=4)
 
-
-        # setup
+        # setup...
         self.app = QApplication(sys.argv)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
@@ -164,6 +154,19 @@ class PianoScript():
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)
+        
+        # load app settings and Qt gui state:
+        self.settings_path = self.io['calc'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
+        with open(self.settings_path, 'r') as file:
+            self.io['settings'] = json.load(file)
+        # self.settings = QSettings('pianoscript', 'PianoScript')
+        # if self.settings.value('PianoScript'):
+        #     self.root.restoreState(self.settings.value('PianoScript'))
+        #     splitterState = self.settings.value('splitterState')
+        #     if splitterState is not None:
+        #         self.io['gui'].splitter.restoreState(QByteArray.fromBase64(splitterState.encode()))
+        
+        # continue setup...
         self.io['engraver'] = Engraver(self.io)
         self.io['maineditor'] = Editor(self.io)
         self.io['zoom'] = Zoom(self.io)
@@ -172,10 +175,6 @@ class PianoScript():
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = File(self.io)
         
-        # load app settings:
-        self.settings_path = self.io['fileoperations'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
-        with open(self.settings_path, 'r') as file:
-            self.io['settings'] = json.load(file)
         
         self.editor_dialog = None
         self.line_break_dialog = None
@@ -248,12 +247,12 @@ class PianoScript():
         prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
 
-        self.root.closeEvent = self.deinit
+        self.root.closeEvent = self.de_init
 
         # run the application
         sys.exit(self.app.exec())
 
-    def deinit(self, event):
+    def de_init(self, event):
         """ What needs to happen on closing the application"""
 
         if self.editor_dialog:
@@ -264,7 +263,10 @@ class PianoScript():
 
         # save the settings to the drive
         with open(self.settings_path, 'w') as f:
-            json.dump(self.io['settings'], f)
+            json.dump(self.io['settings'], f, indent=4)
+
+        # # Save the GUI state
+        # self.settings.setValue('PianoScript', self.root.saveState())
 
     def open_grid_editor(self):
         """ open the Grid Editor """

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QAction
 from imports.utils.constants import SCORE_TEMPLATE, BLUEPRINT
 from imports.utils.savefilestructure import SaveFileStructureSource
+import json
 
 
 class File:
@@ -25,7 +26,10 @@ class File:
 
     def __init__(self, io):
         self.io = io
+
+        # keep track of opened files
         self.savepath = None
+        self.filechanged = False
 
         # Initialize the list of recent file actions
         self.recent_file_actions = []
@@ -43,16 +47,16 @@ class File:
 
         self.new()
 
-        self.io['gui'].file_browser.tree_view.clicked.connect(self.handle_item_clicked)
+        self.io['gui'].file_browser.tree_view.clicked.connect(
+            self.file_browser_on_click)
 
     def new(self, _path=None):
 
-        if self.savepath:
-            if not self.save_check():
+        if self.filechanged:
+            if not self.save_question():
+                # if the user didn't click cancel
                 return
 
-        # reset the saved flag
-        self.io['saved'] = True
         # reset the savepath
         self.savepath = None
         # reset the new_tag counter
@@ -63,7 +67,8 @@ class File:
         self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
         # ensure there is a template.pianoscript in ~/.pianoscript
-        path = self.ensure_json('~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
+        path = self.io['calc'].ensure_json(
+            '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
 
         # load the template.pianoscript
         with open(path, 'r') as file:
@@ -78,6 +83,7 @@ class File:
 
         # set save path to None
         self.savepath = None
+        self.filechanged = False
 
         # redraw the editor
         self.io['maineditor'].update('loadfile')
@@ -94,10 +100,12 @@ class File:
         # statusbar message
         self.io['gui'].main.statusBar().showMessage('New file...', 10000)
 
-    def load(self, file_path=None):
+    def load(self, file_path):
 
-        if not self.save_check():
-            return
+        if self.filechanged:
+            if not self.save_question():
+                # if the user didn't click cancel
+                return 
 
         if not file_path:
             file_dialog = QFileDialog()
@@ -112,7 +120,7 @@ class File:
                 self.io['score'], BLUEPRINT)  # TODO: Test
 
             # set to None to prevent auto save from overwriting the previously loaded file
-            self.savepath = None
+            self.savepath = file_path
 
             # renumber tags
             self.io['calc'].renumber_tags()
@@ -122,9 +130,6 @@ class File:
 
             # reset the ctlz buffer
             self.io['ctlz'].reset_ctlz()
-
-            # reset the saved flag
-            self.io['saved'] = True
 
             # reset the selection
             self.io['selection']['active'] = False
@@ -136,6 +141,7 @@ class File:
 
             # set save path
             self.savepath = file_path
+            self.filechanged = False
 
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
@@ -147,8 +153,19 @@ class File:
             self.add_recent_file(file_path)
             self.update_recent_file_menu()
 
+    def load_midi(self, file_path):
+
+        if self.filechanged:
+            if not self.save_question():
+                # if the user didn't click cancel
+                return 
+        self.io['midi'].load_midi(file_path)
+        self.filechanged = False
+                
     def save(self):
-        if self.savepath:
+        if self.savepath == '*import midi*':
+            self.saveas()
+        elif self.savepath:
             with open(self.savepath, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
             self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
@@ -181,12 +198,12 @@ class File:
         self.io['gui'].main.statusBar().showMessage('Template saved...', 10000)
 
     def auto_save(self):
-        if self.savepath and self.io['autosave']:
+        if self.savepath and self.io['settings']['autosave']:
             with open(self.savepath, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
 
     def toggle_autosave(self):
-        self.io['autosave'] = not self.io['autosave']
+        self.io['settings']['autosave'] = not self.io['settings']['autosave']
 
     def quit(self):
 
@@ -195,22 +212,14 @@ class File:
 
         self.io['root'].close()
 
-    def save_check(self):
+    def save_question(self):
 
-        if self.io['settings']['autosave']:
-            return True
-
-        # check if current file was changed
-        if self.savepath:
-            with open(self.savepath, 'r') as file:
-                if json.load(file) != self.io['score']:
-                    ...
         # check if we want to save the current score
         yesnocancel = QMessageBox()
         yesnocancel.setText("Do you wish to save the file?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        yesnocancel.setDefaultButton(QMessageBox.Yes)
+        yesnocancel.setDefaultButton(QMessageBox.Cancel)
         response = yesnocancel.exec()
         if response == QMessageBox.Yes:
             self.save()
@@ -223,24 +232,8 @@ class File:
     # RECENT FILE FUNCTIONS:
 
     def add_recent_file(self, path):
-        # Define the path to the recent.json file
-        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
 
-        # Check if the directory for the recent.json file exists
-        recent_file_dir = os.path.dirname(recent_file_path)
-        if not os.path.exists(recent_file_dir):
-            # If the directory doesn't exist, create it
-            os.makedirs(recent_file_dir)
-
-        # Check if the recent.json file exists
-        if not os.path.exists(recent_file_path):
-            # If the file doesn't exist, create it with an empty list
-            with open(recent_file_path, 'w') as file:
-                json.dump([], file)
-
-        # Load the list of recent files from the recent.json file
-        with open(recent_file_path, 'r') as file:
-            recent_files = json.load(file)
+        recent_files = self.io['settings']['recent_files']
 
         # Check if the path is already in the list
         if path not in recent_files:
@@ -249,34 +242,21 @@ class File:
             if len(recent_files) > 10:
                 recent_files.pop(0)
 
-            # Save the updated list back to the recent.json file
-            with open(recent_file_path, 'w') as file:
-                json.dump(recent_files, file)
-
     def update_recent_file_menu(self):
-        # Define the path to the recent.json file
-        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
+        # Update the menu items with the list of recent files max 10
+        for i, path in enumerate(self.io['settings']['recent_files']):
+            action = self.recent_file_actions[i]
+            action.setText(os.path.basename(path))
+            action.setVisible(True)
+            action.triggered.disconnect()
+            action.setData(path)
+            action.triggered.connect(
+                lambda checked=False, action=action: self.open_recent_file(action))
 
-        # Check if the recent.json file exists
-        if os.path.exists(recent_file_path):
-            # Load the list of recent files from the recent.json file
-            with open(recent_file_path, 'r') as file:
-                recent_files = json.load(file)
-
-            # Update the menu items with the list of recent files max 10
-            for i, path in enumerate(recent_files):
-                action = self.recent_file_actions[i]
-                action.setText(os.path.basename(path))
-                action.setVisible(True)
-                action.triggered.disconnect()
-                action.setData(path)
-                action.triggered.connect(
-                    lambda checked=False, action=action: self.open_recent_file(action))
-
-            # Hide any unused QAction objects
-            for i in range(len(recent_files), 10):
-                action = self.recent_file_actions[i]
-                action.setVisible(False)
+        # Hide any unused QAction objects
+        for i in range(len(self.io['settings']['recent_files']), 10):
+            action = self.recent_file_actions[i]
+            action.setVisible(False)
 
     def open_recent_file(self, file_path):
         if os.path.exists(file_path.data()):
@@ -287,13 +267,12 @@ class File:
 
     def clear_recent_file_menu(self):
         # Define the path to the recent.json file
-        recent_file_path = os.path.expanduser('~/.pianoscript/recent.json')
+        recent_file_path = os.path.expanduser('~/.pianoscript/settings.json')
 
         # Check if the recent.json file exists
         if os.path.exists(recent_file_path):
-            # Clear the list of recent files in the recent.json file
-            with open(recent_file_path, 'w') as file:
-                json.dump([], file)
+            # Clear the list of recent files in the settings.json file
+            ...
 
         # Update the "Recent Files" menu
         self.update_recent_file_menu()
@@ -313,27 +292,22 @@ class File:
                             self.backwards_compitability_check(item, blueprint)
         return score
 
-    def handle_item_clicked(self, index):
-        source_index = self.io['gui'].file_browser.tree_view.model().mapToSource(index)
+    def file_browser_on_click(self, index):
+        source_index = self.io['gui'].file_browser.tree_view.model(
+        ).mapToSource(index)
         file_info = self.io['gui'].file_browser.model.fileInfo(source_index)
         if file_info.isFile():
+            
+            # check if we want to save if the autosave function is switched off
+            if not self.io['settings']['autosave']:
+                if not self.save_question():
+                    return
+            
             file_path = file_info.filePath()
             if file_path.endswith(".pianoscript"):
                 self.load(file_path)
+                self.savepath = file_path
             elif file_path.endswith(".mid"):
-                self.io['midi'].load_midi(file_path)
+                self.load_midi(file_path)
+                self.savepath = None
 
-    def ensure_json(self, json_path, fallback_json):
-        '''This function checks: 
-            1. if the file_path exists
-            2. if not it creates the directory
-            3. places the file in the new or already existing directory'''
-
-        json_path = os.path.expanduser(json_path)
-        dir = os.path.dirname(json_path)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if not os.path.exists(json_path):
-            with open(json_path, 'w') as file:
-                json.dump(fallback_json, file, indent=4)
-        return json_path

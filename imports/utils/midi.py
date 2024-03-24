@@ -39,27 +39,11 @@ class Midi:
         elif dialog.clickedButton() == right_button:
             return 'r'
 
-    def load_midi(self, file_path=None):
-
-        if not self.io['fileoperations'].save_check():
-            return
-
-        file_dialog = QFileDialog()
-        if not file_path: 
-            file_path, _ = file_dialog.getOpenFileName(
-                self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
-
-        if not file_path:
-            return
-
+    def load_midi(self, file_path):
+        '''converts/imports a midi file from the file_path to .pianoscript'''
+        
         # load the template
-        path = os.path.expanduser('~/.pianoscript/template.pianoscript')
-        dir = os.path.dirname(path)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if not os.path.exists(path):
-            with open(path, 'w') as file:
-                json.dump(SCORE_TEMPLATE, file, indent=4)
+        path = self.io['calc'].ensure_json('~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
         with open(path, 'r') as file:
             self.io['score'] = json.load(file)
         
@@ -98,8 +82,8 @@ class Midi:
                     for evt2 in track_events:
                         if evt2['type'] == 'track_name':
                             track_names[tracks] = evt2['name']
-                    for evt in track_events:
-                        placeholder.append(evt)
+                    for evt2 in track_events:
+                        placeholder.append(evt2)
             events = placeholder
 
             # change note_on with zero velocity to note_off.
@@ -129,7 +113,7 @@ class Midi:
             for idx, evt in enumerate(events):
                 if evt['type'] == 'note_on':
                     for dur in events[idx+1:]:
-                        if dur['type'] == 'note_off' and dur['note'] == evt['note']:
+                        if dur['type'] == 'note_off' and dur['note'] == evt['note'] or dur['type'] == 'end_of_track':
                             evt['duration'] = dur['time'] - evt['time']
                             break
                 if evt['type'] == 'time_signature':
@@ -138,9 +122,15 @@ class Midi:
                             evt['duration'] = dur['time'] - evt['time']
                             break
             
-            # delete note_off and end_of_track, we don't need them
-            filter = ['note_off', 'end_of_track']
+            # delete note_off, we don't need it
+            filter = ['note_off']
             events = [evt for evt in events if not evt['type'] in filter]
+
+            # check for notes that have zero length and change the duration to 8 pianoticks (128th note)
+            for note in events:
+                if note['type'] == 'note_on':
+                    if note['duration'] < 8:
+                        note['duration'] = 8
 
             # for eye candy I like to change the name note_on to note because it's noth note on and off
             for note in events: 
@@ -165,12 +155,13 @@ class Midi:
         
         # add the events to the .pianoscript file
         for evt in events:
+            print(evt)
             if evt['type'] == 'note':
-                if not highest_track == None: hand = 'r' if highest_track == evt['track'] else 'l'
-                else: hand = 'l'
+                hand = 'r' if highest_track == evt['track'] and not highest_track == None else 'l'
+                pitch = max(1, min(88, evt['note'] - 20))
                 new = SaveFileStructureSource.new_note(
                     tag = 0,
-                    pitch = evt['note'] - 20,
+                    pitch = pitch,
                     time = evt['time'],
                     duration = evt['duration'],
                     hand = hand,
@@ -182,7 +173,6 @@ class Midi:
             elif evt['type'] == 'time_signature':
                 measure_length = self.io['calc'].get_measure_length(evt)
                 amount = int(evt['duration'] / measure_length)
-                print(amount)
                 grid = []
                 for numerator_count in range(evt['numerator']-1):
                     grid.append(measure_length / evt['numerator'] * (numerator_count+1))
@@ -194,6 +184,17 @@ class Midi:
                 )
                 self.io['score']['events']['grid'].append(new)
 
+        # if the midi contains no time signature we add it manualy
+        if not self.io['score']['events']['grid']:
+            measure_length = self.io['calc'].get_measure_length({'numerator':4,'denominator':4})
+            new = SaveFileStructureSource.new_grid(
+                amount = int(max(events, key=lambda evt: evt['time'])['time'] / measure_length),
+                numerator = 4,
+                denominator = 4,
+                grid = [256, 512, 768]
+            )
+            self.io['score']['events']['grid'].append(new)
+
         # add the imported midi message to the .pianoscript file
         self.io['score']['midi_data'] = events
 
@@ -201,6 +202,7 @@ class Midi:
         self.io['calc'].renumber_tags()
 
         # draw the editor
+        self.io['maineditor'].redraw_editor()
         self.io['maineditor'].redraw_editor()
 
         # reset the ctlz buffer
@@ -266,17 +268,19 @@ class Midi:
                                             ts['denominator'])],
                                         clocks_per_tick=clocks_per_tick,
                                         notes_per_quarter=8)
-                MyMIDI.addTempo(track=0, time=0, tempo=tempo)
-                MyMIDI.addTrackName(track=0, time=0, trackName='Track 0')
+            MyMIDI.addTempo(track=0, time=0, tempo=tempo)
+            MyMIDI.addTrackName(track=0, time=0, trackName='Tempo & Left hand')
+            MyMIDI.addTrackName(track=1, time=0, trackName='Right hand')
 
             # adding the notes
-            for note in Score['events']['note']:
+            for note in Score['events']['note'] + Score['events']['gracenote']:
                 t = int(note['time']/256*ticks_per_quarternote)
-                d = int(note['duration']/256*ticks_per_quarternote)
+                if 'duration' in note: d = int(note['duration']/256*ticks_per_quarternote)
+                else: d = 32 # length for midi if gracenote
                 c = 0
                 if note['hand'] == 'r':
                     c = 1  # l or r?? first fix the midi import
-                MyMIDI.addNote(track=0, channel=c, pitch=int(
+                MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, channel=c, pitch=int(
                     note['pitch']+20), time=t, duration=d, volume=80, annotation=None)
 
             # saving the midi file

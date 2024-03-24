@@ -1,4 +1,5 @@
 from imports.utils.constants import *
+import os, json
 
 class CalcTools:
     '''
@@ -233,3 +234,18 @@ class CalcTools:
                 measure += 1
 
         return measure, time - start, count
+    
+    def ensure_json(self, json_path, fallback_json):
+        '''This function checks: 
+            1. if the file_path exists
+            2. if not it creates the directory
+            3. places the file in the new or already existing directory'''
+
+        json_path = os.path.expanduser(json_path)
+        dir = os.path.dirname(json_path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if not os.path.exists(json_path):
+            with open(json_path, 'w') as file:
+                json.dump(fallback_json, file, indent=4)
+        return json_path
