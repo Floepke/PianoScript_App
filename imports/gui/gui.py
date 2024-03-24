@@ -139,6 +139,25 @@ class Gui():
         self.zoom_out_action = QAction('Zoom Out', self.main)
         self.view_menu.addAction(self.zoom_out_action)
         self.menu_bar.addMenu(self.view_menu)
+        self.view_menu.addSeparator()
+        
+        self.toggle_grid_selector_dock_action = QAction('Grid Selector', self.main)
+        self.toggle_grid_selector_dock_action.setCheckable(True)
+        self.toggle_grid_selector_dock_action.setChecked(True)
+        self.toggle_grid_selector_dock_action.triggered.connect(lambda: self.grid_selector_dock.setVisible(not self.grid_selector_dock.isVisible()))
+        self.view_menu.addAction(self.toggle_grid_selector_dock_action)
+
+        self.toggle_tool_dock_action = QAction('Tool Selector', self.main)
+        self.toggle_tool_dock_action.setCheckable(True)
+        self.toggle_tool_dock_action.setChecked(True)
+        self.toggle_tool_dock_action.triggered.connect(lambda: self.tool_dock.setVisible(not self.tool_dock.isVisible()))
+        self.view_menu.addAction(self.toggle_tool_dock_action)
+
+        self.toggle_file_dock_action = QAction('File Browser', self.main)
+        self.toggle_file_dock_action.setCheckable(True)
+        self.toggle_file_dock_action.setChecked(True)
+        self.toggle_file_dock_action.triggered.connect(lambda: self.file_dock.setVisible(not self.file_dock.isVisible()))
+        self.view_menu.addAction(self.toggle_file_dock_action)
 
         # Create a Settings menu
         self.settings_menu = QMenu('Settings', self.main)
@@ -201,10 +220,9 @@ class Gui():
         self.splitter.setHandleWidth(10)
 
         # Set the initial sizes of the widgets in the splitter
-        self.splitter.setSizes([10, 10, 290])
-
-        # set the minimum width of the splitter
-        #self.splitter.setMinimumWidth(500)
+        main_window_width = self.main.frameGeometry().width()
+        middle_position = main_window_width // 2
+        self.splitter.setSizes([middle_position, 30, middle_position])
 
         # Set up the main layout
         self.central_widget = QWidget(self.main)
@@ -214,7 +232,7 @@ class Gui():
         self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
-        self.grid_selector_dock = QDockWidget('Input Grid', self.main)
+        self.grid_selector_dock = QDockWidget('Grid Selector', self.main)
         self.grid_selector_dock.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         self.grid_selector_dock.setObjectName('ToolDock')
@@ -282,7 +300,7 @@ class Gui():
         self.gs_dock_layout.addWidget(self.multiply_spin_box, 0)
 
         # Create a second dockable widget on the left side
-        self.tool_dock = QDockWidget('Tool', self.main)
+        self.tool_dock = QDockWidget('Tool Selector', self.main)
         self.tool_dock.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         self.tool_dock.setObjectName('ToolDock')
@@ -331,7 +349,7 @@ class Gui():
         self.file_dock.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         self.file_dock.setObjectName('FileBrowserDock')  # Set the object name
-        self.main.addDockWidget(Qt.LeftDockWidgetArea, self.file_dock)
+        self.main.addDockWidget(Qt.RightDockWidgetArea, self.file_dock)
 
         self.file_browser_layout = QVBoxLayout()
         self.file_browser = FileBrowser(self.io)

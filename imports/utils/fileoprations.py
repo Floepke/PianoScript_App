@@ -105,7 +105,7 @@ class File:
         if self.filechanged:
             if not self.save_question():
                 # if the user didn't click cancel
-                return 
+                return
 
         if not file_path:
             file_dialog = QFileDialog()
@@ -163,14 +163,26 @@ class File:
         self.filechanged = False
                 
     def save(self):
-        if self.savepath == '*import midi*':
-            self.saveas()
+        '''Returns False if the user clicked cancel, True if the file was saved'''
+        print('save')
+        if self.savepath in ['*midi*', None]:
+            print('save.saveas')
+            if not self.saveas():
+                return False
+            else:
+                return True
         elif self.savepath:
+            print('save.save', self.savepath)
             with open(self.savepath, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
             self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
+            return True
         else:
-            self.saveas()
+            print('save.else')
+            if not self.saveas():
+                return False
+            else:
+                return True
 
     def saveas(self):
         file_dialog = QFileDialog()
@@ -182,6 +194,8 @@ class File:
             self.savepath = file_path
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
+        else:
+            return False
 
     def save_template(self):
         '''This function overwrites the template.pianoscript file with the current score'''
@@ -222,7 +236,8 @@ class File:
         yesnocancel.setDefaultButton(QMessageBox.Cancel)
         response = yesnocancel.exec()
         if response == QMessageBox.Yes:
-            self.save()
+            if not self.save():
+                return False
             return True
         elif response == QMessageBox.No:
             return True
@@ -305,6 +320,7 @@ class File:
             
             file_path = file_info.filePath()
             if file_path.endswith(".pianoscript"):
+                print('filebrowser .pianoscript')
                 self.load(file_path)
                 self.savepath = file_path
             elif file_path.endswith(".mid"):
