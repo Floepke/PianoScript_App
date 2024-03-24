@@ -90,6 +90,13 @@ class Editor:
         if event_type in ['keyedit', 'grid_editor', 'score_options', 'leftclick', 'rightclick']:
             self.io['fileoperations'].file_changed = True
 
+        # update playhead position for the midi player
+        try: 
+            self.io['playhead'] = self.io['calc'].y2tick_editor(y, snap=True)
+            if event_type == 'leave':
+                self.io['playhead'] = 0
+        except: ...
+
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''

@@ -137,7 +137,10 @@ class PianoScript():
             'engrave_counter': 0,
 
             # file_browser_path
-            'settings':None
+            'settings':None,
+
+            # playhead position for midi player
+            'playhead': 0
         }
 
 
@@ -183,6 +186,8 @@ class PianoScript():
         self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
         self.io['gui'].set_midi_out_port_action.triggered.connect(lambda: self.io['midiplayer'].set_midi_port(set=True))
+        prev_page_shortcut = QShortcut(QKeySequence("p"), self.root)
+        prev_page_shortcut.activated.connect(self.io['midiplayer'].player_switch)
 
         self.io['gui'].file_browser.select_custom_path(self.io['settings']['browser_path'])
 
@@ -266,8 +271,7 @@ class PianoScript():
         with open(self.settings_path, 'w') as f:
             json.dump(self.io['settings'], f, indent=4)
 
-        # # Save the GUI state
-        # self.settings.setValue('PianoScript', self.root.saveState())
+        self.io['midiplayer'].stop_midi()
 
     def open_grid_editor(self):
         """ open the Grid Editor """

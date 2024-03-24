@@ -9,23 +9,36 @@ class MidiPlayer:
         self.path = os.path.expanduser('~/.pianoscript/play.mid')
         self.thread = None
         self.stop = threading.Event()
+        self.from_playhead = False
+        self.switch = False
 
         # connect the play and stop buttons
         self.io = io
         self.io['gui'].toolbar.play_button.clicked.connect(self.play_midi)
         self.io['gui'].toolbar.stop_button.clicked.connect(self.stop_midi)
 
-    def play_midi(self):
+    def play_midi(self, from_playhead=False):
         if self.thread is not None and self.thread.is_alive():
-            return  # skip starting a new thread if the previous one is still running
+            self.stop_midi()
+            if self.thread is not None:
+                self.thread.join()
 
-        self.set_midi_port()  # set the MIDI port
+        self.set_midi_port()
+
+        self.from_playhead = from_playhead
 
         self.thread = threading.Thread(target=self._play_midi_thread)
         self.thread.start()
 
+    def stop_midi(self):
+        self._send_panic()  # send the panic message immediately
+        self.stop.set()
+        if self.thread is not None:
+            self.thread.join()
+        self.stop.clear()
+    
     def _play_midi_thread(self):
-        self.io['midi'].export_midi(export=False, tempo=120)
+        self.io['midi'].export_midi(export=False, tempo=120, from_playhead=self.from_playhead)
         mid = mido.MidiFile(self.path)
         for msg in mid:
             if self.stop.wait(msg.time):  # non-blocking sleep
@@ -34,13 +47,6 @@ class MidiPlayer:
             if not msg.is_meta and not msg.type == 'sysex':
                 with mido.open_output(self.io['settings']['midi_port']) as output:
                     output.send(msg)
-
-    def stop_midi(self):
-        self._send_panic()  # send the panic message immediately
-        self.stop.set()
-        if self.thread is not None:
-            self.thread.join()
-        self.stop.clear()
 
     def _send_panic(self):
         for port in mido.get_output_names():
@@ -65,4 +71,13 @@ class MidiPlayer:
 
         # Set the MIDI port
         self.midi_port = midi_port
+
+    def player_switch(self):
+
+        if not self.switch:
+            self.play_midi(from_playhead=True)
+            self.switch = True
+        else:
+            self.switch = False
+            self.stop_midi()
 

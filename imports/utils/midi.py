@@ -176,7 +176,7 @@ class Midi:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
 
-    def export_midi(self, export=True, tempo=120):
+    def export_midi(self, export=True, tempo=120, from_playhead=False):
 
         if export:
             file_dialog = QFileDialog()
@@ -230,9 +230,18 @@ class Midi:
             MyMIDI.addTrackName(track=0, time=0, trackName='Tempo & Left hand')
             MyMIDI.addTrackName(track=1, time=0, trackName='Right hand')
 
+            # if player is using the midi_export we need to create it from the playhead position
+            if from_playhead:
+                print('playhead+on')
+                playhead = self.io['playhead']
+            else:
+                print('playhead+off')
+                playhead = 0
+
             # adding the notes
             for note in Score['events']['note'] + Score['events']['gracenote']:
-                t = int(note['time']/256*ticks_per_quarternote)
+                if note['time'] < playhead: continue  
+                t = int((note['time'] - playhead) / 256 * ticks_per_quarternote)
                 if 'duration' in note: d = int(note['duration']/256*ticks_per_quarternote)
                 else: d = 32 # length for midi if gracenote
                 c = 0
