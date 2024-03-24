@@ -53,7 +53,7 @@ class File:
     def new(self):
 
         if self.file_changed:
-            if self.current_file_is_pianoscript: # it's a pianoscript file
+            if self.current_file_is_pianoscript:  # it's a pianoscript file
                 if not self.io['autosave'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
@@ -62,7 +62,7 @@ class File:
                         ...
                     elif savequest == None:  # CANCEL
                         return
-            else: # it's a midi file
+            else:  # it's a midi file
                 savequest = self.save_question()
                 if savequest:  # YES
                     self.save()
@@ -70,7 +70,7 @@ class File:
                     ...
                 elif savequest == None:  # CANCEL
                     return
-            
+
         # set save path to None
         self.save_path = None
         self.file_changed = False
@@ -94,7 +94,6 @@ class File:
         # renumber tags
         self.io['calc'].renumber_tags()
 
-
         # redraw the editor
         print('loadfile')
         self.io['maineditor'].update('loadfile')
@@ -112,10 +111,10 @@ class File:
         self.io['gui'].main.statusBar().showMessage('New file...', 10000)
 
     def load(self, file_path=None):
-        
+
         # save check if neccesary
         if self.file_changed:
-            if self.current_file_is_pianoscript: # it's a pianoscript file
+            if self.current_file_is_pianoscript:  # it's a pianoscript file
                 if not self.io['autosave'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
@@ -124,7 +123,7 @@ class File:
                         ...
                     elif savequest == None:  # CANCEL
                         return
-            else: # it's a midi file
+            else:  # it's a midi file
                 savequest = self.save_question()
                 if savequest:  # YES
                     self.save()
@@ -135,7 +134,7 @@ class File:
 
         if not file_path:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName()
+            file_path, _ = file_dialog.getOpenFileName(filter='PianoScript files (*.pianoscript)')
 
         if file_path:
             # load a score from a file into the score dict io['score']
@@ -181,13 +180,13 @@ class File:
 
             self.current_file_is_pianoscript = True
 
-    def load_midi(self, file_path):
+    def import_midi(self, file_path=None):
 
         # TODO: fix FileNotFoundError if the file contains special characters like é or ü in the filename
-        
+
         # save check if neccesary
         if self.file_changed:
-            if self.current_file_is_pianoscript: # it's a pianoscript file
+            if self.current_file_is_pianoscript:  # it's a pianoscript file
                 if not self.io['autosave'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
@@ -196,7 +195,7 @@ class File:
                         ...
                     elif savequest == None:  # CANCEL
                         return
-            else: # it's a midi file
+            else:  # it's a midi file
                 savequest = self.save_question()
                 if savequest:  # YES
                     self.save()
@@ -204,14 +203,19 @@ class File:
                     ...
                 elif savequest == None:  # CANCEL
                     return
-        
+                
+        # ask for file if file_path was not given
+        if not file_path:
+            file_dialog = QFileDialog()
+            file_path, _ = file_dialog.getOpenFileName(filter='MIDI files (*.mid)')
+
         # import the midi
         self.current_file_is_pianoscript = False
-        self.io['midi'].load_midi(file_path)
+        self.io['midi'].import_midi(file_path)
         self.file_changed = False
         self.save_path = None
         self.io['maineditor'].update('loadfile')
-                
+
     def save(self):
         '''Returns False if the user clicked cancel, True if the file was saved'''
         if not self.save_path or self.save_path in ['*midi*', None]:
@@ -269,7 +273,8 @@ class File:
 
         # check if we want to save the current score
         yesnocancel = QMessageBox()
-        yesnocancel.setText(f"Do you wish to save {self.save_path if self.save_path is not None else 'the new file'}?")
+        yesnocancel.setText(f"Do you wish to save {
+                            self.save_path if self.save_path is not None else 'the new file'}?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         yesnocancel.setDefaultButton(QMessageBox.Cancel)
@@ -353,5 +358,4 @@ class File:
             if file_path.endswith(".pianoscript"):
                 self.load(file_path)
             elif file_path.endswith(".mid"):
-                self.load_midi(file_path)
-
+                self.import_midi(file_path)

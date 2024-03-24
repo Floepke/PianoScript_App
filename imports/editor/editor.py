@@ -89,7 +89,6 @@ class Editor:
         # add check if the file is edited. this is the case if we click with left or right mousebutton or keyedit
         if event_type in ['keyedit', 'grid_editor', 'score_options', 'leftclick', 'rightclick']:
             self.io['fileoperations'].file_changed = True
-            print('file_changed!!!!')
 
         # update playhead position for the midi player
         try: 

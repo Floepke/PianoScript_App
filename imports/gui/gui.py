@@ -78,8 +78,8 @@ class Gui():
 
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
-        # self.import_midi_action.triggered.connect(
-        #     lambda: self.io['midi'].load_midi())
+        self.import_midi_action.triggered.connect(
+            lambda: self.io['fileoperations'].import_midi())
         self.file_menu.addAction(self.import_midi_action)
         self.file_menu.addSeparator()
         self.save_action = QAction('Save', self.main)
@@ -140,23 +140,27 @@ class Gui():
         self.view_menu.addAction(self.zoom_out_action)
         self.menu_bar.addMenu(self.view_menu)
         self.view_menu.addSeparator()
-        
-        self.toggle_grid_selector_dock_action = QAction('Grid Selector', self.main)
+
+        self.toggle_grid_selector_dock_action = QAction(
+            'Grid Selector', self.main)
         self.toggle_grid_selector_dock_action.setCheckable(True)
         self.toggle_grid_selector_dock_action.setChecked(True)
-        self.toggle_grid_selector_dock_action.triggered.connect(lambda: self.grid_selector_dock.setVisible(not self.grid_selector_dock.isVisible()))
+        self.toggle_grid_selector_dock_action.triggered.connect(
+            lambda: self.grid_selector_dock.setVisible(not self.grid_selector_dock.isVisible()))
         self.view_menu.addAction(self.toggle_grid_selector_dock_action)
 
         self.toggle_tool_dock_action = QAction('Tool Selector', self.main)
         self.toggle_tool_dock_action.setCheckable(True)
         self.toggle_tool_dock_action.setChecked(True)
-        self.toggle_tool_dock_action.triggered.connect(lambda: self.tool_dock.setVisible(not self.tool_dock.isVisible()))
+        self.toggle_tool_dock_action.triggered.connect(
+            lambda: self.tool_dock.setVisible(not self.tool_dock.isVisible()))
         self.view_menu.addAction(self.toggle_tool_dock_action)
 
         self.toggle_file_dock_action = QAction('File Browser', self.main)
         self.toggle_file_dock_action.setCheckable(True)
         self.toggle_file_dock_action.setChecked(True)
-        self.toggle_file_dock_action.triggered.connect(lambda: self.file_dock.setVisible(not self.file_dock.isVisible()))
+        self.toggle_file_dock_action.triggered.connect(
+            lambda: self.file_dock.setVisible(not self.file_dock.isVisible()))
         self.view_menu.addAction(self.toggle_file_dock_action)
 
         # Create a Settings menu
@@ -192,7 +196,7 @@ class Gui():
         self.editor_view = GraphicsViewEditor(
             self.editor_scene, self.io, self.main)
         # set minimum width of the editor
-        #self.editor_view.setMinimumWidth(400)
+        # self.editor_view.setMinimumWidth(400)
         # Set the focus policy to Qt.StrongFocus to accept focus by tabbing and clicking
         self.editor_view.setFocusPolicy(Qt.StrongFocus)
 
@@ -228,7 +232,8 @@ class Gui():
 
         # Set up the main layout
         self.central_widget = QWidget(self.main)
-        self.central_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.central_widget.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.main.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.addWidget(self.splitter)
@@ -356,8 +361,6 @@ class Gui():
         self.file_browser_layout = QVBoxLayout()
         self.file_browser = FileBrowser(self.io)
         self.file_browser.setMinimumHeight(400)
-
-        
 
         self.file_dock.setWidget(self.file_browser)
 

@@ -9,7 +9,6 @@ from midiutil.MidiFile import MIDIFile
 from imports.utils.savefilestructure import SaveFileStructureSource
 
 
-
 class Midi:
 
     def __init__(self, io):
@@ -22,14 +21,15 @@ class Midi:
         self.outports = []
         self.lock = threading.Lock()  # Create a lock
 
-    def load_midi(self, file_path):
+    def import_midi(self, file_path):
         '''converts/imports a midi file from the file_path to .pianoscript'''
-        
+
         # load the template
-        path = self.io['calc'].ensure_json('~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
+        path = self.io['calc'].ensure_json(
+            '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
         with open(path, 'r') as file:
             self.io['score'] = json.load(file)
-        
+
         # ensure the contents of the file are empty
         self.io['score']['header']['title'] = os.path.splitext(
             os.path.basename(file_path))[0]
@@ -66,22 +66,28 @@ class Midi:
                     tracks[i] = track_
 
                 for track in tracks.keys():
-                    filter = ['time_signature', 'set_tempo', 'end_of_track', 'track_name', 'note_on', 'note_off']
-                    tracks[track] = [evt for evt in tracks[track] if evt['type'] in filter]
+                    filter = ['time_signature', 'set_tempo',
+                              'end_of_track', 'track_name', 'note_on', 'note_off']
+                    tracks[track] = [evt for evt in tracks[track]
+                                     if evt['type'] in filter]
 
                 return tracks
 
             # step 1: read the midi and create a list of msg that have absolute time values and are sorted on the time key from low to high
             all_events = prepare_midi(midi)
-            all_events = [msg for track in all_events.values() for msg in track]
-            message_priority = {'note_off': 1, 'note_on': 2, 'time_signature': 3, 'end_of_track': 4}
-            all_events.sort(key=lambda msg: (msg['time'], message_priority.get(msg['type'], 5)))
+            all_events = [msg for track in all_events.values()
+                          for msg in track]
+            message_priority = {'note_off': 1, 'note_on': 2,
+                                'time_signature': 3, 'end_of_track': 4}
+            all_events.sort(key=lambda msg: (
+                msg['time'], message_priority.get(msg['type'], 5)))
 
             # step 2: convert the miditicks to pianoticks
             ticks_per_quarter = midi.ticks_per_beat
             pianoticks_per_quarter = 256
             for evt in all_events:
-                evt['time'] = evt['time'] * (pianoticks_per_quarter / ticks_per_quarter)
+                evt['time'] = evt['time'] * \
+                    (pianoticks_per_quarter / ticks_per_quarter)
 
             # step 3: calculate the duration of note_on and time_signature events
             for idx, evt in enumerate(all_events):
@@ -99,7 +105,7 @@ class Midi:
                             break
 
             return all_events
-        
+
         events = import_midi(file_path)
 
         # gues the hand based on the avarage pitch and track number.
@@ -109,23 +115,25 @@ class Midi:
             for evt in events:
                 if evt['type'] == 'note_on' and evt['track'] == t:
                     average_pitch.append(evt['note'])
-            average_pitch = statistics.mean(average_pitch) if average_pitch else None
+            average_pitch = statistics.mean(
+                average_pitch) if average_pitch else None
             average_tracks[t] = average_pitch
-        highest_track = max((k for k, v in average_tracks.items() if v is not None), key=lambda k: average_tracks[k], default=None)
-        
+        highest_track = max((k for k, v in average_tracks.items(
+        ) if v is not None), key=lambda k: average_tracks[k], default=None)
+
         # add the events to the .pianoscript file
         for evt in events:
             if evt['type'] == 'note_on':
                 hand = 'r' if highest_track == evt['track'] and not highest_track == None else 'l'
                 pitch = max(1, min(88, evt['note'] - 20))
                 new = SaveFileStructureSource.new_note(
-                    tag = 0, # test if this couses no errors in the editor
-                    pitch = pitch,
-                    time = evt['time'],
-                    duration = evt['duration'],
-                    hand = hand,
-                    staff = 0,
-                    track = evt['track'],
+                    tag=0,  # test if this couses no errors in the editor
+                    pitch=pitch,
+                    time=evt['time'],
+                    duration=evt['duration'],
+                    hand=hand,
+                    staff=0,
+                    track=evt['track'],
                 )
                 self.io['score']['events']['note'].append(new)
 
@@ -134,23 +142,26 @@ class Midi:
                 amount = int(evt['duration'] / measure_length)
                 grid = []
                 for numerator_count in range(evt['numerator']-1):
-                    grid.append(measure_length / evt['numerator'] * (numerator_count+1))
+                    grid.append(measure_length /
+                                evt['numerator'] * (numerator_count+1))
                 new = SaveFileStructureSource.new_grid(
-                    amount = amount,
-                    numerator = evt['numerator'],
-                    denominator = evt['denominator'],
-                    grid = grid,
+                    amount=amount,
+                    numerator=evt['numerator'],
+                    denominator=evt['denominator'],
+                    grid=grid,
                 )
                 self.io['score']['events']['grid'].append(new)
 
         # if the midi contains no time signature we add it manualy
         if not self.io['score']['events']['grid']:
-            measure_length = self.io['calc'].get_measure_length({'numerator':4,'denominator':4})
+            measure_length = self.io['calc'].get_measure_length(
+                {'numerator': 4, 'denominator': 4})
             new = SaveFileStructureSource.new_grid(
-                amount = int(max(events, key=lambda evt: evt['time'])['time'] / measure_length) + 1,
-                numerator = 4,
-                denominator = 4,
-                grid = [256, 512, 768]
+                amount=int(max(events, key=lambda evt: evt['time'])[
+                           'time'] / measure_length) + 1,
+                numerator=4,
+                denominator=4,
+                grid=[256, 512, 768]
             )
             self.io['score']['events']['grid'].append(new)
 
@@ -159,7 +170,8 @@ class Midi:
         print(barline_ticks)
         for bl in barline_ticks:
             new = SaveFileStructureSource.new_linebreak(
-                tag='linebreak' + str(self.io['calc'].add_and_return_tag()) if not barline_ticks[0] == bl else 'lockedlinebreak', 
+                tag='linebreak' + str(self.io['calc'].add_and_return_tag()
+                                      ) if not barline_ticks[0] == bl else 'lockedlinebreak',
                 time=bl
             )
             self.io['score']['events']['linebreak'].append(new)
@@ -238,10 +250,14 @@ class Midi:
 
             # adding the notes
             for note in Score['events']['note'] + Score['events']['gracenote']:
-                if note['time'] < playhead: continue  
-                t = int((note['time'] - playhead) / 256 * ticks_per_quarternote)
-                if 'duration' in note: d = int(note['duration']/256*ticks_per_quarternote)
-                else: d = 32 # length for midi if gracenote
+                if note['time'] < playhead:
+                    continue
+                t = int((note['time'] - playhead) /
+                        256 * ticks_per_quarternote)
+                if 'duration' in note:
+                    d = int(note['duration']/256*ticks_per_quarternote)
+                else:
+                    d = 32  # length for midi if gracenote
                 c = 0
                 if note['hand'] == 'r':
                     c = 1  # l or r?? first fix the midi import
