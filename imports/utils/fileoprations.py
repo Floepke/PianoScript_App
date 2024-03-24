@@ -1,5 +1,4 @@
 import json
-import copy
 import os
 import datetime
 from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -28,8 +27,8 @@ class File:
         self.io = io
 
         # keep track of opened files
-        self.savepath = None
-        self.filechanged = False
+        self.save_path = None
+        self.file_changed = False
 
         # Initialize the list of recent file actions
         self.recent_file_actions = []
@@ -50,15 +49,16 @@ class File:
         self.io['gui'].file_browser.tree_view.clicked.connect(
             self.file_browser_on_click)
 
-    def new(self, _path=None):
+    def new(self):
 
-        if self.filechanged:
+        if self.file_changed:
             if not self.save_question():
                 # if the user didn't click cancel
                 return
-
-        # reset the savepath
-        self.savepath = None
+            
+        # set save path to None
+        self.save_path = None
+        self.file_changed = False
         # reset the new_tag counter
         self.io['new_tag'] = 0
         # reset the selection
@@ -66,11 +66,9 @@ class File:
         self.io['selection']['rectangle_on'] = False
         self.io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
-        # ensure there is a template.pianoscript in ~/.pianoscript
+        # load the template.pianoscript or fallback on SCORE_TEMPLATE
         path = self.io['calc'].ensure_json(
             '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
-
-        # load the template.pianoscript
         with open(path, 'r') as file:
             self.io['score'] = json.load(file)
 
@@ -81,11 +79,9 @@ class File:
         # renumber tags
         self.io['calc'].renumber_tags()
 
-        # set save path to None
-        self.savepath = None
-        self.filechanged = False
 
         # redraw the editor
+        print('loadfile')
         self.io['maineditor'].update('loadfile')
 
         # reset the ctlz buffer
@@ -102,8 +98,8 @@ class File:
 
     def load(self, file_path):
 
-        if self.filechanged:
-            if not self.save_question():
+        if self.file_changed:
+            if self.save_question():
                 # if the user didn't click cancel
                 return
 
@@ -120,7 +116,7 @@ class File:
                 self.io['score'], BLUEPRINT)  # TODO: Test
 
             # set to None to prevent auto save from overwriting the previously loaded file
-            self.savepath = file_path
+            self.save_path = file_path
 
             # renumber tags
             self.io['calc'].renumber_tags()
@@ -140,8 +136,8 @@ class File:
             self.io['gui'].print_view.update_page_dimensions()
 
             # set save path
-            self.savepath = file_path
-            self.filechanged = False
+            self.save_path = file_path
+            self.file_changed = False
 
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
@@ -155,34 +151,26 @@ class File:
 
     def load_midi(self, file_path):
 
-        if self.filechanged:
+        # TODO: fix FileNotFoundError if the file contains special characters like é or ü in the filename
+
+        if self.file_changed:
             if not self.save_question():
                 # if the user didn't click cancel
                 return 
         self.io['midi'].load_midi(file_path)
-        self.filechanged = False
+        self.file_changed = False
+
+        self.io['maineditor'].update('loadfile')
                 
     def save(self):
         '''Returns False if the user clicked cancel, True if the file was saved'''
-        print('save')
-        if self.savepath in ['*midi*', None]:
-            print('save.saveas')
-            if not self.saveas():
-                return False
-            else:
-                return True
-        elif self.savepath:
-            print('save.save', self.savepath)
-            with open(self.savepath, 'w') as file:
+        if not self.save_path or self.save_path in ['*midi*', None]:
+            return self.saveas()
+        else:
+            with open(self.save_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
             self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
             return True
-        else:
-            print('save.else')
-            if not self.saveas():
-                return False
-            else:
-                return True
 
     def saveas(self):
         file_dialog = QFileDialog()
@@ -191,7 +179,7 @@ class File:
             self.io['gui'].main.statusBar().showMessage('Save as...', 10000)
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
-            self.savepath = file_path
+            self.save_path = file_path
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
         else:
@@ -212,8 +200,8 @@ class File:
         self.io['gui'].main.statusBar().showMessage('Template saved...', 10000)
 
     def auto_save(self):
-        if self.savepath and self.io['settings']['autosave']:
-            with open(self.savepath, 'w') as file:
+        if self.save_path and self.io['settings']['autosave']:
+            with open(self.save_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
 
     def toggle_autosave(self):
@@ -230,7 +218,7 @@ class File:
 
         # check if we want to save the current score
         yesnocancel = QMessageBox()
-        yesnocancel.setText("Do you wish to save the file?")
+        yesnocancel.setText(f"Do you wish to save {self.save_path if self.save_path is not None else 'the new file'}?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         yesnocancel.setDefaultButton(QMessageBox.Cancel)
@@ -320,10 +308,9 @@ class File:
             
             file_path = file_info.filePath()
             if file_path.endswith(".pianoscript"):
-                print('filebrowser .pianoscript')
                 self.load(file_path)
-                self.savepath = file_path
+                self.save_path = file_path
             elif file_path.endswith(".mid"):
                 self.load_midi(file_path)
-                self.savepath = None
+                self.save_path = None
 

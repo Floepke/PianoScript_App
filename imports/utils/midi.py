@@ -22,23 +22,6 @@ class Midi:
         self.outports = []
         self.lock = threading.Lock()  # Create a lock
 
-    def leftorright(self, channel, name):
-
-        dialog = QMessageBox()
-        dialog.setWindowTitle('Which Hand?')
-        dialog.setText(
-            f'To which hand do you want to import?\nChannel: {channel}\nName: {name}')
-
-        left_button = dialog.addButton('Left', QMessageBox.NoRole)
-        right_button = dialog.addButton('Right', QMessageBox.YesRole)
-
-        dialog.exec()
-
-        if dialog.clickedButton() == left_button:
-            return 'l'
-        elif dialog.clickedButton() == right_button:
-            return 'r'
-
     def load_midi(self, file_path):
         '''converts/imports a midi file from the file_path to .pianoscript'''
         
@@ -52,115 +35,91 @@ class Midi:
             os.path.basename(file_path))[0]
         self.io['events'] = SaveFileStructureSource.new_events_folder()
         self.io['score']['events']['grid'] = []
+        self.io['score']['events']['linebreak'] = []
 
-        def read_midi(filepath):
+        def import_midi(filepath):
             midi = mido.MidiFile(filepath)
 
-            events = []
-            
-            # create dict of all events and filter only the desired types
-            for i, track in enumerate(midi.tracks):
-                for msg in track:
-                    new = msg.dict()
-                    new['track'] = i
-                    events.append(new)
-            filter = ['time_signature', 'set_tempo', 'end_of_track', 'track_name', 'note_on', 'note_off']
-            events = [evt for evt in events if evt['type'] in filter]
+            tracks = {}
 
-            # check for every track if it contains any note. if not we delete all events from that track.
-            placeholder = []
-            track_names = {}
-            for tracks in range(16):
-                track_events = [evt for evt in events if evt['track'] == tracks]
-                contains_desired = False
-                for evt in track_events:
-                    if evt['type'] in ['note_on', 'note_off', 'set_tempo']:
-                        contains_desired = True
-                        break
-                if contains_desired:
-                    # search for track name
-                    for evt2 in track_events:
-                        if evt2['type'] == 'track_name':
-                            track_names[tracks] = evt2['name']
-                    for evt2 in track_events:
-                        placeholder.append(evt2)
-            events = placeholder
+            def prepare_midi(midi):
 
-            # change note_on with zero velocity to note_off.
-            for evt in events:
-                if evt['type'] == 'note_on':
-                    if evt['velocity'] == 0:
-                        evt['type'] = 'note_off'
+                def track_to_absolute_ticks(track):
+                    absolute_time = 0
+                    for msg in track:
+                        absolute_time += msg.time
+                        msg.time = absolute_time
+                    return track
 
-            # delta to relative time.
-            time = 0
-            for evt in events:
-                time += evt['time']
-                evt['time'] = time
-                if evt['type'] == 'end_of_track':
-                    time = 0
+                # create dict of all events and filter only the desired types
+                for i, track in enumerate(midi.tracks):
+                    track = track_to_absolute_ticks(track)
+                    track_ = []
+                    for msg in track:
+                        new = msg.dict()
+                        new['track'] = i
+                        # make notes with zero velocity note_off type
+                        if new['type'] == 'note_on':
+                            if new['velocity'] == 0:
+                                new['type'] = 'note_off'
+                        track_.append(new)
+                    tracks[i] = track_
 
-            # convert time to pianoticks.
+                for track in tracks.keys():
+                    filter = ['time_signature', 'set_tempo', 'end_of_track', 'track_name', 'note_on', 'note_off']
+                    tracks[track] = [evt for evt in tracks[track] if evt['type'] in filter]
+
+                return tracks
+
+            # step 1: read the midi and create a list of msg that have absolute time values and are sorted on the time key from low to high
+            all_events = prepare_midi(midi)
+            all_events = [msg for track in all_events.values() for msg in track]
+            message_priority = {'note_off': 1, 'note_on': 2, 'time_signature': 3, 'end_of_track': 4}
+            all_events.sort(key=lambda msg: (msg['time'], message_priority.get(msg['type'], 5)))
+
+            # step 2: convert the miditicks to pianoticks
             ticks_per_quarter = midi.ticks_per_beat
             pianoticks_per_quarter = 256
-            for evt in events:
+            for evt in all_events:
                 evt['time'] = evt['time'] * (pianoticks_per_quarter / ticks_per_quarter)
 
-            # sort on time key
-            events = sorted(events, key=lambda evt: evt['time'])
-
-            # calculate duration of note_on, time_signature
-            for idx, evt in enumerate(events):
+            # step 3: calculate the duration of note_on and time_signature events
+            for idx, evt in enumerate(all_events):
                 if evt['type'] == 'note_on':
-                    for dur in events[idx+1:]:
-                        if dur['type'] == 'note_off' and dur['note'] == evt['note'] or dur['type'] == 'end_of_track':
+                    for dur in all_events[idx+1:]:
+                        if (dur['type'] == 'note_off' and dur['note'] == evt['note'] and dur['track'] == evt['track']) or (dur == all_events[-1]):
                             evt['duration'] = dur['time'] - evt['time']
+                            if evt['duration'] <= 0:
+                                evt['duration'] = 128
                             break
                 if evt['type'] == 'time_signature':
-                    for idx_dur, dur in enumerate(events[idx+1:]):
-                        if dur['type'] == 'time_signature' or len(events[idx+1:])-1 == idx_dur:
+                    for idx_dur, dur in enumerate(all_events[idx+1:]):
+                        if dur['type'] == 'time_signature' or dur == all_events[-1]:
                             evt['duration'] = dur['time'] - evt['time']
                             break
-            
-            # delete note_off, we don't need it
-            filter = ['note_off']
-            events = [evt for evt in events if not evt['type'] in filter]
 
-            # check for notes that have zero length and change the duration to 8 pianoticks (128th note)
-            for note in events:
-                if note['type'] == 'note_on':
-                    if note['duration'] < 8:
-                        note['duration'] = 8
-
-            # for eye candy I like to change the name note_on to note because it's noth note on and off
-            for note in events: 
-                if note['type'] == 'note_on':
-                    note['type'] = 'note'
-
-            return events, track_names
+            return all_events
         
-        events, track_names = read_midi(file_path)
+        events = import_midi(file_path)
 
         # gues the hand based on the avarage pitch and track number.
-        avarage_tracks = {}
+        average_tracks = {}
         for t in range(16):
-            avarage_pitch = []
+            average_pitch = []
             for evt in events:
-                if evt['type'] == 'note' and evt['track'] == t:
-                    avarage_pitch.append(evt['note'])
-            avarage_pitch = statistics.mean(avarage_pitch) if avarage_pitch else None
-            avarage_tracks[t] = avarage_pitch
-        highest_track = max((k for k, v in avarage_tracks.items() if v is not None), key=avarage_tracks.get, default=None)
-
+                if evt['type'] == 'note_on' and evt['track'] == t:
+                    average_pitch.append(evt['note'])
+            average_pitch = statistics.mean(average_pitch) if average_pitch else None
+            average_tracks[t] = average_pitch
+        highest_track = max((k for k, v in average_tracks.items() if v is not None), key=lambda k: average_tracks[k], default=None)
         
         # add the events to the .pianoscript file
         for evt in events:
-            print(evt)
-            if evt['type'] == 'note':
+            if evt['type'] == 'note_on':
                 hand = 'r' if highest_track == evt['track'] and not highest_track == None else 'l'
                 pitch = max(1, min(88, evt['note'] - 20))
                 new = SaveFileStructureSource.new_note(
-                    tag = 0,
+                    tag = 0, # test if this couses no errors in the editor
                     pitch = pitch,
                     time = evt['time'],
                     duration = evt['duration'],
@@ -188,12 +147,22 @@ class Midi:
         if not self.io['score']['events']['grid']:
             measure_length = self.io['calc'].get_measure_length({'numerator':4,'denominator':4})
             new = SaveFileStructureSource.new_grid(
-                amount = int(max(events, key=lambda evt: evt['time'])['time'] / measure_length),
+                amount = int(max(events, key=lambda evt: evt['time'])['time'] / measure_length) + 1,
                 numerator = 4,
                 denominator = 4,
                 grid = [256, 512, 768]
             )
             self.io['score']['events']['grid'].append(new)
+
+        # automatically insert linebreaks every 5 measures
+        barline_ticks = self.io['calc'].get_barline_ticks()[::5]
+        print(barline_ticks)
+        for bl in barline_ticks:
+            new = SaveFileStructureSource.new_linebreak(
+                tag='linebreak' + str(self.io['calc'].add_and_return_tag()) if not barline_ticks[0] == bl else 'lockedlinebreak', 
+                time=bl
+            )
+            self.io['score']['events']['linebreak'].append(new)
 
         # add the imported midi message to the .pianoscript file
         self.io['score']['midi_data'] = events
@@ -202,7 +171,6 @@ class Midi:
         self.io['calc'].renumber_tags()
 
         # draw the editor
-        self.io['maineditor'].redraw_editor()
         self.io['maineditor'].redraw_editor()
 
         # reset the ctlz buffer
@@ -225,16 +193,6 @@ class Midi:
 
         if file_path:
             Score = self.io['score']
-            # configure channels and names
-            longname = {'l': 'left', 'r': 'right'}
-            trackname = {}
-            channel = {}
-            nrchannels = 0
-            for note in Score['events']['note']:
-                if note['hand'] not in channel:
-                    channel[note['hand']] = nrchannels
-                    trackname[nrchannels] = longname[note['hand']]
-                    nrchannels += 1
 
             # some info for the midifile
             clocks_per_tick = 24
@@ -252,7 +210,7 @@ class Midi:
             ticks_per_quarternote = 2048
 
             # creating the midi file object
-            MyMIDI = MIDIFile(numTracks=nrchannels,
+            MyMIDI = MIDIFile(numTracks=2,
                               removeDuplicates=True,
                               deinterleave=False,
                               adjust_origin=False,

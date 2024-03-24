@@ -182,6 +182,7 @@ class PianoScript():
         self.io['script'] = ScriptUtils(self.io)
         self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
+        self.io['gui'].set_midi_out_port_action.triggered.connect(lambda: self.io['midiplayer'].set_midi_port(set=True))
 
         self.io['gui'].file_browser.select_custom_path(self.io['settings']['browser_path'])
 

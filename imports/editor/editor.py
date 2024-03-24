@@ -65,7 +65,7 @@ class Editor:
                 except KeyError:
                     ...
 
-        if event_type in ['page_change']:
+        if event_type in ['page_change', 'loadfile']:
             self.io['engraver'].do_engrave()
 
         # save if there is a change in the score
@@ -88,7 +88,7 @@ class Editor:
 
         # add check if the file is edited. this is the case if we click with left or right mousebutton or keyedit
         if event_type in ['keyedit', 'grid_editor', 'score_options', 'leftclick', 'rightclick']:
-            self.io['fileoperations'].filechanged = True
+            self.io['fileoperations'].file_changed = True
 
 
     def draw_viewport(self):

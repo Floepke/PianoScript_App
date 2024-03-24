@@ -204,5 +204,6 @@ INITIAL_SETTINGS = {
     'recent_files': [],
     'browser_path': '',
     'last_opened_file': '',
-    'autosave': True
+    'autosave': True,
+    'midi_port': None
 }

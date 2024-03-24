@@ -37,6 +37,10 @@ class FileBrowser(QWidget):
         self.tree_view.setModel(self.proxy_model)
         self.tree_view.setRootIndex(self.proxy_model.mapFromSource(self.model.index(self.folder_path)))
 
+        # # Hide all other columns except the name column
+        # for i in range(1, self.model.columnCount()):
+        #     self.tree_view.hideColumn(i)
+
         # Sort the model
         self.proxy_model.sort(0, Qt.AscendingOrder)
 

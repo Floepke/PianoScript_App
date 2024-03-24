@@ -178,6 +178,8 @@ class Gui():
         self.auto_engrave_action.setChecked(True)
         self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
+        self.set_midi_out_port_action = QAction('Set MIDI out port', self.main)
+        self.settings_menu.addAction(self.set_midi_out_port_action)
 
         self.pianoscripts_menu = QMenu('Scripts', self.main)
         self.menu_bar.addMenu(self.pianoscripts_menu)
