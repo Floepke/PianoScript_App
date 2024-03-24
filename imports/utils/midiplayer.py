@@ -3,6 +3,7 @@ import threading
 import os
 import time
 from PySide6.QtWidgets import QInputDialog
+from PySide6.QtGui import QShortcut, QKeySequence
 
 class MidiPlayer:
     def __init__(self, io):
@@ -16,6 +17,9 @@ class MidiPlayer:
         self.io = io
         self.io['gui'].toolbar.play_button.clicked.connect(self.play_midi)
         self.io['gui'].toolbar.stop_button.clicked.connect(self.stop_midi)
+        self.io['gui'].set_midi_out_port_action.triggered.connect(lambda: self.set_midi_port(set=True))
+        prev_page_shortcut = QShortcut(QKeySequence("p"), self.io['root'])
+        prev_page_shortcut.activated.connect(self.player_switch)
 
     def play_midi(self, from_playhead=False):
         if self.thread is not None and self.thread.is_alive():

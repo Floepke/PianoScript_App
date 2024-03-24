@@ -232,10 +232,8 @@ class Midi:
 
             # if player is using the midi_export we need to create it from the playhead position
             if from_playhead:
-                print('playhead+on')
                 playhead = self.io['playhead']
             else:
-                print('playhead+off')
                 playhead = 0
 
             # adding the notes

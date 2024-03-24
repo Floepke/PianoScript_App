@@ -109,9 +109,6 @@ class PianoScript():
             # drawn_objects
             'drawn_obj': [],
 
-            # wheter the score is saved or not
-            'saved': True,
-
             # edit_obj == the object that is being edited
             'edit_obj': None,
 
@@ -136,7 +133,7 @@ class PianoScript():
             # render counter
             'engrave_counter': 0,
 
-            # file_browser_path
+            # the settings object (for now empty but the settings.json will be loaded below)
             'settings':None,
 
             # playhead position for midi player
@@ -144,7 +141,7 @@ class PianoScript():
         }
 
 
-        # setup...
+        # start setup...
         self.app = QApplication(sys.argv)
         self.root = QMainWindow()
         self.gui = Gui(self.root, self.io)
@@ -158,18 +155,12 @@ class PianoScript():
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)
         
-        # load app settings and Qt gui state:
+        # load app settings:
         self.settings_path = self.io['calc'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
         with open(self.settings_path, 'r') as file:
             self.io['settings'] = json.load(file)
-        # self.settings = QSettings('pianoscript', 'PianoScript')
-        # if self.settings.value('PianoScript'):
-        #     self.root.restoreState(self.settings.value('PianoScript'))
-        #     splitterState = self.settings.value('splitterState')
-        #     if splitterState is not None:
-        #         self.io['gui'].splitter.restoreState(QByteArray.fromBase64(splitterState.encode()))
         
-        # continue setup...
+        # ...continue setup
         self.io['engraver'] = Engraver(self.io)
         self.io['maineditor'] = Editor(self.io)
         self.io['zoom'] = Zoom(self.io)
@@ -177,17 +168,12 @@ class PianoScript():
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
         self.io['fileoperations'] = File(self.io)
-        
-        
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
         self.io['script'] = ScriptUtils(self.io)
         self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
-        self.io['gui'].set_midi_out_port_action.triggered.connect(lambda: self.io['midiplayer'].set_midi_port(set=True))
-        prev_page_shortcut = QShortcut(QKeySequence("p"), self.root)
-        prev_page_shortcut.activated.connect(self.io['midiplayer'].player_switch)
 
         self.io['gui'].file_browser.select_custom_path(self.io['settings']['browser_path'])
 

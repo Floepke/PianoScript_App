@@ -29,6 +29,7 @@ class File:
         # keep track of opened files
         self.save_path = None
         self.file_changed = False
+        self.current_file_is_pianoscript = True
 
         # Initialize the list of recent file actions
         self.recent_file_actions = []
@@ -52,9 +53,23 @@ class File:
     def new(self):
 
         if self.file_changed:
-            if not self.save_question():
-                # if the user didn't click cancel
-                return
+            if self.current_file_is_pianoscript: # it's a pianoscript file
+                if not self.io['autosave'] or not self.save_path:
+                    savequest = self.save_question()
+                    if savequest:  # YES
+                        self.save()
+                    elif savequest == False:  # NO
+                        ...
+                    elif savequest == None:  # CANCEL
+                        return
+            else: # it's a midi file
+                savequest = self.save_question()
+                if savequest:  # YES
+                    self.save()
+                elif savequest == False:  # NO
+                    ...
+                elif savequest == None:  # CANCEL
+                    return
             
         # set save path to None
         self.save_path = None
@@ -96,12 +111,27 @@ class File:
         # statusbar message
         self.io['gui'].main.statusBar().showMessage('New file...', 10000)
 
-    def load(self, file_path):
-
+    def load(self, file_path=None):
+        
+        # save check if neccesary
         if self.file_changed:
-            if self.save_question():
-                # if the user didn't click cancel
-                return
+            if self.current_file_is_pianoscript: # it's a pianoscript file
+                if not self.io['autosave'] or not self.save_path:
+                    savequest = self.save_question()
+                    if savequest:  # YES
+                        self.save()
+                    elif savequest == False:  # NO
+                        ...
+                    elif savequest == None:  # CANCEL
+                        return
+            else: # it's a midi file
+                savequest = self.save_question()
+                if savequest:  # YES
+                    self.save()
+                elif savequest == False:  # NO
+                    ...
+                elif savequest == None:  # CANCEL
+                    return
 
         if not file_path:
             file_dialog = QFileDialog()
@@ -149,17 +179,37 @@ class File:
             self.add_recent_file(file_path)
             self.update_recent_file_menu()
 
+            self.current_file_is_pianoscript = True
+
     def load_midi(self, file_path):
 
         # TODO: fix FileNotFoundError if the file contains special characters like é or ü in the filename
-
+        
+        # save check if neccesary
         if self.file_changed:
-            if not self.save_question():
-                # if the user didn't click cancel
-                return 
+            if self.current_file_is_pianoscript: # it's a pianoscript file
+                if not self.io['autosave'] or not self.save_path:
+                    savequest = self.save_question()
+                    if savequest:  # YES
+                        self.save()
+                    elif savequest == False:  # NO
+                        ...
+                    elif savequest == None:  # CANCEL
+                        return
+            else: # it's a midi file
+                savequest = self.save_question()
+                if savequest:  # YES
+                    self.save()
+                elif savequest == False:  # NO
+                    ...
+                elif savequest == None:  # CANCEL
+                    return
+        
+        # import the midi
+        self.current_file_is_pianoscript = False
         self.io['midi'].load_midi(file_path)
         self.file_changed = False
-
+        self.save_path = None
         self.io['maineditor'].update('loadfile')
                 
     def save(self):
@@ -182,6 +232,7 @@ class File:
             self.save_path = file_path
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
+            return True
         else:
             return False
 
@@ -224,13 +275,11 @@ class File:
         yesnocancel.setDefaultButton(QMessageBox.Cancel)
         response = yesnocancel.exec()
         if response == QMessageBox.Yes:
-            if not self.save():
-                return False
             return True
         elif response == QMessageBox.No:
-            return True
-        elif response == QMessageBox.Cancel:
             return False
+        elif response == QMessageBox.Cancel:
+            return None
 
     # RECENT FILE FUNCTIONS:
 
@@ -300,17 +349,9 @@ class File:
         ).mapToSource(index)
         file_info = self.io['gui'].file_browser.model.fileInfo(source_index)
         if file_info.isFile():
-            
-            # check if we want to save if the autosave function is switched off
-            if not self.io['settings']['autosave']:
-                if not self.save_question():
-                    return
-            
             file_path = file_info.filePath()
             if file_path.endswith(".pianoscript"):
                 self.load(file_path)
-                self.save_path = file_path
             elif file_path.endswith(".mid"):
                 self.load_midi(file_path)
-                self.save_path = None
 
