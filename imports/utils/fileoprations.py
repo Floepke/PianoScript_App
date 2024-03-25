@@ -273,8 +273,7 @@ class File:
 
         # check if we want to save the current score
         yesnocancel = QMessageBox()
-        yesnocancel.setText(f"Do you wish to save {
-                            self.save_path if self.save_path is not None else 'the new file'}?")
+        yesnocancel.setText(f"Do you wish to save {self.save_path if self.save_path is not None else 'the new file'}?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         yesnocancel.setDefaultButton(QMessageBox.Cancel)

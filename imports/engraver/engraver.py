@@ -42,7 +42,7 @@ def pre_render(io, render_type='default'):
     def pre_calculate(io):
         io['engrave_counter']
         print(f'...........ENGRAVING...........')
-        print(f'engraving number: {io['engrave_counter']}')
+        print(f"engraving number: {io['engrave_counter']}")
         print('pre calculating...')
 
         # --------------------------------------------------------------------------------------------------------------------------------------
