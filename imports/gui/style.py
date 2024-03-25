@@ -25,9 +25,8 @@ class Style():
             slider_y = 255
 
         complementary_color = QColor.fromHsv(
-            self.io['gui'].slider.value(), 25, 200)
+            self.io['gui'].slider.value(), 50, 50)
         self.color1 = complementary_color.name()
-        # negative color self.color2
         negative_color = QColor(self.color1).rgb() ^ 0xFFFFFF
         self.color2 = QColor(negative_color).name()
 

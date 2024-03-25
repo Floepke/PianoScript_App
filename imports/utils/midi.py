@@ -166,12 +166,19 @@ class Midi:
             self.io['score']['events']['grid'].append(new)
 
         # automatically insert linebreaks every 5 measures
-        barline_ticks = self.io['calc'].get_barline_ticks()[::5]
+        barline_ticks = self.io['calc'].get_barline_ticks()[5::5]
+        barline_ticks = list(set(barline_ticks))
+        try: barline_ticks.remove(0)
+        except: ...
         print(barline_ticks)
+        new = SaveFileStructureSource.new_linebreak(
+            tag='lockedlinebreak',
+            time=0
+        )
+        self.io['score']['events']['linebreak'].append(new)
         for bl in barline_ticks:
             new = SaveFileStructureSource.new_linebreak(
-                tag='linebreak' + str(self.io['calc'].add_and_return_tag()
-                                      ) if not barline_ticks[0] == bl else 'lockedlinebreak',
+                tag='linebreak' + str(self.io['calc'].add_and_return_tag()),
                 time=bl
             )
             self.io['score']['events']['linebreak'].append(new)
