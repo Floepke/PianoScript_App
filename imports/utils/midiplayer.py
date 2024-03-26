@@ -11,7 +11,7 @@ class MidiPlayer:
         self.thread = None
         self.stop = threading.Event()
         self.from_playhead = False
-        self.switch = False
+        self.ready2play = True
 
         # connect the play and stop buttons
         self.io = io
@@ -51,6 +51,7 @@ class MidiPlayer:
             if not msg.is_meta and not msg.type == 'sysex':
                 with mido.open_output(self.io['settings']['midi_port']) as output:
                     output.send(msg)
+        self.ready2play = True
 
     def _send_panic(self):
         for port in mido.get_output_names():
@@ -78,10 +79,10 @@ class MidiPlayer:
 
     def player_switch(self):
 
-        if not self.switch:
+        if self.ready2play:
             self.play_midi(from_playhead=True)
-            self.switch = True
+            self.ready2play = False
         else:
-            self.switch = False
+            self.ready2play = True
             self.stop_midi()
 

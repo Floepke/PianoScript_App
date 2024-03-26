@@ -21,7 +21,7 @@ class CalcTools:
         self.io = io
 
     def get_total_score_ticks(self):
-        '''returns the total number of ticks from the entire score'''
+        '''returns the total number of ticks from the entire score / position of the endbarline'''
 
         total_ticks = 0
 
@@ -34,7 +34,7 @@ class CalcTools:
                 numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
 
-            # assign to total_ticks of one grid message
+            # add the length of the grid message
             total_ticks += measure_length * amount
 
         return total_ticks
@@ -45,7 +45,7 @@ class CalcTools:
             returns the length of a measure in pianoticks
             based on the grid message from the score file
         '''
-        return int(grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']))
+        return int(grid['numerator'] * (QUARTER_PIANOTICK * (4 / grid['denominator'])))
 
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
@@ -191,11 +191,14 @@ class CalcTools:
     # get barline ticks
     def get_barline_ticks(self):
         '''returns a list with all barline ticks'''
+        time = 0
         barline_ticks = []
         for grid in self.io['score']['events']['grid']:
+            measure_length = grid['numerator'] * (QUARTER_PIANOTICK * (4 / grid['denominator']))
             for i in range(grid['amount']):
-                barline_ticks.append(
-                    grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']) * i)
+                barline_ticks.append(time)
+                time += measure_length
+            
         return barline_ticks
 
     def get_measure_number(self, time):

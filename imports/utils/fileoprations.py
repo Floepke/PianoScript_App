@@ -108,7 +108,7 @@ class File:
         self.io['gui'].main.setWindowTitle('PianoScript - new file')
 
         # statusbar message
-        self.io['gui'].main.statusBar().showMessage('New file...', 10000)
+        self.io['gui'].main.statusBar().showMessage('New file...', 5000)
 
     def load(self, file_path=None):
 

@@ -174,7 +174,7 @@ class Script:
 
     
     # get useful values functions:
-    def get_score_ticks(self):
+    def get_score_length(self):
         '''Returns the length of the score in ticks'''
         return self.__io['calc'].get_total_score_ticks()
     
