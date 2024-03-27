@@ -54,3 +54,14 @@ class FontSelector(QDialog):
     def italic_changed(self, state):
         # This method is called when the user changes the italic checkbox
         print(state == Qt.Checked)
+
+
+from PySide6.QtWidgets import QApplication
+import sys
+
+app = QApplication(sys.argv)
+
+dialog = FontSelector()
+dialog.exec_()
+
+sys.exit(app.exec())

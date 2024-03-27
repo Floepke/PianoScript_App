@@ -8,6 +8,10 @@ class SaveFileStructureSource:
         that only in this file.
     '''
 
+    def __init__(self, io):
+
+        self.io = io
+
     def new_events_folder():
         '''returns the structure of the events folder in a score file'''
         return {
@@ -189,3 +193,4 @@ class SaveFileStructureSource:
             'pitch': pitch,
             'staff': staff
         }
+    

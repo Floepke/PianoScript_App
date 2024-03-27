@@ -87,7 +87,6 @@ class Note:
 
         elif event_type == 'leftrelease':
             io['shiftmode_flag'] = False
-            print(io['shiftmode_flag'])
             if io['edit_obj']:
                 # delete the edit_obj
                 io['editor'].delete_with_tag([io['edit_obj']['tag']])

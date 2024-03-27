@@ -257,7 +257,7 @@ class File:
 
     def quit(self):
 
-        # if not self.save_check(): # TODO: uncomment on publish
+        # if not self.save_check(): # PUBLISH: uncomment on publish
         #     return
 
         self.io['root'].close()
