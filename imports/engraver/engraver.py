@@ -44,8 +44,6 @@ def pre_render(io, render_type='default'):
         print(f'...........ENGRAVING...........')
         print(f"engraving number: {io['engrave_counter']}")
         print('pre calculating...')
-        io['gui'].main.statusBar().showMessage('pre calcuating...', 0)
-        io['app'].processEvents()
 
         # --------------------------------------------------------------------------------------------------------------------------------------
         # DOC structure:
@@ -339,8 +337,6 @@ def render(
 
     def draw(io):
         print('starting to draw...')
-        io['gui'].main.statusBar().showMessage('starting to draw...', 0)
-        io['app'].processEvents()
 
         # delete old drawing
         io['view'].delete_all()
@@ -398,8 +394,6 @@ def render(
                 continue
 
             print(f'PAGE: {idx_page+1}')
-            io['gui'].main.statusBar().showMessage(f'PAGE: {idx_page+1}', 0)
-            io['app'].processEvents()
 
             # update the cursors
             x_cursor = page_margin_left
@@ -1080,8 +1074,6 @@ def render(
                         staff_prefs['margin_right']
 
                 print(f'LINE: {idx_line+1}')
-                io['gui'].main.statusBar().showMessage(f'LINE: {idx_line+1}', 0)
-                io['app'].processEvents()
                 idx_line += 1
 
     draw(io)
@@ -1133,6 +1125,8 @@ class Engraver:
         self.io = io
 
     def do_engrave(self):
+        self.io['statusbar'].set_message(message='Engraver is working...')
+        self.io['app'].processEvents()
         DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times = pre_render(
             self.io)
         render(
@@ -1146,4 +1140,4 @@ class Engraver:
             draw_scale,
             barline_times)
         print('.......ENGRAVER FINISHED.......\n')
-        self.io['gui'].main.statusBar().showMessage('Engraver Finished', 0)
+        self.io['statusbar'].set_message(message='Engraver finished :)')

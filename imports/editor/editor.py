@@ -59,7 +59,7 @@ class Editor:
             self.redraw_editor()
             if self.io['auto_engrave'] or event_type in ['score_options', 'grid_editor']:
                 self.io['engraver'].do_engrave()
-            if self.io['settings']['autosave']:
+            if self.io['settings']['auto_save']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
@@ -73,7 +73,7 @@ class Editor:
                 not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
             if self.io['auto_engrave']:
                 self.io['engraver'].do_engrave()
-            if self.io['settings']['autosave']:
+            if self.io['settings']['auto_save']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
@@ -91,12 +91,12 @@ class Editor:
             self.io['fileoperations'].file_changed = True
 
         # update playhead position for the midi player
-        try: 
+        try:
             self.io['playhead'] = self.io['calc'].y2tick_editor(y, snap=True)
             if event_type == 'leave':
                 self.io['playhead'] = 0
-        except: ...
-
+        except:
+            ...
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''
@@ -215,21 +215,20 @@ class Editor:
 
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
-        
+
         # draw the editor
         DrawEditor.draw_titles(self.io)
         DrawEditor.draw_staff(self.io)
-        
+
         # set scene size
         height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * \
             self.io['score']['properties']['editor_zoom'] + \
-            EDITOR_MARGIN + EDITOR_MARGIN
+            EDITOR_MARGIN + EDITOR_MARGIN + 1000
         self.io['gui'].editor_scene.setSceneRect(
             EDITOR_LEFT, EDITOR_TOP, EDITOR_WIDTH, height)
 
         # draw all events in viewport
         self.draw_viewport()
-
 
     def toggle_auto_engrave(self):
         '''toggles the autorender function'''

@@ -54,7 +54,7 @@ class File:
 
         if self.file_changed:
             if self.current_file_is_pianoscript:  # it's a pianoscript file
-                if not self.io['autosave'] or not self.save_path:
+                if not self.io['auto_save'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
                         self.save()
@@ -107,15 +107,12 @@ class File:
         # update window title
         self.io['gui'].main.setWindowTitle('PianoScript - new file')
 
-        # statusbar message
-        self.io['gui'].main.statusBar().showMessage('New file...', 5000)
-
     def load(self, file_path=None):
 
         # save check if neccesary
         if self.file_changed:
             if self.current_file_is_pianoscript:  # it's a pianoscript file
-                if not self.io['autosave'] or not self.save_path:
+                if not self.io['auto_save'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
                         self.save()
@@ -134,7 +131,8 @@ class File:
 
         if not file_path:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName(filter='PianoScript files (*.pianoscript)')
+            file_path, _ = file_dialog.getOpenFileName(
+                filter='PianoScript files (*.pianoscript)')
 
         if file_path:
             # load a score from a file into the score dict io['score']
@@ -171,9 +169,6 @@ class File:
             # set window title
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
 
-            # statusbar message
-            self.io['gui'].main.statusBar().showMessage(
-                'File loaded...', 10000)
 
             self.add_recent_file(file_path)
             self.update_recent_file_menu()
@@ -187,7 +182,7 @@ class File:
         # save check if neccesary
         if self.file_changed:
             if self.current_file_is_pianoscript:  # it's a pianoscript file
-                if not self.io['autosave'] or not self.save_path:
+                if not self.io['auto_save'] or not self.save_path:
                     savequest = self.save_question()
                     if savequest:  # YES
                         self.save()
@@ -203,11 +198,12 @@ class File:
                     ...
                 elif savequest == None:  # CANCEL
                     return
-                
+
         # ask for file if file_path was not given
         if not file_path:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName(filter='MIDI files (*.mid)')
+            file_path, _ = file_dialog.getOpenFileName(
+                filter='MIDI files (*.mid)')
 
         # import the midi
         self.current_file_is_pianoscript = False
@@ -223,14 +219,12 @@ class File:
         else:
             with open(self.save_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
-            self.io['gui'].main.statusBar().showMessage('File saved...', 10000)
             return True
 
     def saveas(self):
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
-            self.io['gui'].main.statusBar().showMessage('Save as...', 10000)
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
             self.save_path = file_path
@@ -252,15 +246,14 @@ class File:
         # save the template.pianoscript
         with open(path, 'w') as file:
             json.dump(self.io['score'], file, indent=4)
-        self.io['gui'].main.statusBar().showMessage('Template saved...', 10000)
 
     def auto_save(self):
-        if self.save_path and self.io['settings']['autosave']:
+        if self.save_path and self.io['settings']['auto_save']:
             with open(self.save_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
 
     def toggle_autosave(self):
-        self.io['settings']['autosave'] = not self.io['settings']['autosave']
+        self.io['settings']['auto_save'] = not self.io['settings']['auto_save']
 
     def quit(self):
 
@@ -273,7 +266,8 @@ class File:
 
         # check if we want to save the current score
         yesnocancel = QMessageBox()
-        yesnocancel.setText(f"Do you wish to save {self.save_path if self.save_path is not None else 'the new file'}?")
+        yesnocancel.setText(f"Do you wish to save {
+                            self.save_path if self.save_path is not None else 'the new file'}?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         yesnocancel.setDefaultButton(QMessageBox.Cancel)

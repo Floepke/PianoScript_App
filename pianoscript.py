@@ -1,5 +1,7 @@
 #
-import sys, os, json
+import sys
+import os
+import json
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtCore import Qt, QSettings, QByteArray
@@ -24,6 +26,7 @@ from imports.gui.style import Style
 from imports.scripting.scriptutils import ScriptUtils
 from imports.scripting.loadscripts import LoadScripts
 from imports.utils.midiplayer import MidiPlayer
+from imports.gui.statusbar import StatusBar
 from imports.utils.constants import *
 
 
@@ -102,7 +105,7 @@ class PianoScript():
                 'events': SaveFileStructureSource.new_events_folder_viewport(),
                 'already_drawn': []
             },
-         
+
             # total ticks
             'total_ticks': 0,
 
@@ -122,7 +125,7 @@ class PianoScript():
             'num_pages': 0,
 
             # auto save onoff
-            'autosave': True,
+            'auto_save': True,
 
             # current selected staff to edit
             'selected_staff': 0,
@@ -134,12 +137,14 @@ class PianoScript():
             'engrave_counter': 0,
 
             # the settings object (for now empty but the settings.json will be loaded below)
-            'settings':None,
+            'settings': None,
 
             # playhead position for midi player
-            'playhead': 0
-        }
+            'playhead': 0,
 
+            # flags:
+            'shiftmode_flag': False,
+        }
 
         # start setup...
         self.app = QApplication(sys.argv)
@@ -150,16 +155,18 @@ class PianoScript():
         self.io['root'] = self.root
         self.root.showFullScreen()
         self.io['gui'] = self.gui
+        self.io['statusbar'] = StatusBar(self.io)
 
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)
-        
+
         # load app settings:
-        self.settings_path = self.io['calc'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
+        self.settings_path = self.io['calc'].ensure_json(
+            '~/.pianoscript/settings.json', INITIAL_SETTINGS)
         with open(self.settings_path, 'r') as file:
             self.io['settings'] = json.load(file)
-        
+
         # ...continue setup
         self.io['engraver'] = Engraver(self.io)
         self.io['maineditor'] = Editor(self.io)
@@ -175,7 +182,8 @@ class PianoScript():
         self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
 
-        self.io['gui'].file_browser.select_custom_path(self.io['settings']['browser_path'])
+        self.io['gui'].file_browser.select_custom_path(
+            self.io['settings']['browser_path'])
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)

@@ -98,7 +98,6 @@ class DrawUtil:
             * y2: y-coordinate of the bottom right corner
             * object_type: string that is in the tag of the object (e.g. 'note' or 'beam')
         - get_viewport(); get the viewport coordinates
-
         '''
 
     def __init__(self, canvas: QGraphicsScene):
@@ -142,6 +141,40 @@ class DrawUtil:
 
         # Add a tag to the line item
         line.setData(0, tag)
+
+    def new_line_list(self, points: list,
+                 dash: list = None,
+                 width: float = 1.0,
+                 capstyle: Qt.PenCapStyle = Qt.RoundCap,
+                 joinstyle: Qt.PenJoinStyle = Qt.RoundJoin,
+                 color: str = '#000000',
+                 tag: list = []):
+        '''Add a line to the scene.'''
+
+        # Create a pen with the given properties
+        pen = self.pen
+        pen.setWidthF(width)
+        pen.setCapStyle(capstyle)
+        pen.setJoinStyle(joinstyle)
+        pen.setColor(QColor(color))
+        if dash is not None:
+            pen.setStyle(Qt.DashLine)
+            pen.setDashPattern(dash)
+        else:
+            pen.setStyle(Qt.SolidLine)
+            pen.setDashPattern([])
+
+        # Iterate over the list of points
+        for i in range(len(points) - 1):
+            # Create a line from points[i] to points[i+1]
+            start = QPointF(*points[i])
+            end = QPointF(*points[i+1])
+
+            # Add the line to the scene
+            line = self.canvas.addLine(start.x(), start.y(), end.x(), end.y(), pen)
+
+            # Add a tag to the line item
+            line.setData(0, tag)
 
     def new_rectangle(self, x1: float, y1: float, x2: float, y2: float,
                       dash: list = None,
@@ -400,6 +433,7 @@ class DrawUtil:
                 if event_type == 'all':
                     # we are searching for any object type; if ending on a number it means it is a object in the score file
                     if bool(re.search(r'\d$', tag)):  # if ending on a number
+                        print(io['score'])
                         for evttypes in io['score']['events'].keys():
                             # skip all events that are not selectable by the selection rectangle
                             if evttypes in ['grid']:

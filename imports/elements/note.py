@@ -29,8 +29,7 @@ class Note:
             io['editor'].delete_with_tag(['notecursor'])
 
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(
-                io, float(x), float(y), event_type='note')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to edit it so we create a copy of the note
                 Note.delete_editor(io, detect)
@@ -53,24 +52,42 @@ class Note:
                 io['editor'].delete_with_tag(['notecursor'])
 
         elif event_type == 'leftclick+move':
-            # get the mouse position in pianoticks and pitch
-            mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
-            mouse_pitch = io['calc'].x2pitch_editor(x)
-            note_start = io['edit_obj']['time']
-            note_length = mouse_time - io['edit_obj']['time']
 
-            # editing rules:
-            if not LESS(mouse_time, note_start + io['snap_grid']):
-                # edit the duration
-                io['edit_obj']['duration'] = note_length
-            elif mouse_time < io['edit_obj']['time']:
-                # edit the pitch
+            # pitch or duration mode (without shift)
+            if not io['shiftmode_flag']:
+                # get the mouse position in pianoticks and pitch
+                mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
+                mouse_pitch = io['calc'].x2pitch_editor(x)
+                note_start = io['edit_obj']['time']
+                note_length = mouse_time - io['edit_obj']['time']
+
+                # editing rules:
+                if not LESS(mouse_time, note_start + io['snap_grid']):
+                    # edit the duration
+                    io['edit_obj']['duration'] = note_length
+                elif mouse_time < io['edit_obj']['time']:
+                    # edit the pitch
+                    io['edit_obj']['pitch'] = mouse_pitch
+                # draw the note
+                Note.draw_editor(io, io['edit_obj'])
+        
+        elif event_type == 'leftclick+shift+move':
+            # pitch + time mode (with shift pressed at click):
+            if io['shiftmode_flag']:
+                # get the mouse position in pianoticks and pitch
+                mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
+                mouse_pitch = io['calc'].x2pitch_editor(x)
+
+                # edit the pitch and time
                 io['edit_obj']['pitch'] = mouse_pitch
+                io['edit_obj']['time'] = mouse_time
 
-            # draw the note
-            Note.draw_editor(io, io['edit_obj'])
+                # draw the note
+                Note.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftrelease':
+            io['shiftmode_flag'] = False
+            print(io['shiftmode_flag'])
             if io['edit_obj']:
                 # delete the edit_obj
                 io['editor'].delete_with_tag([io['edit_obj']['tag']])
@@ -147,6 +164,30 @@ class Note:
 
         elif event_type == 'leave':
             io['editor'].delete_with_tag(['notecursor'])
+
+        elif event_type == 'leftclick+shift':
+
+            # delete note cursor
+            io['editor'].delete_with_tag(['notecursor'])
+
+            # detect if we clicked on a note
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='note')
+            if detect:
+                io['shiftmode_flag'] = True
+                print('!!!', io['shiftmode_flag'])
+                # we enter midi note free move mode meaning that we can move 
+                # the clicked note freely, editing pitch and time (but not duration) together.
+                
+                # if we clicked on a note, we want to edit it so we create a copy of the note and place it in edit_obj
+                Note.delete_editor(io, detect)
+                io['edit_obj'] = copy.deepcopy(detect)
+                io['edit_obj']['hand'] = io['hand']
+                io['edit_obj']['staff'] = io['selected_staff']
+                io['edit_obj']['tag'] = 'edit_obj'
+                Note.draw_editor(io, io['edit_obj'])
+                io['editor'].delete_with_tag(['notecursor'])
+
 
     @staticmethod
     def draw_editor(io, note, inselection=False, noteheadup=False):

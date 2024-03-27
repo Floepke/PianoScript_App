@@ -16,7 +16,6 @@ class Selection:
 
             # delete the previous selection
             Selection.delete_selection(io)
-
             # detect if we are clicking an object (tag ending on a number)
             detect = io['editor'].detect_item(
                 io['score'], float(x), float(y), event_type='all')
@@ -32,7 +31,7 @@ class Selection:
                 io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
         elif event_type in ['leftclick+shift+move', 'scroll']:
-            if io['selection']['rectangle_on']:
+            if io['selection']['rectangle_on'] and not io['shiftmode_flag']:
                 # if we are in rectangle selection mode we want to update the rectangle and detect the containing objects
                 Selection.draw_selection_rectangle(io, x, y)
 

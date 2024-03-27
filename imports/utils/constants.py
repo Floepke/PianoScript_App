@@ -4,6 +4,7 @@
     that they are constants.
 '''
 # the background color of the editor and print view
+import copy
 from imports.utils.savefilestructure import SaveFileStructureSource
 import datetime
 BACKGROUND_COLOR = '#ffffff'
@@ -106,7 +107,8 @@ SCORE_TEMPLATE = {
                 'amount': 8,
                 'numerator': 4,
                 'denominator': 4,
-                'grid': [256, 512, 768], # a list of ticks relative to the start of every measure. every tick is a gridline
+                # a list of ticks relative to the start of every measure. every tick is a gridline
+                'grid': [256, 512, 768],
                 'visible': True
             }
         ],
@@ -131,7 +133,6 @@ SCORE_TEMPLATE = {
 }
 
 # blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event
-import copy
 BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
 BLUEPRINT['note'] = [SaveFileStructureSource.new_note('blueprint')]
 BLUEPRINT['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
@@ -204,6 +205,6 @@ INITIAL_SETTINGS = {
     'recent_files': [],
     'browser_path': '',
     'last_opened_file': '',
-    'autosave': True,
+    'auto_save': True,
     'midi_port': None
 }
