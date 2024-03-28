@@ -195,82 +195,158 @@ class Midi:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
 
-    def export_midi(self, export=True, tempo=120, from_playhead=False):
+    def export_midi(self, export=True, tempo=120, from_playhead=False, trigger_inside_note=True):
 
         if export:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getSaveFileName(
-                self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
+            file_path, _ = file_dialog.getSaveFileName(parent=self.io['root'], 
+                                                     caption='Save Midi File', 
+                                                     dir='', 
+                                                     filter='Midi Files (*.mid *.MID)')
         else:
-            file_path = os.path.expanduser('~/.pianoscript/play.mid')
+            return
+        
+        if not file_path:
+            return
 
-            # Check if the directory for the play.mid file exists
-            dir = os.path.dirname(file_path)
-            if not os.path.exists(dir):
-                # If the directory doesn't exist, create it
-                os.makedirs(dir)
+        Score = self.io['score']
 
-        if file_path:
-            Score = self.io['score']
+        # some info for the midifile
+        clocks_per_tick = 24
+        denominator_dict = {
+            1: 0,
+            2: 1,
+            4: 2,
+            8: 3,
+            16: 4,
+            32: 5,
+            64: 6,
+            128: 7,
+            256: 8
+        }
+        ticks_per_quarternote = 2048
 
-            # some info for the midifile
-            clocks_per_tick = 24
-            denominator_dict = {
-                1: 0,
-                2: 1,
-                4: 2,
-                8: 3,
-                16: 4,
-                32: 5,
-                64: 6,
-                128: 7,
-                256: 8
-            }
-            ticks_per_quarternote = 2048
+        # creating the midi file object
+        MyMIDI = MIDIFile(numTracks=2,
+                            removeDuplicates=True,
+                            deinterleave=False,
+                            adjust_origin=False,
+                            file_format=1,
+                            ticks_per_quarternote=ticks_per_quarternote,
+                            eventtime_is_ticks=True)
 
-            # creating the midi file object
-            MyMIDI = MIDIFile(numTracks=2,
-                              removeDuplicates=True,
-                              deinterleave=False,
-                              adjust_origin=False,
-                              file_format=1,
-                              ticks_per_quarternote=ticks_per_quarternote,
-                              eventtime_is_ticks=True)
+        for ts in Score['events']['grid']:
+            MyMIDI.addTimeSignature(track=0,
+                                    time=0,
+                                    numerator=int(ts['numerator']),
+                                    denominator=denominator_dict[int(
+                                        ts['denominator'])],
+                                    clocks_per_tick=clocks_per_tick,
+                                    notes_per_quarter=8)
+        MyMIDI.addTempo(track=0, time=0, tempo=tempo)
+        MyMIDI.addTrackName(track=0, time=0, trackName='Tempo & Left hand')
+        MyMIDI.addTrackName(track=1, time=0, trackName='Right hand')
 
-            for ts in Score['events']['grid']:
-                MyMIDI.addTimeSignature(track=0,
-                                        time=0,
-                                        numerator=int(ts['numerator']),
-                                        denominator=denominator_dict[int(
-                                            ts['denominator'])],
-                                        clocks_per_tick=clocks_per_tick,
-                                        notes_per_quarter=8)
-            MyMIDI.addTempo(track=0, time=0, tempo=tempo)
-            MyMIDI.addTrackName(track=0, time=0, trackName='Tempo & Left hand')
-            MyMIDI.addTrackName(track=1, time=0, trackName='Right hand')
+        # adding the notes
+        for note in Score['events']['note']: # NOTE: add gracenote
+            time = int(note['time'] / 256 * ticks_per_quarternote)
+            duration = int(note['duration'] / 256 * ticks_per_quarternote)
+            MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                            channel=0, 
+                            pitch=int(note['pitch']+20), 
+                            time=time, 
+                            duration=duration, 
+                            volume=80, 
+                            annotation=None)
 
-            # if player is using the midi_export we need to create it from the playhead position
-            if from_playhead:
-                playhead = self.io['playhead']
+        # saving the midi file
+        with open(file_path, "wb") as output_file:
+            MyMIDI.writeFile(output_file)
+
+    def play_midi(self, tempo=80, trigger_inside_note=True, from_playhead=False):
+
+        file_path = os.path.expanduser(path='~/.pianoscript/play.mid')
+        # Check if the directory for the play.mid file exists
+        dir = os.path.dirname(file_path)
+        if not os.path.exists(path=dir):
+            # If the directory doesn't exist, create it
+            os.makedirs(name=dir)
+
+        score = copy.deepcopy(self.io['score'])
+
+        # some info for the midifile
+        clocks_per_tick = 24
+        denominator_dict = {
+            1: 0,
+            2: 1,
+            4: 2,
+            8: 3,
+            16: 4,
+            32: 5,
+            64: 6,
+            128: 7,
+            256: 8
+        }
+        ticks_per_quarternote = 2048
+
+        # creating the midi file object
+        MyMIDI = MIDIFile(numTracks=2,
+                            removeDuplicates=True,
+                            deinterleave=False,
+                            adjust_origin=False,
+                            file_format=1,
+                            ticks_per_quarternote=ticks_per_quarternote,
+                            eventtime_is_ticks=True)
+
+        for ts in score['events']['grid']:
+            MyMIDI.addTimeSignature(track=0,
+                                    time=0,
+                                    numerator=int(ts['numerator']),
+                                    denominator=denominator_dict[int(
+                                        ts['denominator'])],
+                                    clocks_per_tick=clocks_per_tick,
+                                    notes_per_quarter=8)
+        MyMIDI.addTempo(track=0, time=0, tempo=tempo)
+        MyMIDI.addTrackName(track=0, time=0, trackName='PianoScript Play')
+        
+        # writing the notes
+        for note in score['events']['note']:
+            if not from_playhead:
+                # default midi export/normal
+                time = int(note['time'] / 256 * ticks_per_quarternote)
+                duration = int(note['duration'] / 256 * ticks_per_quarternote)
+                MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                                channel=0, 
+                                pitch=int(note['pitch']+20), 
+                                time=time, 
+                                duration=duration, 
+                                volume=80, 
+                                annotation=None)
             else:
-                playhead = 0
+                # generate midi from the playhead position
+                playhead = self.io['playhead']
+                if note['time'] < playhead and note['time'] + note['duration'] > playhead and trigger_inside_note:
+                    difference = playhead - note['time']
+                    note['time'] = playhead
+                    note['duration'] -= difference
+                
+                if not from_playhead:
+                    playhead = 0
 
-            # adding the notes
-            for note in Score['events']['note'] + Score['events']['gracenote']:
-                if note['time'] < playhead:
-                    continue
-                t = int((note['time'] - playhead) /
-                        256 * ticks_per_quarternote)
-                if 'duration' in note:
-                    d = int(note['duration']/256*ticks_per_quarternote)
-                else:
-                    d = 32  # length for midi if gracenote
-                c = 0
-                if note['hand'] == 'r':
-                    c = 1  # l or r?? first fix the midi import
-                MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, channel=c, pitch=int(
-                    note['pitch']+20), time=t, duration=d, volume=80, annotation=None)
+                if note['time'] >= playhead:
+                    if from_playhead:
+                        time = int((note['time'] - playhead) / 256 * ticks_per_quarternote)
+                    else:
+                        time = int(note['time'] / 256 * ticks_per_quarternote)
+                    duration = int(note['duration'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                                    channel=0, 
+                                    pitch=int(note['pitch']+20), 
+                                    time=time, 
+                                    duration=duration, 
+                                    volume=80, 
+                                    annotation=None)
 
-            # saving the midi file
-            with open(file_path, "wb") as output_file:
-                MyMIDI.writeFile(output_file)
+        # saving the midi file
+        with open(file_path, "wb") as output_file:
+            MyMIDI.writeFile(output_file)

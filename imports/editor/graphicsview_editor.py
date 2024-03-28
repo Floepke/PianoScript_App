@@ -118,12 +118,6 @@ class GraphicsViewEditor(QGraphicsView):
             self.right_mouse_button = False
             self.io['maineditor'].update('rightrelease', x, y)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        # if the space key is pressed, switch the hand
-        if event.key() == Qt.Key_Space:
-            self.io['maineditor'].update('space')
-        return super().keyPressEvent(event)
-
     # connect a action if mouse leaves the view
     def leaveEvent(self, event):
         self.io['maineditor'].update('leave')

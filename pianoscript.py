@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import mido
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtCore import Qt, QSettings, QByteArray
@@ -232,20 +233,24 @@ class PianoScript():
         undo_shortcut.activated.connect(self.io['ctlz'].undo)
         redo_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Z"), self.root)
         redo_shortcut.activated.connect(self.io['ctlz'].redo)
-        hand_left_shortcut = QShortcut(QKeySequence("["), self.root)
-        hand_left_shortcut.activated.connect(
+        selection_left_shortcut = QShortcut(QKeySequence("["), self.root)
+        selection_left_shortcut.activated.connect(
             self.io['selectoperations'].hand_left)
-        hand_right_shortcut = QShortcut(QKeySequence("]"), self.root)
-        hand_right_shortcut.activated.connect(
+        selection_right_shortcut = QShortcut(QKeySequence("]"), self.root)
+        selection_right_shortcut.activated.connect(
             self.io['selectoperations'].hand_right)
         escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
-        engrave_shortcut = QShortcut(QKeySequence("/"), self.root)
+        engrave_shortcut = QShortcut(QKeySequence("e"), self.root)
         engrave_shortcut.activated.connect(self.io['engraver'].do_engrave)
-        next_page_shortcut = QShortcut(QKeySequence("."), self.root)
+        next_page_shortcut = QShortcut(QKeySequence("'"), self.root)
         next_page_shortcut.activated.connect(self.io['gui'].next_page)
-        prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
+        prev_page_shortcut = QShortcut(QKeySequence(";"), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
+        hand_left_shortcut = QShortcut(QKeySequence(','), self.root)
+        hand_left_shortcut.activated.connect(lambda: self.io['maineditor'].update('handleft'))
+        hand_right_shortcut = QShortcut(QKeySequence('.'), self.root)
+        hand_right_shortcut.activated.connect(lambda: self.io['maineditor'].update('handright'))
 
         self.root.closeEvent = self.de_init
 

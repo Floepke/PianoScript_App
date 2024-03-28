@@ -156,8 +156,12 @@ class Note:
             }
             Note.draw_editor(io, io['cursor'])
 
-        elif event_type == 'space':
-            io['hand'] = 'r' if io['hand'] == 'l' else 'l'
+        elif event_type == 'handleft':
+            io['hand'] = 'l'
+            io['cursor']['hand'] = io['hand']
+            Note.draw_editor(io, io['cursor'])
+        elif event_type == 'handright':
+            io['hand'] = 'r'
             io['cursor']['hand'] = io['hand']
             Note.draw_editor(io, io['cursor'])
 

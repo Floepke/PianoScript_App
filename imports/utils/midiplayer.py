@@ -18,7 +18,7 @@ class MidiPlayer:
         self.io['gui'].toolbar.play_button.clicked.connect(self.play_midi)
         self.io['gui'].toolbar.stop_button.clicked.connect(self.stop_midi)
         self.io['gui'].set_midi_out_port_action.triggered.connect(lambda: self.set_midi_port(set=True))
-        prev_page_shortcut = QShortcut(QKeySequence("p"), self.io['root'])
+        prev_page_shortcut = QShortcut(QKeySequence("Space"), self.io['root'])
         prev_page_shortcut.activated.connect(self.player_switch)
 
     def play_midi(self, from_playhead=False):
@@ -42,7 +42,7 @@ class MidiPlayer:
         self.stop.clear()
     
     def _play_midi_thread(self):
-        self.io['midi'].export_midi(export=False, tempo=120, from_playhead=self.from_playhead)
+        self.io['midi'].play_midi(from_playhead=self.from_playhead)
         mid = mido.MidiFile(self.path)
         for msg in mid:
             if self.stop.wait(msg.time):  # non-blocking sleep

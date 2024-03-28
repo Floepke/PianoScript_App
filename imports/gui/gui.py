@@ -14,6 +14,7 @@ from imports.gui.toolbar import ToolBar
 from imports.gui.moodslider import MoodSlider
 from imports.utils.constants import *
 from imports.gui.dialogs.filebrowser import FileBrowser
+from imports.gui.clock import Clock
 
 import random
 from PySide6.QtWidgets import QSizePolicy
@@ -53,6 +54,7 @@ class Gui():
         self.slider_widget = QWidget()
         self.slider_widget.setLayout(self.slider_layout)
         self.statusbar.addPermanentWidget(self.slider_widget)
+        self.statusbar.addPermanentWidget(Clock())
 
         # start menu--------------------------------------------------------------------
 
