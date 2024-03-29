@@ -12,8 +12,7 @@ class LineBreak:
         # left mouse button handling:
         if event_type == 'leftclick':
             # detect if we clicked on a linebreak
-            detect = io['editor'].detect_item(
-                io, float(x), float(y), event_type='linebreak')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='linebreak')
 
             if detect:
                 io['edit_obj'] = detect

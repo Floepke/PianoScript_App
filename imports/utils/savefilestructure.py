@@ -29,6 +29,7 @@ class SaveFileStructureSource:
             'endhook': [],
             'stop': [],
             'dot': [],
+            'tempo': []
         }
 
     def new_events_folder_viewport():
@@ -48,6 +49,7 @@ class SaveFileStructureSource:
             'endhook': [],
             'dot': [],
             'stop': [],
+            'tempo': []
         }
 
     def new_note(
@@ -181,8 +183,10 @@ class SaveFileStructureSource:
             text: str = 'text',  # text
             time: float = 0,  # in linear time in pianoticks 0 to infinity
             pitch: int = 40,  # piano note number 1 to 88
-            font: str = 'Edwin',  # font
             font_size: int = 16,  # size
+            font_family: str = 'Edwin',
+            bold: bool = False,
+            italic: bool = False,
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The text event structure.'''
@@ -191,6 +195,22 @@ class SaveFileStructureSource:
             'text': text,
             'time': time,
             'pitch': pitch,
-            'staff': staff
+            'staff': staff,
+            'font_size': font_size,
+            'font_family': font_family,
+            'bold': bold,
+            'italic': italic
         }
     
+    def new_tempo(
+            tag: str,
+            tempo: int = 120,
+            time: float = 0,
+    ):
+        return {
+            'tag': tag,
+            'tempo': tempo,
+            'time': time
+        }
+    
+

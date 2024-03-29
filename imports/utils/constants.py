@@ -127,19 +127,22 @@ SCORE_TEMPLATE = {
         'gracenote': [],
         'text': [],
         'pedal': [],
-        'slur': []
+        'slur': [],
+        'tempo': [
+            SaveFileStructureSource.new_tempo('lockedtempo')
+        ]
     },
     'midi_data': []
 }
 
 # blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event
 BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
-BLUEPRINT['note'] = [SaveFileStructureSource.new_note('blueprint')]
-BLUEPRINT['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
-BLUEPRINT['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
-BLUEPRINT['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
-BLUEPRINT['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
-BLUEPRINT['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
+BLUEPRINT['events']['note'] = [SaveFileStructureSource.new_note('blueprint')]
+BLUEPRINT['events']['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
+BLUEPRINT['events']['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['events']['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
+BLUEPRINT['events']['tempo'] = [SaveFileStructureSource.new_tempo('blueprint')]
+BLUEPRINT['events']['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
 
 # the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88
 BLACK_KEYS = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46,

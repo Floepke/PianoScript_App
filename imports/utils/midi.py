@@ -195,7 +195,7 @@ class Midi:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
 
-    def export_midi(self, export=True, tempo=120, from_playhead=False, trigger_inside_note=True):
+    def export_midi(self, export=True, tempo=120):
 
         if export:
             file_dialog = QFileDialog()
@@ -209,7 +209,7 @@ class Midi:
         if not file_path:
             return
 
-        Score = self.io['score']
+        Score = copy.deepcopy(self.io['score'])
 
         # some info for the midifile
         clocks_per_tick = 24
@@ -258,6 +258,10 @@ class Midi:
                             duration=duration, 
                             volume=80, 
                             annotation=None)
+            
+        for t in Score['events']['tempo']:
+            t['time'] = int(t['time'] / 256 * ticks_per_quarternote)
+            MyMIDI.addTempo(track=0, time=t['time'], tempo=t['tempo'])
 
         # saving the midi file
         with open(file_path, "wb") as output_file:
@@ -346,6 +350,28 @@ class Midi:
                                     duration=duration, 
                                     volume=80, 
                                     annotation=None)
+        
+        # writing tempo changes:
+        for t in score['events']['tempo']:
+            if not from_playhead:
+                # default midi export/normal
+                    t['time'] = int(t['time'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addTempo(track=0, time=t['time'], tempo=t['tempo'])
+            else:
+                # generate midi from the playhead position
+                playhead = self.io['playhead']
+                if t['time'] < playhead and trigger_inside_note:
+                    t['time'] = playhead
+                
+                if not from_playhead:
+                    playhead = 0
+
+                if t['time'] >= playhead:
+                    if from_playhead:
+                        time = int((t['time'] - playhead) / 256 * ticks_per_quarternote)
+                    else:
+                        time = int(t['time'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addTempo(track=0, time=time, tempo=t['tempo'])
 
         # saving the midi file
         with open(file_path, "wb") as output_file:

@@ -398,7 +398,8 @@ class Gui():
                 'countline',
                 'text',
                 'slur',
-                'finger'
+                'finger',
+                'tempo'
             ]
         }
         for folder in tree:

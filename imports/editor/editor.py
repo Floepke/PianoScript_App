@@ -10,6 +10,7 @@ from imports.elements.linebreak import LineBreak
 from imports.elements.trill import Trill
 from imports.elements.dot import Dot
 from imports.elements.text import Text
+from imports.elements.tempo import Tempo
 from imports.utils.constants import *
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.engraver.engraver import pre_render
@@ -31,7 +32,8 @@ class Editor:
             'trill': Trill,
             'linebreak': LineBreak,
             'dot': Dot,
-            'text': Text
+            'text': Text,
+            'tempo': Tempo
         }
 
     def update(self, event_type: str, x: int = None, y: int = None):
