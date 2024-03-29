@@ -198,5 +198,14 @@ class Script:
             returns the length of a measure in pianoticks
             based on the numerator and denominator
         '''
-        return int(numerator * ((256 * 4) / denominator))
+        return int(numerator * (256 * (4 / denominator)))
+    
+    def selected(self):
+        '''
+            returns the selection buffer which is the 'events'
+            folder of a pianoscript file but filled with the current
+            selected objects.
+        '''
+
+        return self.__io['selection']['selection_buffer']
     

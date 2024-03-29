@@ -83,8 +83,4 @@ def script_Add_quick_linebreaks(script):
             if interval_index < len(intervals) - 1:
                 interval_index += 1
 
-def script_print_barlineticks(script):
-
-    for bl in script.get_barline_ticks():
-        print(bl)
 
