@@ -40,7 +40,7 @@ class Style():
         style = f'''
             QPushButton, QStatusBar, QMenuBar, QMenu, 
             QSpinBox, QRadioButton, QTabBar,
-            QSplitter, QMainWindow, QDockWidget,
+            QSplitter::handle, QMainWindow, QDockWidget,
             QDialog, QListWidget, QLabel, QGroupBox
             {{
                 background-color: {self.color1};
@@ -80,5 +80,45 @@ class Style():
                 background-color: {make_darker(self.color1, factor=20)}
             }}
         '''
+
+        # style = f'''
+        #     QPushButton, QMenuBar, QMenu, 
+        #     QSpinBox, QRadioButton, QTabBar,
+        #     QSplitter, QDockWidget,
+        #     QDialog, QListWidget, QLabel, QGroupBox
+        #     {{
+        #         background-color: {self.color1};
+        #         color: {self.color2};
+        #         font-family: Edwin;
+        #         font-size: 16px;
+        #     }}
+        #     QMainWindow, QSplitter::handle
+        #     {{
+        #         background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        #                         stop:0 {self.color1}, stop:1 {self.color2});
+        #         color: {self.color1};
+        #         font-family: Edwin;
+        #         font-size: 16px;
+        #     }}
+        #     QMenuBar, QMenu::item {{
+        #         padding: 7.5px 7.5px
+        #     }}
+        #     QMenuBar::item:selected, QMenu::Item::selected {{
+        #         background-color: white;
+        #         color: black;
+        #     }}
+        #     QLabel, QRadioButton
+        #     {{
+        #         background-color: transparent;
+        #         color: #000000;
+        #     }}
+        #     QStatusBar
+        #     {{
+        #         background-color: {self.color2};
+        #         color: {self.color1};
+        #         font-family: Edwin;
+        #         font-size: 16px;
+        #     }}
+        # '''
 
         self.io['app'].setStyleSheet(style)

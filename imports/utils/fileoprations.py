@@ -96,6 +96,7 @@ class File:
 
         # redraw the editor
         print('loadfile')
+        self.io['selected_page'] = 0
         self.io['maineditor'].update('loadfile')
 
         # reset the ctlz buffer
@@ -106,6 +107,7 @@ class File:
 
         # update window title
         self.io['gui'].main.setWindowTitle('PianoScript - new file')
+
 
     def load(self, file_path=None):
 
@@ -147,6 +149,8 @@ class File:
 
             # renumber tags
             self.io['calc'].renumber_tags()
+
+            self.io['selected_page'] = 0
 
             # draw the editor
             self.io['maineditor'].update('loadfile')

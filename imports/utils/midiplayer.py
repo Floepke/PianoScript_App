@@ -44,22 +44,21 @@ class MidiPlayer:
     def _play_midi_thread(self):
         self.io['midi'].play_midi(from_playhead=self.from_playhead)
         mid = mido.MidiFile(self.path)
+        outport = mido.open_output(self.io['settings']['midi_port'])
         for msg in mid:
             if self.stop.wait(msg.time):  # non-blocking sleep
                 self._send_panic()
                 break
             if not msg.is_meta and not msg.type == 'sysex':
-                with mido.open_output(self.io['settings']['midi_port']) as output:
-                    output.send(msg)
+                    outport.send(msg)
         self.ready2play = True
 
     def _send_panic(self):
-        for port in mido.get_output_names():
-            with mido.open_output(port) as output:
-                for channel in range(2):
-                    for note in range(20, 108):
-                        off_msg = mido.Message('note_off', note=note, velocity=0, channel=channel)
-                        output.send(off_msg)
+        with mido.open_output(self.io['settings']['midi_port']) as output:
+            for channel in range(2):
+                for note in range(20, 108):
+                    off_msg = mido.Message('note_off', note=note, velocity=0, channel=channel)
+                    output.send(off_msg)
 
     def set_midi_port(self, set=False):
         midi_port = self.io['settings']['midi_port'] if not set else None

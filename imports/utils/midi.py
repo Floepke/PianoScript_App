@@ -5,6 +5,7 @@ import os
 import threading
 import json
 import statistics
+import copy
 from midiutil.MidiFile import MIDIFile
 from imports.utils.savefilestructure import SaveFileStructureSource
 
@@ -313,8 +314,13 @@ class Midi:
         MyMIDI.addTempo(track=0, time=0, tempo=tempo)
         MyMIDI.addTrackName(track=0, time=0, trackName='PianoScript Play')
         
-        # writing the notes
-        for note in score['events']['note']:
+        # writing the notes and gracenotes
+        for note in score['events']['note'] + score['events']['gracenote']:
+            if not 'duration' in note:
+                _, d = Midi.get_tsig_from_time(self.io, note['time'])
+                duration = self.io['calc'].get_measure_length({'numerator': 1, 'denominator': d}) / d
+                note['duration'] = duration
+                
             if not from_playhead:
                 # default midi export/normal
                 time = int(note['time'] / 256 * ticks_per_quarternote)
@@ -376,3 +382,27 @@ class Midi:
         # saving the midi file
         with open(file_path, "wb") as output_file:
             MyMIDI.writeFile(output_file)
+
+    @staticmethod
+    def get_tsig_from_time(io, time=0):
+        
+        grid = copy.deepcopy(io['score']['events']['grid'])
+
+        # add time to time signature
+        timer = 0
+        for gr in grid:
+            gr['time'] = timer
+            m_length = io['calc'].get_measure_length(gr)
+            timer += m_length * gr['amount']
+
+        for idx, gr in enumerate(grid):
+            try: 
+                gr['duration'] = grid[idx+1]['time'] - gr['time']
+            except IndexError: 
+                gr['duration'] = grid[-1]['time'] + timer - gr['time']
+        
+        for gr in grid:
+            if time >= gr['time'] and time < gr['duration']:
+                return gr['numerator'], gr['denominator']
+
+        return 0, 0

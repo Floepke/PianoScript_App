@@ -315,9 +315,9 @@ class PianoScript():
         if result == DialogResult.OK:
             self.io['score']['events']['linebreak'] = line_breaks
 
-            Popup(message=f'Line break Editor has closed\n{result}\nUPDATED!!',
-                  max_lines=3,
-                  text_size=(100, 21))
+            # Popup(message=f'Line break Editor has closed\n{result}\nUPDATED!!',
+            #       max_lines=3,
+            #       text_size=(100, 21))
 
             self.io['maineditor'].update('grid_editor')
 
