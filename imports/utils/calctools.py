@@ -51,13 +51,12 @@ class CalcTools:
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor_zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
 
-    def y2tick_editor(self, y, snap=False, absolute=False):
+    def y2tick_editor(self, y, snap=False):
         '''converts y position on the editor into pianoticks'''
         editor_zoom = self.io['score']['properties']['editor_zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
-        if not absolute:
-            if y <= 0:
-                y = 0
+        if y < 0:
+            y = 0
 
         if snap:
             # Snap to grid starting from the top of the editor
@@ -82,6 +81,17 @@ class CalcTools:
                 break
 
         return x
+    
+    @staticmethod
+    def x2xunits_editor(x):
+        '''converts the x (mouse)position to the distance from the c4 position on the staff in STAFF_X_UNIT_EDITOR floats'''
+        c4_xpos = CalcTools.pitch2x_editor(40) # key 40 = c4
+        return (x - c4_xpos) / STAFF_X_UNIT_EDITOR
+    
+    @staticmethod
+    def units2x_editor(value):
+        c4_xpos = CalcTools.pitch2x_editor(40)
+        return (c4_xpos + (value * STAFF_X_UNIT_EDITOR))
 
     @staticmethod
     def x2pitch_editor(x):
@@ -106,7 +116,7 @@ class CalcTools:
         self.io['new_tag'] += 1
         return tag
 
-    def renumber_tags(self):  # TODO: this function is not used yet
+    def renumber_tags(self):
         '''
             This function takes the score and
             renumbers the event tags starting
@@ -252,3 +262,12 @@ class CalcTools:
             with open(json_path, 'w') as file:
                 json.dump(fallback_json, file, indent=4)
         return json_path
+    
+    def bezier_curve(self, p0, p1, p2, p3, resolution=10):
+        points = []
+        for t in range(resolution + 1):
+            t = t / resolution
+            x = (1 - t) ** 3 * p0[0] + 3 * (1 - t) ** 2 * t * p1[0] + 3 * (1 - t) * t ** 2 * p2[0] + t ** 3 * p3[0]
+            y = (1 - t) ** 3 * p0[1] + 3 * (1 - t) ** 2 * t * p1[1] + 3 * (1 - t) * t ** 2 * p2[1] + t ** 3 * p3[1]
+            points.append((x, y))
+        return points

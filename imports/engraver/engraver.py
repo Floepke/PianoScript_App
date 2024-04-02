@@ -23,7 +23,7 @@ def pre_render(io, render_type='default'):
 
     # set scene rectangle
     io['gui'].print_scene.setSceneRect(
-        0, 0, scene_width, scene_height)  # TODO: check if it looks ok
+        0, 0, scene_width, scene_height)
 
     # page dimentions
     page_margin_left = io['score']['properties']['page_margin_left']

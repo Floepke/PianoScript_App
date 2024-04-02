@@ -79,7 +79,8 @@ class SaveFileStructureSource:
             amount: int = 8,  # amount of measures to repeat
             numerator: int = 4,  # numerator of the grid
             denominator: int = 4,  # denominator of the grid
-            grid: list = [256, 512, 768],  # list of ticks relative to the start of every measure. every tick is a gridline
+            # list of ticks relative to the start of every measure. every tick is a gridline
+            grid: list = [256, 512, 768],
             # are the stafflines and the gridlines visible if False in the editor the background is redish
             visible: bool = True,
     ):
@@ -201,7 +202,7 @@ class SaveFileStructureSource:
             'bold': bold,
             'italic': italic
         }
-    
+
     def new_tempo(
             tag: str,
             tempo: int = 120,
@@ -212,5 +213,31 @@ class SaveFileStructureSource:
             'tempo': tempo,
             'time': time
         }
-    
 
+    def new_slur(
+            tag: str,
+            p0: dict = {
+                'time': 0,
+                'distance_c4units': 0  # distance from c4 in STAFF_X_UNIT_EDITOR float unit's
+            },
+            p1: dict = {
+                'time': 0,
+                'distance_c4units': 0  # ...
+            },
+            p2: dict = {
+                'time': 0,
+                'distance_c4units': 0
+            },
+            p3: dict = {
+                'time': 0,
+                'distance_c4units': 0
+            }
+    ):
+        return {
+            'tag': tag,
+            'time': p0['time'],
+            'p0': p0,
+            'p1': p1,
+            'p2': p2,
+            'p3': p3
+        }

@@ -62,7 +62,7 @@ class PianoScript():
                 # all event types that are alowed to copy, cut, paste
                 'copy_types': ['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that are alowed to transpose (are pitch based)
-                'transpose_types': ['note', 'text', 'gracenote', 'slur'],
+                'transpose_types': ['note', 'gracenote'],
                 # all event types that have the time property (are time based)
                 'move_types': ['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that have the hand property
@@ -137,7 +137,7 @@ class PianoScript():
             # render counter
             'engrave_counter': 0,
 
-            # the settings object (for now empty but the settings.json will be loaded below)
+            # the settings object (for now empty but the settings.json will be loaded soon)
             'settings': None,
 
             # playhead position for midi player
@@ -145,6 +145,15 @@ class PianoScript():
 
             # flags:
             'shiftmode_flag': False,
+
+            # for saving data for the slur tool mechanics
+            'slur_memory': {
+                'start_click_tick': 0,  # time at left click
+                'click_pitch': 1,  # 1-88 pianokey
+                'end_click_tick': 0,  # time at release left click
+                'new_slur': False,
+                'handle': None
+            }
         }
 
         # start setup...
@@ -248,9 +257,11 @@ class PianoScript():
         prev_page_shortcut = QShortcut(QKeySequence(";"), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
         hand_left_shortcut = QShortcut(QKeySequence(','), self.root)
-        hand_left_shortcut.activated.connect(lambda: self.io['maineditor'].update('handleft'))
+        hand_left_shortcut.activated.connect(
+            lambda: self.io['maineditor'].update('handleft'))
         hand_right_shortcut = QShortcut(QKeySequence('.'), self.root)
-        hand_right_shortcut.activated.connect(lambda: self.io['maineditor'].update('handright'))
+        hand_right_shortcut.activated.connect(
+            lambda: self.io['maineditor'].update('handright'))
 
         self.root.closeEvent = self.de_init
 

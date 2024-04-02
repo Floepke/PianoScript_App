@@ -10,9 +10,6 @@ class Note:
             - drawing the note in the editor including:
                 * notehead
                 * stem
-                * automatic sounding dot
-                * automatic stopsign
-            - drawing the note in the engraver (TODO)
     '''
 
     @staticmethod
@@ -49,14 +46,13 @@ class Note:
                     attached=''
                 )
                 Note.draw_editor(io, io['edit_obj'])
-                io['editor'].delete_with_tag(['notecursor'])
 
         elif event_type == 'leftclick+move':
 
             # pitch or duration mode (without shift)
             if not io['shiftmode_flag']:
                 # get the mouse position in pianoticks and pitch
-                mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
+                mouse_time = io['calc'].y2tick_editor(y, snap=True)
                 mouse_pitch = io['calc'].x2pitch_editor(x)
                 note_start = io['edit_obj']['time']
                 note_length = mouse_time - io['edit_obj']['time']
@@ -75,7 +71,7 @@ class Note:
             # pitch + time mode (with shift pressed at click):
             if io['shiftmode_flag']:
                 # get the mouse position in pianoticks and pitch
-                mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
+                mouse_time = io['calc'].y2tick_editor(y, snap=True)
                 mouse_pitch = io['calc'].x2pitch_editor(x)
 
                 # edit the pitch and time
@@ -178,7 +174,6 @@ class Note:
                 io, float(x), float(y), event_type='note')
             if detect:
                 io['shiftmode_flag'] = True
-                print('!!!', io['shiftmode_flag'])
                 # we enter midi note free move mode meaning that we can move 
                 # the clicked note freely, editing pitch and time (but not duration) together.
                 

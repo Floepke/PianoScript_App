@@ -424,7 +424,7 @@ class DrawUtil:
             return [item for item in scene_items if item.data(0) in tag]
         return scene_items
 
-    def detect_item(self, io, x: float, y: float, event_type: str = 'all'):
+    def detect_item(self, io, x: float, y: float, event_type: str = 'all', return_item=False):
         '''Find all items at the given position that have the given string in their tag and return a list of items.'''
         scene_items = self.canvas.items(QPointF(x, y))
         if event_type is not None:
@@ -433,19 +433,22 @@ class DrawUtil:
                 if event_type == 'all':
                     # we are searching for any object type; if ending on a number it means it is a object in the score file
                     if bool(re.search(r'\d$', tag)):  # if ending on a number
-                        print(io['score'])
                         for evttypes in io['score']['events'].keys():
                             # skip all events that are not selectable by the selection rectangle
                             if evttypes in ['grid']:
                                 continue
                             for obj in io['score']['events'][evttypes]:
                                 if obj['tag'] == tag:
+                                    if return_item:
+                                        return item
                                     return obj
                 else:
                     # we are searching for a specific object type
                     if event_type in tag and bool(re.search(r'\d$', tag)):
                         for obj in io['score']['events'][event_type]:
                             if obj['tag'] == tag:
+                                if return_item:
+                                    return item
                                 return obj
         return None  # TODO: make compitable with all event types
 
@@ -496,6 +499,10 @@ class DrawUtil:
                 if t in item_data:
                     items.append(item)
         return items
+    
+    def get_tags_from_item(self, item: QGraphicsItem):
+        '''Returns the tags associated with the given item'''
+        return item.data(0)
 
     def get_xy_tags(self, x: float, y: float):
         '''Get all tags at the given position.'''
@@ -513,3 +520,13 @@ class DrawUtil:
     def get_viewport_coords(self):
         '''Get the viewport coordinates.'''
         return self.canvas.sceneRect()
+
+    def move_item(self, item: QGraphicsItem, x: float, y: float):
+        '''Move the QGraphicsItem to the specified position (x, y).'''
+        item.setPos(x, y)
+
+    def move_item_to_with_tag(self, tags: list, x: float, y: float):
+        '''Move items with the specified tags to the specified position (x, y).'''
+        items = self.find_with_tag(tags)
+        for item in items:
+            self.move_item(item, x, y)

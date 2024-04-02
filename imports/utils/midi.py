@@ -171,7 +171,6 @@ class Midi:
         barline_ticks = list(set(barline_ticks))
         try: barline_ticks.remove(0)
         except: ...
-        print(barline_ticks)
         new = SaveFileStructureSource.new_linebreak(
             tag='lockedlinebreak',
             time=0

@@ -142,7 +142,7 @@ class File:
                 self.io['score'] = json.load(file)
 
             self.io['score'] = self.backwards_compitability_check(
-                self.io['score'], BLUEPRINT)  # TODO: Test
+                self.io['score'], BLUEPRINT)  # TODO: Test (in progress:)
 
             # set to None to prevent auto save from overwriting the previously loaded file
             self.save_path = file_path
@@ -261,8 +261,25 @@ class File:
 
     def quit(self):
 
-        # if not self.save_check(): # PUBLISH: uncomment on publish
-        #     return
+        # save check if neccesary
+        if self.file_changed:
+            if self.current_file_is_pianoscript:  # it's a pianoscript file
+                if not self.io['auto_save'] or not self.save_path:
+                    savequest = self.save_question()
+                    if savequest:  # YES
+                        self.save()
+                    elif savequest == False:  # NO
+                        ...
+                    elif savequest == None:  # CANCEL
+                        return
+            else:  # it's a midi file
+                savequest = self.save_question()
+                if savequest:  # YES
+                    self.save()
+                elif savequest == False:  # NO
+                    ...
+                elif savequest == None:  # CANCEL
+                    return
 
         self.io['root'].close()
 

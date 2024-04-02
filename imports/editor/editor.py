@@ -24,7 +24,7 @@ class Editor:
         self.io = io
         self.funcselector = {
             'note': Note,
-            'slur': Slur,
+            'slur': Slur(),
             'beam': Beam,
             'countline': CountLine,
             'arpeggio': Arpeggio,
@@ -198,7 +198,11 @@ class Editor:
             'countline',
             'handle',
             'linebreak',
-            'gracenote'
+            'gracenote',
+            # slur parts:
+            'slurindicationline',
+            'slurline',
+            'slurhandle',
         ]
         self.io['editor'].tag_raise(drawing_order)
 
