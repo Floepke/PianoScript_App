@@ -216,6 +216,8 @@ class SaveFileStructureSource:
 
     def new_slur(
             tag: str,
+            staff: int = 0,
+            duration: float = 0,
             p0: dict = {
                 'time': 0,
                 'distance_c4units': 0  # distance from c4 in STAFF_X_UNIT_EDITOR float unit's
@@ -235,6 +237,8 @@ class SaveFileStructureSource:
     ):
         return {
             'tag': tag,
+            'staff': staff,
+            'duration': p3['time'] - p0['time'],
             'time': p0['time'],
             'p0': p0,
             'p1': p1,

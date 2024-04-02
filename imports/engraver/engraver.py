@@ -120,7 +120,7 @@ def pre_render(io, render_type='default'):
         # add endbarline event
         DOC.append({'type': 'endbarline',
                     'time': io['calc'].get_total_score_ticks() - FRACTION})
-        
+
         # add all events from io['score]['events] to the doc
         for key in io['score']['events'].keys():
             if key not in ['grid', 'linebreak']:
@@ -428,7 +428,8 @@ def render(
             #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
             # draw footer copyright pagenumbering and title
-            text = f"page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
+            text = f"page {
+                idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
             if idx_page == 0:
                 text += f"\n{io['score']['header']['copyright']}"
             io['view'].new_text(
@@ -443,7 +444,7 @@ def render(
                 tag=['copyright'],
                 font='Courier new',
                 anchor='w')
-            
+
             for line, dimensions, staff_range in zip(
                     page, staff_dimensions[idx_line:], staff_ranges[idx_line:]):
 
@@ -486,8 +487,10 @@ def render(
                             draw_end = staff_range[idx_staff][1]
                         else:
                             # given in file
-                            draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0]
-                            draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
+                            draw_start = linebreaks[idx_line][f'staff{
+                                idx_staff+1}']['range'][0]
+                            draw_end = linebreaks[idx_line][f'staff{
+                                idx_staff+1}']['range'][1]
                         if staff_onoff:
                             draw_staff(
                                 x_cursor,
@@ -1069,6 +1072,34 @@ def render(
                                                     size=5,
                                                     font='Courier New',
                                                     anchor='n')
+                                
+                        if evt['type'] == 'slur':
+                            
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
+                            if evt['staff'] == idx_staff:
+                                # get coords
+                                p0_x = units2x_view(evt['p0']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p0_y = y_cursor + tick2y_view(evt['p0']['time'], io, staff_height, idx_line)
+                                p1_x = units2x_view(evt['p1']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p1_y = y_cursor + tick2y_view(evt['p1']['time'], io, staff_height, idx_line)
+                                p2_x = units2x_view(evt['p2']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p2_y = y_cursor + tick2y_view(evt['p2']['time'], io, staff_height, idx_line)
+                                p3_x = units2x_view(evt['p3']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p3_y = y_cursor + tick2y_view(evt['p3']['time'], io, staff_height, idx_line)
+
+                                # drawing the slur
+                                points = io['calc'].bezier_curve((p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y), resolution=25)
+                                num_points = len(points)
+                                max_width = .6
+                                min_width = .2
+                                range_width = max_width - min_width
+                                for i in range(num_points - 1):
+                                    width = ((1 - abs(num_points / 2 - i) / (num_points / 2)) * range_width) + min_width
+                                    io['view'].new_line(points[i][0], points[i][1], points[i+1][0], points[i+1][1],
+                                                        tag=[evt['tag'], 'slur'],
+                                                        width=width)
 
                     x_cursor += staff_prefs['staff_width'] + \
                         staff_prefs['margin_right']
@@ -1111,7 +1142,8 @@ def render(
             'handle',
             'linebreak',
             'beam',
-            'debug'
+            'debug',
+            'slur'
         ]
         io['view'].tag_raise(drawing_order)
 

@@ -6,7 +6,6 @@
 from imports.utils.constants import *
 import copy
 import math
-from pprint import pprint
 
 
 def continuation_dot(time, pitch, note):
@@ -688,3 +687,8 @@ def beam_processor(io, DOC):
 
 def normalize(x, y, z):
     return (z - x) / (y - x)
+
+
+def units2x_view(value, staff_range, scale, x_cursor):
+    c4_xpos = pitch2x_view(40, staff_range, scale, x_cursor)
+    return (c4_xpos + (value * scale * (PITCH_UNIT * 2)))
