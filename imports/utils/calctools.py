@@ -83,10 +83,13 @@ class CalcTools:
         return x
     
     @staticmethod
-    def x2xunits_editor(x):
+    def x2xunits_editor(x, snap=False):
         '''converts the x (mouse)position to the distance from the c4 position on the staff in STAFF_X_UNIT_EDITOR floats'''
         c4_xpos = CalcTools.pitch2x_editor(40) # key 40 = c4
-        return (x - c4_xpos) / STAFF_X_UNIT_EDITOR
+        out = (x - c4_xpos) / STAFF_X_UNIT_EDITOR
+        if snap:
+            out = round(out * 2) / 2
+        return out
     
     @staticmethod
     def units2x_editor(value):

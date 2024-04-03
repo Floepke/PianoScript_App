@@ -53,8 +53,8 @@ class Slur:
                     x = max(EDITOR_LEFT, min(x, EDITOR_RIGHT))
                     
                     # calculate the xy values for the handle
-                    mouse_x = io['calc'].x2xunits_editor(x)
-                    mouse_y = io['calc'].y2tick_editor(y, snap=False)
+                    mouse_x = io['calc'].x2xunits_editor(x, snap=True)
+                    mouse_y = io['calc'].y2tick_editor(y, snap=True)
                     
                     # assign to handle
                     handle_key = 'p'+self.handle[-1]
