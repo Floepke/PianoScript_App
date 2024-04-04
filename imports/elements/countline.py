@@ -112,7 +112,7 @@ class CountLine:
         # add the new countline
         io['editor'].new_line(x1, y, x2, y,
                               tag=[countline['tag'], 'countline'],
-                              color='#000000',
+                              color=NOTATION_COLOR_EDITOR,
                               dash=(4, 4),
                               width=.5)
 

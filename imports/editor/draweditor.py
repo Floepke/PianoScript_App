@@ -37,7 +37,7 @@ class DrawEditor:
                               EDITOR_MARGIN+staff_length,
                               width=2,
                               tag=['staffline'],
-                              color='#000000')
+                              color=NOTATION_COLOR_EDITOR)
 
         x_curs += (STAFF_X_UNIT_EDITOR * 2)
 
@@ -50,12 +50,12 @@ class DrawEditor:
                                           width=1,
                                           tag=['staffline'],
                                           dash=(6, 6),
-                                          color='black')
+                                          color=NOTATION_COLOR_EDITOR)
                 else:
                     io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN+staff_length,
                                           width=1,
                                           tag=['staffline'],
-                                          color='black')
+                                          color=NOTATION_COLOR_EDITOR)
                 x_curs += STAFF_X_UNIT_EDITOR
 
             x_curs += STAFF_X_UNIT_EDITOR
@@ -64,7 +64,7 @@ class DrawEditor:
                 io['editor'].new_line(x_curs, EDITOR_MARGIN, x_curs, EDITOR_MARGIN+staff_length,
                                       width=2,
                                       tag=['staffline'],
-                                      color='black')
+                                      color=NOTATION_COLOR_EDITOR)
                 x_curs += STAFF_X_UNIT_EDITOR
 
             x_curs += STAFF_X_UNIT_EDITOR
@@ -97,14 +97,14 @@ class DrawEditor:
                                   y_cursor,
                                   width=6,
                                   tag=['timesignature'],
-                                  color='black')
+                                  color=NOTATION_COLOR_EDITOR)
             io['editor'].new_line(EDITOR_LEFT + EDITOR_MARGIN,
                                   y_cursor,
                                   EDITOR_LEFT + (EDITOR_MARGIN / 3),
                                   y_cursor,
                                   width=2,
                                   tag=['timesignature'],
-                                  color='black',
+                                  color=NOTATION_COLOR_EDITOR,
                                   dash=(2, 4))
             io['editor'].new_text(EDITOR_LEFT + (EDITOR_MARGIN / 2),
                                   y_cursor,
@@ -131,7 +131,7 @@ class DrawEditor:
                                           y_cursor,
                                           width=2,
                                           tag=['barline'],
-                                          color='black')
+                                          color=NOTATION_COLOR_EDITOR)
 
                     # draw the measure number
                     io['editor'].new_text(EDITOR_LEFT,
@@ -152,7 +152,7 @@ class DrawEditor:
                                               width=0.5,
                                               tag=['gridline'],
                                               dash=(7, 7),
-                                              color='black')
+                                              color=NOTATION_COLOR_EDITOR)
 
                 # move the y_curs
                 y_cursor += measure_length * (editor_zoom / QUARTER_PIANOTICK)
@@ -165,7 +165,7 @@ class DrawEditor:
                                           y_cursor,
                                           width=4,
                                           tag=['barline'],
-                                          color='black')
+                                          color=NOTATION_COLOR_EDITOR)
 
     @staticmethod
     def draw_line_cursor(io, x, y):
@@ -181,12 +181,12 @@ class DrawEditor:
         io['editor'].new_line(EDITOR_LEFT, y, EDITOR_LEFT+EDITOR_MARGIN, y,
                               width=2,
                               tag=['cursor'],
-                              color='black',
+                              color=NOTATION_COLOR_EDITOR,
                               dash=(4, 4))
         io['editor'].new_line(EDITOR_RIGHT-EDITOR_MARGIN, y, EDITOR_RIGHT, y,
                               width=2,
                               tag=['cursor'],
-                              color='black',
+                              color=NOTATION_COLOR_EDITOR,
                               dash=(4, 4))
 
     @staticmethod

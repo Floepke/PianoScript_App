@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QGraphicsView
 # pylint: enable=no-name-in-module
 
 from imports.editor.grideditor.draw_2d import Draw2d
-from imports.utils.constants import BACKGROUND_COLOR
+from imports.utils.constants import BACKGROUND_COLOR_EDITOR
 
 from imports.editor.grideditor.grid import Grid
 
@@ -46,7 +46,7 @@ class MeasureView():
 
         drawer = self._drawer
         drawer.delete_all()
-        drawer.background(BACKGROUND_COLOR)
+        drawer.background(BACKGROUND_COLOR_EDITOR)
         rect = drawer.get_viewport_coords()
         right = rect.width()
         bottom = rect.height()

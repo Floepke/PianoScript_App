@@ -194,7 +194,7 @@ class Gui():
 
         # Create the editor view
         self.editor_scene = QGraphicsScene(self.main)
-        self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
+        self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR))
         self.editor_view = GraphicsViewEditor(
             self.editor_scene, self.io, self.main)
         # set minimum width of the editor
@@ -207,7 +207,7 @@ class Gui():
 
         # Create the print view
         self.print_scene = QGraphicsScene(self.main)
-        self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR))
+        self.print_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR))
         self.print_view = GraphicsViewEngraver(
             self.print_scene, self.io, self.main)
 

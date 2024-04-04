@@ -194,7 +194,8 @@ class Slur:
             width = ((1 - abs(num_points / 2 - i) / (num_points / 2)) * range_width) + min_width
             io['editor'].new_line(points[i][0], points[i][1], points[i+1][0], points[i+1][1],
                                   tag=[slur['tag'], 'slurline'],
-                                  width=width)
+                                  width=width,
+                                  color=NOTATION_COLOR_EDITOR)
 
         # drawing indication dashed line
         points = [(p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y)]

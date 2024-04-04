@@ -31,25 +31,37 @@ class ToolBar(QWidget):
         self.refresh_button.setIconSize(QSize(30, 30))
         self.refresh_button.clicked.connect(self._refresh)
 
+        self.separator1 = QWidget()
+        self.separator1.setFixedHeight(1)
+        self.separator1.setStyleSheet("background-color: #000000;")
+        
         self.play_button = QPushButton('', self)
         self.play_button.setIcon(get_icon('play.png'))
         self.play_button.setToolTip("Play MIDI")
         self.play_button.setIconSize(QSize(30, 30))
-        #self.play_button.clicked.connect(lambda: self.io['midi'].play_midi())
 
         self.stop_button = QPushButton('', self)
         self.stop_button.setIcon(get_icon('stop.png'))
         self.stop_button.setToolTip("Stop MIDI")
         self.stop_button.setIconSize(QSize(30, 30))
-        #self.stop_button.clicked.connect(lambda: self.io['midi'].stop_midi())
-
-        self.separator1 = QWidget()
-        self.separator1.setFixedHeight(1)
-        self.separator1.setStyleSheet("background-color: #ffffff;")
 
         self.separator2 = QWidget()
         self.separator2.setFixedHeight(1)
-        self.separator2.setStyleSheet("background-color: #ffffff;")
+        self.separator2.setStyleSheet("background-color: #000000;")
+
+        self.note2left_button = QPushButton('', self)
+        self.note2left_button.setIcon(get_icon('note2left.png'))
+        self.note2left_button.setToolTip("Set selected notes to the left hand")
+        self.note2left_button.setIconSize(QSize(30, 30))
+
+        self.note2right_button = QPushButton('', self)
+        self.note2right_button.setIcon(get_icon('note2right.png'))
+        self.note2right_button.setToolTip("Set selected notes to the right hand")
+        self.note2right_button.setIconSize(QSize(30, 30))
+
+        self.separator3 = QWidget()
+        self.separator3.setFixedHeight(1)
+        self.separator3.setStyleSheet("background-color: #000000;")
         
         self.staff_switcher = StaffSwitcher(self.io)
 
@@ -65,6 +77,9 @@ class ToolBar(QWidget):
         self.layout.addWidget(self.separator2)
         self.layout.addWidget(self.play_button)
         self.layout.addWidget(self.stop_button)
+        self.layout.addWidget(self.separator3)
+        self.layout.addWidget(self.note2left_button)
+        self.layout.addWidget(self.note2right_button)
         self.setLayout(self.layout)
 
     def _previous_page(self):

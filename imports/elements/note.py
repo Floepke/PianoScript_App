@@ -208,7 +208,7 @@ class Note:
         if note['tag'] == 'notecursor' or inselection:
             color = '#009cff'  # TODO: set color depending on settings
         else:
-            color = '#000000'  # TODO: set color depending on settings
+            color = NOTATION_COLOR_EDITOR  # TODO: set color depending on settings
 
         unit = STAFF_X_UNIT_EDITOR / 2
 
@@ -279,7 +279,7 @@ class Note:
                                   x + unit,
                                   y + unit * 2,
                                   tag=[note['tag'], 'noteheadwhite'],
-                                  fill_color='white',
+                                  fill_color=BACKGROUND_COLOR_EDITOR,
                                   outline_width=2,
                                   outline_color=color)
 
@@ -295,9 +295,9 @@ class Note:
                                   x + radius,
                                   yy + radius,
                                   tag=[note['tag'], 'leftdotblack'],
-                                  fill_color='white',
+                                  fill_color=BACKGROUND_COLOR_EDITOR,
                                   outline_width=1,
-                                  outline_color='white')
+                                  outline_color=BACKGROUND_COLOR_EDITOR)
         elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS:  # white note left dot
             yy = y + unit
             radius = (unit * .5) / 2

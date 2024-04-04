@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QGraphicsView
 # pylint: enable=no-name-in-module
 
 from imports.editor.grideditor.draw_2d import Draw2d
-from imports.utils.constants import BACKGROUND_COLOR
+from imports.utils.constants import BACKGROUND_COLOR_EDITOR
 
 _KEYBOARDVIEW_WIDTH = 550
 _KEYBOARDVIEW_HEIGHT = 120
@@ -36,7 +36,7 @@ class KeyboardView():
             # auto
             -1: (0, 'auto'),
             # start notes
-            1: (10, 'A0'),#changed from 0 to 10
+            1: (10, 'A0'),  # changed from 0 to 10
             4: (30, 'C1'),
             9: (60, 'F1'),
             16: (100, 'C2'),
@@ -103,14 +103,14 @@ class KeyboardView():
 
         drawer = self._drawer
         drawer.delete_all()
-        drawer.background(BACKGROUND_COLOR)
+        drawer.background(BACKGROUND_COLOR_EDITOR)
         rect = drawer.get_viewport_coords()
         right = rect.width()
 
         octave = [
             (0, 1, 5), (10, 1, 7),  # Cis1, Dis1
             (30, 2, 10), (40, 2, 12), (50, 2, 14),  # Fis1, Gis1, Ais2
-            ]
+        ]
 
         octaves = [
             (10, 2, 2)  # Bis1
@@ -156,25 +156,25 @@ class KeyboardView():
 
             for y_pos, width in top_bottom:
                 drawer.create_line(x1=self.scale_x(_x1) + 5,
-                                y1=y_pos,
-                                x2=self.scale_x(_x2),
-                                y2=y_pos,
-                                width=width,
-                                color='black')
+                                   y1=y_pos,
+                                   x2=self.scale_x(_x2),
+                                   y2=y_pos,
+                                   width=width,
+                                   color='black')
 
                 drawer.create_line(x1=self.scale_x(_x1) + 5,
-                                y1=y_pos+40,
-                                x2=self.scale_x(_x2),
-                                y2=y_pos+40,
-                                width=1,
-                                dash=(3, 3))
+                                   y1=y_pos+40,
+                                   x2=self.scale_x(_x2),
+                                   y2=y_pos+40,
+                                   width=1,
+                                   dash=(3, 3))
 
                 drawer.create_line(x1=self.scale_x(_x1) + 5,
-                                y1=y_pos+80,
-                                x2=self.scale_x(_x2),
-                                y2=y_pos+80,
-                                width=1,
-                                dash=(3, 3))
+                                   y1=y_pos+80,
+                                   x2=self.scale_x(_x2),
+                                   y2=y_pos+80,
+                                   width=1,
+                                   dash=(3, 3))
 
             pos, name = self._mapping.get(self._start, (None, None))
 
@@ -199,11 +199,11 @@ class KeyboardView():
                 flg = self._start < note < self._finish
                 if flg or self._auto:
                     drawer.create_text(x=self.scale_x(pos) + 2,
-                                    y=5,
-                                    text=oct,
-                                    anchor='n',
-                                    family='Arial',
-                                    size=12)
+                                       y=5,
+                                       text=oct,
+                                       anchor='n',
+                                       family='Arial',
+                                       size=12)
         else:
             drawer.create_text(x=right / 2,
                                y=rect.height() / 2,

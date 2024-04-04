@@ -7,7 +7,10 @@
 import copy
 from imports.utils.savefilestructure import SaveFileStructureSource
 import datetime
-BACKGROUND_COLOR = '#ffffff'
+
+# colors
+BACKGROUND_COLOR_EDITOR = '#eee'
+NOTATION_COLOR_EDITOR = '#222'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -138,11 +141,14 @@ SCORE_TEMPLATE = {
 # blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event
 BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
 BLUEPRINT['events']['note'] = [SaveFileStructureSource.new_note('blueprint')]
-BLUEPRINT['events']['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
-BLUEPRINT['events']['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['events']['linebreak'] = [
+    SaveFileStructureSource.new_linebreak('blueprint')]
+BLUEPRINT['events']['gracenote'] = [
+    SaveFileStructureSource.new_gracenote('blueprint')]
 BLUEPRINT['events']['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
 BLUEPRINT['events']['tempo'] = [SaveFileStructureSource.new_tempo('blueprint')]
-BLUEPRINT['events']['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
+BLUEPRINT['events']['countline'] = [
+    SaveFileStructureSource.new_countline('blueprint')]
 BLUEPRINT['events']['slur'] = [SaveFileStructureSource.new_slur('blueprint')]
 
 # the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88

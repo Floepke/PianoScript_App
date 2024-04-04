@@ -77,12 +77,12 @@ class Tempo:
         if tempo['tag'] == 'lockedtempo':
             color = '#556677'
         else:
-            color = 'white'
+            color = BACKGROUND_COLOR_EDITOR
 
         # add the new tempo
         io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/4*3), y1, EDITOR_RIGHT - (EDITOR_MARGIN/4*2), y2,
                                    tag=[tempo['tag'], 'tempo'],
-                                   fill_color='#000000',
+                                   fill_color=NOTATION_COLOR_EDITOR,
                                    outline_color='',
                                    width=3)
         io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*2.65), y1+((y2-y1)/2), text=str(tempo['tempo']),
@@ -94,7 +94,7 @@ class Tempo:
                               anchor='c')
         io['editor'].new_line(EDITOR_RIGHT - EDITOR_MARGIN, y1, EDITOR_RIGHT - (EDITOR_MARGIN/4*3), y1,
                               tag=[tempo['tag'], 'tempo'],
-                              color='#000000',
+                              color=NOTATION_COLOR_EDITOR,
                               dash=(2, 2),
                               width=3)
 

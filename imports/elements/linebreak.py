@@ -72,7 +72,7 @@ class LineBreak:
         height = io['calc'].tick2y_editor(linebreak['time']+128) - y
 
         if linebreak['tag'] == 'lockedlinebreak':
-            color = '#556677'
+            color = NOTATION_COLOR_EDITOR
         else:
             color = 'blue'
 
