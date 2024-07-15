@@ -15,9 +15,6 @@ class GraphicsViewEngraver(QGraphicsView):
         self.standard_width = EDITOR_WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resetTransform()
-        scale_factor = self.width() / self.standard_width
-        self.scale(scale_factor, scale_factor)
-        self.resizeEvent(None)
         self.setScene(scene)
 
         # Enable antialiasing
@@ -32,28 +29,21 @@ class GraphicsViewEngraver(QGraphicsView):
     def resizeEvent(self, event):
         # get the old scroll position and maximum
         vbar = self.verticalScrollBar()
-        old_scroll = vbar.value()
         old_max = vbar.maximum()
+        old_pos = vbar.value()
 
-        # perform the resizing
-        try:
-            self.standard_width = self.io['score']['properties']['page_width']
-        except AttributeError:
-            ...
-        scale_factor = self.width() / self.standard_width
+        # Scale the view
         self.resetTransform()
+        scale_factor = self.width() / self.standard_width
         self.scale(scale_factor, scale_factor)
 
-        # calculate the new scroll position
+        # Restore the old scroll position
         new_max = vbar.maximum()
-        if old_max == 0:
-            new_scroll = 0
-        else:
-            new_scroll = old_scroll * new_max / old_max
-        vbar.setValue(new_scroll)
+        new_pos = (old_pos / old_max) * new_max if old_max > 0 else 0
+        vbar.setValue(new_pos)
 
-        # call the original resizeEvent
-        super().resizeEvent(event)
+        # Refresh the view
+        self.viewport().update()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -85,3 +75,10 @@ class GraphicsViewEngraver(QGraphicsView):
 
         # Trigger a resize event to update the view
         self.resizeEvent(None)
+
+    def wheelEvent(self, event):
+        # Call the base class implementation first
+        super().wheelEvent(event)
+
+        # Then update the view
+        self.update_page_dimensions()
