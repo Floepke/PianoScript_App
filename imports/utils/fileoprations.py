@@ -287,8 +287,7 @@ class File:
 
         # check if we want to save the current score
         yesnocancel = QMessageBox()
-        yesnocancel.setText(f"Do you wish to save {
-                            self.save_path if self.save_path is not None else 'the new file'}?")
+        yesnocancel.setText(f"Do you wish to save {self.save_path if self.save_path is not None else 'the new file'}?")
         yesnocancel.setStandardButtons(
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         yesnocancel.setDefaultButton(QMessageBox.Cancel)
@@ -373,3 +372,9 @@ class File:
                 self.load(file_path)
             elif file_path.endswith(".mid"):
                 self.import_midi(file_path)
+
+    def reset_template(self):
+        path = self.io['calc'].ensure_json(
+            '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
+        with open(path, 'w') as file:
+            json.dump(SCORE_TEMPLATE, file, indent=4) 

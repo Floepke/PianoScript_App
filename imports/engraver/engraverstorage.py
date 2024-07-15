@@ -155,7 +155,7 @@ def note_processor(io, note):
         list: A list of output data.
 
     """
-    
+
     output = []
 
     # split notes on barlines

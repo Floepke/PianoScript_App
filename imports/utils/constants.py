@@ -9,7 +9,7 @@ from imports.utils.savefilestructure import SaveFileStructureSource
 import datetime
 
 # colors
-BACKGROUND_COLOR_EDITOR = '#eee'
+BACKGROUND_COLOR_EDITOR = '#fff'
 NOTATION_COLOR_EDITOR = '#222'
 
 # the default text of the statusbar.

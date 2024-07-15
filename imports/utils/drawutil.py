@@ -130,7 +130,7 @@ class DrawUtil:
         pen.setJoinStyle(joinstyle)
         pen.setColor(QColor(color))
         if dash is not None:
-            pen.setStyle(Qt.DashLine)
+            pen.setStyle(Qt.CustomDashLine)
             pen.setDashPattern(dash)
         else:
             pen.setStyle(Qt.SolidLine)

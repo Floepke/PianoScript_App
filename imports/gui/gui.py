@@ -93,6 +93,9 @@ class Gui():
         self.save_template_action = QAction(
             'Set As Default Template...', self.main)
         self.file_menu.addAction(self.save_template_action)
+        self.reset_template = QAction(
+            'Reset Template', self.main)
+        self.file_menu.addAction(self.reset_template)
 
         self.file_menu.addSeparator()
 
@@ -181,7 +184,7 @@ class Gui():
         self.settings_menu.addSeparator()
         self.auto_engrave_action = QAction('Auto engrave', self.main)
         self.auto_engrave_action.setCheckable(True)
-        self.auto_engrave_action.setChecked(True)
+        self.auto_engrave_action.setChecked(False)
         self.settings_menu.addAction(self.auto_engrave_action)
         self.menu_bar.addMenu(self.settings_menu)
         self.set_midi_out_port_action = QAction('Set MIDI out port', self.main)

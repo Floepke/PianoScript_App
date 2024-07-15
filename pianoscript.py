@@ -107,10 +107,10 @@ class PianoScript():
                 'already_drawn': []
             },
 
-            # total ticks
+            # total ticks of the score
             'total_ticks': 0,
 
-            # drawn_objects
+            # drawn_objects in the viewport
             'drawn_obj': [],
 
             # edit_obj == the object that is being edited
@@ -203,6 +203,8 @@ class PianoScript():
             self.io['fileoperations'].saveas)
         self.gui.save_template_action.triggered.connect(
             self.io['fileoperations'].save_template)
+        self.gui.reset_template.triggered.connect(
+            self.io['fileoperations'].reset_template)
 
         self.gui.autosave_action.triggered.connect(
             self.io['fileoperations'].toggle_autosave)

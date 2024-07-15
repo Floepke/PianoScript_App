@@ -11,7 +11,6 @@ from typing import List
 from typing import Optional
 from typing import Callable
 from typing import cast
-from typing import Self
 
 from dataclasses import dataclass
 
