@@ -1,13 +1,13 @@
 #
 import sys
-import os
+#import os
 import json
-import mido
+#import mido
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
-from PySide6.QtCore import Qt, QSettings, QByteArray
+from PySide6.QtCore import Qt#QSettings, QByteArray
 
-from imports.gui.gui import Gui, QColor
+from imports.gui.gui import Gui#, QColor
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import File

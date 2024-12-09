@@ -428,8 +428,7 @@ def render(
             #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
             # draw footer copyright pagenumbering and title
-            text = f"page {
-                idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
+            text = f"page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
             if idx_page == 0:
                 text += f"\n{io['score']['header']['copyright']}"
             io['view'].new_text(
@@ -487,10 +486,8 @@ def render(
                             draw_end = staff_range[idx_staff][1]
                         else:
                             # given in file
-                            draw_start = linebreaks[idx_line][f'staff{
-                                idx_staff+1}']['range'][0]
-                            draw_end = linebreaks[idx_line][f'staff{
-                                idx_staff+1}']['range'][1]
+                            draw_start = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][0]
+                            draw_end = linebreaks[idx_line][f'staff{idx_staff+1}']['range'][1]
                         if staff_onoff:
                             draw_staff(
                                 x_cursor,

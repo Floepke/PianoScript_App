@@ -113,8 +113,6 @@ class Selection:
                                    dash=(2, 2))
         io['editor'].tag_raise(['selectionrectangle'])
 
-        io['editor'].tag_raise(['selectionrectangle'])
-
     @staticmethod
     def detect_selection(io):
         '''detects if an object is in the selection rectangle'''
