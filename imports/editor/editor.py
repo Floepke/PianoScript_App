@@ -42,7 +42,7 @@ class Editor:
         if 'move' in event_type:
             # write the mouse position to the io['mouse'] dict
             self.io['mouse']['x'] = x
-            self.io['mouse']['y'] = y  # TODO: check if this is neccessary
+            self.io['mouse']['y'] = y
 
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
@@ -235,12 +235,3 @@ class Editor:
 
         # draw all events in viewport
         self.draw_viewport()
-
-    def toggle_auto_engrave(self):
-        '''toggles the autorender function'''
-        if self.io['auto_engrave']:
-            self.io['auto_engrave'] = False
-            self.io['gui'].auto_engrave_action.setChecked(False)
-        else:
-            self.io['auto_engrave'] = True
-            self.io['gui'].auto_engrave_action.setChecked(True)

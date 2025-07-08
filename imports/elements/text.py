@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFontDialog
+
 
 
 class Text:
@@ -14,7 +14,7 @@ class Text:
             if detect:
                 print(detect)
             else:
-                ok, font = QFontDialog.getFont()
+                ...# font selector entry point
 
         elif event_type == 'leftclick+move':
             ...

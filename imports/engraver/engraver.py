@@ -75,8 +75,7 @@ def pre_render(io, render_type='default'):
             # denominator.
             numerator = gr['numerator']
             denominator = gr['denominator']
-            measure_length = int(
-                numerator * ((QUARTER_PIANOTICK * 4) / denominator))
+            measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
             grid = gr['grid']
             tsig_length = 0

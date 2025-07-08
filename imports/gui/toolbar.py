@@ -51,13 +51,15 @@ class ToolBar(QWidget):
 
         self.note2left_button = QPushButton('', self)
         self.note2left_button.setIcon(get_icon('note2left.png'))
-        self.note2left_button.setToolTip("Set selected notes to the left hand")
+        self.note2left_button.setToolTip("Left hand")
         self.note2left_button.setIconSize(QSize(30, 30))
+        self.note2left_button.clicked.connect(lambda: self.io['maineditor'].update('handleft'))
 
         self.note2right_button = QPushButton('', self)
         self.note2right_button.setIcon(get_icon('note2right.png'))
-        self.note2right_button.setToolTip("Set selected notes to the right hand")
+        self.note2right_button.setToolTip("Right hand")
         self.note2right_button.setIconSize(QSize(30, 30))
+        self.note2right_button.clicked.connect(lambda: self.io['maineditor'].update('handright'))
 
         self.separator3 = QWidget()
         self.separator3.setFixedHeight(1)

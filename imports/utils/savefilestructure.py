@@ -186,21 +186,20 @@ class SaveFileStructureSource:
             pitch: int = 40,  # piano note number 1 to 88
             font_size: int = 16,  # size
             font_family: str = 'Edwin',
-            bold: bool = False,
-            italic: bool = False,
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
+            angle: float = 0.0  # angle in degrees, 0 is horizontal
     ):
         '''The text event structure.'''
         return {
             'tag': tag,
-            'text': text,
             'time': time,
             'pitch': pitch,
             'staff': staff,
+            # user input
+            'text': text,
             'font_size': font_size,
             'font_family': font_family,
-            'bold': bold,
-            'italic': italic
+            'angle': angle
         }
 
     def new_tempo(

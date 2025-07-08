@@ -71,8 +71,11 @@ class Slur:
 
         elif event_type == 'leftrelease':
 
+            # if we release the mouse button and we are in a selection rectangle, we don't want to do anything
+            if io['selection']['rectangle_on']:
+                return
+
             if self.is_new_slur:  
-                # if we didn't click on an existing slur or slur handle we create a new slur
                 
                 # update the tick value for if we release the mouse for usage for initial slur handle positions
                 self.end_click_tick = io['calc'].y2tick_editor(y, snap=True)

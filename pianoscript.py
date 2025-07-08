@@ -1,13 +1,11 @@
-#
+
 import sys
-#import os
 import json
-#import mido
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
-from PySide6.QtCore import Qt#QSettings, QByteArray
+from PySide6.QtCore import Qt
 
-from imports.gui.gui import Gui#, QColor
+from imports.gui.gui import Gui
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
 from imports.utils.fileoprations import File
@@ -24,8 +22,6 @@ from imports.editor.grideditor.show_help import ShowHelp
 from imports.editor.grideditor.popup import Popup
 from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.gui.style import Style
-from imports.scripting.scriptutils import ScriptUtils
-from imports.scripting.loadscripts import LoadScripts
 from imports.utils.midiplayer import MidiPlayer
 from imports.gui.statusbar import StatusBar
 from imports.utils.constants import *
@@ -188,8 +184,6 @@ class PianoScript():
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
-        self.io['script'] = ScriptUtils(self.io)
-        self.io['loadscript'] = LoadScripts(self.io)
         self.io['midiplayer'] = MidiPlayer(self.io)
 
         self.io['gui'].file_browser.select_custom_path(
@@ -208,8 +202,6 @@ class PianoScript():
 
         self.gui.autosave_action.triggered.connect(
             self.io['fileoperations'].toggle_autosave)
-        self.gui.auto_engrave_action.triggered.connect(
-            self.io['maineditor'].toggle_auto_engrave)
         self.gui.exit_action.triggered.connect(self.root.close)
 
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
@@ -226,7 +218,7 @@ class PianoScript():
         copy_shortcut.activated.connect(self.io['selectoperations'].copy)
         paste_shortcut = QShortcut(QKeySequence("Ctrl+V"), self.root)
         paste_shortcut.activated.connect(self.io['selectoperations'].paste)
-        delete_shortcut = QShortcut(QKeySequence("Delete"), self.root)
+        delete_shortcut = QShortcut(QKeySequence("Backspace"), self.root)
         delete_shortcut.activated.connect(self.io['selectoperations'].delete)
         transpose_up_shortcut = QShortcut(QKeySequence("Right"), self.root)
         transpose_up_shortcut.activated.connect(

@@ -1,0 +1,3 @@
+TODO:
+- add the universal text element to the project
+- strip clear recent files from the project

@@ -1,4 +1,4 @@
-import copy
+from PySide6.QtWidgets import QInputDialog
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.utils.constants import *
 
@@ -15,8 +15,8 @@ class Tempo:
 
             if detect:
                 # we clicked on a tempo marker; edit the tempo using dialog
-                bpm = io['script'].ask_int('Set tempo; quarter notes per minute:', min_value=1, max_value=1000, default_value=detect['tempo'])
-                if bpm:
+                bpm, ok = QInputDialog.getInt(None, "Set tempo", "Quarter notes per minute:", value=detect['tempo'], minValue=1, maxValue=1000)
+                if ok:
                     for t in io['score']['events']['tempo']:
                         if t == detect:
                             t['tempo'] = int(bpm)

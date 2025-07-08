@@ -39,8 +39,8 @@ class File:
             self.recent_file_actions.append(action)
             self.io['gui'].recent_file_menu.addAction(action)
 
-        self.io['gui'].clear_recent_action.triggered.connect(
-            self.clear_recent_file_menu)
+        # self.io['gui'].clear_recent_action.triggered.connect(
+        #     self.clear_recent_file_menu)
 
         # Update the "Recent Files" menu
         self.update_recent_file_menu()

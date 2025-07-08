@@ -74,9 +74,9 @@ class Gui():
         self.recent_file_menu = QMenu('Recent Files', self.main)
         self.file_menu.addMenu(self.recent_file_menu)
 
-        self.clear_recent_action = QAction('Clear Recent Files', self.main)
-        self.recent_file_menu.addAction(self.clear_recent_action)
-        self.recent_file_menu.addSeparator()
+        # self.clear_recent_action = QAction('Clear Recent Files', self.main)
+        # self.recent_file_menu.addAction(self.clear_recent_action)
+        # self.recent_file_menu.addSeparator()
 
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
@@ -122,21 +122,6 @@ class Gui():
         self.menu_bar.addMenu(self.file_menu)
         self.main.setMenuWidget(self.menu_bar)
 
-        # Create an Edit menu
-        self.edit_menu = QMenu('Edit', self.main)
-        self.undo_action = QAction('Undo', self.main)
-        self.edit_menu.addAction(self.undo_action)
-        self.redo_action = QAction('Redo', self.main)
-        self.edit_menu.addAction(self.redo_action)
-        self.edit_menu.addSeparator()
-        self.cut_action = QAction('Cut', self.main)
-        self.edit_menu.addAction(self.cut_action)
-        self.copy_action = QAction('Copy', self.main)
-        self.edit_menu.addAction(self.copy_action)
-        self.paste_action = QAction('Paste', self.main)
-        self.edit_menu.addAction(self.paste_action)
-        self.menu_bar.addMenu(self.edit_menu)
-
         # Create a View menu
         self.view_menu = QMenu('View', self.main)
         self.zoom_in_action = QAction('Zoom In', self.main)
@@ -181,17 +166,9 @@ class Gui():
         self.score_options_action.triggered.connect(
             lambda: ScoreOptionsDialog(self.io).exec())
         self.settings_menu.addAction(self.score_options_action)
-        self.settings_menu.addSeparator()
-        self.auto_engrave_action = QAction('Auto engrave', self.main)
-        self.auto_engrave_action.setCheckable(True)
-        self.auto_engrave_action.setChecked(False)
-        self.settings_menu.addAction(self.auto_engrave_action)
-        self.menu_bar.addMenu(self.settings_menu)
         self.set_midi_out_port_action = QAction('Set MIDI out port', self.main)
         self.settings_menu.addAction(self.set_midi_out_port_action)
-
-        self.pianoscripts_menu = QMenu('Scripts', self.main)
-        self.menu_bar.addMenu(self.pianoscripts_menu)
+        self.menu_bar.addMenu(self.settings_menu)
 
         # end menu--------------------------------------------------------------------
 
@@ -401,7 +378,6 @@ class Gui():
                 'countline',
                 'text',
                 'slur',
-                'finger',
                 'tempo'
             ]
         }
