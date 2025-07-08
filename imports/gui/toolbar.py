@@ -27,7 +27,7 @@ class ToolBar(QWidget):
         self.refresh_button = QPushButton('', self)
         self.refresh_button.setIcon(get_icon('engrave.png'))
         self.refresh_button.setStyleSheet("color: #ffdddd; font-size: 35px;")
-        self.refresh_button.setToolTip("Engrave the document")
+        self.refresh_button.setToolTip("Engrave the document [E]")
         self.refresh_button.setIconSize(QSize(30, 30))
         self.refresh_button.clicked.connect(self._refresh)
 

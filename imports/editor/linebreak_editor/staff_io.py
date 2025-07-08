@@ -14,8 +14,8 @@ from typing import cast
 
 from dataclasses import dataclass
 
-from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-from imports.editor.staff_sizer_editor.my_exception import MyException
+from imports.editor.linebreak_editor.staff_sizer import StaffSizer
+from imports.editor.linebreak_editor.my_exception import MyException
 
 
 class StaffIo:

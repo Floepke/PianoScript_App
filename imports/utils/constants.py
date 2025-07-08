@@ -138,7 +138,7 @@ SCORE_TEMPLATE = {
     'midi_data': []
 }
 
-# blueprint; is used to scan any loading file for missing parameters. is has blueprint example objects for each event
+# blueprint; is used to scan any loading file for missing parameters. It has blueprint example objects for each event
 BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
 BLUEPRINT['events']['note'] = [SaveFileStructureSource.new_note('blueprint')]
 BLUEPRINT['events']['linebreak'] = [
@@ -164,7 +164,6 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
 # in the comparison of equals, this is the treshold for the difference between two floats that is used in the code to deside
 # if two floats are equal or not. If the difference between two floats is smaller than this treshold, the floats are considered equal.
 EQUALS_TRESHOLD = 7
-
 
 def EQUALS(a, b):
     return abs(a - b) < EQUALS_TRESHOLD
@@ -202,7 +201,7 @@ STAFF_X_UNIT_EDITOR = (EDITOR_WIDTH - (EDITOR_MARGIN * 2)) / 49
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
-# this is the staff x unit but in relation to mm. So the size in mm of the distance
+# this is the staff x unit but in relation to mm. So it is the size in mm of the distance
 # between the c# and d# stafflines (if the draw_scale is set to 1.0).
 PITCH_UNIT = 1
 

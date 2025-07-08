@@ -33,10 +33,10 @@ from PySide6.QtCore import QModelIndex
 
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.show_help import ShowHelp
-from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-from imports.editor.staff_sizer_editor.staff_sizer_control import StaffSizerControl
-from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
-from imports.editor.staff_sizer_editor.staff_io import LineBreakIo
+from imports.editor.linebreak_editor.staff_sizer import StaffSizer
+from imports.editor.linebreak_editor.staff_sizer_control import StaffSizerControl
+from imports.editor.linebreak_editor.keyboard_view import KeyboardView
+from imports.editor.linebreak_editor.staff_io import LineBreakIo
 from imports.icons.icons import get_pixmap
 
 class StaffSizerDialog(QDialog):

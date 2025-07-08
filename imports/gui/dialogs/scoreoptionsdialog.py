@@ -203,7 +203,7 @@ class ScoreOptionsDialog(QDialog):
         # Create OK and Cancel buttons
         close_button = QPushButton('Close')
         apply_button = QPushButton('Apply')
-        close_button.clicked.connect(lambda: self.validate(close=True))
+        close_button.clicked.connect(lambda: self.accept())
         apply_button.clicked.connect(lambda: self.validate(close=False))
 
         # Add the buttons to a layout
@@ -248,9 +248,6 @@ class ScoreOptionsDialog(QDialog):
                 self.io['score']['properties'][key] = getattr(self, key).isChecked()
 
         self.io['maineditor'].update('score_options')
-
-        if close:
-            self.accept()
 
 
 class ColorPicker(QWidget):

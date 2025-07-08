@@ -34,9 +34,9 @@ from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtCore import QSize
 # pylint: enable=no-name-in-module
 
-from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-from imports.editor.staff_sizer_editor.pianonotes import PianoNotes
-from imports.editor.staff_sizer_editor.keyboard_view import KeyboardView
+from imports.editor.linebreak_editor.staff_sizer import StaffSizer
+from imports.editor.linebreak_editor.pianonotes import PianoNotes
+from imports.editor.linebreak_editor.keyboard_view import KeyboardView
 
 class StaffSizerControl:
     """ controls for one linebreak """

@@ -35,10 +35,10 @@ from PySide6.QtWidgets import QGridLayout
 from PySide6.QtWidgets import QApplication
 # pylint: enable=no-name-in-module
 
-from imports.editor.staff_sizer_editor.staff_sizer import StaffSizer
-from imports.editor.staff_sizer_editor.staff_sizer_control import PianoNotes
-from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
-from imports.editor.staff_sizer_editor.staff_io import StaffIo
+from imports.editor.linebreak_editor.staff_sizer import StaffSizer
+from imports.editor.linebreak_editor.staff_sizer_control import PianoNotes
+from imports.editor.linebreak_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.editor.linebreak_editor.staff_io import StaffIo
 
 from imports.editor.grideditor.dialog_result import DialogResult
 

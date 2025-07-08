@@ -20,10 +20,11 @@ from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
 from imports.editor.grideditor.show_help import ShowHelp
 from imports.editor.grideditor.popup import Popup
-from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.editor.linebreak_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.gui.style import Style
 from imports.utils.midiplayer import MidiPlayer
 from imports.gui.statusbar import StatusBar
+from imports.editor.tools import Tools
 from imports.utils.constants import *
 
 
@@ -143,13 +144,13 @@ class PianoScript():
             'shiftmode_flag': False,
 
             # for saving data for the slur tool mechanics
-            'slur_memory': {
-                'start_click_tick': 0,  # time at left click
-                'click_pitch': 1,  # 1-88 pianokey
-                'end_click_tick': 0,  # time at release left click
-                'new_slur': False,
-                'handle': None
-            }
+            # 'slur_memory': {
+            #     'start_click_tick': 0,  # time at left click
+            #     'click_pitch': 1,  # 1-88 pianokey
+            #     'end_click_tick': 0,  # time at release left click
+            #     'new_slur': False,
+            #     'handle': None
+            # }
         }
 
         # start setup...
@@ -184,7 +185,8 @@ class PianoScript():
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
-        self.io['midiplayer'] = MidiPlayer(self.io)
+        #self.io['midiplayer'] = MidiPlayer(self.io)
+        self.io['tools'] = Tools(self.io)
 
         self.io['gui'].file_browser.select_custom_path(
             self.io['settings']['browser_path'])
@@ -275,7 +277,7 @@ class PianoScript():
         with open(self.settings_path, 'w') as f:
             json.dump(self.io['settings'], f, indent=4)
 
-        self.io['midiplayer'].stop_midi()
+        #self.io['midiplayer'].stop_midi()
 
     def open_grid_editor(self):
         """ open the Grid Editor """
@@ -333,5 +335,11 @@ class PianoScript():
 
 
 if __name__ == '__main__':
+    # TODO: make scaling factor a setting in my application
+    if sys.platform.startswith('linux') or sys.platform.startswith('windows'):
+        # Set the environment variable for high DPI scaling
+        import os
+        os.environ["QT_SCALE_FACTOR"] = "1.5"  # Set to your desired scaling factor, e.g., "1.25" for 125%
+
     PianoScript()
     exit(0)

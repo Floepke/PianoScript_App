@@ -45,7 +45,7 @@ class Midi:
 
             def prepare_midi(midi):
 
-                def track_to_absolute_ticks(track):
+                def track_to_linear_ticks(track):
                     absolute_time = 0
                     for msg in track:
                         absolute_time += msg.time
@@ -54,7 +54,7 @@ class Midi:
 
                 # create dict of all events and filter only the desired types
                 for i, track in enumerate(midi.tracks):
-                    track = track_to_absolute_ticks(track)
+                    track = track_to_linear_ticks(track)
                     track_ = []
                     for msg in track:
                         new = msg.dict()
@@ -69,12 +69,11 @@ class Midi:
                 for track in tracks.keys():
                     filter = ['time_signature', 'set_tempo',
                               'end_of_track', 'track_name', 'note_on', 'note_off']
-                    tracks[track] = [evt for evt in tracks[track]
-                                     if evt['type'] in filter]
+                    tracks[track] = [evt for evt in tracks[track] if evt['type'] in filter]
 
                 return tracks
 
-            # step 1: read the midi and create a list of msg that have absolute time values and are sorted on the time key from low to high
+            # step 1: read the midi and create a list of msg that have linear time values and are sorted on the time key from low to high
             all_events = prepare_midi(midi)
             all_events = [msg for track in all_events.values()
                           for msg in track]
@@ -85,10 +84,9 @@ class Midi:
 
             # step 2: convert the miditicks to pianoticks
             ticks_per_quarter = midi.ticks_per_beat
-            pianoticks_per_quarter = 256
             for evt in all_events:
                 evt['time'] = evt['time'] * \
-                    (pianoticks_per_quarter / ticks_per_quarter)
+                    (QUARTER_PIANOTICK / ticks_per_quarter)
 
             # step 3: calculate the duration of note_on and time_signature events
             for idx, evt in enumerate(all_events):

@@ -74,10 +74,6 @@ class Gui():
         self.recent_file_menu = QMenu('Recent Files', self.main)
         self.file_menu.addMenu(self.recent_file_menu)
 
-        # self.clear_recent_action = QAction('Clear Recent Files', self.main)
-        # self.recent_file_menu.addAction(self.clear_recent_action)
-        # self.recent_file_menu.addSeparator()
-
         self.import_midi_action = QAction('Load MIDI', self.main)
         self.import_midi_action.setShortcut('Ctrl+I')
         self.import_midi_action.triggered.connect(
@@ -169,6 +165,14 @@ class Gui():
         self.set_midi_out_port_action = QAction('Set MIDI out port', self.main)
         self.settings_menu.addAction(self.set_midi_out_port_action)
         self.menu_bar.addMenu(self.settings_menu)
+
+        # Create Tools menu
+        self.tools_menu = QMenu('Tools', self.main)
+        self.quick_tools_action = QAction('Add Quick LineBreaks', self.main)
+        self.quick_tools_action.triggered.connect(
+            lambda: self.io['tools'].add_quick_linebreaks())
+        self.tools_menu.addAction(self.quick_tools_action)
+        self.menu_bar.addMenu(self.tools_menu)
 
         # end menu--------------------------------------------------------------------
 

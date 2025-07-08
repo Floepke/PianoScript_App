@@ -14,6 +14,7 @@ class GraphicsViewEditor(QGraphicsView):
         self.io = io
         self.standard_width = EDITOR_WIDTH
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.resetTransform()
         scale_factor = self.width() / self.standard_width
         self.scale(scale_factor, scale_factor)
@@ -43,7 +44,7 @@ class GraphicsViewEditor(QGraphicsView):
         old_max = vbar.maximum()
 
         # perform the resizing
-        scale_factor = self.width() / self.standard_width
+        scale_factor = self.effective_width() / self.standard_width
         self.resetTransform()
         self.scale(scale_factor, scale_factor)
 
@@ -101,6 +102,8 @@ class GraphicsViewEditor(QGraphicsView):
         elif self.left_mouse_button and self.shift_modifier:
             self.io['maineditor'].update('leftclick+shift+move', x, y)
 
+        self.viewport().update()
+
     def mouseReleaseEvent(self, event):
 
         scene_point = self.mapToScene(event.pos())
@@ -132,3 +135,12 @@ class GraphicsViewEditor(QGraphicsView):
         x = scene_point.x()
         y = scene_point.y()
         self.io['maineditor'].update('scroll', x, y)
+        self.viewport().update()
+
+    def effective_width(self):
+        """Returns the width of the view minus the vertical scrollbar if visible."""
+        scrollbar = self.verticalScrollBar()
+        if scrollbar.isVisible():
+            return self.viewport().width() - scrollbar.width()
+        else:
+            return self.viewport().width()

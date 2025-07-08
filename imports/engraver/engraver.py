@@ -1,6 +1,6 @@
 # we genereally import everything from this file for usage in the
 # engraver, later we add the engraver specific imports here
-from imports.engraver.engraverstorage import *
+from imports.engraver.engraver_helpers import *
 from imports.utils.constants import *
 
 '''
@@ -320,7 +320,7 @@ def pre_render(io, render_type='default'):
 
     io['num_pages'] = len(DOC)
 
-    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times
+    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times, render_type
 
 
 def render(
@@ -332,7 +332,8 @@ def render(
         pageno,
         linebreaks,
         draw_scale,
-        barline_times):
+        barline_times,
+        render_type):
 
     def draw(io):
         print('starting to draw...')
@@ -380,19 +381,25 @@ def render(
         Top = 0
         Bottom = page_height
 
-        # looping trough the DOC structure and drawing the events:
+        # looping trough the DOC structure and drawing the score:
         x_cursor = 0
         y_cursor = 0
         idx_line = 0
         barnumber = 1
-        for idx_page, page, leftover in zip(
-                range(len(DOC)), DOC, leftover_page_space):
+        for idx_page, page, leftover in zip(range(len(DOC)), DOC, leftover_page_space):
             if idx_page != pageno:
                 idx_line += len(DOC[idx_page])
                 barnumber = update_barnumber(DOC, idx_page + 1)
                 continue
 
             print(f'PAGE: {idx_page+1}')
+
+            # draw the page outer bounds to see where the page is starting and ending
+            if render_type == 'default':
+                io['view'].new_line(
+                    Left, Top, Right, Top, width=0.5, color='black', tag=['page'], dash=[5, 7])
+                io['view'].new_line(
+                    Left, Bottom, Right, Bottom, width=0.5, color='black', tag=['page'], dash=[5, 7])
 
             # update the cursors
             x_cursor = page_margin_left
@@ -421,10 +428,7 @@ def render(
                                     font='Edwin',
                                     anchor='ne')
 
-            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 y_cursor += io['score']['properties']['header_height']
-            # else:
-            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
             # draw footer copyright pagenumbering and title
             text = f"page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
@@ -1157,7 +1161,7 @@ class Engraver:
     def do_engrave(self):
         self.io['statusbar'].set_message(message='Engraver is working...')
         self.io['app'].processEvents()
-        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times = pre_render(
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times, render_type = pre_render(
             self.io)
         render(
             self.io,
@@ -1168,6 +1172,7 @@ class Engraver:
             pageno,
             linebreaks,
             draw_scale,
-            barline_times)
+            barline_times,
+            render_type)
         print('.......ENGRAVER FINISHED.......\n')
         self.io['statusbar'].set_message(message='Engraver finished :)')
