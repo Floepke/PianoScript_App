@@ -91,26 +91,33 @@ class Beam:
         else:
             x = EDITOR_LEFT+(EDITOR_MARGIN/3*2)
 
+        deep = 50
         # draw new beam
-        io['editor'].new_line(x, time,
-                              x, time2,
+        if beam['hand'] == 'r':
+            io['editor'].new_line(x, time,
+                              x+10, time2,
                               tag=[beam['tag'], 'beam'],
                               color='green',
                               width=12,
-                              capstyle=Qt.FlatCap)
-        if beam['hand'] == 'r':
+                              capstyle=Qt.RoundCap)
             io['editor'].new_line(x, time,
                                   x-(EDITOR_MARGIN/3), time,
                                   tag=[beam['tag'], 'beam'],
                                   color='green',
                                   width=2)
-            io['editor'].new_line(x, time2,
+            io['editor'].new_line(x+10, time2,
                                   x-(EDITOR_MARGIN/3), time2,
                                   tag=[beam['tag'], 'beam'],
                                   color='green',
                                   width=2)
         else:
-            io['editor'].new_line(x, time,
+            io['editor'].new_line(x+10, time,
+                              x, time2,
+                              tag=[beam['tag'], 'beam'],
+                              color='green',
+                              width=12,
+                              capstyle=Qt.RoundCap)
+            io['editor'].new_line(x+10, time,
                                   x+(EDITOR_MARGIN/3), time,
                                   tag=[beam['tag'], 'beam'],
                                   color='green',
@@ -122,7 +129,7 @@ class Beam:
                                   width=2)
         if beam['duration'] == 0:
             io['editor'].new_rectangle(x-5, time-5,
-                                       x+5, time+5,
+                                       x+5+10, time+5,
                                        tag=[beam['tag'], 'beam'],
                                        fill_color='green')
 

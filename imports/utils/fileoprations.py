@@ -47,8 +47,8 @@ class File:
 
         self.new()
 
-        self.io['gui'].file_browser.tree_view.clicked.connect(
-            self.file_browser_on_click)
+        # self.io['gui'].file_browser.tree_view.clicked.connect(
+        #     self.file_browser_on_click)
 
     def new(self):
 

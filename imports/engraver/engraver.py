@@ -78,6 +78,7 @@ def pre_render(io, render_type='default'):
             measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
             grid = gr['grid']
+            visible = gr['visible']
             tsig_length = 0
 
             # create time signature indicator
@@ -85,7 +86,8 @@ def pre_render(io, render_type='default'):
                 'type': 'timesignature',
                 'time': time,
                 'numerator': numerator,
-                'denominator': denominator
+                'denominator': denominator,
+                'visible': visible
             })
 
             # add barlines and gridlines
@@ -1019,45 +1021,47 @@ def render(
                                                     dash=[.1, 4])
 
                         if evt['type'] == 'timesignature':
+                            print(evt)
                             if idx_staff == 0:
                                 y = y_cursor + \
                                     tick2y_view(evt['time'], io,
                                                 staff_height, idx_line)
-                                io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
-                                                    y + (PITCH_UNIT * 4.5),
-                                                    str(evt['numerator']),
-                                                    color='black',
-                                                    tag=['timesignature'],
-                                                    size=5,
-                                                    font='Courier New',
-                                                    anchor='s')
-                                io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
-                                                    y,
-                                                    x_cursor -
-                                                    (PITCH_UNIT * 10 *
-                                                     draw_scale * staff_scale),
-                                                    y,
-                                                    color='black',
-                                                    width=.5,
-                                                    tag=['timesignature'])
-                                io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                                    y,
-                                                    x_cursor -
-                                                    (PITCH_UNIT * 10 *
-                                                     draw_scale * staff_scale),
-                                                    y,
-                                                    color='black',
-                                                    width=.2,
-                                                    tag=['timesignature'],
-                                                    dash=[2, 2])
-                                io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
-                                                    y - (PITCH_UNIT * 3.5),
-                                                    str(evt['denominator']),
-                                                    color='black',
-                                                    tag=['timesignature'],
-                                                    size=5,
-                                                    font='Courier New',
-                                                    anchor='n')
+                                if evt['visible']:
+                                    io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
+                                                        y + (PITCH_UNIT * 4.5),
+                                                        str(evt['numerator']),
+                                                        color='black',
+                                                        tag=['timesignature'],
+                                                        size=5,
+                                                        font='Courier New',
+                                                        anchor='s')
+                                    io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
+                                                        y,
+                                                        x_cursor -
+                                                        (PITCH_UNIT * 10 *
+                                                        draw_scale * staff_scale),
+                                                        y,
+                                                        color='black',
+                                                        width=.5,
+                                                        tag=['timesignature'])
+                                    io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
+                                                        y,
+                                                        x_cursor -
+                                                        (PITCH_UNIT * 10 *
+                                                        draw_scale * staff_scale),
+                                                        y,
+                                                        color='black',
+                                                        width=.2,
+                                                        tag=['timesignature'],
+                                                        dash=[2, 2])
+                                    io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
+                                                        y - (PITCH_UNIT * 3.5),
+                                                        str(evt['denominator']),
+                                                        color='black',
+                                                        tag=['timesignature'],
+                                                        size=5,
+                                                        font='Courier New',
+                                                        anchor='n')
 
                         if evt['type'] == 'slur':
 
@@ -1131,6 +1135,7 @@ def render(
             'stem',
             'continuationdot',
             'continuationdot2',
+            'countline',
             'noteheadwhite',
             'leftdotwhite',
             'noteheadblack',
@@ -1140,7 +1145,6 @@ def render(
             'selectionrectangle',
             'notestop',
             'cursor',
-            'countline',
             'handle',
             'linebreak',
             'beam',

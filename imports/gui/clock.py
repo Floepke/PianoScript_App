@@ -22,7 +22,7 @@ class Clock(QWidget):
         
     def update_time(self):
         current_time = QTime.currentTime()
-        time_text = current_time.toString("hh:mm")
+        time_text = current_time.toString("hh:mm:ss")
         self.label.setText(time_text)
 
 if __name__ == "__main__":

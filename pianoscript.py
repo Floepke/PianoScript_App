@@ -188,8 +188,8 @@ class PianoScript():
         #self.io['midiplayer'] = MidiPlayer(self.io)
         self.io['tools'] = Tools(self.io)
 
-        self.io['gui'].file_browser.select_custom_path(
-            self.io['settings']['browser_path'])
+        # self.io['gui'].file_browser.select_custom_path(
+        #     self.io['settings']['browser_path'])
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -266,6 +266,10 @@ class PianoScript():
 
     def de_init(self, event):
         """ What needs to happen on closing the application"""
+
+        print('de_init...')
+        print('thanks for using PianoScript!')
+        print('If you want to make a little donation, please email me at: \nphilipbergwerf@gmail.com')
 
         if self.editor_dialog:
             self.editor_dialog.close()

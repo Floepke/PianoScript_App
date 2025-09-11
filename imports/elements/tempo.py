@@ -80,12 +80,12 @@ class Tempo:
             color = BACKGROUND_COLOR_EDITOR
 
         # add the new tempo
-        io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/4*3), y1, EDITOR_RIGHT - (EDITOR_MARGIN/4*2), y2,
+        io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/4), y1, EDITOR_RIGHT - (EDITOR_MARGIN/4*2), y2,
                                    tag=[tempo['tag'], 'tempo'],
                                    fill_color=NOTATION_COLOR_EDITOR,
                                    outline_color='',
                                    width=3)
-        io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*2.65), y1+((y2-y1)/2), text=str(tempo['tempo']),
+        io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*1.57), y1+((y2-y1)/2), text=str(tempo['tempo']),
                               tag=[tempo['tag'], 'tempo'],
                               font='Edwin',
                               size=32,

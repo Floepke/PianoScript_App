@@ -55,10 +55,31 @@ class Style():
                 background-color: white;
                 color: black;
             }}
-            QLabel, QGroupBox, QCheckBox, QRadioButton {{
+            QLabel, QGroupBox, QRadioButton {{
                 background-color: transparent;
                 font-family: Edwin;
                 font-size: 16px;
+            }}
+            QCheckBox {{
+                background-color: transparent;
+                font-family: Edwin;
+                font-size: 16px;
+                color: {self.color2};
+            }}
+            QCheckBox::indicator {{
+                width: 18px;
+                height: 18px;
+                border: 2px solid {self.color2};
+                background-color: {self.color1};
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {self.color2};
+                border: 2px solid {self.color2};
+            }}
+            QCheckBox::indicator:checked::after {{
+                content: "✓";
+                color: {self.color2};
+                font-weight: bold;
             }}
             QTreeView {{
                 background-color: {self.color1};
