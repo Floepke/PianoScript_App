@@ -25,13 +25,13 @@ class Midi:
     def import_midi(self, file_path):
         '''converts/imports a midi file from the file_path to .pianoscript'''
 
-        # load the template
+        # load the template:
         path = self.io['calc'].ensure_json(
             '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
         with open(path, 'r') as file:
             self.io['score'] = json.load(file)
 
-        # ensure the contents of the file are empty
+        # ensure the contents of the file are empty:
         self.io['score']['header']['title'] = os.path.splitext(
             os.path.basename(file_path))[0]
         self.io['events'] = SaveFileStructureSource.new_events_folder()
@@ -60,9 +60,8 @@ class Midi:
                         new = msg.dict()
                         new['track'] = i
                         # make notes with zero velocity note_off type
-                        if new['type'] == 'note_on':
-                            if new['velocity'] == 0:
-                                new['type'] = 'note_off'
+                        if new['type'] == 'note_on' and new['velocity'] == 0:
+                            new['type'] = 'note_off'
                         track_.append(new)
                     tracks[i] = track_
 
@@ -75,8 +74,7 @@ class Midi:
 
             # step 1: read the midi and create a list of msg that have linear time values and are sorted on the time key from low to high
             all_events = prepare_midi(midi)
-            all_events = [msg for track in all_events.values()
-                          for msg in track]
+            all_events = [msg for track in all_events.values() for msg in track]
             message_priority = {'note_off': 1, 'note_on': 2,
                                 'time_signature': 3, 'end_of_track': 4}
             all_events.sort(key=lambda msg: (
@@ -85,8 +83,7 @@ class Midi:
             # step 2: convert the miditicks to pianoticks
             ticks_per_quarter = midi.ticks_per_beat
             for evt in all_events:
-                evt['time'] = evt['time'] * \
-                    (QUARTER_PIANOTICK / ticks_per_quarter)
+                evt['time'] = evt['time'] * (QUARTER_PIANOTICK / ticks_per_quarter)
 
             # step 3: calculate the duration of note_on and time_signature events
             for idx, evt in enumerate(all_events):

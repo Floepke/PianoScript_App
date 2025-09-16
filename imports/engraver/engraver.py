@@ -42,6 +42,7 @@ def pre_render(io, render_type='default'):
     def pre_calculate(io):
         io['engrave_counter']
         print(f'...........ENGRAVING...........')
+        io['engrave_counter'] += 1
         print(f"engraving number: {io['engrave_counter']}")
         print('pre calculating...')
 
@@ -65,7 +66,8 @@ def pre_render(io, render_type='default'):
             - barlines
             - gridlines
             - timesignature changes
-            - notes and split them if they are crossing a new line point
+            - notes and split them if they are crossing a new line point or a barline
+            - other events like slurs, dynamics, pedal, etc...
         '''
 
         # time signature, barlines and grid
@@ -197,7 +199,6 @@ def pre_render(io, render_type='default'):
 
         # get the line width of every line [[widthstaff1, widthstaff2, widthstaff3, widthstaff4], ...]]
         # if a staff is off the width is zero
-        staff_dimensions = []
         staff_ranges = []
         for lb, line in zip(linebreaks, DOC):
 
@@ -368,6 +369,7 @@ def render(
         accidental_onoff = io['score']['properties']['accidental_onoff']
         soundingdot_onoff = io['score']['properties']['soundingdot_onoff']
         leftdot_onoff = io['score']['properties']['leftdot_onoff']
+        text_onoff = io['score']['properties']['text_onoff']
 
         staffs_settings = io['score']['properties']['staffs']
         threeline_scale = io['score']['properties']['threeline_scale']
@@ -375,8 +377,8 @@ def render(
         continuation_dot_style = io['score']['properties']['continuation_dot_style']
 
         # engraver settings:
-        stem_thickness = 0.5
-        beam_thickness = 1
+        stem_thickness = io['score']['properties']['stem_width'] # .5
+        beam_thickness = io['score']['properties']['beam_width'] # 1
 
         Left = 0
         Right = page_width
@@ -416,7 +418,7 @@ def render(
                                     io['score']['header']['title'],
                                     size=8,
                                     tag=['title'],
-                                    font='Edwin',
+                                    font='Courier New',
                                     anchor='nw')
                 # draw the composer
                 composer_text = io['score']['header']['composer']
@@ -427,7 +429,7 @@ def render(
                                     composer_text,
                                     size=4,
                                     tag=['composer'],
-                                    font='Edwin',
+                                    font='Courier New',
                                     anchor='ne')
 
                 y_cursor += io['score']['properties']['header_height']
@@ -510,10 +512,8 @@ def render(
 
                         if idx_staff == 0:
                             # draw the barlines or endbarline
-                            if evt['type'] in [
-                                    'barline', 'endbarline', 'barlinedouble']:
-                                x1 = x_cursor + \
-                                    (PITCH_UNIT * 2 * draw_scale * staff_scale)
+                            if evt['type'] in ['barline', 'endbarline', 'barlinedouble']:
+                                x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale)
                                 x2 = x_cursor
                                 last_r_marg = 0
                                 for i, w in enumerate(dimensions):
@@ -530,9 +530,10 @@ def render(
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
                                 if evt['type'] in ['barline', 'barlinedouble']:
-                                    w = 0.2 * draw_scale * staff_scale
+                                    w = io['score']['properties']['barline_width'] * draw_scale * staff_scale
                                 else:
-                                    w = 1 * draw_scale * staff_scale
+                                    # if it is the endbarline we draw it thicker
+                                    w = io['score']['properties']['barline_width'] * 4 * draw_scale * staff_scale
                                 if barlines_onoff:
                                     io['view'].new_line(x1,
                                                         y_cursor + y,
@@ -548,14 +549,14 @@ def render(
                                             x2 - 2,
                                             y_cursor + y - 4,
                                             str(barnumber),
-                                            size=4 * draw_scale * staff_scale,
+                                            size=io['score']['properties']['measure_numbering_font_size'] * draw_scale * staff_scale,
                                             tag=['barnumbering'],
                                             font='Courier new',
                                             anchor='nw')
                                     barnumber += 1
 
                         if staff_prefs['staff_width']:
-                            # draw the gridlines
+                            # draw the gridlines (base-grid)
                             if evt['type'] in ['gridline', 'gridlinedouble']:
                                 x1 = x_cursor + \
                                     (PITCH_UNIT * 2 * draw_scale * staff_scale)
@@ -569,7 +570,7 @@ def render(
                                                         y_cursor + y,
                                                         x2,
                                                         y_cursor + y,
-                                                        width=.15 * draw_scale * staff_scale,
+                                                        width=io['score']['properties']['basegrid_width'] * draw_scale * staff_scale,
                                                         color='black',
                                                         dash=[5, 7],
                                                         tag=['gridline'])
@@ -1006,7 +1007,7 @@ def render(
                                 continue
 
                             if idx_staff == evt['staff'] and countline_onoff:
-                                # draw rest
+                                # draw countline
                                 x1 = pitch2x_view(
                                     evt['pitch1'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 x2 = pitch2x_view(
@@ -1016,53 +1017,51 @@ def render(
                                                 staff_height, idx_line)
                                 io['view'].new_line(x1, y, x2, y,
                                                     color='black',
-                                                    width=0.2,
+                                                    width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
                                                     tag=['countline'],
-                                                    dash=[.1, 4])
+                                                    dash=[.1, 4]) # dotted line
 
                         if evt['type'] == 'timesignature':
-                            print(evt)
                             if idx_staff == 0:
-                                y = y_cursor + \
-                                    tick2y_view(evt['time'], io,
-                                                staff_height, idx_line)
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
                                 if evt['visible']:
+                                    # numerator
                                     io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
                                                         y + (PITCH_UNIT * 4.5),
                                                         str(evt['numerator']),
                                                         color='black',
                                                         tag=['timesignature'],
-                                                        size=5,
+                                                        size=io['score']['properties']['time_signature_font_size'] * draw_scale * staff_scale,
                                                         font='Courier New',
                                                         anchor='s')
+                                    # time-signature middle line
                                     io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
                                                         y,
-                                                        x_cursor -
-                                                        (PITCH_UNIT * 10 *
-                                                        draw_scale * staff_scale),
+                                                        x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
                                                         y,
                                                         color='black',
-                                                        width=.5,
+                                                        width=io['score']['properties']['barline_width'] * 4 * draw_scale * staff_scale, # same thickness as endbarline
                                                         tag=['timesignature'])
+                                    # time-signature dashed line
                                     io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
                                                         y,
-                                                        x_cursor -
-                                                        (PITCH_UNIT * 10 *
-                                                        draw_scale * staff_scale),
+                                                        x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
                                                         y,
                                                         color='black',
-                                                        width=.2,
+                                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
                                                         tag=['timesignature'],
                                                         dash=[2, 2])
+                                    # denominator
                                     io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
                                                         y - (PITCH_UNIT * 3.5),
                                                         str(evt['denominator']),
                                                         color='black',
                                                         tag=['timesignature'],
-                                                        size=5,
+                                                        size=io['score']['properties']['time_signature_font_size'] * draw_scale * staff_scale,
                                                         font='Courier New',
                                                         anchor='n')
 
+                        # slurs
                         if evt['type'] == 'slur':
 
                             if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
@@ -1093,10 +1092,10 @@ def render(
 
                                 # drawing the slur
                                 points = io['calc'].bezier_curve(
-                                    (p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y), resolution=25)
+                                    (p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y), resolution=50)
                                 num_points = len(points)
-                                max_width = .6
-                                min_width = .2
+                                max_width = io['score']['properties']['slur_width_middle'] * draw_scale * staff_scale
+                                min_width = io['score']['properties']['slur_width_sides'] * draw_scale * staff_scale
                                 range_width = max_width - min_width
                                 for i in range(num_points - 1):
                                     width = (
@@ -1105,9 +1104,72 @@ def render(
                                                         tag=[
                                                             evt['tag'], 'slur'],
                                                         width=width)
+                        
+                        # text:
+                        if evt['type'] == 'text':
 
-                    x_cursor += staff_prefs['staff_width'] + \
-                        staff_prefs['margin_right']
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
+                            if idx_staff == evt['staff'] and text_onoff:
+                                # get xy
+                                if evt['side'] == '<':
+                                    x = x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale)
+                                    anchor = 'n'
+                                else:
+                                    x = x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * 10 * draw_scale * staff_scale)
+                                    anchor = 'n'
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+
+                                # draw:
+                                y_correction = 4 # for some reason we need this stupid correction...
+                                if evt['side'] == '<':
+                                    # text to the left
+                                    io['view'].new_text_left(
+                                        x=x,
+                                        y=y - y_correction,
+                                        text=evt['text'],
+                                        anchor=anchor,
+                                        color='black',
+                                        tag=[evt['tag'], 'text'],
+                                        font='Courier New Italic',
+                                        size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
+                                    )
+                                    # connection dashed line
+                                    io['view'].new_line(
+                                        x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
+                                        y,
+                                        x_cursor - (PITCH_UNIT * 9 * draw_scale * staff_scale),
+                                        y,
+                                        color='black',
+                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
+                                        tag=[evt['tag'], 'text'],
+                                        dash=[2, 2]
+                                    )
+                                else:
+                                    io['view'].new_text_right(
+                                        x=x,
+                                        y=y - y_correction,
+                                        text=evt['text'],
+                                        anchor=anchor,
+                                        color='black',
+                                        tag=[evt['tag'], 'text'],
+                                        font='Courier New Italic',
+                                        size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
+                                    )
+                                    # connection dashed line
+                                    io['view'].new_line(
+                                        x_cursor + staff_prefs['staff_width'] - (PITCH_UNIT * 2 * draw_scale * staff_scale),
+                                        y,
+                                        x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * 9 * draw_scale * staff_scale),
+                                        y,
+                                        color='black',
+                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
+                                        tag=[evt['tag'], 'text'],
+                                        dash=[2, 2]
+                                    )
+
+                    x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']
 
                 print(f'LINE: {idx_line+1}')
                 idx_line += 1

@@ -23,8 +23,6 @@ QUARTER_PIANOTICK = 256.0
 FRACTION = 0.0000001
 
 # the 'blueprint' for a score; it's the fallback score if no score is loaded and a reference for the developer.
-# if we write a property in the blueprint that is not in the score, it will be added to the score by the
-# FixScore() class based on this blueprint. TODO: Create a FixScore class
 SCORE_TEMPLATE = {
     'header': {
         'title': 'Untitled',
@@ -56,7 +54,7 @@ SCORE_TEMPLATE = {
             'AlwaysDownExceptCollisions',
             'AlwaysUpExceptCollisions'
         ][1],
-        'threeline_scale': 2.0,
+        'threeline_scale': 2.0, # this parameter get's deleted, is now replaced by staff_threeline_width
         'stop_sign_style': ['PianoScript', 'Klavarskribo'][0],
         'continuation_dot_style': ['PianoScript', 'Klavarskribo'][1],
 
@@ -101,7 +99,25 @@ SCORE_TEMPLATE = {
                 'engrave_name': False
             }
         ],
-        'timestamp_onoff': True
+        'timestamp_onoff': True,
+        'text_onoff': True,
+        # line widths:
+        'staff_threeline_width': .4,
+        'staff_twoline_width': .2,
+        'barline_width': .2,
+        'beam_width': 1,
+        'stem_width': .5,
+        'basegrid_width': .15,
+        'countline_width': .2,
+        'slur_width_middle': .6,
+        'slur_width_sides': .2,
+        # font_sizes:
+        'text_font_size': 4,
+        'title_font_size': 8,
+        'composer_font_size': 4,
+        'footer_font_size': 4,
+        'measure_numbering_font_size': 4,
+        'time_signature_font_size': 6,
     },
     'events': {
         'grid': [

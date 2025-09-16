@@ -32,6 +32,10 @@ class CountLine:
             CountLine.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftclick+move':
+            # safety: if somehow the edit_obj is None, return
+            if not io['edit_obj']:
+                return
+                
             # get the mouse position in pianoticks and pitch
             mouse_pitch = io['calc'].x2pitch_editor(x)
             mouse_time = io['calc'].y2tick_editor(y, snap=True)

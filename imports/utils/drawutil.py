@@ -11,6 +11,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtCore import QRectF
 
+from imports.fonts.fonts import get_edwin_roman_font
+
 
 class Worker(QThread):
     draw_line_signal = Signal(QPointF, QPointF)
@@ -300,20 +302,19 @@ class DrawUtil:
         polygon_item.setData(0, tag)
 
     def new_text(self, x: float, y: float, text: str,
-                 font: str = 'Arial',
-                 size: float = 12.0,
-                 color: str = '#000000',
-                 tag: list = [],
-                 anchor: str = 'c',
-                 angle: float = 0.0):
+                font: str = 'Arial',
+                size: float = 12.0,
+                color: str = '#000000',
+                tag: list = [],
+                anchor: str = 'c',
+                angle: float = 0.0):
         '''Add text to the scene.'''
 
-        # Create a font with the given properties
-        if (font.endswith('.ttf') or font.endswith('.otf')) and font.startswith('/'):
-            # If the font is a path to a ttf or otf font:
-            font_id = QFontDatabase.addApplicationFont(font)
-            font = QFontDatabase.applicationFontFamilies(font_id)[0]
-            font = QFont(font, size)
+        # Create a font with the given properties:
+        if font == '!edwin': # use the embedded Edwin Roman font
+            font = get_edwin_roman_font(size=size)
+            if font is None:
+                font = QFont('Courier New', size)
         elif QFontDatabase.hasFamily(font):
             # If the font is available for QFont:
             font = QFont(font, size)
@@ -321,54 +322,229 @@ class DrawUtil:
             # Use Arial as default font:
             font = QFont('Courier New', size)
 
-        # Add the text to the scene and set its position, angle and color
+        # Add the text to the scene
         text_item = self.canvas.addText(text, font)
-        text_item.setPos(x, y)
         text_item.setDefaultTextColor(QColor(color))
-        text_item.setRotation(angle)
-
-        # Set the anchor of the text item (options: 'c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw')
+        
+        # Get bounding rect before any transformations
+        bounding_rect = text_item.boundingRect()
+        
+        # Calculate anchor offset based on original bounding rect
+        anchor_offset_x = 0
+        anchor_offset_y = 0
+        
         if anchor == 'c' or anchor not in ['c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width() / 2,
-                             y - bounding_rect.height() / 2)
+            anchor_offset_x = -bounding_rect.width() / 2
+            anchor_offset_y = -bounding_rect.height() / 2
         elif anchor == 'n':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width() / 2, y)
+            anchor_offset_x = -bounding_rect.width() / 2
+            anchor_offset_y = 0
         elif anchor == 'ne':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width(), y)
+            anchor_offset_x = -bounding_rect.width()
+            anchor_offset_y = 0
         elif anchor == 'e':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width(),
-                             y - bounding_rect.height() / 2)
+            anchor_offset_x = -bounding_rect.width()
+            anchor_offset_y = -bounding_rect.height() / 2
         elif anchor == 'se':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width(),
-                             y - bounding_rect.height())
+            anchor_offset_x = -bounding_rect.width()
+            anchor_offset_y = -bounding_rect.height()
         elif anchor == 's':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x - bounding_rect.width() /
-                             2, y - bounding_rect.height())
+            anchor_offset_x = -bounding_rect.width() / 2
+            anchor_offset_y = -bounding_rect.height()
         elif anchor == 'sw':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x, y - bounding_rect.height())
+            anchor_offset_x = 0
+            anchor_offset_y = -bounding_rect.height()
         elif anchor == 'w':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x, y - bounding_rect.height() / 2)
+            anchor_offset_x = 0
+            anchor_offset_y = -bounding_rect.height() / 2
         elif anchor == 'nw':
-            bounding_rect = text_item.boundingRect()
-            text_item.setPos(x, y)
+            anchor_offset_x = 0
+            anchor_offset_y = 0
+        
+        # Apply rotation only if angle is not 0
+        if angle != 0.0:
+            # Set transform origin to center for proper rotation
+            text_item.setTransformOriginPoint(bounding_rect.center())
+            text_item.setRotation(angle)
+            
+            # Adjust position to account for rotation around center
+            center_x = bounding_rect.center().x()
+            center_y = bounding_rect.center().y()
+            text_item.setPos(x + anchor_offset_x - center_x, y + anchor_offset_y - center_y)
+        else:
+            # No rotation - use original simple positioning
+            text_item.setPos(x + anchor_offset_x, y + anchor_offset_y)
 
-        text_item.setTransformOriginPoint(
-            bounding_rect.width() / 2, bounding_rect.height() / 2)
+        # Add a tag to the text item
+        text_item.setData(0, tag)
 
-        # Add a tag to the line item
+    def new_text_right(self, x: float, y: float, text: str,
+                      font: str = 'Arial',
+                      size: float = 12.0,
+                      color: str = '#000000',
+                      tag: list = [],
+                      anchor: str = 'c'):
+        '''Add text rotated 90 degrees clockwise to the scene. Anchor behaves as if text is not rotated.'''
+
+        # Create a font with the given properties:
+        if font == '!edwin': # use the embedded Edwin Roman font
+            font = get_edwin_roman_font(size=size)
+            if font is None:
+                font = QFont('Courier New', size)
+        elif QFontDatabase.hasFamily(font):
+            # If the font is available for QFont:
+            font = QFont(font, size)
+        else:
+            # Use Arial as default font:
+            font = QFont('Courier New', size)
+
+        # Add the text to the scene
+        text_item = self.canvas.addText(text, font)
+        text_item.setDefaultTextColor(QColor(color))
+        
+        # Get original bounding rect before rotation
+        original_rect = text_item.boundingRect()
+        
+        # Set transform origin to center
+        text_item.setTransformOriginPoint(original_rect.center())
+        
+        # For 90-degree rotation, calculate where each anchor point should be
+        # After 90-degree rotation: original width becomes height, original height becomes width
+        rotated_width = original_rect.height()
+        rotated_height = original_rect.width()
+        
+        # Calculate the offset needed to position the rotated text correctly
+        if anchor == 'c' or anchor not in ['c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
+            offset_x = -rotated_width / 2
+            offset_y = -rotated_height / 2
+        elif anchor == 'n':
+            offset_x = -rotated_width / 2
+            offset_y = 0
+        elif anchor == 'ne':
+            offset_x = -rotated_width
+            offset_y = 0
+        elif anchor == 'e':
+            offset_x = -rotated_width
+            offset_y = -rotated_height / 2
+        elif anchor == 'se':
+            offset_x = -rotated_width
+            offset_y = -rotated_height
+        elif anchor == 's':
+            offset_x = -rotated_width / 2
+            offset_y = -rotated_height
+        elif anchor == 'sw':
+            offset_x = 0
+            offset_y = -rotated_height
+        elif anchor == 'w':
+            offset_x = 0
+            offset_y = -rotated_height / 2
+        elif anchor == 'nw':
+            offset_x = 0
+            offset_y = 0
+        
+        # Position the text first (before rotation), accounting for where the center will be after rotation
+        center_x = original_rect.center().x()
+        center_y = original_rect.center().y()
+        
+        # After rotation, we want the visual top-left + offset to be at (x + offset_x, y + offset_y)
+        # So the center should be at (x + offset_x + rotated_width/2, y + offset_y + rotated_height/2)
+        target_center_x = x + offset_x + rotated_width / 2
+        target_center_y = y + offset_y + rotated_height / 2
+        
+        # Position the text so its center will be at the target center after rotation
+        text_item.setPos(target_center_x - center_x, target_center_y - center_y)
+        
+        # Now apply the rotation
+        text_item.setRotation(90)
+
+        # Add a tag to the text item
+        text_item.setData(0, tag)
+
+    def new_text_left(self, x: float, y: float, text: str,
+                     font: str = 'Arial',
+                     size: float = 12.0,
+                     color: str = '#000000',
+                     tag: list = [],
+                     anchor: str = 'c'):
+        '''Add text rotated 90 degrees counter-clockwise to the scene. Anchor behaves as if text is not rotated.'''
+
+        # Create a font with the given properties:
+        if font == '!edwin': # use the embedded Edwin Roman font
+            font = get_edwin_roman_font(size=size)
+            if font is None:
+                font = QFont('Courier New', size)
+        elif QFontDatabase.hasFamily(font):
+            # If the font is available for QFont:
+            font = QFont(font, size)
+        else:
+            # Use Arial as default font:
+            font = QFont('Courier New', size)
+
+        # Add the text to the scene
+        text_item = self.canvas.addText(text, font)
+        text_item.setDefaultTextColor(QColor(color))
+        
+        # Get original bounding rect before rotation
+        original_rect = text_item.boundingRect()
+        
+        # Set transform origin to center
+        text_item.setTransformOriginPoint(original_rect.center())
+        
+        # For -90-degree rotation, calculate where each anchor point should be
+        # After -90-degree rotation: original width becomes height, original height becomes width
+        rotated_width = original_rect.height()
+        rotated_height = original_rect.width()
+        
+        # Calculate the offset needed to position the rotated text correctly
+        if anchor == 'c' or anchor not in ['c', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
+            offset_x = -rotated_width / 2
+            offset_y = -rotated_height / 2
+        elif anchor == 'n':
+            offset_x = -rotated_width / 2
+            offset_y = 0
+        elif anchor == 'ne':
+            offset_x = -rotated_width
+            offset_y = 0
+        elif anchor == 'e':
+            offset_x = -rotated_width
+            offset_y = -rotated_height / 2
+        elif anchor == 'se':
+            offset_x = -rotated_width
+            offset_y = -rotated_height
+        elif anchor == 's':
+            offset_x = -rotated_width / 2
+            offset_y = -rotated_height
+        elif anchor == 'sw':
+            offset_x = 0
+            offset_y = -rotated_height
+        elif anchor == 'w':
+            offset_x = 0
+            offset_y = -rotated_height / 2
+        elif anchor == 'nw':
+            offset_x = 0
+            offset_y = 0
+        
+        # Position the text first (before rotation), accounting for where the center will be after rotation
+        center_x = original_rect.center().x()
+        center_y = original_rect.center().y()
+        
+        # After rotation, we want the visual top-left + offset to be at (x + offset_x, y + offset_y)
+        # So the center should be at (x + offset_x + rotated_width/2, y + offset_y + rotated_height/2)
+        target_center_x = x + offset_x + rotated_width / 2
+        target_center_y = y + offset_y + rotated_height / 2
+        
+        # Position the text so its center will be at the target center after rotation
+        text_item.setPos(target_center_x - center_x, target_center_y - center_y)
+        
+        # Now apply the rotation
+        text_item.setRotation(-90)
+
+        # Add a tag to the text item
         text_item.setData(0, tag)
 
     '''This part are the methods that handle the tags of the items.'''
 
-    def find_with_tag(self, tag: list):  # TODO: check if it works
+    def find_with_tag(self, tag: list):
         '''Find all items with the given tag or tags and return a list of items.'''
         items = []
         for item in self.canvas.items():

@@ -51,6 +51,10 @@ class Note:
 
             # pitch or duration mode (without shift)
             if not io['shiftmode_flag']:
+                # safety: if somehow the edit_obj is None, return
+                if not io['edit_obj']:
+                    return
+
                 # get the mouse position in pianoticks and pitch
                 mouse_time = io['calc'].y2tick_editor(y, snap=True)
                 mouse_pitch = io['calc'].x2pitch_editor(x)
@@ -64,6 +68,7 @@ class Note:
                 elif mouse_time < io['edit_obj']['time']:
                     # edit the pitch
                     io['edit_obj']['pitch'] = mouse_pitch
+
                 # draw the note
                 Note.draw_editor(io, io['edit_obj'])
         
@@ -131,14 +136,7 @@ class Note:
 
         # move mouse handling: (mouse is moved while no button is pressed)
         elif event_type == 'move':
-            # # detect if we clicked on a note
-            # detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
-            # if detect:
-            #     # note cursor on detected note position
-            #     io['cursor'] = detect.copy()
-            #     io['cursor']['tag'] = 'notecursor'
-            # else:
-            # note cursor on mouse position
+            # create the cursor and draw it:
             io['cursor'] = {
                 'tag': 'notecursor',
                 'time': io['calc'].y2tick_editor(y, snap=True),
@@ -241,7 +239,8 @@ class Note:
         ...
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
-        io['editor'].new_polygon([(x, y),
+        if note['tag'] != 'notecursor':
+            io['editor'].new_polygon([(x, y),
                                   (x + unit, y + (unit/2)),
                                   (x + unit, endy), (x - unit, endy),
                                   (x - unit, y + (unit/2))],

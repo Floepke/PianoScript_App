@@ -142,15 +142,6 @@ class PianoScript():
 
             # flags:
             'shiftmode_flag': False,
-
-            # for saving data for the slur tool mechanics
-            # 'slur_memory': {
-            #     'start_click_tick': 0,  # time at left click
-            #     'click_pitch': 1,  # 1-88 pianokey
-            #     'end_click_tick': 0,  # time at release left click
-            #     'new_slur': False,
-            #     'handle': None
-            # }
         }
 
         # start setup...
@@ -160,7 +151,7 @@ class PianoScript():
         self.gui.show()
         self.io['app'] = self.app
         self.io['root'] = self.root
-        self.root.showFullScreen()
+        #self.root.showFullScreen()
         self.io['gui'] = self.gui
         self.io['statusbar'] = StatusBar(self.io)
 
@@ -185,7 +176,7 @@ class PianoScript():
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
-        #self.io['midiplayer'] = MidiPlayer(self.io)
+        self.io['midiplayer'] = MidiPlayer(self.io)
         self.io['tools'] = Tools(self.io)
 
         # self.io['gui'].file_browser.select_custom_path(
@@ -215,11 +206,11 @@ class PianoScript():
         help_shortcut.activated.connect(self._show_help)
 
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
-        cut_shortcut.activated.connect(self.io['selectoperations'].cut)
+        cut_shortcut.activated.connect(self.io['maineditor'].selection.cut)
         copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.root)
-        copy_shortcut.activated.connect(self.io['selectoperations'].copy)
+        copy_shortcut.activated.connect(self.io['maineditor'].selection.copy)
         paste_shortcut = QShortcut(QKeySequence("Ctrl+V"), self.root)
-        paste_shortcut.activated.connect(self.io['selectoperations'].paste)
+        paste_shortcut.activated.connect(self.io['maineditor'].selection.paste)
         delete_shortcut = QShortcut(QKeySequence("Backspace"), self.root)
         delete_shortcut.activated.connect(self.io['selectoperations'].delete)
         transpose_up_shortcut = QShortcut(QKeySequence("Right"), self.root)
@@ -343,7 +334,7 @@ if __name__ == '__main__':
     if sys.platform.startswith('linux') or sys.platform.startswith('windows'):
         # Set the environment variable for high DPI scaling
         import os
-        os.environ["QT_SCALE_FACTOR"] = "1.5"  # Set to your desired scaling factor, e.g., "1.25" for 125%
+        os.environ["QT_SCALE_FACTOR"] = "1.3"  # Set to your desired scaling factor, e.g., "1.25" for 125%
 
     PianoScript()
     exit(0)

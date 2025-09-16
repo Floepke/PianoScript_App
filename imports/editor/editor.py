@@ -22,7 +22,7 @@ class Editor:
     def __init__(self, io):
 
         self.io = io
-        self.funcselector = {
+        self.tools = {
             'note': Note,
             'slur': Slur(),
             'beam': Beam,
@@ -32,9 +32,10 @@ class Editor:
             'trill': Trill,
             'linebreak': LineBreak,
             'dot': Dot,
-            'text': Text,
+            'text': Text(),
             'tempo': Tempo
         }
+        self.selection = Selection(self.io)
 
     def update(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
@@ -48,10 +49,10 @@ class Editor:
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
 
         # run the selected tool
-        self.funcselector[self.io['tool']].tool(self.io, event_type, x, y)
+        self.tools[self.io['tool']].tool(self.io, event_type, x, y)
 
-        # run selection module
-        Selection.process(self.io, event_type, x, y)
+        # run selection process
+        self.selection.process(event_type, x, y)
 
         # draw_viewport if one of the following events occured
         if event_type in ['resize', 'scroll']:
@@ -141,11 +142,11 @@ class Editor:
                         # element is in viewport
                         if not event in io['viewport']['events'][e_type]:
                             # add event to viewport
-                            if event in io['selection']['selection_buffer'][e_type]:
-                                self.funcselector[e_type].draw_editor(
+                            if event in self.selection.selection_buffer[e_type]:
+                                self.tools[e_type].draw_editor(
                                     io, event, inselection=True)
                             else:
-                                self.funcselector[e_type].draw_editor(
+                                self.tools[e_type].draw_editor(
                                     io, event)
                             io['viewport']['events'][e_type].append(event)
                         else:

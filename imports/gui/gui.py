@@ -33,27 +33,29 @@ class Gui():
         # Create the status bar
         self.statusbar = self.main.statusBar()
 
-        # Create a slider
-        self.slider = MoodSlider(Qt.Horizontal, self.main)
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(255)
-        self.slider.setValue(random.randint(0, 255))
+        # # Create a slider
+        # self.slider = MoodSlider(Qt.Horizontal, self.main)
+        # self.slider.setMinimum(0)
+        # self.slider.setMaximum(255)
+        # self.slider.setValue(random.randint(0, 255))
 
-        # add a label
-        self.label = QLabel()
-        self.label.setText(str('Mood Slider ='))
-        self.label.setStyleSheet(
-            'color: white; font-family: Edwin; font-size: 14px;')
+        # # add a label
+        # self.label = QLabel()
+        # self.label.setText(str('Mood Slider ='))
+        # self.label.setStyleSheet(
+        #     'color: white; font-family: Edwin; font-size: 14px;')
 
-        # Create a layout and add the label and slider to it
-        self.slider_layout = QHBoxLayout()
-        self.slider_layout.addWidget(self.label)
-        self.slider_layout.addWidget(self.slider)
+        # # Create a layout and add the label and slider to it
+        # self.slider_layout = QHBoxLayout()
+        # self.slider_layout.addWidget(self.label)
+        # self.slider_layout.addWidget(self.slider)
 
-        # Create a widget with the layout and add it to the status bar
-        self.slider_widget = QWidget()
-        self.slider_widget.setLayout(self.slider_layout)
-        self.statusbar.addPermanentWidget(self.slider_widget)
+        # # Create a widget with the layout and add it to the status bar
+        # self.slider_widget = QWidget()
+        # self.slider_widget.setLayout(self.slider_layout)
+        # self.statusbar.addPermanentWidget(self.slider_widget)
+        
+        # create clock
         self.statusbar.addPermanentWidget(Clock())
 
         # start menu--------------------------------------------------------------------
@@ -181,8 +183,7 @@ class Gui():
         self.editor_scene.setBackgroundBrush(QColor(BACKGROUND_COLOR_EDITOR))
         self.editor_view = GraphicsViewEditor(
             self.editor_scene, self.io, self.main)
-        # set minimum width of the editor
-        # self.editor_view.setMinimumWidth(400)
+        
         # Set the focus policy to Qt.StrongFocus to accept focus by tabbing and clicking
         self.editor_view.setFocusPolicy(Qt.StrongFocus)
 
@@ -198,6 +199,8 @@ class Gui():
         # Create the toolbar
         self.toolbar_widget = QWidget()
         self.toolbar_widget.setFixedWidth(30)
+        self.toolbar_widget.setMinimumWidth(30)
+        self.toolbar_widget.setMaximumWidth(30)
         self.toolbar = ToolBar(self.io)
         self.toolbar_layout = QVBoxLayout()
         self.toolbar_layout.addWidget(self.toolbar)
@@ -210,6 +213,9 @@ class Gui():
         self.splitter.addWidget(self.toolbar_widget)
         self.splitter.addWidget(self.print_view)
         self.splitter.setHandleWidth(10)
+
+        # Set the toolbar widget as non-collapsible
+        self.splitter.setCollapsible(1, False)  # Index 1 is the toolbar_widget
 
         # Set the initial sizes of the widgets in the splitter
         main_window_width = self.main.frameGeometry().width()

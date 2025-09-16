@@ -229,10 +229,18 @@ class File:
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getSaveFileName(filter='*.pianoscript')
         if file_path:
+            # check if file extention is .pianoscript, if not add it:
+            if not file_path.endswith('.pianoscript'):
+                file_path += '.pianoscript'
+
+            # save the score to the file:
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
+            
+            # set save path:
             self.save_path = file_path
-            # set window title
+
+            # set window title:
             self.io['gui'].main.setWindowTitle(f'PianoScript - {file_path}')
             return True
         else:

@@ -56,7 +56,7 @@ class CalcTools:
         editor_zoom = self.io['score']['properties']['editor_zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
         if y < 0:
-            y = 0
+            y = -FRACTION
 
         if snap:
             # Snap to grid starting from the top of the editor

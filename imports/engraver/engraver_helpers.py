@@ -5,7 +5,6 @@
 '''
 from imports.utils.constants import *
 import copy
-import math
 
 
 def continuation_dot(time, pitch, note):
@@ -165,14 +164,14 @@ def note_processor(io, note):
     # create list with all barline times
     barline_times = io['calc'].get_barline_ticks()
 
-    # check if there is a barline in between n_start and n_end
+    # check if there is a barline in between note_start and note_end
     bl_times = []
     for bl in barline_times:
         if note_start < bl < note_end:
             bl_times.append(bl)
             output.append(continuation_dot(bl, note['pitch'], note))
 
-    # if there is no barline in between n_start and n_end
+    # if there is no barline in between note_start and note_end
     if not bl_times:
         note['type'] = 'note'
         output.append(note)
@@ -393,8 +392,7 @@ def draw_staff(x_cursor: float,
                         x,
                         y_cursor +
                         staff_length,
-                        width=.2 *
-                        scale,
+                        width=io['score']['properties']['staff_twoline_width'] * scale,
                         color='#000000',
                         dash=[
                             5,
@@ -411,8 +409,7 @@ def draw_staff(x_cursor: float,
                             PITCH_UNIT *
                             4 *
                             scale,
-                            width=1 *
-                            scale,
+                            width=1 * scale,
                             color='#888',
                             tag=['minipiano'])
                 else:
@@ -423,8 +420,7 @@ def draw_staff(x_cursor: float,
                         x,
                         y_cursor +
                         staff_length,
-                        width=.2 *
-                        scale,
+                        width=io['score']['properties']['staff_twoline_width'] * scale,
                         color='#000000',
                         tag=['staffline'])
                     if minipiano:
@@ -438,8 +434,7 @@ def draw_staff(x_cursor: float,
                             PITCH_UNIT *
                             4 *
                             scale,
-                            width=1 *
-                            scale,
+                            width=1 * scale,
                             color='#000',
                             tag=['minipiano'])
             elif remainder in [10, 12, 2]:  # if it's one of the f# g# a# keys
@@ -450,9 +445,7 @@ def draw_staff(x_cursor: float,
                     x,
                     y_cursor +
                     staff_length,
-                    width=0.2 *
-                    io['score']['properties']['threeline_scale'] *
-                    scale,
+                    width=io['score']['properties']['staff_threeline_width'] * scale,
                     color='#000000',
                     tag=['staffline'])
                 if minipiano:

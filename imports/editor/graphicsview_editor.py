@@ -85,6 +85,8 @@ class GraphicsViewEditor(QGraphicsView):
             self.shift_modifier = True
             self.io['maineditor'].update('leftclick+shift', x, y)
 
+        self.viewport().update()
+
     def mouseMoveEvent(self, event):
 
         scene_point = self.mapToScene(event.pos())
@@ -120,6 +122,8 @@ class GraphicsViewEditor(QGraphicsView):
         elif event.button() == Qt.RightButton:
             self.right_mouse_button = False
             self.io['maineditor'].update('rightrelease', x, y)
+
+        self.viewport().update()
 
     # connect a action if mouse leaves the view
     def leaveEvent(self, event):

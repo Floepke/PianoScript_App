@@ -183,23 +183,16 @@ class SaveFileStructureSource:
             tag: str,  # text+tagnumber to make tag unique
             text: str = 'text',  # text
             time: float = 0,  # in linear time in pianoticks 0 to infinity
-            pitch: int = 40,  # piano note number 1 to 88
-            font_size: int = 16,  # size
-            font_family: str = 'Edwin',
+            side: str = '>',  # left '<' or right '>'
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
-            angle: float = 0.0  # angle in degrees, 0 is horizontal
     ):
         '''The text event structure.'''
         return {
             'tag': tag,
             'time': time,
-            'pitch': pitch,
+            'side': side,
             'staff': staff,
-            # user input
-            'text': text,
-            'font_size': font_size,
-            'font_family': font_family,
-            'angle': angle
+            'text': text
         }
 
     def new_tempo(

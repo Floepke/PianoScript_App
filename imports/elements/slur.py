@@ -8,9 +8,9 @@ class Slur:
     def __init__(self):
         self.is_new_slur = False
         self.click_pitch = None
-        self.start_click_tick = 0
         self.handle = None
         self.edit_obj = None
+        self.click_tick = 0
         self.end_click_tick = None
 
     def tool(self, io, event_type: str, x: int, y: int):
@@ -25,10 +25,8 @@ class Slur:
             if detect:
                 # if we clicked on a slur, we want to edit it so we create a copy of the detected slur
                 self.edit_obj = copy.deepcopy(detect)
-                # self.delete_editor(io, detect)
-                self.is_new_slur = False
                 self.click_pitch = None
-                self.start_click_tick = None
+                self.click_tick = None
                 # detect the handle and assign it
                 clicked_item = io['editor'].detect_item(
                     io, float(x), float(y), event_type='slur', return_item=True)
@@ -37,19 +35,54 @@ class Slur:
                         self.handle = t
 
             else:
-                # we have to create a (new) slur at mouse release
-                self.is_new_slur = True
+                # click pitch is the pitch at the mouse position
                 self.click_pitch = io['calc'].x2pitch_editor(x)
-                self.start_click_tick = io['calc'].y2tick_editor(y, snap=True)
+                self.click_tick = io['calc'].y2tick_editor(y, snap=True)
+
+                if self.click_pitch <= 40:
+                    middle_handles_offset = -5
+                else:
+                    middle_handles_offset = 5
+                
+                # if we didn't click on a slur, we want to create a new slur:
+                self.handle = '#handle3'  # we start with handle 3 (the end handle)
+                new_slur = SaveFileStructureSource.new_slur(
+                    tag='slur' + str(io['calc'].add_and_return_tag()),
+                    staff=io['selected_staff'],
+                    p0={
+                        # distance from c4 in STAFF_X_UNIT_EDITOR float unit's
+                        'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(self.click_pitch)),
+                        'time': self.click_tick
+                    },
+                    p1={
+                        # ...
+                        'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(self.click_pitch)) + middle_handles_offset,
+                        'time': self.click_tick
+                    },
+                    p2={
+                        'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(self.click_pitch)) + middle_handles_offset,
+                        'time': self.click_tick
+                    },
+                    p3={
+                        'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(self.click_pitch)),
+                        'time': self.click_tick
+                    }
+                )
+
+                # write the new slur to file
+                io['score']['events']['slur'].append(new_slur)
+
+                # assign to edit_obj
+                self.edit_obj = new_slur
+                self.draw_editor(io, self.edit_obj)
 
         elif event_type == 'leftclick+move':
 
-            if self.edit_obj:
+            if self.edit_obj: # do we edit a object?
 
-                if self.handle:
-                    # we clicked on a handle so we need to update it's position based on the mouse position
+                if self.handle: # do we have a handle selected?
                     
-                    # check if mouse x position is not out of bounds and set to outer bounds if it's oob.
+                    # check if mouse x position is not out of bounds and set to outer bounds if it's necessary
                     x = max(EDITOR_LEFT, min(x, EDITOR_RIGHT))
                     
                     # calculate the xy values for the handle
@@ -63,11 +96,32 @@ class Slur:
                     if self.handle == '#handle0':
                         self.edit_obj['time'] = mouse_y
 
+                    # if we edit handle 0 or 3 we automaticcally move handle 1 or 2 respectively
+                    if mouse_x <= 0:
+                        if self.handle == '#handle0':
+                            self.edit_obj['p1']['distance_c4units'] = mouse_x - 5
+                            self.edit_obj['p1']['time'] = mouse_y
+                        elif self.handle == '#handle3':
+                            self.edit_obj['p2']['distance_c4units'] = mouse_x - 5
+                            self.edit_obj['p2']['time'] = mouse_y
+                    else:
+                        if self.handle == '#handle0':
+                            self.edit_obj['p1']['distance_c4units'] = mouse_x + 5
+                            self.edit_obj['p1']['time'] = mouse_y
+                        elif self.handle == '#handle3':
+                            self.edit_obj['p2']['distance_c4units'] = mouse_x + 5
+                            self.edit_obj['p2']['time'] = mouse_y
+
                     # update duration of slur for properly draw the slur in the editor
                     max_time = max(self.edit_obj[key]['time'] for key in ['p0', 'p1', 'p2', 'p3'])
                     self.edit_obj['duration'] = max_time
                     
                     self.draw_editor(io, self.edit_obj)
+
+                    # write changes to the score file
+                    for slur in io['score']['events']['slur']:
+                        if slur['tag'] == self.edit_obj['tag']:
+                            slur.update(self.edit_obj)
 
         elif event_type == 'leftrelease':
 
@@ -75,36 +129,9 @@ class Slur:
             if io['selection']['rectangle_on']:
                 return
 
-            if self.is_new_slur:  
-                
-                # update the tick value for if we release the mouse for usage for initial slur handle positions
-                self.end_click_tick = io['calc'].y2tick_editor(y, snap=True)
-                
-                # this function creates a initial slur
-                slur = self.generate_init_slur(io)
-                
-                self.draw_editor(io, slur)
-                
-                # add new slur to the score file
-                io['score']['events']['slur'].append(slur)
-
-            else:
-
-                # remove old slur from the file
-                for sl in io['score']['events']['slur']:
-                    if sl['tag'] == self.edit_obj['tag']:
-                        io['score']['events']['slur'].remove(sl)
-                        break
-
-                # create copy of the edit_obj and add it to the score
-                new = self.edit_obj
-                io['score']['events']['slur'].append(new)
-
-                # draw the note, redraw the editor viewport
-                io['maineditor'].draw_viewport()
-
+            # we don't have to update the slur since we already did this in the leftclick+move event.
             self.edit_obj = None
-            self.is_new_slur = False
+            self.handle = None
 
         # middle mouse button handling:
         elif event_type == 'middleclick':
@@ -169,14 +196,14 @@ class Slur:
                               p1_y - radius,
                               p1_x + radius,
                               p1_y + radius,
-                              fill_color='#ca375c',
+                              fill_color="#97ca37",
                               outline_color='',
                               tag=[slur['tag'], 'slurhandle', '#handle1'])
         io['editor'].new_oval(p2_x - radius,
                               p2_y - radius,
                               p2_x + radius,
                               p2_y + radius,
-                              fill_color='#ca375c',
+                              fill_color='#97ca37',
                               outline_color='',
                               tag=[slur['tag'], 'slurhandle', '#handle2'])
         io['editor'].new_oval(p3_x - radius,
@@ -215,7 +242,7 @@ class Slur:
             as right hand slur.
         '''
 
-        click_pitch, start_click_tick, end_click_tick = self.click_pitch, self.start_click_tick, self.end_click_tick
+        click_pitch, start_click_tick, end_click_tick = self.click_pitch, self.click_tick, self.end_click_tick
         if click_pitch <= 40:
             hand = 'l'
         else:
@@ -291,22 +318,24 @@ class Slur:
                 tag='slur' + str(io['calc'].add_and_return_tag()),
                 staff=io['selected_staff'],
                 p0={
-                    'time': start_note['time'],
                     # distance from c4 in STAFF_X_UNIT_EDITOR float units
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']-5))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']-5)),
+                    # Y coordinate is the start time of the note
+                    'time': start_note['time']
                 },
                 p1={
-                    'time': start_note['time'] + ((end_note['time'] - start_note['time']) / 4),
                     # ...
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']-10))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']-10)),
+                    # ...
+                    'time': start_note['time']
                 },
                 p2={
-                    'time': start_note['time'] + ((end_note['time'] - start_note['time']) / 4 * 3),
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']-10))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']-10)),
+                    'time': end_note['time']
                 },
                 p3={
-                    'time': end_note['time'],
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']-5))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']-5)),
+                    'time': end_note['time']
                 }
             )
         else:
@@ -314,22 +343,24 @@ class Slur:
                 tag='slur' + str(io['calc'].add_and_return_tag()),
                 staff=io['selected_staff'],
                 p0={
-                    'time': start_note['time'],
-                    # distance from c4 in STAFF_X_UNIT_EDITOR float unit's
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']+5))
+                    # distance from c4 in STAFF_X_UNIT_EDITOR float units
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']+5)),
+                    # Y coordinate is the start time of the note
+                    'time': start_note['time']
                 },
                 p1={
-                    'time': start_note['time'] + ((end_note['time'] - start_note['time']) / 4),
                     # ...
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']+10))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']+10)),
+                    # ...
+                    'time': start_note['time']
                 },
                 p2={
-                    'time': start_note['time'] + ((end_note['time'] - start_note['time']) / 4 * 3),
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(start_note['pitch']+10))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']+10)),
+                    'time': end_note['time']
                 },
                 p3={
-                    'time': end_note['time'],
-                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']+5))
+                    'distance_c4units': io['calc'].x2xunits_editor(io['calc'].pitch2x_editor(end_note['pitch']+5)),
+                    'time': end_note['time']
                 }
             )
 

@@ -87,11 +87,11 @@ class Tempo:
                                    width=3)
         io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*1.57), y1+((y2-y1)/2), text=str(tempo['tempo']),
                               tag=[tempo['tag'], 'tempo'],
-                              font='Edwin',
+                              font='Courier New',
                               size=32,
                               color=color,
                               angle=90,
-                              anchor='c')
+                              anchor='nw')
         io['editor'].new_line(EDITOR_RIGHT - EDITOR_MARGIN, y1, EDITOR_RIGHT - (EDITOR_MARGIN/4*3), y1,
                               tag=[tempo['tag'], 'tempo'],
                               color=NOTATION_COLOR_EDITOR,
