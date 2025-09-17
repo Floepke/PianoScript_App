@@ -35,7 +35,7 @@ class Editor:
             'text': Text(),
             'tempo': Tempo
         }
-        self.selection = Selection(self.io)
+        self.selection = Selection()
 
     def update(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
@@ -52,7 +52,7 @@ class Editor:
         self.tools[self.io['tool']].tool(self.io, event_type, x, y)
 
         # run selection process
-        self.selection.process(event_type, x, y)
+        self.selection.process(self.io, event_type, x, y)
 
         # draw_viewport if one of the following events occured
         if event_type in ['resize', 'scroll']:
@@ -142,7 +142,7 @@ class Editor:
                         # element is in viewport
                         if not event in io['viewport']['events'][e_type]:
                             # add event to viewport
-                            if event in self.selection.selection_buffer[e_type]:
+                            if event in self.io['selection']['selection_buffer'][e_type]:
                                 self.tools[e_type].draw_editor(
                                     io, event, inselection=True)
                             else:
