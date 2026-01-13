@@ -184,6 +184,7 @@ class SaveFileStructureSource:
             text: str = 'text',  # text
             time: float = 0,  # in linear time in pianoticks 0 to infinity
             side: str = '>',  # left '<' or right '>'
+            mm_from_side: int = 5,  # distance in mm from the side of the piano
             staff: int = 0,  # staff number 0 to 3 there is a total of 4 staffs available
     ):
         '''The text event structure.'''
@@ -192,7 +193,8 @@ class SaveFileStructureSource:
             'time': time,
             'side': side,
             'staff': staff,
-            'text': text
+            'text': text,
+            'mm_from_side': mm_from_side
         }
 
     def new_tempo(

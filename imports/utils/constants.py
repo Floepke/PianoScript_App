@@ -71,7 +71,7 @@ SCORE_TEMPLATE = {
         'countline_onoff': True,
         'measure_numbering_onoff': True,
         'accidental_onoff': True,
-        'soundingdot_onoff': True,
+        'continuationdot_onoff': True,
         'leftdot_onoff': True,
         'staffs': [
             {
@@ -157,14 +157,11 @@ SCORE_TEMPLATE = {
 # blueprint; is used to scan any loading file for missing parameters. It has blueprint example objects for each event
 BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
 BLUEPRINT['events']['note'] = [SaveFileStructureSource.new_note('blueprint')]
-BLUEPRINT['events']['linebreak'] = [
-    SaveFileStructureSource.new_linebreak('blueprint')]
-BLUEPRINT['events']['gracenote'] = [
-    SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['events']['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
+BLUEPRINT['events']['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
 BLUEPRINT['events']['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
 BLUEPRINT['events']['tempo'] = [SaveFileStructureSource.new_tempo('blueprint')]
-BLUEPRINT['events']['countline'] = [
-    SaveFileStructureSource.new_countline('blueprint')]
+BLUEPRINT['events']['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
 BLUEPRINT['events']['slur'] = [SaveFileStructureSource.new_slur('blueprint')]
 
 # the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88

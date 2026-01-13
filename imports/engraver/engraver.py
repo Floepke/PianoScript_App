@@ -367,7 +367,7 @@ def render(
         countline_onoff = io['score']['properties']['countline_onoff']
         measure_numbering_onoff = io['score']['properties']['measure_numbering_onoff']
         accidental_onoff = io['score']['properties']['accidental_onoff']
-        soundingdot_onoff = io['score']['properties']['soundingdot_onoff']
+        continuationdot_onoff = io['score']['properties'].get('continuationdot_onoff', True)
         leftdot_onoff = io['score']['properties']['leftdot_onoff']
         text_onoff = io['score']['properties']['text_onoff']
 
@@ -416,7 +416,7 @@ def render(
                 io['view'].new_text(page_margin_left,
                                     y_cursor-5,
                                     io['score']['header']['title'],
-                                    size=8,
+                                    size=int(io['score']['properties']['title_font_size'] * draw_scale),
                                     tag=['title'],
                                     font='Courier New',
                                     anchor='nw')
@@ -427,7 +427,7 @@ def render(
                 io['view'].new_text(Right - page_margin_right,
                                     y_cursor-5,
                                     composer_text,
-                                    size=4,
+                                    size=int(io['score']['properties']['composer_font_size'] * draw_scale),
                                     tag=['composer'],
                                     font='Courier New',
                                     anchor='ne')
@@ -446,7 +446,7 @@ def render(
                 4 *
                 draw_scale,
                 text,
-                size=4,
+                size=int(io['score']['properties']['footer_font_size'] * draw_scale),
                 tag=['copyright'],
                 font='Courier new',
                 anchor='w')
@@ -546,13 +546,23 @@ def render(
                                 if float(evt['time']).is_integer():
                                     if measure_numbering_onoff:
                                         io['view'].new_text(
-                                            x2 - 2,
+                                            x2 + (PITCH_UNIT * 18 * draw_scale * staff_scale),
                                             y_cursor + y - 4,
                                             str(barnumber),
                                             size=io['score']['properties']['measure_numbering_font_size'] * draw_scale * staff_scale,
                                             tag=['barnumbering'],
                                             font='Courier new',
-                                            anchor='nw')
+                                            anchor='ne')
+                                        io['view'].new_line(
+                                            x2,
+                                            y_cursor + y,
+                                            x2 + 10,
+                                            y_cursor + y,
+                                            width=0.2 * draw_scale * staff_scale,
+                                            color='black',
+                                            dash=[2, 4],
+                                            tag=['barnumbering']
+                                        )
                                     barnumber += 1
 
                         if staff_prefs['staff_width']:
@@ -818,7 +828,7 @@ def render(
                                     evt['pitch'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
-                                if soundingdot_onoff:
+                                if continuationdot_onoff:
                                     if continuation_dot_style == 'Klavarskribo':
                                         io['view'].new_oval(x - PITCH_UNIT * .5 * draw_scale * staff_scale,
                                                             y_cursor + y +
@@ -1114,10 +1124,10 @@ def render(
                             if idx_staff == evt['staff'] and text_onoff:
                                 # get xy
                                 if evt['side'] == '<':
-                                    x = x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale)
+                                    x = x_cursor - (PITCH_UNIT * evt['mm_from_side'] * draw_scale * staff_scale)
                                     anchor = 'n'
                                 else:
-                                    x = x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * 10 * draw_scale * staff_scale)
+                                    x = x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * evt['mm_from_side'] * draw_scale * staff_scale)
                                     anchor = 'n'
                                 y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
 
@@ -1135,17 +1145,6 @@ def render(
                                         font='Courier New Italic',
                                         size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
                                     )
-                                    # connection dashed line
-                                    io['view'].new_line(
-                                        x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                        y,
-                                        x_cursor - (PITCH_UNIT * 9 * draw_scale * staff_scale),
-                                        y,
-                                        color='black',
-                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
-                                        tag=[evt['tag'], 'text'],
-                                        dash=[2, 2]
-                                    )
                                 else:
                                     io['view'].new_text_right(
                                         x=x,
@@ -1156,17 +1155,6 @@ def render(
                                         tag=[evt['tag'], 'text'],
                                         font='Courier New Italic',
                                         size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
-                                    )
-                                    # connection dashed line
-                                    io['view'].new_line(
-                                        x_cursor + staff_prefs['staff_width'] - (PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                        y,
-                                        x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * 9 * draw_scale * staff_scale),
-                                        y,
-                                        color='black',
-                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
-                                        tag=[evt['tag'], 'text'],
-                                        dash=[2, 2]
                                     )
 
                     x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']

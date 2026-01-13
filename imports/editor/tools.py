@@ -66,3 +66,41 @@ class Tools:
 
         # update the editor
         self.io['maineditor'].update('grid_editor')
+
+    def transpose(self):
+        ''' Transpose all notes by the given number of semitones. '''
+        # ask for user input
+        semitones, ok = QInputDialog.getInt(
+            None,
+            'Transpose all notes',
+            'Enter number of semitones to transpose (negative for down, positive for up):',
+            value=0
+        )
+        if not ok or semitones == 0:
+            return
+
+        # transpose notes
+        for note in self.io['score']['events']['note']:
+            pitch = note['pitch'] + semitones
+            if pitch < 1:
+                pitch = 1
+            elif pitch > 88:
+                pitch = 88
+            note['pitch'] = pitch
+
+        # transpose gracenotes
+        for gracenote in self.io['score']['events']['gracenote']:
+            pitch = gracenote['pitch'] + semitones
+            if pitch < 1:
+                pitch = 1
+            elif pitch > 88:
+                pitch = 88
+            gracenote['pitch'] = pitch
+
+        # update the editor
+        self.io['maineditor'].update('grid_editor')
+
+    def select_all(self):
+        ''' Select all notes in the score '''
+        for event_type in self.io['selection']['copy_types']:
+            self.io['selection']['selection_buffer'][event_type] = self.io['score']['events'][event_type].copy()

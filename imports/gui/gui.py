@@ -1,13 +1,12 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
 from PySide6.QtCore import Qt, QSize, QPoint
-from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene
+from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene, QInputDialog
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton
 from PySide6.QtWidgets import QSpinBox, QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction, QColor, QBrush, QStandardItemModel, QStandardItem
 
 from imports.editor.graphicsview_editor import GraphicsViewEditor
 from imports.engraver.graphics_view_engraver import GraphicsViewEngraver
-from imports.gui.dialogs.scoreoptionsdialog import ScoreOptionsDialog
 from imports.engraver.pdfexport import pdf_export
 from imports.icons.icons import get_icon
 from imports.gui.toolbar import ToolBar
@@ -15,6 +14,7 @@ from imports.gui.moodslider import MoodSlider
 from imports.utils.constants import *
 from imports.gui.dialogs.filebrowser import FileBrowser
 from imports.gui.clock import Clock
+from imports.editor.tools import Tools
 
 import random
 from PySide6.QtWidgets import QSizePolicy
@@ -81,13 +81,13 @@ class Gui():
         self.import_midi_action.triggered.connect(
             lambda: self.io['fileoperations'].import_midi())
         self.file_menu.addAction(self.import_midi_action)
-        self.file_menu.addSeparator()
         self.save_action = QAction('Save', self.main)
         self.save_action.setShortcut('Ctrl+S')
         self.file_menu.addAction(self.save_action)
         self.saveas_action = QAction('Save As', self.main)
         self.saveas_action.setShortcut('Ctrl+Shift+S')
         self.file_menu.addAction(self.saveas_action)
+        self.file_menu.addSeparator()
         self.save_template_action = QAction(
             'Set As Default Template...', self.main)
         self.file_menu.addAction(self.save_template_action)
@@ -161,20 +161,54 @@ class Gui():
         self.settings_menu.addAction(self.line_break_editor_action)
         self.score_options_action = QAction('Score Options', self.main)
         self.score_options_action.setShortcut('s')
-        self.score_options_action.triggered.connect(
-            lambda: ScoreOptionsDialog(self.io).exec())
+        self.score_options_action.triggered.connect(self.io['scoreoptions'])
         self.settings_menu.addAction(self.score_options_action)
         self.set_midi_out_port_action = QAction('Set MIDI out port', self.main)
         self.settings_menu.addAction(self.set_midi_out_port_action)
         self.menu_bar.addMenu(self.settings_menu)
 
         # Create Tools menu
+        self.tools = Tools(self.io)
         self.tools_menu = QMenu('Tools', self.main)
+        
         self.quick_tools_action = QAction('Add Quick LineBreaks', self.main)
-        self.quick_tools_action.triggered.connect(
-            lambda: self.io['tools'].add_quick_linebreaks())
+        self.quick_tools_action.triggered.connect(self.tools.add_quick_linebreaks)
         self.tools_menu.addAction(self.quick_tools_action)
+        
+        self.transpose_action = QAction('Transpose', self.main)
+        self.transpose_action.triggered.connect(self.tools.transpose)
+        self.tools_menu.addAction(self.transpose_action)
+        
+        self.select_all_action = QAction('Select All', self.main)
+        self.select_all_action.setShortcut('Ctrl+A')
+        self.select_all_action.triggered.connect(self.tools.select_all)
+        self.tools_menu.addAction(self.select_all_action)
+        
         self.menu_bar.addMenu(self.tools_menu)
+
+        # create set menu
+        self.set_menu = QMenu('Set', self.main)
+        self.set_title_action = QAction('Title', self.main)
+        self.set_title_action.triggered.connect(self.set_title)
+        self.set_menu.addAction(self.set_title_action)
+
+        self.set_composer_action = QAction('Composer', self.main)
+        self.set_composer_action.triggered.connect(self.set_composer)
+        self.set_menu.addAction(self.set_composer_action)
+
+        self.set_copyright_action = QAction('Copyright', self.main)
+        self.set_copyright_action.triggered.connect(self.set_copyright)
+        self.set_menu.addAction(self.set_copyright_action)
+
+        self.separator = QAction(self.main)
+        self.separator.setSeparator(True)
+        self.set_menu.addAction(self.separator)
+
+        self.set_timestamp_action = QAction('Timestamp', self.main)
+        self.set_timestamp_action.triggered.connect(self.set_timestamp)
+        self.set_menu.addAction(self.set_timestamp_action)
+
+        self.menu_bar.addMenu(self.set_menu)
 
         # end menu--------------------------------------------------------------------
 
@@ -454,3 +488,31 @@ class Gui():
 
     def refresh(self):
         self.io['maineditor'].update('page_change')
+
+    def set_title(self):
+        title, ok = QInputDialog.getText(
+            None, 'Set Title', 'Enter the title of the piece:', text=self.io['score']['header']['title'])
+        if ok and title:
+            self.io['score']['header']['title'] = title
+            self.io['maineditor'].update('grid_editor')
+
+    def set_composer(self):
+        composer, ok = QInputDialog.getText(
+            None, 'Set Composer', 'Enter the name of the composer:', text=self.io['score']['header']['composer'])
+        if ok and composer:
+            self.io['score']['header']['composer'] = composer
+            self.io['maineditor'].update('grid_editor')
+
+    def set_copyright(self):
+        copyright, ok = QInputDialog.getText(
+            None, 'Set Copyright', 'Enter the copyright information:', text=self.io['score']['header']['copyright'])
+        if ok and copyright:
+            self.io['score']['header']['copyright'] = copyright
+            self.io['maineditor'].update('grid_editor')
+
+    def set_timestamp(self):
+        timestamp, ok = QInputDialog.getText(
+            None, 'Set Timestamp', 'Enter the timestamp (timestamp acts as second composer name too\nfor example if you want to set the arranger):', text=self.io['score']['header']['timestamp'])
+        if ok and timestamp:
+            self.io['score']['header']['timestamp'] = timestamp
+            self.io['maineditor'].update('grid_editor')

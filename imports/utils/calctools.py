@@ -59,15 +59,31 @@ class CalcTools:
             y = -FRACTION
 
         if snap:
-            # Snap to grid starting from the top of the editor
             grid_size = self.io['snap_grid']
-            y = round((y - (grid_size / 2)) / grid_size) * grid_size
+            
+            # Find the grid lines above and below the mouse position
+            lower_grid = int(y / grid_size) * grid_size
+            upper_grid = lower_grid + grid_size
+            
+            # Choose which direction to snap based on your preference:
+            
+            # Option 1: Always snap down (to lower grid line)
+            y = lower_grid
+            
+            # Option 2: Always snap up (to upper grid line)  
+            # y = upper_grid
+            
+            # Option 3: Snap to whichever is closer but maintain mouse position awareness
+            # if abs(y - lower_grid) <= abs(y - upper_grid):
+            #     y = lower_grid
+            # else:
+            #     y = upper_grid
 
         return y
 
     @staticmethod
     def pitch2x_editor(pitch):
-        '''converts pitch into x position on the editor'''
+        '''converts pitch into the right x position on the editor'''
 
         # evaluate pitch (between 1 and 88) and create initial x position
         pitch = max(1, min(88, pitch))

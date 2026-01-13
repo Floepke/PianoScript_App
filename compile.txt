@@ -1,1 +1,1 @@
-pyinstaller --noconfirm --onefile --windowed --icon "/Users/philipbergwerf/pCloud Drive/PianoScript_App/imports/icons/pianoscript.ico" --clean --hidden-import "mido.backends.rtmidi"  "/Users/philipbergwerf/pCloud Drive/PianoScript_App/pianoscript.py"
+pyinstaller --noconfirm --onefile --windowed --icon "/Users/philipbergwerf/pCloud Drive/PianoScript_App/imports/icons/pianoscript.ico" --clean --hidden-import "mido.backends.rtmidi"  "/home/flop/Desktop/PianoScript_App/pianoscript.py"
