@@ -99,7 +99,7 @@ class CountLine:
             ...
 
     @staticmethod
-    def draw_editor(io, countline):
+    def draw_editor(io, countline, inselection: bool = False):
 
         # first delete the old countline
         io['editor'].delete_with_tag([countline['tag']])
@@ -114,9 +114,10 @@ class CountLine:
         y = io['calc'].tick2y_editor(countline['time'])
 
         # add the new countline
+        color = '#009cff' if inselection else NOTATION_COLOR_EDITOR
         io['editor'].new_line(x1, y, x2, y,
                               tag=[countline['tag'], 'countline'],
-                              color=NOTATION_COLOR_EDITOR,
+                      color=color,
                               dash=(4, 4),
                               width=.5)
 

@@ -196,9 +196,8 @@ class CalcTools:
                 radio = i
                 break
 
-        # get selected divide and multiply
+        # get selected divide value
         divide = self.io['gui'].divide_spin_box.value()
-        multiply = int(self.io['gui'].multiply_spin_box.value())
 
         # calculate the snap grid
         length_dict = {
@@ -211,11 +210,11 @@ class CalcTools:
             6: 16,
             7: 8
         }
-        self.io['snap_grid'] = length_dict[radio] / divide * multiply
+        self.io['snap_grid'] = length_dict[radio] / divide
 
         # update the the label
         self.io['gui'].grid_selector_label.setText(
-            f"Tick: {self.io['snap_grid']}")
+            f"Snap Size: {self.io['snap_grid']}")
 
     # get barline ticks
     def get_barline_ticks(self):

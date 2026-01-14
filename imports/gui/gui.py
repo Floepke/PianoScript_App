@@ -130,7 +130,7 @@ class Gui():
         self.view_menu.addSeparator()
 
         self.toggle_grid_selector_dock_action = QAction(
-            'Grid Selector', self.main)
+            'Grid Snap Size', self.main)
         self.toggle_grid_selector_dock_action.setCheckable(True)
         self.toggle_grid_selector_dock_action.setChecked(True)
         self.toggle_grid_selector_dock_action.triggered.connect(
@@ -171,7 +171,7 @@ class Gui():
         self.tools = Tools(self.io)
         self.tools_menu = QMenu('Tools', self.main)
         
-        self.quick_tools_action = QAction('Add Quick LineBreaks', self.main)
+        self.quick_tools_action = QAction('Edit Quick LineBreaks', self.main)
         self.quick_tools_action.triggered.connect(self.tools.add_quick_linebreaks)
         self.tools_menu.addAction(self.quick_tools_action)
         
@@ -179,7 +179,7 @@ class Gui():
         self.transpose_action.triggered.connect(self.tools.transpose)
         self.tools_menu.addAction(self.transpose_action)
         
-        self.select_all_action = QAction('Select All', self.main)
+        self.select_all_action = QAction('Select All Note Elements', self.main)
         self.select_all_action.setShortcut('Ctrl+A')
         self.select_all_action.triggered.connect(self.tools.select_all)
         self.tools_menu.addAction(self.select_all_action)
@@ -265,7 +265,7 @@ class Gui():
         self.layout.addWidget(self.splitter)
 
         # Create a dockable widget
-        self.grid_selector_dock = QDockWidget('Grid Selector', self.main)
+        self.grid_selector_dock = QDockWidget('Grid Snap Size', self.main)
         self.grid_selector_dock.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         self.grid_selector_dock.setObjectName('ToolDock')
@@ -283,7 +283,7 @@ class Gui():
         self.grid_selector_dock.setWidget(self.gs_dock)
 
         # create label in the dockable widget
-        self.grid_selector_label = QLabel('Tick: 128.0')
+        self.grid_selector_label = QLabel('Snap Size: 128.0')
         self.grid_selector_label.setToolTip(
             'Select the base length of the grid(1=whole 2=half 4=quarter etc)')
 
@@ -311,26 +311,26 @@ class Gui():
         self.divide_spin_box.valueChanged.connect(
             lambda: self.io['calc'].process_grid())
 
-        # create label in the dockable widget under the spinbox
-        self.Xlabel = QLabel('multiply (*) by:')
-        self.Xlabel.setToolTip('Multiply the base length by this number.')
+        # # create label in the dockable widget under the spinbox
+        # self.Xlabel = QLabel('multiply (*) by:')
+        # self.Xlabel.setToolTip('Multiply the base length by this number.')
 
-        # create a spinbox in the dockable widget
-        self.multiply_spin_box = QSpinBox()
-        self.multiply_spin_box.setMaximum(100)
-        self.multiply_spin_box.setMinimum(1)
-        self.multiply_spin_box.setValue(1)
-        # create a callback function for the spinbox
-        self.multiply_spin_box.valueChanged.connect(
-            lambda: self.io['calc'].process_grid())
+        # # create a spinbox in the dockable widget
+        # self.multiply_spin_box = QSpinBox()
+        # self.multiply_spin_box.setMaximum(100)
+        # self.multiply_spin_box.setMinimum(1)
+        # self.multiply_spin_box.setValue(1)
+        # # create a callback function for the spinbox
+        # self.multiply_spin_box.valueChanged.connect(
+        #     lambda: self.io['calc'].process_grid())
 
         # add the widgets to the dockable widget
         self.gs_dock_layout.addWidget(self.grid_selector_label, 0)
         self.gs_dock_layout.addLayout(self.radio_layout)
         self.gs_dock_layout.addWidget(self.Dlabel, 0)
         self.gs_dock_layout.addWidget(self.divide_spin_box, 0)
-        self.gs_dock_layout.addWidget(self.Xlabel, 0)
-        self.gs_dock_layout.addWidget(self.multiply_spin_box, 0)
+        # self.gs_dock_layout.addWidget(self.Xlabel, 0)
+        # self.gs_dock_layout.addWidget(self.multiply_spin_box, 0)
 
         # Create a second dockable widget on the left side
         self.tool_dock = QDockWidget('Tool Selector', self.main)

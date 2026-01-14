@@ -164,10 +164,20 @@ class Slur:
     @staticmethod
     def delete_editor(io, slur):
 
-        io['score']['events']['slur'].remove(slur)
+        # remove from score by object or by tag fallback
+        try:
+            io['score']['events']['slur'].remove(slur)
+        except ValueError:
+            io['score']['events']['slur'] = [s for s in io['score']['events']['slur'] if s.get('tag') != slur.get('tag')]
+
+        # remove from viewport cache if present
+        if slur in io['viewport']['events']['slur']:
+            io['viewport']['events']['slur'].remove(slur)
+
+        # delete rendered graphics
         io['editor'].delete_with_tag([slur['tag']])
 
-    def draw_editor(self, io, slur):
+    def draw_editor(self, io, slur, inselection: bool = False):
 
         # delete old slur
         io['editor'].delete_with_tag([slur['tag']])
@@ -220,12 +230,13 @@ class Slur:
         max_width = 5  # or whatever value you want
         min_width = 1  # or whatever minimum value you want
         range_width = max_width - min_width
+        color = '#009cff' if inselection else NOTATION_COLOR_EDITOR
         for i in range(num_points - 1):
             width = ((1 - abs(num_points / 2 - i) / (num_points / 2)) * range_width) + min_width
             io['editor'].new_line(points[i][0], points[i][1], points[i+1][0], points[i+1][1],
                                   tag=[slur['tag'], 'slurline'],
                                   width=width,
-                                  color=NOTATION_COLOR_EDITOR)
+                                  color=color)
 
         # drawing indication dashed line
         points = [(p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y)]

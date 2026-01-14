@@ -9,8 +9,8 @@ class Selection:
     def process(io, event_type: str, x: int, y: int):
         '''handles the mouse handling of the selection tool'''
 
-        # right mouse button handling:
-        if event_type == 'leftclick+shift':
+        # start rectangle selection with left+shift or right click
+        if event_type == 'leftclick+shift' or event_type == 'rightclick':
             # delete note cursor
             io['editor'].delete_with_tag(['notecursor'])
 
@@ -18,7 +18,7 @@ class Selection:
             Selection.delete_selection(io)
             # detect if we are clicking an object (tag ending on a number)
             detect = io['editor'].detect_item(
-                io['score'], float(x), float(y), event_type='all')
+                io, float(x), float(y), event_type='all')
             if not detect:
                 # if we are not clicking an object we want to start a selection rectangle
                 io['selection']['rectangle_on'] = True
@@ -30,12 +30,12 @@ class Selection:
                 # empty the selection buffer
                 io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
-        elif event_type in ['leftclick+shift+move', 'scroll']:
+        elif event_type in ['leftclick+shift+move', 'rightclick+move', 'scroll']:
             if io['selection']['rectangle_on'] and not io['shiftmode_flag']:
                 # if we are in rectangle selection mode we want to update the rectangle and detect the containing objects
                 Selection.draw_selection_rectangle(io, x, y)
 
-        elif event_type == 'leftrelease':
+        elif event_type in ['leftrelease', 'rightrelease']:
             # delete the selection rectangle
             io['editor'].delete_with_tag(['selectionrectangle'])
 
@@ -114,7 +114,7 @@ class Selection:
 
     @staticmethod
     def detect_selection(io):
-        '''detects if an object is in the selection rectangle'''
+        '''detects and stores objects inside the selection rectangle'''
 
         def standardize_coordinates(x1, y1, x2, y2):
             top_left_x = min(x1, x2)
@@ -126,25 +126,49 @@ class Selection:
         x1, y1, x2, y2 = standardize_coordinates(
             io['selection']['x1'], io['selection']['y1'], io['selection']['x2'], io['selection']['y2'])
 
-        # define the boundaries of the selection rectangle
-        start_time = io['calc'].y2tick_editor(y1, snap=False)
-        end_time = io['calc'].y2tick_editor(y2, snap=False)
-        note_min = io['calc'].x2pitch_editor(x1)
-        note_max = io['calc'].x2pitch_editor(x2)
+        # clear the current buffer
+        io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
 
-        for evt_type in io['score']['events'].keys():
-            
-            # skip event types that are not selectable
-            if evt_type == 'grid' or evt_type not in io['selection']['transpose_types']:
+        # detect any score objects within the rectangle via scene items
+        detected = io['editor'].detect_objects_rectangle(io, x1, y1, x2, y2, event_type='all') or []
+
+        for obj in detected:
+            # determine event type from tag prefix and configured copy_types
+            evt_type = None
+            for t in io['selection']['copy_types']:
+                if t in obj['tag']:
+                    evt_type = t
+                    break
+            if not evt_type:
                 continue
 
-            # add all events that are in the selection rectangle to the selection buffer
-            for event in io['score']['events'][evt_type]:
-                if event['time'] < start_time or event['time'] > end_time:
-                    continue
-                if event['pitch'] < note_min or event['pitch'] > note_max:
-                    continue
-                if event['staff'] == io['selected_staff']:
-                    io['selection']['selection_buffer'][evt_type].append(event)
-                if event in io['viewport']['events'][evt_type]:
-                    io['viewport']['events'][evt_type].remove(event)
+            # filter by selected staff if the object has a staff attribute
+            if 'staff' in obj and obj['staff'] != io['selected_staff']:
+                continue
+
+            # add to selection buffer and force redraw by removing from viewport cache
+            io['selection']['selection_buffer'][evt_type].append(obj)
+            if obj in io['viewport']['events'][evt_type]:
+                io['viewport']['events'][evt_type].remove(obj)
+
+        # mark selection as active if anything was added
+        io['selection']['active'] = any(len(v) > 0 for v in io['selection']['selection_buffer'].values())
+
+    @staticmethod
+    def select_all(io):
+        '''Select all notes in the project and color visible ones blue.'''
+
+        # clear previous selection visuals and buffer
+        Selection.delete_selection(io)
+        io['selection']['selection_buffer'] = SaveFileStructureSource.new_events_folder()
+        io['selection']['active'] = True
+
+        # add all notes to the selection buffer
+        for note in io['score']['events']['note']:
+            io['selection']['selection_buffer']['note'].append(note)
+            # force redraw in selection color by removing existing viewport entries
+            if note in io['viewport']['events']['note']:
+                io['viewport']['events']['note'].remove(note)
+
+        # update the viewport to reflect selection color
+        io['maineditor'].draw_viewport()

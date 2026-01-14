@@ -27,8 +27,9 @@ class Tempo:
                     tag='tempo' + str(io['calc'].add_and_return_tag()),
                     time=io['calc'].y2tick_editor(y, snap=True)
                 )
-                print(io['calc'].y2tick_editor(y, snap=True))
-                bpm = io['script'].ask_int('Set tempo; quarter notes per minute:', min_value=1, max_value=1000, default_value=120)
+                bpm, ok = QInputDialog.getInt(None, "Set tempo", "Quarter notes per minute:", value=120, minValue=1, maxValue=1000)
+                if not ok:
+                    return
                 new['tempo'] = int(bpm)
                 io['score']['events']['tempo'].append(new)
                 Tempo.draw_editor(io, new)

@@ -143,11 +143,9 @@ class Editor:
                         if not event in io['viewport']['events'][e_type]:
                             # add event to viewport
                             if event in self.io['selection']['selection_buffer'][e_type]:
-                                self.tools[e_type].draw_editor(
-                                    io, event, inselection=True)
+                                self.tools[e_type].draw_editor(io, event, inselection=True)
                             else:
-                                self.tools[e_type].draw_editor(
-                                    io, event)
+                                self.tools[e_type].draw_editor(io, event)
                             io['viewport']['events'][e_type].append(event)
                         else:
                             ...  # element was already drawn, do nothing
@@ -163,8 +161,7 @@ class Editor:
         top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])
         bottom_y = self.io['calc'].tick2y_editor(
             self.io['viewport']['bottomtick'])
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(
-            self.io, top_y, bottom_y)
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io, top_y, bottom_y)
 
         self.drawing_order()
 

@@ -333,7 +333,7 @@ if __name__ == '__main__':
     if sys.platform.startswith('linux') or sys.platform.startswith('windows'):
         # Set the environment variable for high DPI scaling
         import os
-        os.environ["QT_SCALE_FACTOR"] = "0.75"  # Set to your desired scaling factor, e.g., "1.25" for 125%
+        os.environ["QT_SCALE_FACTOR"] = "1.75"  # Set to your desired scaling factor, e.g., "1.25" for 125%
 
     PianoScript()
     exit(0)

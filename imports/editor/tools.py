@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QInputDialog, QMessageBox
 
 from imports.utils.constants import QUARTER_PIANOTICK
 from imports.utils.savefilestructure import SaveFileStructureSource
+from imports.editor.selection import Selection
 from imports.elements.linebreak import LineBreak
 
 '''In quick tools, we provide quick access to various tools that can be used in the editor.'''
@@ -12,7 +13,7 @@ class Tools:
         self.io = io
 
     def add_quick_linebreaks(self):
-        ''' Add quick linebreaks to the editor '''
+        ''' Edit quick linebreaks to the editor '''
 
         def evaluate(text):
             '''Returns True if text contains only one or more integers separated by spaces, otherwise False.'''
@@ -28,9 +29,10 @@ class Tools:
             '"4" will insert a line-break every 4 measures till the end of the score.\n'
             '"4 8" will group 4 measures in the first line, then 8 measures in the second line.\n'
             'The latest number is applied till the end of the score. Existing linebreaks will be removed.\n'
-            'Please enter only numbers separated by <space> for example "5 3 4":'
+            'Enter "0" to quickly remove all existing linebreaks.\n'
+            'Please enter only numbers separated by <space> for example "5 3 4" to layout the score.'
         )
-        text, ok = QInputDialog.getText(None, 'Add Quick LineBreaks', prompt)
+        text, ok = QInputDialog.getText(None, 'Edit Quick LineBreaks', prompt)
 
         if not ok:
             return
@@ -44,6 +46,10 @@ class Tools:
         # Remove all linebreaks except the first
         for lb in self.io['score']['events']['linebreak'][1:]:
             LineBreak.delete_editor(self.io, lb)
+
+        # return if user entered 0
+        if measure_grouping == [0]:
+            return
 
         barline_ticks = self.io['calc'].get_barline_ticks()
         linebreak_times = []
@@ -101,6 +107,5 @@ class Tools:
         self.io['maineditor'].update('grid_editor')
 
     def select_all(self):
-        ''' Select all notes in the score '''
-        for event_type in self.io['selection']['copy_types']:
-            self.io['selection']['selection_buffer'][event_type] = self.io['score']['events'][event_type].copy()
+        ''' Select all notes in the score (blue highlight for visible). '''
+        Selection.select_all(self.io)
