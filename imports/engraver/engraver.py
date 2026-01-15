@@ -616,9 +616,9 @@ def render(
                                                     tag=['noteheadblack'])
                                             elif black_note_rule == 'Down':
                                                 io['view'].new_oval(
-                                                    x - PITCH_UNIT * .85 * draw_scale * staff_scale,
+                                                    x - PITCH_UNIT * .80 * draw_scale * staff_scale,
                                                     y_cursor + y1,
-                                                    x + PITCH_UNIT * .85 * draw_scale * staff_scale,
+                                                    x + PITCH_UNIT * .80 * draw_scale * staff_scale,
                                                     y_cursor + y1 - (
                                                         PITCH_UNIT * 2.25 * draw_scale * staff_scale),
                                                     fill_color='#000000',
