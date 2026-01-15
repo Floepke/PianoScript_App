@@ -12,8 +12,7 @@ class LineBreak:
         # left mouse button handling:
         if event_type == 'leftclick':
             # detect if we clicked on a linebreak
-            detect = io['editor'].detect_item(
-                io, float(x), float(y), event_type='linebreak')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='linebreak')
 
             if detect:
                 io['edit_obj'] = detect
@@ -73,17 +72,17 @@ class LineBreak:
         height = io['calc'].tick2y_editor(linebreak['time']+128) - y
 
         if linebreak['tag'] == 'lockedlinebreak':
-            color = '#556677'
+            color = NOTATION_COLOR_EDITOR
         else:
             color = 'blue'
 
         # add the new linebreak
-        io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/2), y, EDITOR_RIGHT - (EDITOR_MARGIN/4), y+height,
+        io['editor'].new_rectangle(EDITOR_RIGHT - (EDITOR_MARGIN/4), y, EDITOR_RIGHT, y+height,
                                    tag=[linebreak['tag'], 'linebreak'],
                                    fill_color='#00008833',
                                    outline_color=color,
                                    width=3)
-        io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/4*1.5), y+(height*.5), 'B',
+        io['editor'].new_text(EDITOR_RIGHT - (EDITOR_MARGIN/8), y+(height*.56), 'B',
                               tag=[linebreak['tag'], 'linebreak'],
                               font='Courier New',
                               size=32,

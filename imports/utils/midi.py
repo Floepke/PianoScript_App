@@ -1,7 +1,13 @@
 from imports.utils.constants import *
 from PySide6.QtWidgets import QMessageBox, QFileDialog
-import mido, os, copy, threading
+import mido
+import os
+import threading
+import json
+import statistics
+import copy
 from midiutil.MidiFile import MIDIFile
+from imports.utils.savefilestructure import SaveFileStructureSource
 
 
 class Midi:
@@ -16,156 +22,164 @@ class Midi:
         self.outports = []
         self.lock = threading.Lock()  # Create a lock
 
-    def leftorright(self, channel, name):
+    def import_midi(self, file_path):
+        '''converts/imports a midi file from the file_path to .pianoscript'''
 
-        dialog = QMessageBox()
-        dialog.setWindowTitle('Which Hand?')
-        dialog.setText(
-            f'To which hand do you want to import?\nChannel: {channel}\nName: {name}')
+        # load the template:
+        path = self.io['calc'].ensure_json(
+            '~/.pianoscript/template.pianoscript', SCORE_TEMPLATE)
+        with open(path, 'r') as file:
+            self.io['score'] = json.load(file)
 
-        left_button = dialog.addButton('Left', QMessageBox.NoRole)
-        right_button = dialog.addButton('Right', QMessageBox.YesRole)
-
-        dialog.exec()
-
-        if dialog.clickedButton() == left_button:
-            return 'l'
-        elif dialog.clickedButton() == right_button:
-            return 'r'
-
-    def load_midi(self):
-
-        if not self.io['fileoperations'].save_check():
-            return
-
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
-            self.io['root'], 'Open Midi File', '', 'Midi Files (*.mid *.MID)')
-
-        if not file_path:
-            return
-
-        # as starting point we load the source Blueprint/template and empty the neccessary fields
-        self.io['score'] = copy.deepcopy(SCORE_TEMPLATE)
-
-        # we set the midi import propery to true
-        self.io['midi_import'] = True
-
-        # set title to name of the midi file
+        # ensure the contents of the file are empty:
         self.io['score']['header']['title'] = os.path.splitext(
             os.path.basename(file_path))[0]
-
-        # clear grid
+        self.io['events'] = SaveFileStructureSource.new_events_folder()
         self.io['score']['events']['grid'] = []
+        self.io['score']['events']['linebreak'] = []
 
-        # Import the midi file and place the messages in dict
-        mid = mido.MidiFile(file_path)
+        def import_midi(filepath):
+            midi = mido.MidiFile(filepath)
 
-        tpb = mid.ticks_per_beat
-        all_msg = []
-        track = 0
-        track_name = 'Nameless Track'
-        track_hand = 'l'
+            tracks = {}
 
-        # loop for creating a list of all messages that include relative time, track number
-        for tracks in mid.tracks:
-            time = 0
-            for msg in tracks:
-                msg = msg.dict()
+            def prepare_midi(midi):
 
-                # delta time to relative time
-                msg['time'] += time
-                time = msg['time']
+                def track_to_linear_ticks(track):
+                    absolute_time = 0
+                    for msg in track:
+                        absolute_time += msg.time
+                        msg.time = absolute_time
+                    return track
 
-                # track name
-                if msg['type'] == 'track_name':
-                    # asking user for input using pyside dialog
-                    track_name = msg['name']
-                    track_hand = self.leftorright(track, msg['name'])
+                # create dict of all events and filter only the desired types
+                for i, track in enumerate(midi.tracks):
+                    track = track_to_linear_ticks(track)
+                    track_ = []
+                    for msg in track:
+                        new = msg.dict()
+                        new['track'] = i
+                        # make notes with zero velocity note_off type
+                        if new['type'] == 'note_on' and new['velocity'] == 0:
+                            new['type'] = 'note_off'
+                        track_.append(new)
+                    tracks[i] = track_
 
-                # en_of_track means we need to reset the time to zero
-                if msg['type'] == 'end_of_track':
-                    msg['track'] = track
-                    all_msg.append(msg)
-                    track += 1
+                for track in tracks.keys():
+                    filter = ['time_signature', 'set_tempo',
+                              'end_of_track', 'track_name', 'note_on', 'note_off']
+                    tracks[track] = [evt for evt in tracks[track] if evt['type'] in filter]
 
-                # note_off check
-                if msg['type'] == 'note_on' and msg['velocity'] == 0:
-                    msg['type'] = 'note_off'
+                return tracks
 
-                if msg['type'] == 'note_on':
-                    msg['hand'] = track_hand
+            # step 1: read the midi and create a list of msg that have linear time values and are sorted on the time key from low to high
+            all_events = prepare_midi(midi)
+            all_events = [msg for track in all_events.values() for msg in track]
+            message_priority = {'note_off': 1, 'note_on': 2,
+                                'time_signature': 3, 'end_of_track': 4}
+            all_events.sort(key=lambda msg: (
+                msg['time'], message_priority.get(msg['type'], 5)))
 
-                if msg['type'] in ['note_on', 'note_off', 'set_tempo', 'time_signature']:
-                    msg['track'] = track
-                    msg['track_name'] = track_name
+            # step 2: convert the miditicks to pianoticks
+            ticks_per_quarter = midi.ticks_per_beat
+            for evt in all_events:
+                evt['time'] = evt['time'] * (QUARTER_PIANOTICK / ticks_per_quarter)
 
-                    all_msg.append(msg)
+            # step 3: calculate the duration of note_on and time_signature events
+            for idx, evt in enumerate(all_events):
+                if evt['type'] == 'note_on':
+                    for dur in all_events[idx+1:]:
+                        if (dur['type'] == 'note_off' and dur['note'] == evt['note'] and dur['track'] == evt['track']) or (dur == all_events[-1]):
+                            evt['duration'] = dur['time'] - evt['time']
+                            if evt['duration'] <= 0:
+                                evt['duration'] = 128
+                            break
+                if evt['type'] == 'time_signature':
+                    for idx_dur, dur in enumerate(all_events[idx+1:]):
+                        if dur['type'] == 'time_signature' or dur == all_events[-1]:
+                            evt['duration'] = dur['time'] - evt['time']
+                            break
 
-        # calculate duration
-        for idx, evt in enumerate(all_msg):
+            return all_events
+
+        events = import_midi(file_path)
+
+        # gues the hand based on the avarage pitch and track number.
+        average_tracks = {}
+        for t in range(16):
+            average_pitch = []
+            for evt in events:
+                if evt['type'] == 'note_on' and evt['track'] == t:
+                    average_pitch.append(evt['note'])
+            average_pitch = statistics.mean(
+                average_pitch) if average_pitch else None
+            average_tracks[t] = average_pitch
+        highest_track = max((k for k, v in average_tracks.items(
+        ) if v is not None), key=lambda k: average_tracks[k], default=None)
+
+        # add the events to the .pianoscript file
+        for evt in events:
             if evt['type'] == 'note_on':
-                for n in all_msg[idx+1:]:
-                    if n['type'] == 'note_off' and evt['note'] == n['note'] and n['track'] == evt['track']:
-                        evt['duration'] = n['time'] - evt['time']
-                        break
+                hand = 'r' if highest_track == evt['track'] and not highest_track == None else 'l'
+                pitch = max(1, min(88, evt['note'] - 20))
+                new = SaveFileStructureSource.new_note(
+                    tag=0,  # test if this couses no errors in the editor
+                    pitch=pitch,
+                    time=evt['time'],
+                    duration=evt['duration'],
+                    hand=hand,
+                    staff=0,
+                    track=evt['track'],
+                )
+                self.io['score']['events']['note'].append(new)
+
             elif evt['type'] == 'time_signature':
-                for idx2, t in enumerate(all_msg[idx+1:]):
-                    if t['type'] == 'time_signature' or t == all_msg[-1]:
-                        evt['duration'] = t['time'] - evt['time']
-                        break
+                measure_length = self.io['calc'].get_measure_length(evt)
+                amount = int(evt['duration'] / measure_length)
+                grid = []
+                for numerator_count in range(evt['numerator']-1):
+                    grid.append(measure_length /
+                                evt['numerator'] * (numerator_count+1))
+                new = SaveFileStructureSource.new_grid(
+                    amount=amount,
+                    numerator=evt['numerator'],
+                    denominator=evt['denominator'],
+                    grid=grid,
+                )
+                self.io['score']['events']['grid'].append(new)
 
-            # check if has property duration
-            if 'duration' not in evt:
-                evt['duration'] = all_msg[-1]['time'] - evt['time']
+        # if the midi contains no time signature we add it manualy
+        if not self.io['score']['events']['grid']:
+            measure_length = self.io['calc'].get_measure_length(
+                {'numerator': 4, 'denominator': 4})
+            new = SaveFileStructureSource.new_grid(
+                amount=int(max(events, key=lambda evt: evt['time'])[
+                           'time'] / measure_length) + 1,
+                numerator=4,
+                denominator=4,
+                grid=[256, 512, 768]
+            )
+            self.io['score']['events']['grid'].append(new)
 
-        # convert to pianoticks
-        for msg in all_msg:
+        # automatically insert linebreaks every 5 measures
+        barline_ticks = self.io['calc'].get_barline_ticks()[5::5]
+        barline_ticks = list(set(barline_ticks))
+        try: barline_ticks.remove(0)
+        except: ...
+        new = SaveFileStructureSource.new_linebreak(
+            tag='lockedlinebreak',
+            time=0
+        )
+        self.io['score']['events']['linebreak'].append(new)
+        for bl in barline_ticks:
+            new = SaveFileStructureSource.new_linebreak(
+                tag='linebreak' + str(self.io['calc'].add_and_return_tag()),
+                time=bl
+            )
+            self.io['score']['events']['linebreak'].append(new)
 
-            msg['time'] = int(QUARTER_PIANOTICK / tpb * msg['time'])
-
-            if msg['type'] in ['note_on', 'time_signature']:
-                print(msg, msg['type'])
-                msg['duration'] = int(
-                    QUARTER_PIANOTICK / tpb * msg['duration'])
-
-        # write time_signatures and notes:
-        for i in all_msg:
-            if i['type'] == 'time_signature':
-
-                # create grid
-                length = int(int(
-                    i['numerator'] * ((QUARTER_PIANOTICK * 4) / i['denominator'])) / i['numerator'])
-                msg = {
-                    'tag': 'grid',
-                    'amount': int(i['duration'] / length),
-                    'numerator': i['numerator'],
-                    'denominator': i['denominator'],
-                    'grid': [],
-                    'visible': True
-                }
-
-                # calculate grid ticks
-                for g in range(i['numerator']):
-                    msg['grid'].append(length * (g + 1))
-
-                # add the message
-                self.io['score']['events']['grid'].append(msg)
-
-            # write notes
-            elif i['type'] == 'note_on':
-
-                note = {'time': i['time'],
-                        'duration': i['duration'],
-                        'pitch': i['note'] - 20,
-                        'hand': i['hand'],
-                        'tag': 'note',
-                        'stem-visible': True,
-                        'accidental': 0,
-                        'staff': 0,
-                        'notestop': True}
-
-                self.io['score']['events']['note'].append(note)
+        # add the imported midi message to the .pianoscript file
+        self.io['score']['midi_data'] = events
 
         # renumber tags
         self.io['calc'].renumber_tags()
@@ -176,128 +190,213 @@ class Midi:
         # reset the ctlz buffer
         self.io['ctlz'].reset_ctlz
 
-    def export_midi(self, export=True):
+    def export_midi(self, export=True, tempo=120):
 
         if export:
             file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getSaveFileName(
-                self.io['root'], 'Save Midi File', '', 'Midi Files (*.mid *.MID)')
+            file_path, _ = file_dialog.getSaveFileName(parent=self.io['root'], 
+                                                     caption='Save Midi File', 
+                                                     dir='', 
+                                                     filter='Midi Files (*.mid *.MID)')
         else:
-            file_path = os.path.expanduser('~/.pianoscript/play.mid')
+            return
+        
+        if not file_path:
+            return
 
-            # Check if the directory for the play.mid file exists
-            dir = os.path.dirname(file_path)
-            if not os.path.exists(dir):
-                # If the directory doesn't exist, create it
-                os.makedirs(dir)
+        Score = copy.deepcopy(self.io['score'])
 
-        if file_path:
-            Score = self.io['score']
-            # configure channels and names
-            longname = {'l': 'left', 'r': 'right'}
-            trackname = {}
-            channel = {}
-            nrchannels = 0
-            for note in Score['events']['note']:
-                if note['hand'] not in channel:
-                    channel[note['hand']] = nrchannels
-                    trackname[nrchannels] = longname[note['hand']]
-                    nrchannels += 1
+        # some info for the midifile
+        clocks_per_tick = 24
+        denominator_dict = {
+            1: 0,
+            2: 1,
+            4: 2,
+            8: 3,
+            16: 4,
+            32: 5,
+            64: 6,
+            128: 7,
+            256: 8
+        }
+        ticks_per_quarternote = 2048
 
-            # some info for the midifile
-            clocks_per_tick = 24
-            denominator_dict = {
-                1: 0,
-                2: 1,
-                4: 2,
-                8: 3,
-                16: 4,
-                32: 5,
-                64: 6,
-                128: 7,
-                256: 8
-            }
-            ticks_per_quarternote = 2048
+        # creating the midi file object
+        MyMIDI = MIDIFile(numTracks=2,
+                            removeDuplicates=True,
+                            deinterleave=False,
+                            adjust_origin=False,
+                            file_format=1,
+                            ticks_per_quarternote=ticks_per_quarternote,
+                            eventtime_is_ticks=True)
 
-            # creating the midi file object
-            MyMIDI = MIDIFile(numTracks=nrchannels,
-                              removeDuplicates=True,
-                              deinterleave=False,
-                              adjust_origin=False,
-                              file_format=1,
-                              ticks_per_quarternote=ticks_per_quarternote,
-                              eventtime_is_ticks=True)
+        for ts in Score['events']['grid']:
+            MyMIDI.addTimeSignature(track=0,
+                                    time=0,
+                                    numerator=int(ts['numerator']),
+                                    denominator=denominator_dict[int(
+                                        ts['denominator'])],
+                                    clocks_per_tick=clocks_per_tick,
+                                    notes_per_quarter=8)
+        MyMIDI.addTempo(track=0, time=0, tempo=tempo)
+        MyMIDI.addTrackName(track=0, time=0, trackName='Tempo & Left hand')
+        MyMIDI.addTrackName(track=1, time=0, trackName='Right hand')
 
-            for ts in Score['events']['grid']:
-                MyMIDI.addTimeSignature(track=0,
-                                        time=0,
-                                        numerator=int(ts['numerator']),
-                                        denominator=denominator_dict[int(
-                                            ts['denominator'])],
-                                        clocks_per_tick=clocks_per_tick,
-                                        notes_per_quarter=8)
-                MyMIDI.addTempo(track=0, time=0, tempo=120)
-                MyMIDI.addTrackName(track=0, time=0, trackName='Track 0')
+        # adding the notes
+        for note in Score['events']['note']: # NOTE: add gracenote
+            time = int(note['time'] / 256 * ticks_per_quarternote)
+            duration = int(note['duration'] / 256 * ticks_per_quarternote)
+            MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                            channel=0, 
+                            pitch=int(note['pitch']+20), 
+                            time=time, 
+                            duration=duration, 
+                            volume=80, 
+                            annotation=None)
+            
+        for t in Score['events']['tempo']:
+            t['time'] = int(t['time'] / 256 * ticks_per_quarternote)
+            MyMIDI.addTempo(track=0, time=t['time'], tempo=t['tempo'])
 
-            # adding the notes
-            for note in Score['events']['note']:
-                t = int(note['time']/256*ticks_per_quarternote)
-                d = int(note['duration']/256*ticks_per_quarternote)
-                c = 0
-                if note['hand'] == 'r':
-                    c = 1  # l or r?? first fix the midi import
-                MyMIDI.addNote(track=0, channel=c, pitch=int(
-                    note['pitch']+20), time=t, duration=d, volume=80, annotation=None)
+        # saving the midi file
+        with open(file_path, "wb") as output_file:
+            MyMIDI.writeFile(output_file)
 
-            # saving the midi file
-            with open(file_path, "wb") as output_file:
-                MyMIDI.writeFile(output_file)
+    def play_midi(self, tempo=80, trigger_inside_note=True, from_playhead=False):
 
-    def play_midi(self):
-        self.export_midi(export=False)
+        file_path = os.path.expanduser(path='~/.pianoscript/play.mid')
+        # Check if the directory for the play.mid file exists
+        dir = os.path.dirname(file_path)
+        if not os.path.exists(path=dir):
+            # If the directory doesn't exist, create it
+            os.makedirs(name=dir)
 
-        # Load the MIDI file
-        mid = mido.MidiFile(os.path.expanduser('~/.pianoscript/play.mid'))
+        score = copy.deepcopy(self.io['score'])
 
-        # Get all output ports
-        self.outports = [mido.open_output(name)
-                         for name in mido.get_output_names()]
+        # some info for the midifile
+        clocks_per_tick = 24
+        denominator_dict = {
+            1: 0,
+            2: 1,
+            4: 2,
+            8: 3,
+            16: 4,
+            32: 5,
+            64: 6,
+            128: 7,
+            256: 8
+        }
+        ticks_per_quarternote = 2048
 
-        # Set the playing flag to True
-        self.playing = True
+        # creating the midi file object
+        MyMIDI = MIDIFile(numTracks=2,
+                            removeDuplicates=True,
+                            deinterleave=False,
+                            adjust_origin=False,
+                            file_format=1,
+                            ticks_per_quarternote=ticks_per_quarternote,
+                            eventtime_is_ticks=True)
 
-        # Play the MIDI file on all output ports
-        def play():
-            for msg in mid.play():
-                # If the playing flag is False, stop playing
-                if not self.playing:
-                    break
-                with self.lock:  # Acquire the lock before sending messages
-                    for outport in self.outports:
-                        outport.send(msg)
+        for ts in score['events']['grid']:
+            MyMIDI.addTimeSignature(track=0,
+                                    time=0,
+                                    numerator=int(ts['numerator']),
+                                    denominator=denominator_dict[int(
+                                        ts['denominator'])],
+                                    clocks_per_tick=clocks_per_tick,
+                                    notes_per_quarter=8)
+        MyMIDI.addTempo(track=0, time=0, tempo=tempo)
+        MyMIDI.addTrackName(track=0, time=0, trackName='PianoScript Play')
+        
+        # writing the notes and gracenotes
+        for note in score['events']['note'] + score['events']['gracenote']:
+            if not 'duration' in note:
+                _, d = Midi.get_tsig_from_time(self.io, note['time'])
+                duration = self.io['calc'].get_measure_length({'numerator': 1, 'denominator': d}) / d
+                note['duration'] = duration
+                
+            if not from_playhead:
+                # default midi export/normal
+                time = int(note['time'] / 256 * ticks_per_quarternote)
+                duration = int(note['duration'] / 256 * ticks_per_quarternote)
+                MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                                channel=0, 
+                                pitch=int(note['pitch']+20), 
+                                time=time, 
+                                duration=duration, 
+                                volume=80, 
+                                annotation=None)
+            else:
+                # generate midi from the playhead position
+                playhead = self.io['playhead']
+                if note['time'] < playhead and note['time'] + note['duration'] > playhead and trigger_inside_note:
+                    difference = playhead - note['time']
+                    note['time'] = playhead
+                    note['duration'] -= difference
+                
+                if not from_playhead:
+                    playhead = 0
 
-            # Close all output ports
-            for outport in self.outports:
-                outport.close()
+                if note['time'] >= playhead:
+                    if from_playhead:
+                        time = int((note['time'] - playhead) / 256 * ticks_per_quarternote)
+                    else:
+                        time = int(note['time'] / 256 * ticks_per_quarternote)
+                    duration = int(note['duration'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addNote(track=0 if note['hand'] == 'l' else 1, 
+                                    channel=0, 
+                                    pitch=int(note['pitch']+20), 
+                                    time=time, 
+                                    duration=duration, 
+                                    volume=80, 
+                                    annotation=None)
+        
+        # writing tempo changes:
+        for t in score['events']['tempo']:
+            if not from_playhead:
+                # default midi export/normal
+                    t['time'] = int(t['time'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addTempo(track=0, time=t['time'], tempo=t['tempo'])
+            else:
+                # generate midi from the playhead position
+                playhead = self.io['playhead']
+                if t['time'] < playhead and trigger_inside_note:
+                    t['time'] = playhead
+                
+                if not from_playhead:
+                    playhead = 0
 
-        self.play_thread = threading.Thread(target=play)
-        self.play_thread.start()
+                if t['time'] >= playhead:
+                    if from_playhead:
+                        time = int((t['time'] - playhead) / 256 * ticks_per_quarternote)
+                    else:
+                        time = int(t['time'] / 256 * ticks_per_quarternote)
+                    MyMIDI.addTempo(track=0, time=time, tempo=t['tempo'])
 
-    def stop_midi(self):
-        # Set the playing flag to False
-        self.playing = False
+        # saving the midi file
+        with open(file_path, "wb") as output_file:
+            MyMIDI.writeFile(output_file)
 
-        # Send an "All Sound Off" or "All Notes Off" message to each channel
-        with self.lock:  # Acquire the lock before sending messages
-            for outport in self.outports:
-                for channel in range(16):  # MIDI channels are 0-15
-                    all_sound_off = mido.Message(
-                        'control_change', channel=channel, control=120, value=0)
-                    all_notes_off = mido.Message(
-                        'control_change', channel=channel, control=123, value=0)
-                    outport.send(all_sound_off)
-                    outport.send(all_notes_off)
+    @staticmethod
+    def get_tsig_from_time(io, time=0):
+        
+        grid = copy.deepcopy(io['score']['events']['grid'])
 
-        # Wait for the play thread to finish
-        if self.play_thread is not None:
-            self.play_thread.join()
+        # add time to time signature
+        timer = 0
+        for gr in grid:
+            gr['time'] = timer
+            m_length = io['calc'].get_measure_length(gr)
+            timer += m_length * gr['amount']
+
+        for idx, gr in enumerate(grid):
+            try: 
+                gr['duration'] = grid[idx+1]['time'] - gr['time']
+            except IndexError: 
+                gr['duration'] = grid[-1]['time'] + timer - gr['time']
+        
+        for gr in grid:
+            if time >= gr['time'] and time < gr['duration']:
+                return gr['numerator'], gr['denominator']
+
+        return 0, 0

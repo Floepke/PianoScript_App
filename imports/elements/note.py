@@ -10,9 +10,6 @@ class Note:
             - drawing the note in the editor including:
                 * notehead
                 * stem
-                * automatic sounding dot
-                * automatic stopsign
-            - drawing the note in the engraver (TODO)
     '''
 
     @staticmethod
@@ -29,8 +26,7 @@ class Note:
             io['editor'].delete_with_tag(['notecursor'])
 
             # detect if we clicked on a note
-            detect = io['editor'].detect_item(
-                io, float(x), float(y), event_type='note')
+            detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
             if detect:
                 # if we clicked on a note, we want to edit it so we create a copy of the note
                 Note.delete_editor(io, detect)
@@ -50,27 +46,48 @@ class Note:
                     attached=''
                 )
                 Note.draw_editor(io, io['edit_obj'])
-                io['editor'].delete_with_tag(['notecursor'])
 
         elif event_type == 'leftclick+move':
-            # get the mouse position in pianoticks and pitch
-            mouse_time = io['calc'].y2tick_editor(y, snap=True, absolute=True)
-            mouse_pitch = io['calc'].x2pitch_editor(x)
-            note_start = io['edit_obj']['time']
-            note_length = mouse_time - io['edit_obj']['time']
 
-            # editing rules:
-            if not LESS(mouse_time, note_start + io['snap_grid']):
-                # edit the duration
-                io['edit_obj']['duration'] = note_length
-            elif mouse_time < io['edit_obj']['time']:
-                # edit the pitch
+            # pitch or duration mode (without shift)
+            if not io['shiftmode_flag']:
+                # safety: if somehow the edit_obj is None, return
+                if not io['edit_obj']:
+                    return
+
+                # get the mouse position in pianoticks and pitch
+                mouse_time = io['calc'].y2tick_editor(y, snap=True)
+                mouse_pitch = io['calc'].x2pitch_editor(x)
+                note_start = io['edit_obj']['time']
+                note_length = mouse_time - io['edit_obj']['time']
+
+                # editing rules:
+                if not LESS(mouse_time, note_start + io['snap_grid']):
+                    # edit the duration
+                    io['edit_obj']['duration'] = note_length
+                elif mouse_time < io['edit_obj']['time']:
+                    # edit the pitch
+                    io['edit_obj']['pitch'] = mouse_pitch
+
+                # draw the note
+                Note.draw_editor(io, io['edit_obj'])
+        
+        elif event_type == 'leftclick+shift+move':
+            # pitch + time mode (with shift pressed at click):
+            if io['shiftmode_flag']:
+                # get the mouse position in pianoticks and pitch
+                mouse_time = io['calc'].y2tick_editor(y, snap=True)
+                mouse_pitch = io['calc'].x2pitch_editor(x)
+
+                # edit the pitch and time
                 io['edit_obj']['pitch'] = mouse_pitch
+                io['edit_obj']['time'] = mouse_time
 
-            # draw the note
-            Note.draw_editor(io, io['edit_obj'])
+                # draw the note
+                Note.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftrelease':
+            io['shiftmode_flag'] = False
             if io['edit_obj']:
                 # delete the edit_obj
                 io['editor'].delete_with_tag([io['edit_obj']['tag']])
@@ -119,14 +136,7 @@ class Note:
 
         # move mouse handling: (mouse is moved while no button is pressed)
         elif event_type == 'move':
-            # # detect if we clicked on a note
-            # detect = io['editor'].detect_item(io, float(x), float(y), event_type='note')
-            # if detect:
-            #     # note cursor on detected note position
-            #     io['cursor'] = detect.copy()
-            #     io['cursor']['tag'] = 'notecursor'
-            # else:
-            # note cursor on mouse position
+            # create the cursor and draw it:
             io['cursor'] = {
                 'tag': 'notecursor',
                 'time': io['calc'].y2tick_editor(y, snap=True),
@@ -140,13 +150,40 @@ class Note:
             }
             Note.draw_editor(io, io['cursor'])
 
-        elif event_type == 'space':
-            io['hand'] = 'r' if io['hand'] == 'l' else 'l'
+        elif event_type == 'handleft':
+            io['hand'] = 'l'
+            io['cursor']['hand'] = io['hand']
+            Note.draw_editor(io, io['cursor'])
+        elif event_type == 'handright':
+            io['hand'] = 'r'
             io['cursor']['hand'] = io['hand']
             Note.draw_editor(io, io['cursor'])
 
         elif event_type == 'leave':
             io['editor'].delete_with_tag(['notecursor'])
+
+        elif event_type == 'leftclick+shift':
+
+            # delete note cursor
+            io['editor'].delete_with_tag(['notecursor'])
+
+            # detect if we clicked on a note
+            detect = io['editor'].detect_item(
+                io, float(x), float(y), event_type='note')
+            if detect:
+                io['shiftmode_flag'] = True
+                # we enter midi note free move mode meaning that we can move 
+                # the clicked note freely, editing pitch and time (but not duration) together.
+                
+                # if we clicked on a note, we want to edit it so we create a copy of the note and place it in edit_obj
+                Note.delete_editor(io, detect)
+                io['edit_obj'] = copy.deepcopy(detect)
+                io['edit_obj']['hand'] = io['hand']
+                io['edit_obj']['staff'] = io['selected_staff']
+                io['edit_obj']['tag'] = 'edit_obj'
+                Note.draw_editor(io, io['edit_obj'])
+                io['editor'].delete_with_tag(['notecursor'])
+
 
     @staticmethod
     def draw_editor(io, note, inselection=False, noteheadup=False):
@@ -169,7 +206,7 @@ class Note:
         if note['tag'] == 'notecursor' or inselection:
             color = '#009cff'  # TODO: set color depending on settings
         else:
-            color = '#000000'  # TODO: set color depending on settings
+            color = NOTATION_COLOR_EDITOR  # TODO: set color depending on settings
 
         unit = STAFF_X_UNIT_EDITOR / 2
 
@@ -186,6 +223,9 @@ class Note:
                                   width=thickness,
                                   color=color)
 
+        # assign a default value to midicolor
+        midicolor = '#000000'  # default color is black, change as needed
+
         # draw the midi note
         if note['tag'] == 'edit_obj':
             midicolor = '#aa0'
@@ -196,9 +236,11 @@ class Note:
                 midicolor = io['score']['properties']['color_left_midinote']
             elif note['hand'] == 'r':
                 midicolor = io['score']['properties']['color_right_midinote']
+        ...
         endy = io['calc'].tick2y_editor(note['time'] + note['duration'])
 
-        io['editor'].new_polygon([(x, y),
+        if note['tag'] != 'notecursor':
+            io['editor'].new_polygon([(x, y),
                                   (x + unit, y + (unit/2)),
                                   (x + unit, endy), (x - unit, endy),
                                   (x - unit, y + (unit/2))],
@@ -236,7 +278,7 @@ class Note:
                                   x + unit,
                                   y + unit * 2,
                                   tag=[note['tag'], 'noteheadwhite'],
-                                  fill_color='white',
+                                  fill_color=BACKGROUND_COLOR_EDITOR,
                                   outline_width=2,
                                   outline_color=color)
 
@@ -252,9 +294,9 @@ class Note:
                                   x + radius,
                                   yy + radius,
                                   tag=[note['tag'], 'leftdotblack'],
-                                  fill_color='white',
+                                  fill_color=BACKGROUND_COLOR_EDITOR,
                                   outline_width=1,
-                                  outline_color='white')
+                                  outline_color=BACKGROUND_COLOR_EDITOR)
         elif note['hand'] == 'l' and note['pitch'] not in BLACK_KEYS:  # white note left dot
             yy = y + unit
             radius = (unit * .5) / 2

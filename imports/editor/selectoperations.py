@@ -31,7 +31,7 @@ class SelectOperations:
 
     def cut(self):
         '''cuts the selected events into the clipboard'''
-        self.io['selection']['copycut_buffer'] = copy.deepcopy(
+        self.io['selection']['clipboard'] = copy.deepcopy(
             self.io['selection']['selection_buffer'])
 
         # delete the selected events
@@ -45,7 +45,7 @@ class SelectOperations:
 
     def copy(self):
         '''copies the selected events into the clipboard'''
-        self.io['selection']['copycut_buffer'] = copy.deepcopy(
+        self.io['selection']['clipboard'] = copy.deepcopy(
             self.io['selection']['selection_buffer'])
 
         print('copy')
@@ -56,19 +56,34 @@ class SelectOperations:
         first_evt = False
 
         # paste the events from the clipboard into the score
-        for event_type in self.io['selection']['copycut_buffer'].keys():
-            for event in self.io['selection']['copycut_buffer'][event_type]:
-                # find lowest time value in the clipboard
+        for event_type in self.io['selection']['clipboard'].keys():
+            for event in self.io['selection']['clipboard'][event_type]:
+                # find lowest time value anchored on the first event type encountered
                 if not first_evt:
                     first_evt = min(
-                        self.io['selection']['copycut_buffer'][event_type], key=lambda x: x['time'])['time']
+                        self.io['selection']['clipboard'][event_type], key=lambda x: x['time'])['time']
+
                 mouse_time = self.io['calc'].y2tick_editor(
                     self.io['mouse']['y'], snap=True)
+                delta = mouse_time - first_evt
+
                 new = copy.deepcopy(event)
-                new['time'] = new['time'] - first_evt + mouse_time
-                new['tag'] = event_type + \
-                    str(self.io['calc'].add_and_return_tag())
+                # common properties
+                new['tag'] = event_type + str(self.io['calc'].add_and_return_tag())
                 new['staff'] = self.io['selected_staff']
+
+                if event_type == 'slur':
+                    # shift all handle times by delta
+                    for key in ['p0', 'p1', 'p2', 'p3']:
+                        new[key]['time'] = new[key]['time'] + delta
+                    # update start time and duration
+                    new['time'] = new['p0']['time']
+                    new['duration'] = new['p3']['time'] - new['p0']['time']
+                else:
+                    # default time shift for time-based elements
+                    if 'time' in new:
+                        new['time'] = new['time'] + delta
+
                 self.io['score']['events'][event_type].append(new)
 
         self.io['maineditor'].update('keyedit')

@@ -10,6 +10,7 @@ from imports.elements.linebreak import LineBreak
 from imports.elements.trill import Trill
 from imports.elements.dot import Dot
 from imports.elements.text import Text
+from imports.elements.tempo import Tempo
 from imports.utils.constants import *
 from imports.utils.savefilestructure import SaveFileStructureSource
 from imports.engraver.engraver import pre_render
@@ -21,9 +22,9 @@ class Editor:
     def __init__(self, io):
 
         self.io = io
-        self.funcselector = {
+        self.tools = {
             'note': Note,
-            'slur': Slur,
+            'slur': Slur(),
             'beam': Beam,
             'countline': CountLine,
             'arpeggio': Arpeggio,
@@ -31,8 +32,10 @@ class Editor:
             'trill': Trill,
             'linebreak': LineBreak,
             'dot': Dot,
-            'text': Text
+            'text': Text(),
+            'tempo': Tempo
         }
+        self.selection = Selection()
 
     def update(self, event_type: str, x: int = None, y: int = None):
         '''updates all neccesary parts of the editor'''
@@ -40,16 +43,16 @@ class Editor:
         if 'move' in event_type:
             # write the mouse position to the io['mouse'] dict
             self.io['mouse']['x'] = x
-            self.io['mouse']['y'] = y  # TODO: check if this is neccessary
+            self.io['mouse']['y'] = y
 
         # update total ticks
         self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
 
         # run the selected tool
-        self.funcselector[self.io['tool']].tool(self.io, event_type, x, y)
+        self.tools[self.io['tool']].tool(self.io, event_type, x, y)
 
-        # run selection module
-        Selection.process(self.io, event_type, x, y)
+        # run selection process
+        self.selection.process(self.io, event_type, x, y)
 
         # draw_viewport if one of the following events occured
         if event_type in ['resize', 'scroll']:
@@ -59,14 +62,13 @@ class Editor:
             self.redraw_editor()
             if self.io['auto_engrave'] or event_type in ['score_options', 'grid_editor']:
                 self.io['engraver'].do_engrave()
-            print(self.io['autosave'])
-            if self.io['autosave']:
+            if self.io['settings']['auto_save']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
                     ...
 
-        if event_type in ['page_change']:
+        if event_type in ['page_change', 'loadfile']:
             self.io['engraver'].do_engrave()
 
         # save if there is a change in the score
@@ -74,7 +76,7 @@ class Editor:
                 not event_type in ['zoom', 'loadfile', 'keyedit', 'ctlz', 'grid_editor', 'page_change']):
             if self.io['auto_engrave']:
                 self.io['engraver'].do_engrave()
-            if self.io['autosave']:
+            if self.io['settings']['auto_save']:
                 try:
                     self.io['fileoperations'].auto_save()
                 except KeyError:
@@ -84,8 +86,20 @@ class Editor:
         if event_type == 'move' or 'move' in event_type:
             DrawEditor.draw_line_cursor(self.io, x, y)
 
-        # add to ctlz stack (in this function we check if there is indeed a change in the score)
+        # add to ctlz stack (in this function we check if there is indeed a change in the score file)
         self.io['ctlz'].add_ctlz()
+
+        # add check if the file is edited. this is the case if we click with left or right mousebutton or keyedit
+        if event_type in ['keyedit', 'grid_editor', 'score_options', 'leftclick', 'rightclick']:
+            self.io['fileoperations'].file_changed = True
+
+        # update playhead position for the midi player
+        try:
+            self.io['playhead'] = self.io['calc'].y2tick_editor(y, snap=True)
+            if event_type == 'leave':
+                self.io['playhead'] = 0
+        except:
+            ...
 
     def draw_viewport(self):
         '''draws all events only in the viewport'''
@@ -128,12 +142,10 @@ class Editor:
                         # element is in viewport
                         if not event in io['viewport']['events'][e_type]:
                             # add event to viewport
-                            if event in io['selection']['selection_buffer'][e_type]:
-                                self.funcselector[e_type].draw_editor(
-                                    io, event, inselection=True)
+                            if event in self.io['selection']['selection_buffer'][e_type]:
+                                self.tools[e_type].draw_editor(io, event, inselection=True)
                             else:
-                                self.funcselector[e_type].draw_editor(
-                                    io, event)
+                                self.tools[e_type].draw_editor(io, event)
                             io['viewport']['events'][e_type].append(event)
                         else:
                             ...  # element was already drawn, do nothing
@@ -149,8 +161,7 @@ class Editor:
         top_y = self.io['calc'].tick2y_editor(self.io['viewport']['toptick'])
         bottom_y = self.io['calc'].tick2y_editor(
             self.io['viewport']['bottomtick'])
-        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(
-            self.io, top_y, bottom_y)
+        DrawEditor.draw_barlines_grid_timesignature_and_measurenumbers(self.io, top_y, bottom_y)
 
         self.drawing_order()
 
@@ -185,7 +196,11 @@ class Editor:
             'countline',
             'handle',
             'linebreak',
-            'gracenote'
+            'gracenote',
+            # slur parts:
+            'slurindicationline',
+            'slurline',
+            'slurhandle',
         ]
         self.io['editor'].tag_raise(drawing_order)
 
@@ -202,6 +217,9 @@ class Editor:
         self.io['editor'].delete_all()
         self.io['viewport']['events'] = SaveFileStructureSource.new_events_folder_viewport()
 
+        # update total ticks
+        self.io['total_ticks'] = self.io['calc'].get_total_score_ticks()
+
         # draw the editor
         DrawEditor.draw_titles(self.io)
         DrawEditor.draw_staff(self.io)
@@ -209,18 +227,9 @@ class Editor:
         # set scene size
         height = self.io['calc'].get_total_score_ticks() / QUARTER_PIANOTICK * \
             self.io['score']['properties']['editor_zoom'] + \
-            EDITOR_MARGIN + EDITOR_MARGIN
+            EDITOR_MARGIN + EDITOR_MARGIN + 1000
         self.io['gui'].editor_scene.setSceneRect(
             EDITOR_LEFT, EDITOR_TOP, EDITOR_WIDTH, height)
 
         # draw all events in viewport
         self.draw_viewport()
-
-    def toggle_auto_engrave(self):
-        '''toggles the autorender function'''
-        if self.io['auto_engrave']:
-            self.io['auto_engrave'] = False
-            self.io['gui'].auto_engrave_action.setChecked(False)
-        else:
-            self.io['auto_engrave'] = True
-            self.io['gui'].auto_engrave_action.setChecked(True)

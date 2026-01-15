@@ -1,6 +1,6 @@
 # we genereally import everything from this file for usage in the
 # engraver, later we add the engraver specific imports here
-from imports.engraver.engraverstorage import *
+from imports.engraver.engraver_helpers import *
 from imports.utils.constants import *
 
 '''
@@ -23,7 +23,7 @@ def pre_render(io, render_type='default'):
 
     # set scene rectangle
     io['gui'].print_scene.setSceneRect(
-        0, 0, scene_width, scene_height)  # TODO: check if it looks ok
+        0, 0, scene_width, scene_height)
 
     # page dimentions
     page_margin_left = io['score']['properties']['page_margin_left']
@@ -40,7 +40,11 @@ def pre_render(io, render_type='default'):
         key=lambda y: y['time'])
 
     def pre_calculate(io):
-        print('-------------------------START-------------------------')
+        io['engrave_counter']
+        print(f'...........ENGRAVING...........')
+        io['engrave_counter'] += 1
+        print(f"engraving number: {io['engrave_counter']}")
+        print('pre calculating...')
 
         # --------------------------------------------------------------------------------------------------------------------------------------
         # DOC structure:
@@ -62,7 +66,8 @@ def pre_render(io, render_type='default'):
             - barlines
             - gridlines
             - timesignature changes
-            - notes and split them if they are crossing a new line point
+            - notes and split them if they are crossing a new line point or a barline
+            - other events like slurs, dynamics, pedal, etc...
         '''
 
         # time signature, barlines and grid
@@ -72,10 +77,10 @@ def pre_render(io, render_type='default'):
             # denominator.
             numerator = gr['numerator']
             denominator = gr['denominator']
-            measure_length = int(
-                numerator * ((QUARTER_PIANOTICK * 4) / denominator))
+            measure_length = int(numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
             grid = gr['grid']
+            visible = gr['visible']
             tsig_length = 0
 
             # create time signature indicator
@@ -83,7 +88,8 @@ def pre_render(io, render_type='default'):
                 'type': 'timesignature',
                 'time': time,
                 'numerator': numerator,
-                'denominator': denominator
+                'denominator': denominator,
+                'visible': visible
             })
 
             # add barlines and gridlines
@@ -193,7 +199,6 @@ def pre_render(io, render_type='default'):
 
         # get the line width of every line [[widthstaff1, widthstaff2, widthstaff3, widthstaff4], ...]]
         # if a staff is off the width is zero
-        staff_dimensions = []
         staff_ranges = []
         for lb, line in zip(linebreaks, DOC):
 
@@ -318,7 +323,7 @@ def pre_render(io, render_type='default'):
 
     io['num_pages'] = len(DOC)
 
-    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times
+    return DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times, render_type
 
 
 def render(
@@ -330,9 +335,11 @@ def render(
         pageno,
         linebreaks,
         draw_scale,
-        barline_times):
+        barline_times,
+        render_type):
 
     def draw(io):
+        print('starting to draw...')
 
         # delete old drawing
         io['view'].delete_all()
@@ -360,8 +367,9 @@ def render(
         countline_onoff = io['score']['properties']['countline_onoff']
         measure_numbering_onoff = io['score']['properties']['measure_numbering_onoff']
         accidental_onoff = io['score']['properties']['accidental_onoff']
-        soundingdot_onoff = io['score']['properties']['soundingdot_onoff']
+        continuationdot_onoff = io['score']['properties'].get('continuationdot_onoff', True)
         leftdot_onoff = io['score']['properties']['leftdot_onoff']
+        text_onoff = io['score']['properties']['text_onoff']
 
         staffs_settings = io['score']['properties']['staffs']
         threeline_scale = io['score']['properties']['threeline_scale']
@@ -369,25 +377,33 @@ def render(
         continuation_dot_style = io['score']['properties']['continuation_dot_style']
 
         # engraver settings:
-        stem_thickness = 0.5
-        beam_thickness = 1
+        stem_thickness = io['score']['properties']['stem_width'] # .5
+        beam_thickness = io['score']['properties']['beam_width'] # 1
 
         Left = 0
         Right = page_width
         Top = 0
         Bottom = page_height
 
-        # looping trough the DOC structure and drawing the events:
+        # looping trough the DOC structure and drawing the score:
         x_cursor = 0
         y_cursor = 0
         idx_line = 0
         barnumber = 1
-        for idx_page, page, leftover in zip(
-                range(len(DOC)), DOC, leftover_page_space):
+        for idx_page, page, leftover in zip(range(len(DOC)), DOC, leftover_page_space):
             if idx_page != pageno:
                 idx_line += len(DOC[idx_page])
                 barnumber = update_barnumber(DOC, idx_page + 1)
                 continue
+
+            print(f'PAGE: {idx_page+1}')
+
+            # draw the page outer bounds to see where the page is starting and ending
+            if render_type == 'default':
+                io['view'].new_line(
+                    Left, Top, Right, Top, width=0.5, color='black', tag=['page'], dash=[5, 7])
+                io['view'].new_line(
+                    Left, Bottom, Right, Bottom, width=0.5, color='black', tag=['page'], dash=[5, 7])
 
             # update the cursors
             x_cursor = page_margin_left
@@ -398,25 +414,25 @@ def render(
             if idx_page == 0:
                 # draw the title
                 io['view'].new_text(page_margin_left,
-                                    y_cursor,
+                                    y_cursor-5,
                                     io['score']['header']['title'],
-                                    size=8,
+                                    size=int(io['score']['properties']['title_font_size'] * draw_scale),
                                     tag=['title'],
-                                    font='Courier new',
-                                    anchor='w')
+                                    font='Courier New',
+                                    anchor='nw')
                 # draw the composer
+                composer_text = io['score']['header']['composer']
+                if io['score']['properties']['timestamp_onoff']:
+                    composer_text += '\n' + io['score']['header']['timestamp']
                 io['view'].new_text(Right - page_margin_right,
-                                    y_cursor,
-                                    io['score']['header']['composer'],
-                                    size=4,
+                                    y_cursor-5,
+                                    composer_text,
+                                    size=int(io['score']['properties']['composer_font_size'] * draw_scale),
                                     tag=['composer'],
-                                    font='Courier new',
-                                    anchor='e')
+                                    font='Courier New',
+                                    anchor='ne')
 
-            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['header_height'] - io['score']['properties']['footer_height']
                 y_cursor += io['score']['properties']['header_height']
-            # else:
-            #     staff_height = page_height - page_margin_top - page_margin_bottom - io['score']['properties']['footer_height']
 
             # draw footer copyright pagenumbering and title
             text = f"page {idx_page+1} of {len(DOC)} - {io['score']['header']['title']}"
@@ -430,7 +446,7 @@ def render(
                 4 *
                 draw_scale,
                 text,
-                size=4,
+                size=int(io['score']['properties']['footer_font_size'] * draw_scale),
                 tag=['copyright'],
                 font='Courier new',
                 anchor='w')
@@ -496,10 +512,8 @@ def render(
 
                         if idx_staff == 0:
                             # draw the barlines or endbarline
-                            if evt['type'] in [
-                                    'barline', 'endbarline', 'barlinedouble']:
-                                x1 = x_cursor + \
-                                    (PITCH_UNIT * 2 * draw_scale * staff_scale)
+                            if evt['type'] in ['barline', 'endbarline', 'barlinedouble']:
+                                x1 = x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale)
                                 x2 = x_cursor
                                 last_r_marg = 0
                                 for i, w in enumerate(dimensions):
@@ -516,9 +530,10 @@ def render(
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
                                 if evt['type'] in ['barline', 'barlinedouble']:
-                                    w = 0.2 * draw_scale * staff_scale
+                                    w = io['score']['properties']['barline_width'] * draw_scale * staff_scale
                                 else:
-                                    w = 1 * draw_scale * staff_scale
+                                    # if it is the endbarline we draw it thicker
+                                    w = io['score']['properties']['barline_width'] * 4 * draw_scale * staff_scale
                                 if barlines_onoff:
                                     io['view'].new_line(x1,
                                                         y_cursor + y,
@@ -531,17 +546,27 @@ def render(
                                 if float(evt['time']).is_integer():
                                     if measure_numbering_onoff:
                                         io['view'].new_text(
-                                            x2 - 2,
+                                            x2 + (PITCH_UNIT * 18 * draw_scale * staff_scale),
                                             y_cursor + y - 4,
                                             str(barnumber),
-                                            size=4 * draw_scale * staff_scale,
+                                            size=io['score']['properties']['measure_numbering_font_size'] * draw_scale * staff_scale,
                                             tag=['barnumbering'],
                                             font='Courier new',
-                                            anchor='nw')
+                                            anchor='ne')
+                                        io['view'].new_line(
+                                            x2,
+                                            y_cursor + y,
+                                            x2 + 10,
+                                            y_cursor + y,
+                                            width=0.2 * draw_scale * staff_scale,
+                                            color='black',
+                                            dash=[2, 4],
+                                            tag=['barnumbering']
+                                        )
                                     barnumber += 1
 
                         if staff_prefs['staff_width']:
-                            # draw the gridlines
+                            # draw the gridlines (base-grid)
                             if evt['type'] in ['gridline', 'gridlinedouble']:
                                 x1 = x_cursor + \
                                     (PITCH_UNIT * 2 * draw_scale * staff_scale)
@@ -555,7 +580,7 @@ def render(
                                                         y_cursor + y,
                                                         x2,
                                                         y_cursor + y,
-                                                        width=.15 * draw_scale * staff_scale,
+                                                        width=io['score']['properties']['basegrid_width'] * draw_scale * staff_scale,
                                                         color='black',
                                                         dash=[5, 7],
                                                         tag=['gridline'])
@@ -591,9 +616,9 @@ def render(
                                                     tag=['noteheadblack'])
                                             elif black_note_rule == 'Down':
                                                 io['view'].new_oval(
-                                                    x - PITCH_UNIT * .85 * draw_scale * staff_scale,
+                                                    x - PITCH_UNIT * .80 * draw_scale * staff_scale,
                                                     y_cursor + y1,
-                                                    x + PITCH_UNIT * .85 * draw_scale * staff_scale,
+                                                    x + PITCH_UNIT * .80 * draw_scale * staff_scale,
                                                     y_cursor + y1 - (
                                                         PITCH_UNIT * 2.25 * draw_scale * staff_scale),
                                                     fill_color='#000000',
@@ -803,7 +828,7 @@ def render(
                                     evt['pitch'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 y = tick2y_view(
                                     evt['time'], io, staff_height, idx_line)
-                                if soundingdot_onoff:
+                                if continuationdot_onoff:
                                     if continuation_dot_style == 'Klavarskribo':
                                         io['view'].new_oval(x - PITCH_UNIT * .5 * draw_scale * staff_scale,
                                                             y_cursor + y +
@@ -817,32 +842,18 @@ def render(
                                                             outline_color='',
                                                             tag=['continuationdot'])
                                     elif continuation_dot_style == 'PianoScript':
-                                        if evt['pitch'] in BLACK_KEYS:
-                                            io['view'].new_polygon(
-                                                [
-                                                    (x + PITCH_UNIT * .75 * draw_scale * staff_scale,
-                                                     y_cursor + y),
-                                                    (x,
-                                                     y_cursor + y + PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                                    (x - PITCH_UNIT * .75 * draw_scale * staff_scale,
-                                                     y_cursor + y)],
-                                                fill_color='#000',
-                                                outline_color='#000',
-                                                width=.2 * draw_scale * staff_scale,
-                                                tag=['continuationdot'])
-                                        else:
-                                            io['view'].new_polygon(
-                                                [
-                                                    (x - PITCH_UNIT * .75 * draw_scale * staff_scale,
-                                                     y_cursor + y),
-                                                    (x,
-                                                     y_cursor + y + PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                                    (x + PITCH_UNIT * .75 * draw_scale * staff_scale,
-                                                     y_cursor + y)],
-                                                fill_color='#fff',
-                                                outline_color='#000',
-                                                width=.3 * draw_scale * staff_scale,
-                                                tag=['continuationdot'])
+                                        io['view'].new_polygon(
+                                            [
+                                                (x + PITCH_UNIT * .75 * draw_scale * staff_scale,
+                                                    y_cursor + y),
+                                                (x,
+                                                    y_cursor + y + PITCH_UNIT * 2 * draw_scale * staff_scale),
+                                                (x - PITCH_UNIT * .75 * draw_scale * staff_scale,
+                                                    y_cursor + y)],
+                                            fill_color='#fff',
+                                            outline_color='#000',
+                                            width=.3 * draw_scale * staff_scale,
+                                            tag=['continuationdot'])
 
                         # connect stem
                         if evt['type'] == 'connectstem':
@@ -1006,7 +1017,7 @@ def render(
                                 continue
 
                             if idx_staff == evt['staff'] and countline_onoff:
-                                # draw rest
+                                # draw countline
                                 x1 = pitch2x_view(
                                     evt['pitch1'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
                                 x2 = pitch2x_view(
@@ -1016,54 +1027,139 @@ def render(
                                                 staff_height, idx_line)
                                 io['view'].new_line(x1, y, x2, y,
                                                     color='black',
-                                                    width=0.2,
+                                                    width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
                                                     tag=['countline'],
-                                                    dash=[2, 2])
+                                                    dash=[.1, 4]) # dotted line
 
                         if evt['type'] == 'timesignature':
                             if idx_staff == 0:
-                                y = y_cursor + \
-                                    tick2y_view(evt['time'], io,
-                                                staff_height, idx_line)
-                                io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
-                                                    y + (PITCH_UNIT * 4.5),
-                                                    str(evt['numerator']),
-                                                    color='black',
-                                                    tag=['timesignature'],
-                                                    size=5,
-                                                    font='Courier New',
-                                                    anchor='s')
-                                io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
-                                                    y,
-                                                    x_cursor -
-                                                    (PITCH_UNIT * 10 *
-                                                     draw_scale * staff_scale),
-                                                    y,
-                                                    color='black',
-                                                    width=.5,
-                                                    tag=['timesignature'])
-                                io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
-                                                    y,
-                                                    x_cursor -
-                                                    (PITCH_UNIT * 10 *
-                                                     draw_scale * staff_scale),
-                                                    y,
-                                                    color='black',
-                                                    width=.2,
-                                                    tag=['timesignature'],
-                                                    dash=[2, 2])
-                                io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
-                                                    y - (PITCH_UNIT * 3.5),
-                                                    str(evt['denominator']),
-                                                    color='black',
-                                                    tag=['timesignature'],
-                                                    size=5,
-                                                    font='Courier New',
-                                                    anchor='n')
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+                                if evt['visible']:
+                                    # numerator
+                                    io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
+                                                        y + (PITCH_UNIT * 4.5),
+                                                        str(evt['numerator']),
+                                                        color='black',
+                                                        tag=['timesignature'],
+                                                        size=io['score']['properties']['time_signature_font_size'] * draw_scale * staff_scale,
+                                                        font='Courier New',
+                                                        anchor='s')
+                                    # time-signature middle line
+                                    io['view'].new_line(x_cursor - (PITCH_UNIT * 5 * draw_scale * staff_scale),
+                                                        y,
+                                                        x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
+                                                        y,
+                                                        color='black',
+                                                        width=io['score']['properties']['barline_width'] * 4 * draw_scale * staff_scale, # same thickness as endbarline
+                                                        tag=['timesignature'])
+                                    # time-signature dashed line
+                                    io['view'].new_line(x_cursor + (PITCH_UNIT * 2 * draw_scale * staff_scale),
+                                                        y,
+                                                        x_cursor - (PITCH_UNIT * 10 * draw_scale * staff_scale),
+                                                        y,
+                                                        color='black',
+                                                        width=io['score']['properties']['countline_width'] * draw_scale * staff_scale,
+                                                        tag=['timesignature'],
+                                                        dash=[2, 2])
+                                    # denominator
+                                    io['view'].new_text(x_cursor - (PITCH_UNIT * 7.5 * draw_scale * staff_scale),
+                                                        y - (PITCH_UNIT * 3.5),
+                                                        str(evt['denominator']),
+                                                        color='black',
+                                                        tag=['timesignature'],
+                                                        size=io['score']['properties']['time_signature_font_size'] * draw_scale * staff_scale,
+                                                        font='Courier New',
+                                                        anchor='n')
 
-                    x_cursor += staff_prefs['staff_width'] + \
-                        staff_prefs['margin_right']
+                        # slurs
+                        if evt['type'] == 'slur':
 
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
+                            if evt['staff'] == idx_staff:
+                                # get coords
+                                p0_x = units2x_view(
+                                    evt['p0']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p0_y = y_cursor + \
+                                    tick2y_view(
+                                        evt['p0']['time'], io, staff_height, idx_line)
+                                p1_x = units2x_view(
+                                    evt['p1']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p1_y = y_cursor + \
+                                    tick2y_view(
+                                        evt['p1']['time'], io, staff_height, idx_line)
+                                p2_x = units2x_view(
+                                    evt['p2']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p2_y = y_cursor + \
+                                    tick2y_view(
+                                        evt['p2']['time'], io, staff_height, idx_line)
+                                p3_x = units2x_view(
+                                    evt['p3']['distance_c4units'], staff_range[idx_staff], draw_scale * staff_scale, x_cursor)
+                                p3_y = y_cursor + \
+                                    tick2y_view(
+                                        evt['p3']['time'], io, staff_height, idx_line)
+
+                                # drawing the slur
+                                points = io['calc'].bezier_curve(
+                                    (p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y), (p3_x, p3_y), resolution=50)
+                                num_points = len(points)
+                                max_width = io['score']['properties']['slur_width_middle'] * draw_scale * staff_scale
+                                min_width = io['score']['properties']['slur_width_sides'] * draw_scale * staff_scale
+                                range_width = max_width - min_width
+                                for i in range(num_points - 1):
+                                    width = (
+                                        (1 - abs(num_points / 2 - i) / (num_points / 2)) * range_width) + min_width
+                                    io['view'].new_line(points[i][0], points[i][1], points[i+1][0], points[i+1][1],
+                                                        tag=[
+                                                            evt['tag'], 'slur'],
+                                                        width=width)
+                        
+                        # text:
+                        if evt['type'] == 'text':
+
+                            if not io['score']['properties']['staffs'][evt['staff']]['onoff']:
+                                continue
+
+                            if idx_staff == evt['staff'] and text_onoff:
+                                # get xy
+                                if evt['side'] == '<':
+                                    x = x_cursor - (PITCH_UNIT * evt['mm_from_side'] * draw_scale * staff_scale)
+                                    anchor = 'n'
+                                else:
+                                    x = x_cursor + staff_prefs['staff_width'] + (PITCH_UNIT * evt['mm_from_side'] * draw_scale * staff_scale)
+                                    anchor = 'n'
+                                y = y_cursor + tick2y_view(evt['time'], io, staff_height, idx_line)
+
+                                # draw:
+                                y_correction = 4 # for some reason we need this stupid correction...
+                                if evt['side'] == '<':
+                                    # text to the left
+                                    io['view'].new_text_left(
+                                        x=x,
+                                        y=y - y_correction,
+                                        text=evt['text'],
+                                        anchor=anchor,
+                                        color='black',
+                                        tag=[evt['tag'], 'text'],
+                                        font='Courier New Italic',
+                                        size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
+                                    )
+                                else:
+                                    io['view'].new_text_right(
+                                        x=x,
+                                        y=y - y_correction,
+                                        text=evt['text'],
+                                        anchor=anchor,
+                                        color='black',
+                                        tag=[evt['tag'], 'text'],
+                                        font='Courier New Italic',
+                                        size=io['score']['properties']['text_font_size'] * draw_scale * staff_scale
+                                    )
+
+                    x_cursor += staff_prefs['staff_width'] + staff_prefs['margin_right']
+
+                print(f'LINE: {idx_line+1}')
                 idx_line += 1
 
     draw(io)
@@ -1088,6 +1184,8 @@ def render(
             'connectstem',
             'stem',
             'continuationdot',
+            'continuationdot2',
+            'countline',
             'noteheadwhite',
             'leftdotwhite',
             'noteheadblack',
@@ -1097,11 +1195,11 @@ def render(
             'selectionrectangle',
             'notestop',
             'cursor',
-            'countline',
             'handle',
             'linebreak',
             'beam',
-            'debug'
+            'debug',
+            'slur'
         ]
         io['view'].tag_raise(drawing_order)
 
@@ -1115,7 +1213,9 @@ class Engraver:
         self.io = io
 
     def do_engrave(self):
-        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times = pre_render(
+        self.io['statusbar'].set_message(message='Engraver is working...')
+        self.io['app'].processEvents()
+        DOC, leftover_page_space, staff_dimensions, staff_ranges, pageno, linebreaks, draw_scale, barline_times, render_type = pre_render(
             self.io)
         render(
             self.io,
@@ -1126,4 +1226,7 @@ class Engraver:
             pageno,
             linebreaks,
             draw_scale,
-            barline_times)
+            barline_times,
+            render_type)
+        print('.......ENGRAVER FINISHED.......\n')
+        self.io['statusbar'].set_message(message='Engraver finished :)')

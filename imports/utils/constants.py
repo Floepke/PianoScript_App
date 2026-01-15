@@ -4,9 +4,13 @@
     that they are constants.
 '''
 # the background color of the editor and print view
+import copy
 from imports.utils.savefilestructure import SaveFileStructureSource
 import datetime
-BACKGROUND_COLOR = '#ffffff'
+
+# colors
+BACKGROUND_COLOR_EDITOR = '#fff'
+NOTATION_COLOR_EDITOR = '#222'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -19,8 +23,6 @@ QUARTER_PIANOTICK = 256.0
 FRACTION = 0.0000001
 
 # the 'blueprint' for a score; it's the fallback score if no score is loaded and a reference for the developer.
-# if we write a property in the blueprint that is not in the score, it will be added to the score by the
-# FixScore() class based on this blueprint. TODO: Create a FixScore class
 SCORE_TEMPLATE = {
     'header': {
         'title': 'Untitled',
@@ -39,7 +41,7 @@ SCORE_TEMPLATE = {
         'page_margin_right': 5,
         'page_margin_up': 10,
         'page_margin_down': 10,
-        'draw_scale': 1,
+        'draw_scale': 0.75,
         'header_height': 20,
         'footer_height': 12.5,
         'color_right_midinote': '#c8c8c8',
@@ -52,7 +54,7 @@ SCORE_TEMPLATE = {
             'AlwaysDownExceptCollisions',
             'AlwaysUpExceptCollisions'
         ][1],
-        'threeline_scale': 2.0,
+        'threeline_scale': 2.0, # this parameter get's deleted, is now replaced by staff_threeline_width
         'stop_sign_style': ['PianoScript', 'Klavarskribo'][0],
         'continuation_dot_style': ['PianoScript', 'Klavarskribo'][1],
 
@@ -69,9 +71,9 @@ SCORE_TEMPLATE = {
         'countline_onoff': True,
         'measure_numbering_onoff': True,
         'accidental_onoff': True,
-        'soundingdot_onoff': True,
+        'continuationdot_onoff': True,
         'leftdot_onoff': True,
-        'staffs': (
+        'staffs': [
             {
                 'onoff': True,
                 'name': 'Staff 1',
@@ -96,7 +98,26 @@ SCORE_TEMPLATE = {
                 'staff_scale': 1.0,
                 'engrave_name': False
             }
-        )
+        ],
+        'timestamp_onoff': True,
+        'text_onoff': True,
+        # line widths:
+        'staff_threeline_width': .4,
+        'staff_twoline_width': .2,
+        'barline_width': .2,
+        'beam_width': 1,
+        'stem_width': .5,
+        'basegrid_width': .15,
+        'countline_width': .2,
+        'slur_width_middle': .6,
+        'slur_width_sides': .2,
+        # font_sizes:
+        'text_font_size': 4,
+        'title_font_size': 8,
+        'composer_font_size': 4,
+        'footer_font_size': 4,
+        'measure_numbering_font_size': 4,
+        'time_signature_font_size': 6,
     },
     'events': {
         'grid': [
@@ -113,9 +134,8 @@ SCORE_TEMPLATE = {
         'note': [],
         'countline': [],
         'linebreak': [
-            SaveFileStructureSource.new_linebreak('lockedlinebreak', 0)
+            SaveFileStructureSource.new_linebreak('lockedlinebreak')
         ],
-        'staffsizer': [],
         'startrepeat': [],
         'endrepeat': [],
         'starthook': [],
@@ -126,9 +146,23 @@ SCORE_TEMPLATE = {
         'gracenote': [],
         'text': [],
         'pedal': [],
-        'slur': []
-    }
+        'slur': [],
+        'tempo': [
+            SaveFileStructureSource.new_tempo('lockedtempo')
+        ]
+    },
+    'midi_data': []
 }
+
+# blueprint; is used to scan any loading file for missing parameters. It has blueprint example objects for each event
+BLUEPRINT = copy.deepcopy(SCORE_TEMPLATE)
+BLUEPRINT['events']['note'] = [SaveFileStructureSource.new_note('blueprint')]
+BLUEPRINT['events']['linebreak'] = [SaveFileStructureSource.new_linebreak('blueprint')]
+BLUEPRINT['events']['gracenote'] = [SaveFileStructureSource.new_gracenote('blueprint')]
+BLUEPRINT['events']['beam'] = [SaveFileStructureSource.new_beam('blueprint')]
+BLUEPRINT['events']['tempo'] = [SaveFileStructureSource.new_tempo('blueprint')]
+BLUEPRINT['events']['countline'] = [SaveFileStructureSource.new_countline('blueprint')]
+BLUEPRINT['events']['slur'] = [SaveFileStructureSource.new_slur('blueprint')]
 
 # the black keys of a piano keyboard as a list of integers starting from 1 and ending at 88
 BLACK_KEYS = [2, 5, 7, 10, 12, 14, 17, 19, 22, 24, 26, 29, 31, 34, 36, 38, 41, 43, 46,
@@ -143,7 +177,6 @@ WHITE_KEYS = [1, 3, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20, 21, 23, 25, 27,
 # in the comparison of equals, this is the treshold for the difference between two floats that is used in the code to deside
 # if two floats are equal or not. If the difference between two floats is smaller than this treshold, the floats are considered equal.
 EQUALS_TRESHOLD = 7
-
 
 def EQUALS(a, b):
     return abs(a - b) < EQUALS_TRESHOLD
@@ -181,11 +214,19 @@ STAFF_X_UNIT_EDITOR = (EDITOR_WIDTH - (EDITOR_MARGIN * 2)) / 49
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
-# this is the staff x unit but in relation to mm. So the size in mm of the distance
+# this is the staff x unit but in relation to mm. So it is the size in mm of the distance
 # between the c# and d# stafflines (if the draw_scale is set to 1.0).
 PITCH_UNIT = 1
 
 # RECENT FILES ----------------------------------------------------------------------------------------
-
 RECENT_FILES_LIMIT = 10
 RECENT_FILE_JSON_TEMPLATE = []
+
+# initial app settings template
+INITIAL_SETTINGS = {
+    'recent_files': [],
+    'browser_path': '',
+    'last_opened_file': '',
+    'auto_save': True,
+    'midi_port': None
+}

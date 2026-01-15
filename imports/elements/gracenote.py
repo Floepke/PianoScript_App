@@ -96,7 +96,7 @@ class GraceNote:
         if inselection:
             color = '#009cff'
         else:
-            color = 'black'
+            color = NOTATION_COLOR_EDITOR
 
         # draw notehead
         x = io['calc'].pitch2x_editor(note['pitch'])
@@ -119,7 +119,7 @@ class GraceNote:
                                   x + unit * 4,
                                   y + unit * 8,
                                   tag=[note['tag'], 'noteheadwhite'],
-                                  fill_color='white',
+                                  fill_color=BACKGROUND_COLOR_EDITOR,
                                   outline_width=2,
                                   outline_color=color)
 

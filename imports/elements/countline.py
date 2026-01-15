@@ -32,6 +32,10 @@ class CountLine:
             CountLine.draw_editor(io, io['edit_obj'])
 
         elif event_type == 'leftclick+move':
+            # safety: if somehow the edit_obj is None, return
+            if not io['edit_obj']:
+                return
+                
             # get the mouse position in pianoticks and pitch
             mouse_pitch = io['calc'].x2pitch_editor(x)
             mouse_time = io['calc'].y2tick_editor(y, snap=True)
@@ -95,7 +99,7 @@ class CountLine:
             ...
 
     @staticmethod
-    def draw_editor(io, countline):
+    def draw_editor(io, countline, inselection: bool = False):
 
         # first delete the old countline
         io['editor'].delete_with_tag([countline['tag']])
@@ -110,9 +114,10 @@ class CountLine:
         y = io['calc'].tick2y_editor(countline['time'])
 
         # add the new countline
+        color = '#009cff' if inselection else NOTATION_COLOR_EDITOR
         io['editor'].new_line(x1, y, x2, y,
                               tag=[countline['tag'], 'countline'],
-                              color='#000000',
+                      color=color,
                               dash=(4, 4),
                               width=.5)
 

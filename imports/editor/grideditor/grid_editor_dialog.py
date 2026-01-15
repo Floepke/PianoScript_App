@@ -587,34 +587,9 @@ class GridDialog(QDialog):
         layout.addLayout(yorn_layout, row, col, row_span, col_span)
 
     def _on_help(self):
-        """ show or hide the popup """
+        """ show the help page """
 
-        self.show_help = ShowHelp().show('Pianoscript')
-
-        # if not self.popup:
-        #     self.create_popup()
-        #
-        # builder = StringBuilder()
-        # self.note = '[CLEAR]'
-        # builder.append_line('Brief Help for the grid editor')
-        # builder.append_line(' ')
-        # builder.append_line('Select one of the grids on the left by clicking on the grid name')
-        # builder.append_line('Edit the values with the controls on the left side')
-        # builder.append_line('Create an empty measure by deselecting the "visible" check box')
-        # builder.append_line('Add or delete the definition with the "Add" and "Del" button')
-        # builder.append_line('Edit the count lines in the tree in the column in the middle')
-        # builder.append_line('Select a location of a new line with the spin box below that column')
-        # builder.append_line('The step for the location of the line is 64, equivalent to a 1/16 note')
-        # builder.append_line('Add the location to the list of lines with the "Add" button on the right')
-        # builder.append_line('Delete the current location with the "Del" button on the right')
-        # builder.append_line('Reset the lines to the default with the "Reset" button')
-        # builder.append_line('Also use the "Reset" button after changing the Signature')
-        # builder.append_line('A preview is drawn on the right column')
-        # self.note = builder.to_string()
-        #
-        # # 256 quarter
-        # # 128 eights
-        # # 64 sixteenth
+        self.show_help = ShowHelp().show('GridEditor')
 
     @property
     def selected(self) -> str:

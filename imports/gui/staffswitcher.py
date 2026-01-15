@@ -42,12 +42,14 @@ class StaffSwitcher(QWidget):
 
     def update_button_colors(self):
         for i, button in enumerate(self.buttons):
-            style = ''
-            if button.isChecked():
-                style += 'font-style: italic;'
-            if self.io['score']['properties']['staffs'][i]['onoff']:
-                style += 'text-decoration: underline'
-            button.setStyleSheet(style)
+            # Clear any custom stylesheet to use theme colors
+            button.setStyleSheet("")
+            
+            # Use Qt's built-in font properties
+            font = button.font()
+            font.setItalic(button.isChecked())
+            font.setUnderline(self.io['score']['properties']['staffs'][i]['onoff'])
+            button.setFont(font)
 
     def contextMenuEvent(self, event):
         context_menu = QMenu(self)

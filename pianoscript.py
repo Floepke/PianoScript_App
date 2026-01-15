@@ -1,12 +1,15 @@
-#
-import sys
-from PySide6.QtWidgets import QApplication, QMainWindow
-from PySide6.QtGui import QShortcut, QKeySequence
 
-from imports.gui.gui import Gui, QColor
+import sys
+import json
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog
+from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtCore import Qt
+
+from imports.gui.dialogs.scoreoptions import ScoreOptions
+from imports.gui.gui import Gui
 from imports.utils.drawutil import DrawUtil
 from imports.utils.calctools import CalcTools
-from imports.utils.fileoprations import FileOperations
+from imports.utils.fileoprations import File
 from imports.editor.editor import Editor
 from imports.editor.zoom import Zoom
 from imports.utils.savefilestructure import SaveFileStructureSource
@@ -16,11 +19,13 @@ from imports.utils.midi import Midi
 from imports.engraver.engraver import Engraver
 from imports.editor.grideditor.dialog_result import DialogResult
 from imports.editor.grideditor.grid_editor_dialog import GridDialog
+from imports.editor.grideditor.show_help import ShowHelp
 from imports.editor.grideditor.popup import Popup
-from imports.editor.staff_sizer_editor.staff_sizer_dialog import StaffSizerDialog
+from imports.editor.linebreak_editor.staff_sizer_dialog import StaffSizerDialog
 from imports.gui.style import Style
-from imports.scripting.scriptutils import ScriptUtils
-from imports.scripting.loadscripts import LoadScripts
+from imports.utils.midiplayer import MidiPlayer
+from imports.gui.statusbar import StatusBar
+from imports.editor.tools import Tools
 from imports.utils.constants import *
 
 
@@ -50,12 +55,12 @@ class PianoScript():
                 'y2': 0,
                 # the buffer that holds any selected element; it's a dictionary that holds the structure of the 'events' folder in a score file
                 'selection_buffer': SaveFileStructureSource.new_events_folder(),
-                # the buffer that holds any copied or cutted selection; same structure as above
-                'copycut_buffer': SaveFileStructureSource.new_events_folder(),
+                # the clipboard that holds any copied or cutted selection; same structure as above
+                'clipboard': SaveFileStructureSource.new_events_folder(),
                 # all event types that are alowed to copy, cut, paste
                 'copy_types': ['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that are alowed to transpose (are pitch based)
-                'transpose_types': ['note', 'text', 'gracenote', 'slur'],
+                'transpose_types': ['note', 'gracenote'],
                 # all event types that have the time property (are time based)
                 'move_types': ['note', 'gracenote', 'beam', 'countline', 'slur', 'text', 'pedal'],
                 # all event types that have the hand property
@@ -100,14 +105,11 @@ class PianoScript():
                 'already_drawn': []
             },
 
-            # total ticks
+            # total ticks of the score
             'total_ticks': 0,
 
-            # drawn_objects
+            # drawn_objects in the viewport
             'drawn_obj': [],
-
-            # wheter the score is saved or not
-            'saved': True,
 
             # edit_obj == the object that is being edited
             'edit_obj': None,
@@ -122,40 +124,60 @@ class PianoScript():
             'num_pages': 0,
 
             # auto save onoff
-            'autosave': False,
+            'auto_save': True,
 
             # current selected staff to edit
             'selected_staff': 0,
 
             # checkbox auto engrave
-            'auto_engrave': True
+            'auto_engrave': False,
+
+            # render counter
+            'engrave_counter': 0,
+
+            # the settings object (for now empty but the settings.json will be loaded soon)
+            'settings': None,
+
+            # playhead position for midi player
+            'playhead': 0,
+
+            # flags:
+            'shiftmode_flag': False,
         }
 
-        # setup
+        # start setup...
         self.app = QApplication(sys.argv)
         self.root = QMainWindow()
+        self.io['scoreoptions'] = self.exec_score_options_dialog
         self.gui = Gui(self.root, self.io)
         self.gui.show()
         self.io['app'] = self.app
         self.io['root'] = self.root
-        self.root.showFullScreen()
         self.io['gui'] = self.gui
+        self.io['statusbar'] = StatusBar(self.io)
 
         self.io['editor'] = DrawUtil(self.gui.editor_scene)
         self.io['view'] = DrawUtil(self.gui.print_scene)
         self.io['calc'] = CalcTools(self.io)
+
+        # load app settings:
+        self.settings_path = self.io['calc'].ensure_json('~/.pianoscript/settings.json', INITIAL_SETTINGS)
+        with open(self.settings_path, 'r') as file:
+            self.io['settings'] = json.load(file)
+
+        # ...continue setup
         self.io['engraver'] = Engraver(self.io)
         self.io['maineditor'] = Editor(self.io)
         self.io['zoom'] = Zoom(self.io)
         self.io['selectoperations'] = SelectOperations(self.io)
         self.io['ctlz'] = CtlZ(self.io)
         self.io['midi'] = Midi(self.io)
-        self.io['fileoperations'] = FileOperations(self.io)
+        self.io['fileoperations'] = File(self.io)
         self.editor_dialog = None
         self.line_break_dialog = None
         self.io['style'] = Style(self.io)
-        self.io['script'] = ScriptUtils(self.io)
-        self.io['loadscript'] = LoadScripts(self.io)
+        self.io['midiplayer'] = MidiPlayer(self.io)
+        self.io['tools'] = Tools(self.io)
 
         # connect the file operations to the gui menu
         self.gui.new_action.triggered.connect(self.io['fileoperations'].new)
@@ -165,16 +187,17 @@ class PianoScript():
             self.io['fileoperations'].saveas)
         self.gui.save_template_action.triggered.connect(
             self.io['fileoperations'].save_template)
+        self.gui.reset_template.triggered.connect(
+            self.io['fileoperations'].reset_template)
 
         self.gui.autosave_action.triggered.connect(
             self.io['fileoperations'].toggle_autosave)
-        self.gui.auto_engrave_action.triggered.connect(
-            self.io['maineditor'].toggle_auto_engrave)
         self.gui.exit_action.triggered.connect(self.root.close)
 
         self.gui.grid_edit_action.triggered.connect(self.open_grid_editor)
         self.gui.line_break_editor_action.triggered.connect(
             self.open_line_break_editor)
+
         # shortcuts
         cut_shortcut = QShortcut(QKeySequence("Ctrl+X"), self.root)
         cut_shortcut.activated.connect(self.io['selectoperations'].cut)
@@ -182,52 +205,73 @@ class PianoScript():
         copy_shortcut.activated.connect(self.io['selectoperations'].copy)
         paste_shortcut = QShortcut(QKeySequence("Ctrl+V"), self.root)
         paste_shortcut.activated.connect(self.io['selectoperations'].paste)
-        delete_shortcut = QShortcut(QKeySequence("Delete"), self.root)
+        delete_shortcut = QShortcut(QKeySequence("Backspace"), self.root)
         delete_shortcut.activated.connect(self.io['selectoperations'].delete)
         transpose_up_shortcut = QShortcut(QKeySequence("Right"), self.root)
-        transpose_up_shortcut.activated.connect(
-            self.io['selectoperations'].transpose_up)
+        transpose_up_shortcut.activated.connect(self.io['selectoperations'].transpose_up)
         transpose_down_shortcut = QShortcut(QKeySequence("Left"), self.root)
-        transpose_down_shortcut.activated.connect(
-            self.io['selectoperations'].transpose_down)
+        transpose_down_shortcut.activated.connect(self.io['selectoperations'].transpose_down)
         move_backward_shortcut = QShortcut(QKeySequence("Up"), self.root)
-        move_backward_shortcut.activated.connect(
-            self.io['selectoperations'].move_backward)
+        move_backward_shortcut.activated.connect(self.io['selectoperations'].move_backward)
         move_forward_shortcut = QShortcut(QKeySequence("Down"), self.root)
-        move_forward_shortcut.activated.connect(
-            self.io['selectoperations'].move_forward)
+        move_forward_shortcut.activated.connect(self.io['selectoperations'].move_forward)
         undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self.root)
         undo_shortcut.activated.connect(self.io['ctlz'].undo)
         redo_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Z"), self.root)
         redo_shortcut.activated.connect(self.io['ctlz'].redo)
-        hand_left_shortcut = QShortcut(QKeySequence("["), self.root)
-        hand_left_shortcut.activated.connect(
-            self.io['selectoperations'].hand_left)
-        hand_right_shortcut = QShortcut(QKeySequence("]"), self.root)
-        hand_right_shortcut.activated.connect(
-            self.io['selectoperations'].hand_right)
+        selection2left_shortcut = QShortcut(QKeySequence("["), self.root)
+        selection2left_shortcut.activated.connect(self.io['selectoperations'].hand_left)
+        selection2right_shortcut = QShortcut(QKeySequence("]"), self.root)
+        selection2right_shortcut.activated.connect(self.io['selectoperations'].hand_right)
+        
         escape_shortcut = QShortcut(QKeySequence("Escape"), self.root)
         escape_shortcut.activated.connect(self.io['fileoperations'].quit)
-        engrave_shortcut = QShortcut(QKeySequence("/"), self.root)
+        engrave_shortcut = QShortcut(QKeySequence("e"), self.root)
         engrave_shortcut.activated.connect(self.io['engraver'].do_engrave)
-        next_page_shortcut = QShortcut(QKeySequence("."), self.root)
+        next_page_shortcut = QShortcut(QKeySequence("'"), self.root)
         next_page_shortcut.activated.connect(self.io['gui'].next_page)
-        prev_page_shortcut = QShortcut(QKeySequence(","), self.root)
+        prev_page_shortcut = QShortcut(QKeySequence(";"), self.root)
         prev_page_shortcut.activated.connect(self.io['gui'].previous_page)
+        hand_left_shortcut = QShortcut(QKeySequence(','), self.root)
+        hand_left_shortcut.activated.connect(lambda: self.io['maineditor'].update('handleft'))
+        hand_right_shortcut = QShortcut(QKeySequence('.'), self.root)
+        hand_right_shortcut.activated.connect(lambda: self.io['maineditor'].update('handright'))
 
-        self.root.closeEvent = self.cleanup
+        # set close event
+        self.root.closeEvent = self.de_init
 
         # run the application
         sys.exit(self.app.exec())
 
-    def cleanup(self, event):
-        """ close open dialogs """
+    def de_init(self, event):
+        """ What needs to happen on closing the application"""
+
+        print('de_init...')
+        print('thanks for using PianoScript!')
+        print('If you want to make a little donation, please email me at: \nphilipbergwerf@gmail.com')
 
         if self.editor_dialog:
             self.editor_dialog.close()
 
         if self.line_break_dialog:
             self.line_break_dialog.close()
+
+        # save the settings to the drive
+        with open(self.settings_path, 'w') as f:
+            json.dump(self.io['settings'], f, indent=4)
+
+        # stop the midi player if was playing
+        #self.io['midiplayer'].stop_midi()
+
+    # Example usage:
+    def exec_score_options_dialog(self):
+        """Convenience function to show the dialog and return results"""
+        parent = self.root
+        current_properties = self.io['score']['properties']
+        dialog = ScoreOptions(parent, current_properties)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.io['score']['properties'].update(dialog.get_properties())
+        return None
 
     def open_grid_editor(self):
         """ open the Grid Editor """
@@ -272,13 +316,24 @@ class PianoScript():
         if result == DialogResult.OK:
             self.io['score']['events']['linebreak'] = line_breaks
 
-            Popup(message=f'Line break Editor has closed\n{result}\nUPDATED!!',
-                  max_lines=3,
-                  text_size=(100, 21))
+            # Popup(message=f'Line break Editor has closed\n{result}\nUPDATED!!',
+            #       max_lines=3,
+            #       text_size=(100, 21))
 
             self.io['maineditor'].update('grid_editor')
 
+    def _show_help(self):
+        """ show the introduction for the help """
+
+        ShowHelp().show("Pianoscript")
+
 
 if __name__ == '__main__':
+    # TODO: make scaling factor a setting in my application
+    if sys.platform.startswith('linux') or sys.platform.startswith('windows'):
+        # Set the environment variable for high DPI scaling
+        import os
+        os.environ["QT_SCALE_FACTOR"] = "1.75"  # Set to your desired scaling factor, e.g., "1.25" for 125%
+
     PianoScript()
     exit(0)

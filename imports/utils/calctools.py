@@ -1,4 +1,5 @@
 from imports.utils.constants import *
+import os, json
 
 class CalcTools:
     '''
@@ -20,7 +21,7 @@ class CalcTools:
         self.io = io
 
     def get_total_score_ticks(self):
-        '''returns the total number of ticks from the entire score'''
+        '''returns the total number of ticks from the entire score / position of the endbarline'''
 
         total_ticks = 0
 
@@ -33,7 +34,7 @@ class CalcTools:
                 numerator * ((QUARTER_PIANOTICK * 4) / denominator))
             amount = gr['amount']
 
-            # assign to total_ticks of one grid message
+            # add the length of the grid message
             total_ticks += measure_length * amount
 
         return total_ticks
@@ -44,30 +45,45 @@ class CalcTools:
             returns the length of a measure in pianoticks
             based on the grid message from the score file
         '''
-        return int(grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']))
+        return int(grid['numerator'] * (QUARTER_PIANOTICK * (4 / grid['denominator'])))
 
     def tick2y_editor(self, time):
         '''converts pianoticks into y position on the editor'''
         return time * (self.io['score']['properties']['editor_zoom'] / QUARTER_PIANOTICK) + EDITOR_MARGIN
 
-    def y2tick_editor(self, y, snap=False, absolute=False):
+    def y2tick_editor(self, y, snap=False):
         '''converts y position on the editor into pianoticks'''
         editor_zoom = self.io['score']['properties']['editor_zoom']
         y = (y - EDITOR_MARGIN) * (QUARTER_PIANOTICK / editor_zoom)
-        if not absolute:
-            if y <= 0:
-                y = 0
+        if y < 0:
+            y = -FRACTION
 
         if snap:
-            # Snap to grid starting from the top of the editor
             grid_size = self.io['snap_grid']
-            y = round((y - (grid_size / 2)) / grid_size) * grid_size
+            
+            # Find the grid lines above and below the mouse position
+            lower_grid = int(y / grid_size) * grid_size
+            upper_grid = lower_grid + grid_size
+            
+            # Choose which direction to snap based on your preference:
+            
+            # Option 1: Always snap down (to lower grid line)
+            y = lower_grid
+            
+            # Option 2: Always snap up (to upper grid line)  
+            # y = upper_grid
+            
+            # Option 3: Snap to whichever is closer but maintain mouse position awareness
+            # if abs(y - lower_grid) <= abs(y - upper_grid):
+            #     y = lower_grid
+            # else:
+            #     y = upper_grid
 
         return y
 
     @staticmethod
     def pitch2x_editor(pitch):
-        '''converts pitch into x position on the editor'''
+        '''converts pitch into the right x position on the editor'''
 
         # evaluate pitch (between 1 and 88) and create initial x position
         pitch = max(1, min(88, pitch))
@@ -81,6 +97,20 @@ class CalcTools:
                 break
 
         return x
+    
+    @staticmethod
+    def x2xunits_editor(x, snap=False):
+        '''converts the x (mouse)position to the distance from the c4 position on the staff in STAFF_X_UNIT_EDITOR floats'''
+        c4_xpos = CalcTools.pitch2x_editor(40) # key 40 = c4
+        out = (x - c4_xpos) / STAFF_X_UNIT_EDITOR
+        if snap:
+            out = round(out * 2) / 2
+        return out
+    
+    @staticmethod
+    def units2x_editor(value):
+        c4_xpos = CalcTools.pitch2x_editor(40)
+        return (c4_xpos + (value * STAFF_X_UNIT_EDITOR))
 
     @staticmethod
     def x2pitch_editor(x):
@@ -105,7 +135,7 @@ class CalcTools:
         self.io['new_tag'] += 1
         return tag
 
-    def renumber_tags(self):  # TODO: this function is not used yet
+    def renumber_tags(self):
         '''
             This function takes the score and
             renumbers the event tags starting
@@ -166,9 +196,8 @@ class CalcTools:
                 radio = i
                 break
 
-        # get selected divide and multiply
+        # get selected divide value
         divide = self.io['gui'].divide_spin_box.value()
-        multiply = int(self.io['gui'].multiply_spin_box.value())
 
         # calculate the snap grid
         length_dict = {
@@ -181,20 +210,23 @@ class CalcTools:
             6: 16,
             7: 8
         }
-        self.io['snap_grid'] = length_dict[radio] / divide * multiply
+        self.io['snap_grid'] = length_dict[radio] / divide
 
         # update the the label
         self.io['gui'].grid_selector_label.setText(
-            f"Tick: {self.io['snap_grid']}")
+            f"Snap Size: {self.io['snap_grid']}")
 
     # get barline ticks
     def get_barline_ticks(self):
         '''returns a list with all barline ticks'''
+        time = 0
         barline_ticks = []
         for grid in self.io['score']['events']['grid']:
+            measure_length = grid['numerator'] * (QUARTER_PIANOTICK * (4 / grid['denominator']))
             for i in range(grid['amount']):
-                barline_ticks.append(
-                    grid['numerator'] * ((QUARTER_PIANOTICK * 4) / grid['denominator']) * i)
+                barline_ticks.append(time)
+                time += measure_length
+            
         return barline_ticks
 
     def get_measure_number(self, time):
@@ -233,3 +265,27 @@ class CalcTools:
                 measure += 1
 
         return measure, time - start, count
+    
+    def ensure_json(self, json_path, fallback_json):
+        '''This function checks: 
+            1. if the file_path exists
+            2. if not it creates the directory
+            3. places the file in the new or already existing directory'''
+
+        json_path = os.path.expanduser(json_path)
+        dir = os.path.dirname(json_path)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        if not os.path.exists(json_path):
+            with open(json_path, 'w') as file:
+                json.dump(fallback_json, file, indent=4)
+        return json_path
+    
+    def bezier_curve(self, p0, p1, p2, p3, resolution=10):
+        points = []
+        for t in range(resolution + 1):
+            t = t / resolution
+            x = (1 - t) ** 3 * p0[0] + 3 * (1 - t) ** 2 * t * p1[0] + 3 * (1 - t) * t ** 2 * p2[0] + t ** 3 * p3[0]
+            y = (1 - t) ** 3 * p0[1] + 3 * (1 - t) ** 2 * t * p1[1] + 3 * (1 - t) * t ** 2 * p2[1] + t ** 3 * p3[1]
+            points.append((x, y))
+        return points

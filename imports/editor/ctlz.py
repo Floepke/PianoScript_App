@@ -8,7 +8,7 @@ class CtlZ:
 
         self.buffer = [copy.deepcopy(self.io['score'])]
         self.index = 0
-        self.max_ctlz_num = 32
+        self.max_ctlz_num = 64
 
     def reset_ctlz(self):
         # use this if we load a new or existing project
