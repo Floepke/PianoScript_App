@@ -93,21 +93,8 @@ class DrawUtilView(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def request_engrave_and_render(self):
-        w = max(1, self.width())
-        dpr = float(self.devicePixelRatioF())
-        page_w_mm, page_h_mm = self._du.current_page_size_mm()
-        if page_w_mm <= 0 or page_h_mm <= 0:
-            return
-        px_per_mm = (w * dpr) / page_w_mm
-        h_px = int(page_h_mm * px_per_mm)
-        w_px = int(w * dpr)
-        # Store metrics for hit-testing
-        self._last_px_per_mm = px_per_mm
-        self._last_widget_px_per_mm = (w) / page_w_mm
-        self._last_dpr = dpr
-        self._last_h_px = h_px
-        task = RenderTask(self._du, w_px, h_px, px_per_mm, dpr, self._page_index, self._emitter, self._score, True)
-        self._pool.start(task)
+        """Deprecated: engraving is managed by Engraver. Kept for compatibility."""
+        self.request_render()
 
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)

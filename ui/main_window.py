@@ -8,6 +8,7 @@ from ui.widgets.snap_size_selector import SnapSizeDock
 from ui.widgets.draw_util import DrawUtil
 from ui.widgets.draw_view import DrawUtilView
 from settings_manager import get_settings
+from engraver.engraver import Engraver
 from editor.tool_manager import ToolManager
 from editor.editor import Editor
 
@@ -35,6 +36,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.du.new_page(width_mm=210, height_mm=297)
 
         self.print_view = DrawUtilView(self.du)
+        # Engraver instance (single)
+        self.engraver = Engraver(self.du, self)
+        # When engraving completes, re-render the print view
+        self.engraver.engraved.connect(self.print_view.request_render)
         # Provide initial score to engrave
         self._refresh_views_from_score()
 
@@ -61,6 +66,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # 'Fit' button on splitter handle triggers fit action
         splitter.fitRequested.connect(self._fit_print_view_to_page)
+        # Default toolbar actions
+        splitter.nextRequested.connect(self._next_page)
+        splitter.previousRequested.connect(self._previous_page)
+        splitter.engraveRequested.connect(self._engrave_now)
+        splitter.playRequested.connect(self._play_midi)
+        splitter.stopRequested.connect(self._stop_midi)
         # Fit print view to page on startup
         QtCore.QTimer.singleShot(0, self._fit_print_view_to_page)
         # Also request an initial render
@@ -71,6 +82,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # After docks are visible, adjust their sizes to fit
         QtCore.QTimer.singleShot(0, self._adjust_docks_to_fit)
+
+        # Page navigation state
+        self._page_counter = 0
+        self._total_pages_placeholder = 4  # TODO: replace with real page count
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
@@ -156,10 +171,11 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             sc_dict = {}
         self.print_view.set_score(sc_dict)
-        # Trigger engrave + render
+        # Request engraving via Engraver; render happens on engraved signal
         try:
-            self.print_view.request_engrave_and_render()
+            self.engraver.engrave(sc_dict)
         except Exception:
+            # Fallback: render current content
             self.print_view.request_render()
 
     def _update_title(self) -> None:
@@ -203,6 +219,58 @@ class MainWindow(QtWidgets.QMainWindow):
             editor_w = max(0, total_w - ideal_pv_w)
             splitter.setSizes([editor_w, ideal_pv_w])
             QtCore.QTimer.singleShot(0, self.print_view.request_render)
+        except Exception:
+            pass
+
+    def _current_score_dict(self) -> dict:
+        try:
+            return self.file_manager.current().get_dict()
+        except Exception:
+            return {}
+
+    def _set_page_index(self, index: int) -> None:
+        try:
+            self.print_view.set_page(index)
+        except Exception:
+            pass
+
+    def _next_page(self) -> None:
+        try:
+            self._page_counter += 1
+            pageno = self._page_counter % max(1, self._total_pages_placeholder)
+            self._set_page_index(pageno)
+            self.engraver.engrave(self._current_score_dict())
+        except Exception:
+            pass
+
+    def _previous_page(self) -> None:
+        try:
+            self._page_counter -= 1
+            pageno = self._page_counter % max(1, self._total_pages_placeholder)
+            self._set_page_index(pageno)
+            self.engraver.engrave(self._current_score_dict())
+        except Exception:
+            pass
+
+    def _engrave_now(self) -> None:
+        try:
+            self.engraver.engrave(self._current_score_dict())
+        except Exception:
+            pass
+
+    def _play_midi(self) -> None:
+        try:
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            self.player.start()
+        except Exception:
+            pass
+
+    def _stop_midi(self) -> None:
+        try:
+            if hasattr(self, 'player') and self.player is not None:
+                self.player.stop()
         except Exception:
             pass
 

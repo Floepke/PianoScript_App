@@ -6,25 +6,93 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
     def __init__(self, orientation, parent):
         super().__init__(orientation, parent)
         self.setObjectName("ToolbarHandle")
-        parent.setHandleWidth(56)
+        parent.setHandleWidth(50)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
-        # Single 'Fit' button to snap the print view to fit the page exactly.
+        # Square button size to match ToolSelector list row height
+        button_size = 35
+        # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
-        icon = get_qicon('fit', size=(64, 64))
-        if icon:
-            self.fit_btn.setIcon(icon)
-        self.fit_btn.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.fit_btn.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                   QtWidgets.QSizePolicy.Policy.Fixed)
+        ic = get_qicon('fit', size=(64, 64))
+        if ic:
+            self.fit_btn.setIcon(ic)
+        else:
+            self.fit_btn.setText("Fit")
+        self.fit_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.fit_btn.setFixedSize(button_size, button_size)
         layout.addWidget(self.fit_btn)
-        # Emit the splitter's fitRequested signal when clicked
         try:
             self.fit_btn.clicked.connect(parent.fitRequested.emit)
         except Exception:
             pass
+
+        self.next_btn = QtWidgets.QToolButton(self)
+        icn = get_qicon('next', size=(64, 64))
+        if icn:
+            self.next_btn.setIcon(icn)
+        self.next_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.next_btn.setFixedSize(button_size, button_size)
+        layout.addWidget(self.next_btn)
+        try:
+            self.next_btn.clicked.connect(parent.nextRequested.emit)
+        except Exception:
+            pass
+
+        self.prev_btn = QtWidgets.QToolButton(self)
+        icp = get_qicon('previous', size=(64, 64))
+        if icp:
+            self.prev_btn.setIcon(icp)
+        self.prev_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.prev_btn.setFixedSize(button_size, button_size)
+        layout.addWidget(self.prev_btn)
+        try:
+            self.prev_btn.clicked.connect(parent.previousRequested.emit)
+        except Exception:
+            pass
+
+        self.engrave_btn = QtWidgets.QToolButton(self)
+        ice = get_qicon('engrave', size=(64, 64))
+        if ice:
+            self.engrave_btn.setIcon(ice)
+        self.engrave_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.engrave_btn.setFixedSize(button_size, button_size)
+        layout.addWidget(self.engrave_btn)
+        try:
+            self.engrave_btn.clicked.connect(parent.engraveRequested.emit)
+        except Exception:
+            pass
+
+        self.play_btn = QtWidgets.QToolButton(self)
+        icplay = get_qicon('play', size=(64, 64))
+        if icplay:
+            self.play_btn.setIcon(icplay)
+        self.play_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.play_btn.setFixedSize(button_size, button_size)
+        layout.addWidget(self.play_btn)
+        try:
+            self.play_btn.clicked.connect(parent.playRequested.emit)
+        except Exception:
+            pass
+
+        self.stop_btn = QtWidgets.QToolButton(self)
+        icstop = get_qicon('stop', size=(64, 64))
+        if icstop:
+            self.stop_btn.setIcon(icstop)
+        self.stop_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+        self.stop_btn.setFixedSize(button_size, button_size)
+        layout.addWidget(self.stop_btn)
+        try:
+            self.stop_btn.clicked.connect(parent.stopRequested.emit)
+        except Exception:
+            pass
+
+        # Visual separator between default toolbar and contextual toolbar
+        sep = QtWidgets.QFrame(self)
+        sep.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        sep.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        layout.addWidget(sep)
 
         # Contextual tool area managed by ToolManager
         self._toolbar_area = QtWidgets.QWidget(self)
@@ -51,12 +119,12 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             icon_name = d.get('icon', '')
             tooltip = d.get('tooltip', name)
             btn = QtWidgets.QToolButton(self._toolbar_area)
-            ic = get_qicon(icon_name, size=(32, 32))
+            ic = get_qicon(icon_name, size=(64, 64))
             if ic:
                 btn.setIcon(ic)
             btn.setToolTip(tooltip)
-            btn.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                              QtWidgets.QSizePolicy.Policy.Fixed)
+            btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
+            btn.setFixedSize(button_size, button_size)
             # Emit contextButtonClicked(name) from parent splitter
             try:
                 btn.clicked.connect(lambda _=False, n=name: self.parent().contextButtonClicked.emit(n))
@@ -70,6 +138,12 @@ class ToolbarSplitter(QtWidgets.QSplitter):
     fitRequested = QtCore.Signal()
     # ToolManager contextual toolbar button clicked
     contextButtonClicked = QtCore.Signal(str)
+    # Default toolbar actions
+    nextRequested = QtCore.Signal()
+    previousRequested = QtCore.Signal()
+    engraveRequested = QtCore.Signal()
+    playRequested = QtCore.Signal()
+    stopRequested = QtCore.Signal()
 
     def __init__(self, orientation: QtCore.Qt.Orientation, parent=None):
         super().__init__(orientation, parent)

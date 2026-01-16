@@ -21,7 +21,8 @@ def main():
         pass
     app = QtWidgets.QApplication([])
     # Set application window icon from icons package
-    icon = get_qicon('pianoscript')
+    # Scale window icon slightly smaller for the title bar
+    icon = get_qicon('pianoscript', size=(64, 64))
     if icon:
         app.setWindowIcon(icon)
     # Apply application palette (balanced native-like light look)
