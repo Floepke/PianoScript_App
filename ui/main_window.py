@@ -1,4 +1,5 @@
 from PySide6 import QtCore, QtGui, QtWidgets
+import sys
 from file_model.SCORE import SCORE
 from file_model.file_manager import FileManager
 from ui.widgets.toolbar_splitter import ToolbarSplitter
@@ -98,6 +99,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
+        # Ensure macOS uses an in-window menubar (not the global system menubar)
+        try:
+            if sys.platform == "darwin":
+                menubar.setNativeMenuBar(False)
+        except Exception:
+            pass
 
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")

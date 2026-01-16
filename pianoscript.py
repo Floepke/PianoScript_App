@@ -1,4 +1,5 @@
 import os
+import sys
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.main_window import MainWindow
 from ui.style import Style
@@ -22,6 +23,15 @@ def main():
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
     except Exception:
         pass
+    # On macOS, force menus to render inside the window instead of the global menu bar
+    if sys.platform == "darwin":
+        try:
+            QtCore.QCoreApplication.setAttribute(
+                QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, True
+            )
+        except Exception:
+            # Fallback will be applied per-window in MainWindow if this attribute is unavailable
+            pass
     app = QtWidgets.QApplication([])
     # Enforce arrow cursor globally: app never changes the mouse pointer
     QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
