@@ -71,12 +71,27 @@ class PreferencesManager:
         _ensure_dir()
         if not self.path.exists():
             self.save()
-        if sys.platform.startswith("linux"):
-            subprocess.Popen(["xdg-open", str(self.path)])
-        elif sys.platform == "darwin":
-            subprocess.Popen(["open", str(self.path)])
-        elif os.name == "nt":
-            os.startfile(str(self.path))  # type: ignore[attr-defined]
+        try:
+            fpath = str(self.path)
+            if os.name == "nt":
+                # Always use Notepad on Windows
+                subprocess.Popen(["notepad", fpath])
+                return
+            if sys.platform == "darwin":
+                # Always use TextEdit on macOS
+                subprocess.Popen(["open", "-a", "TextEdit", fpath])
+                return
+            if sys.platform.startswith("linux"):
+                # Always and only use xdg-open on Linux
+                subprocess.Popen(["xdg-open", fpath])
+                return
+        except Exception as e:
+            # Last-resort: log to stderr to avoid crashing UI
+            try:
+                import sys as _sys
+                print(f"Failed to open preferences editor: {e}", file=_sys.stderr)
+            except Exception:
+                pass
 
     # Internals
     def _parse_py_dict(self, text: str) -> Dict:

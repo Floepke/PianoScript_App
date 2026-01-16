@@ -46,7 +46,10 @@ settings = {
 - Notes:
 	- Comments use `#` and are ignored by the parser.
 	- Values are standard Python literals (bool, int, float, str, list, dict).
-	- Edit → Preferences opens the file in your default editor.
+	- Edit → Preferences opens the file in:
+		- Windows: Notepad
+		- macOS: TextEdit
+		- Linux: system default via `xdg-open`
 
 ## Structure
 
