@@ -16,6 +16,7 @@ from editor.tool.slur_tool import SlurTool
 from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
+from editor.undo_manager import UndoManager
 
 
 class Editor(QtCore.QObject):
@@ -30,6 +31,8 @@ class Editor(QtCore.QObject):
         super().__init__()
         self._tm = tool_manager
         self._tool: BaseTool = BaseGridTool()  # default tool
+        self._undo = UndoManager()
+        self._file_manager = None
         self._tool_classes: Dict[str, Type[BaseTool]] = {
             'beam': BeamTool,
             'count_line': CountLineTool,
@@ -62,6 +65,44 @@ class Editor(QtCore.QObject):
         except Exception:
             pass
 
+    # Model provider for undo snapshots
+    def set_file_manager(self, fm) -> None:
+        """Provide FileManager so we can snapshot/restore SCORE for undo/redo."""
+        self._file_manager = fm
+        # Initialize undo with the initial model state
+        if self._file_manager is not None:
+            self._undo.reset_initial(self._file_manager.current())
+
+    def current_score(self):
+        """Return the current SCORE from FileManager if available."""
+        if self._file_manager is not None:
+            return self._file_manager.current()
+        return None
+
+    def _snapshot_if_changed(self, coalesce: bool = False, label: str = "") -> None:
+        if self._file_manager is None:
+            return
+        score = self._file_manager.current()
+        if coalesce:
+            self._undo.capture_coalesced(score, label)
+        else:
+            self._undo.capture(score, label)
+
+    # Public undo/redo (optional consumers can bind Ctrl+Z / Ctrl+Shift+Z)
+    def undo(self) -> None:
+        if self._file_manager is None:
+            return
+        snap = self._undo.undo()
+        if snap is not None:
+            self._file_manager.replace_current(snap)
+
+    def redo(self) -> None:
+        if self._file_manager is None:
+            return
+        snap = self._undo.redo()
+        if snap is not None:
+            self._file_manager.replace_current(snap)
+
     # UI event forwarding APIs for the view
     def mouse_press(self, button: int, x: float, y: float) -> None:
         if button == 1:
@@ -69,11 +110,14 @@ class Editor(QtCore.QObject):
             self._dragging_left = False
             self._press_pos = (x, y)
             self._tool.on_left_press(x, y)
+            # Begin potential grouped action (e.g., drag)
+            self._undo.begin_group("left")
         elif button == 2:
             self._right_pressed = True
             self._dragging_right = False
             self._press_pos = (x, y)
             self._tool.on_right_press(x, y)
+            self._undo.begin_group("right")
 
     def mouse_move(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._left_pressed:
@@ -82,12 +126,14 @@ class Editor(QtCore.QObject):
                 self._tool.on_left_drag_start(x, y)
             if self._dragging_left:
                 self._tool.on_left_drag(x, y, dx, dy)
+                # Do not capture multiple intermediate drag snapshots
         elif self._right_pressed:
             if not self._dragging_right and (abs(dx) > self.DRAG_THRESHOLD or abs(dy) > self.DRAG_THRESHOLD):
                 self._dragging_right = True
                 self._tool.on_right_drag_start(x, y)
             if self._dragging_right:
                 self._tool.on_right_drag(x, y, dx, dy)
+                # Skip intermediate drag snapshots
         else:
             self._tool.on_mouse_move(x, y)
 
@@ -95,21 +141,29 @@ class Editor(QtCore.QObject):
         if button == 1:
             if self._dragging_left:
                 self._tool.on_left_drag_end(x, y)
+                # Capture a single coalesced snapshot for the whole drag
+                self._snapshot_if_changed(coalesce=True, label="left_drag")
+                self._undo.commit_group()
             else:
                 # Click if moved <= threshold
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
                     self._tool.on_left_click(x, y)
+                # Capture click changes (non-coalesced)
+                self._snapshot_if_changed(coalesce=False, label="left_click")
             self._tool.on_left_unpress(x, y)
             self._left_pressed = False
             self._dragging_left = False
         elif button == 2:
             if self._dragging_right:
                 self._tool.on_right_drag_end(x, y)
+                self._snapshot_if_changed(coalesce=True, label="right_drag")
+                self._undo.commit_group()
             else:
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
                     self._tool.on_right_click(x, y)
+                self._snapshot_if_changed(coalesce=False, label="right_click")
             self._tool.on_right_unpress(x, y)
             self._right_pressed = False
             self._dragging_right = False

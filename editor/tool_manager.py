@@ -20,6 +20,12 @@ class ToolManager(QtCore.QObject):
             pass
 
     def set_tool(self, tool) -> None:
+        # Deactivate previous tool
+        try:
+            if self._tool is not None:
+                self._tool.on_deactivate()
+        except Exception:
+            pass
         self._tool = tool
         # Build contextual toolbar from tool.toolbar_spec()
         defs = []
@@ -29,6 +35,12 @@ class ToolManager(QtCore.QObject):
             defs = []
         try:
             self._splitter.set_context_buttons(defs)
+        except Exception:
+            pass
+        # Activate new tool
+        try:
+            if self._tool is not None:
+                self._tool.on_activate()
         except Exception:
             pass
         name = getattr(tool, 'TOOL_NAME', 'unknown')

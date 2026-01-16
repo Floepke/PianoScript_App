@@ -12,7 +12,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         # Square button size to match ToolSelector list row height
-        button_size = 35
+        self._button_size = 35
         # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
         ic = get_qicon('fit', size=(64, 64))
@@ -20,8 +20,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             self.fit_btn.setIcon(ic)
         else:
             self.fit_btn.setText("Fit")
-        self.fit_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.fit_btn.setFixedSize(button_size, button_size)
+        self.fit_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.fit_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.fit_btn)
         try:
             self.fit_btn.clicked.connect(parent.fitRequested.emit)
@@ -32,8 +32,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         icn = get_qicon('next', size=(64, 64))
         if icn:
             self.next_btn.setIcon(icn)
-        self.next_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.next_btn.setFixedSize(button_size, button_size)
+        self.next_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.next_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.next_btn)
         try:
             self.next_btn.clicked.connect(parent.nextRequested.emit)
@@ -44,8 +44,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         icp = get_qicon('previous', size=(64, 64))
         if icp:
             self.prev_btn.setIcon(icp)
-        self.prev_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.prev_btn.setFixedSize(button_size, button_size)
+        self.prev_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.prev_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.prev_btn)
         try:
             self.prev_btn.clicked.connect(parent.previousRequested.emit)
@@ -56,8 +56,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         ice = get_qicon('engrave', size=(64, 64))
         if ice:
             self.engrave_btn.setIcon(ice)
-        self.engrave_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.engrave_btn.setFixedSize(button_size, button_size)
+        self.engrave_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.engrave_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.engrave_btn)
         try:
             self.engrave_btn.clicked.connect(parent.engraveRequested.emit)
@@ -68,8 +68,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         icplay = get_qicon('play', size=(64, 64))
         if icplay:
             self.play_btn.setIcon(icplay)
-        self.play_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.play_btn.setFixedSize(button_size, button_size)
+        self.play_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.play_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.play_btn)
         try:
             self.play_btn.clicked.connect(parent.playRequested.emit)
@@ -80,8 +80,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         icstop = get_qicon('stop', size=(64, 64))
         if icstop:
             self.stop_btn.setIcon(icstop)
-        self.stop_btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-        self.stop_btn.setFixedSize(button_size, button_size)
+        self.stop_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.stop_btn.setFixedSize(self._button_size, self._button_size)
         layout.addWidget(self.stop_btn)
         try:
             self.stop_btn.clicked.connect(parent.stopRequested.emit)
@@ -123,8 +123,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             if ic:
                 btn.setIcon(ic)
             btn.setToolTip(tooltip)
-            btn.setIconSize(QtCore.QSize(button_size - 6, button_size - 6))
-            btn.setFixedSize(button_size, button_size)
+            btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+            btn.setFixedSize(self._button_size, self._button_size)
             # Emit contextButtonClicked(name) from parent splitter
             try:
                 btn.clicked.connect(lambda _=False, n=name: self.parent().contextButtonClicked.emit(n))

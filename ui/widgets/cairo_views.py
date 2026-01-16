@@ -4,6 +4,7 @@ import cairo
 import math
 from typing import Optional
 from editor.editor import Editor
+from editor.drawers import get_all_drawers
 
 
 def _make_image_and_surface(width: int, height: int):
@@ -50,6 +51,12 @@ class CairoEditorWidget(QtWidgets.QWidget):
         # Use palette base color for neutral background
         base = self.palette().color(QtGui.QPalette.Base)
         _draw_editor_background(ctx, w_px, h_px, (base.redF(), base.greenF(), base.blueF()))
+        # Draw all element drawers if an editor and score are available
+        if self._editor is not None:
+            score = self._editor.current_score()
+            if score is not None:
+                for drawer in get_all_drawers():
+                    drawer.draw(ctx, score)
         image.setDevicePixelRatio(dpr)
         painter = QtGui.QPainter(self)
         painter.drawImage(0, 0, image)

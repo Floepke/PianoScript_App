@@ -14,6 +14,15 @@ class BaseTool:
         # Optional: shared state across events
         self._active: bool = False
 
+    # Lifecycle hooks
+    def on_activate(self) -> None:
+        """Called when this tool becomes the active tool."""
+        self._active = True
+
+    def on_deactivate(self) -> None:
+        """Called when this tool is no longer the active tool."""
+        self._active = False
+
     # Toolbar integration
     def toolbar_spec(self) -> list[dict]:
         """Return a list of button definitions: {'name','icon','tooltip'}"""

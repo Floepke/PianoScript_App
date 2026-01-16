@@ -60,6 +60,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tool_manager = ToolManager(splitter)
         self.editor_controller = Editor(self.tool_manager)
         self.editor.set_editor(self.editor_controller)
+        # Provide FileManager to editor (for undo snapshots)
+        self.editor_controller.set_file_manager(self.file_manager)
         # Wire tool selector to Editor controller and set default tool
         self.tool_dock.selector.toolSelected.connect(self.editor_controller.set_tool_by_name)
         self.editor_controller.set_tool_by_name('note')
@@ -114,8 +116,12 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
 
-        edit_menu.addAction(QtGui.QAction("Undo", self))
-        edit_menu.addAction(QtGui.QAction("Redo", self))
+        undo_act = QtGui.QAction("Undo", self)
+        undo_act.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
+        redo_act = QtGui.QAction("Redo", self)
+        redo_act.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        edit_menu.addAction(undo_act)
+        edit_menu.addAction(redo_act)
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
@@ -128,6 +134,9 @@ class MainWindow(QtWidgets.QMainWindow):
         open_act.triggered.connect(self._file_open)
         save_act.triggered.connect(self._file_save)
         save_as_act.triggered.connect(self._file_save_as)
+        # Wire up edit actions
+        undo_act.triggered.connect(self._edit_undo)
+        redo_act.triggered.connect(self._edit_redo)
 
     def _export_pdf(self) -> None:
         dlg = QtWidgets.QFileDialog(self)
@@ -177,6 +186,16 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             # Fallback: render current content
             self.print_view.request_render()
+        # Also refresh the editor view
+        self.editor.update()
+
+    def _edit_undo(self) -> None:
+        self.editor_controller.undo()
+        self._refresh_views_from_score()
+
+    def _edit_redo(self) -> None:
+        self.editor_controller.redo()
+        self._refresh_views_from_score()
 
     def _update_title(self) -> None:
         base = "PianoScript (Cairo + PySide6)"

@@ -42,6 +42,10 @@ class FileManager:
         self._path = None
         return self._current
 
+    def replace_current(self, new_score: SCORE) -> None:
+        """Replace the current SCORE instance (used by undo/redo)."""
+        self._current = new_score
+
     def open(self) -> Optional[SCORE]:
         """Open a .piano file via a native file dialog and load into SCORE."""
         start_dir = str(self._path.parent if self._path else self._last_dir)
