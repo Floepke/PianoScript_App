@@ -1,0 +1,121 @@
+from __future__ import annotations
+from typing import Optional, Tuple, Dict, Type
+from PySide6 import QtCore
+
+from editor.tool.base_tool import BaseTool
+from editor.tool_manager import ToolManager
+# Import tool templates
+from editor.tool.beam_tool import BeamTool
+from editor.tool.count_line_tool import CountLineTool
+from editor.tool.end_repeat_tool import EndRepeatTool
+from editor.tool.grace_note_tool import GraceNoteTool
+from editor.tool.line_break_tool import LineBreakTool
+from editor.tool.note_tool import NoteTool
+from editor.tool.pedal_tool import PedalTool
+from editor.tool.slur_tool import SlurTool
+from editor.tool.start_repeat_tool import StartRepeatTool
+from editor.tool.text_tool import TextTool
+from editor.tool.base_grid_tool import BaseGridTool
+
+
+class Editor(QtCore.QObject):
+    """Main editor class: routes UI events to the current tool.
+
+    Handles click vs drag classification using a 3px threshold.
+    """
+
+    DRAG_THRESHOLD: int = 3
+
+    def __init__(self, tool_manager: ToolManager):
+        super().__init__()
+        self._tm = tool_manager
+        self._tool: BaseTool = BaseGridTool()  # default tool
+        self._tool_classes: Dict[str, Type[BaseTool]] = {
+            'beam': BeamTool,
+            'count_line': CountLineTool,
+            'end_repeat': EndRepeatTool,
+            'grace_note': GraceNoteTool,
+            'line_break': LineBreakTool,
+            'note': NoteTool,
+            'pedal': PedalTool,
+            'slur': SlurTool,
+            'start_repeat': StartRepeatTool,
+            'text': TextTool,
+            'base_grid': BaseGridTool,
+        }
+        self._tm.set_tool(self._tool)
+
+        # Press/drag state
+        self._left_pressed: bool = False
+        self._right_pressed: bool = False
+        self._press_pos: Tuple[float, float] = (0.0, 0.0)
+        self._dragging_left: bool = False
+        self._dragging_right: bool = False
+
+    def set_tool_by_name(self, name: str) -> None:
+        cls = self._tool_classes.get(name)
+        if cls is None:
+            return
+        try:
+            self._tool = cls()
+            self._tm.set_tool(self._tool)
+        except Exception:
+            pass
+
+    # UI event forwarding APIs for the view
+    def mouse_press(self, button: int, x: float, y: float) -> None:
+        if button == 1:
+            self._left_pressed = True
+            self._dragging_left = False
+            self._press_pos = (x, y)
+            self._tool.on_left_press(x, y)
+        elif button == 2:
+            self._right_pressed = True
+            self._dragging_right = False
+            self._press_pos = (x, y)
+            self._tool.on_right_press(x, y)
+
+    def mouse_move(self, x: float, y: float, dx: float, dy: float) -> None:
+        if self._left_pressed:
+            if not self._dragging_left and (abs(dx) > self.DRAG_THRESHOLD or abs(dy) > self.DRAG_THRESHOLD):
+                self._dragging_left = True
+                self._tool.on_left_drag_start(x, y)
+            if self._dragging_left:
+                self._tool.on_left_drag(x, y, dx, dy)
+        elif self._right_pressed:
+            if not self._dragging_right and (abs(dx) > self.DRAG_THRESHOLD or abs(dy) > self.DRAG_THRESHOLD):
+                self._dragging_right = True
+                self._tool.on_right_drag_start(x, y)
+            if self._dragging_right:
+                self._tool.on_right_drag(x, y, dx, dy)
+        else:
+            self._tool.on_mouse_move(x, y)
+
+    def mouse_release(self, button: int, x: float, y: float) -> None:
+        if button == 1:
+            if self._dragging_left:
+                self._tool.on_left_drag_end(x, y)
+            else:
+                # Click if moved <= threshold
+                px, py = self._press_pos
+                if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
+                    self._tool.on_left_click(x, y)
+            self._tool.on_left_unpress(x, y)
+            self._left_pressed = False
+            self._dragging_left = False
+        elif button == 2:
+            if self._dragging_right:
+                self._tool.on_right_drag_end(x, y)
+            else:
+                px, py = self._press_pos
+                if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
+                    self._tool.on_right_click(x, y)
+            self._tool.on_right_unpress(x, y)
+            self._right_pressed = False
+            self._dragging_right = False
+
+    def mouse_double_click(self, button: int, x: float, y: float) -> None:
+        if button == 1:
+            self._tool.on_left_double_click(x, y)
+        elif button == 2:
+            self._tool.on_right_double_click(x, y)
