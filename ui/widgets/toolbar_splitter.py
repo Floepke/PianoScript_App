@@ -7,6 +7,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         super().__init__(orientation, parent)
         self.setObjectName("ToolbarHandle")
         parent.setHandleWidth(50)
+        # Prevent resize cursor when hovering the splitter handle
+        self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -90,13 +92,22 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
 
         # Visual separator between default toolbar and contextual toolbar
         sep = QtWidgets.QFrame(self)
-        sep.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        sep.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+        # Use a 1px separator that adapts to the current palette
+        sep.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        sep.setFixedHeight(1)
+        pal = self.palette()
+        btn = pal.color(QtGui.QPalette.Button)
+        # Slightly darken the button color to get a subtle separator line
+        line_r = max(0, min(255, int(btn.red() * 0.75)))
+        line_g = max(0, min(255, int(btn.green() * 0.75)))
+        line_b = max(0, min(255, int(btn.blue() * 0.75)))
+        sep.setStyleSheet(f"background-color: rgb({line_r}, {line_g}, {line_b});")
         layout.addWidget(sep)
 
         # Contextual tool area managed by ToolManager
         self._toolbar_area = QtWidgets.QWidget(self)
         self._toolbar_layout = QtWidgets.QVBoxLayout(self._toolbar_area)
+        # Keep contextual area flush; we'll trim button width by 1px to reveal right border
         self._toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self._toolbar_layout.setSpacing(6)
         layout.addWidget(self._toolbar_area)
@@ -124,7 +135,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
                 btn.setIcon(ic)
             btn.setToolTip(tooltip)
             btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
-            btn.setFixedSize(self._button_size, self._button_size)
+            # Trim width by 1px to ensure the right outline remains visible inside the handle
+            btn.setFixedSize(self._button_size - 1, self._button_size)
             # Emit contextButtonClicked(name) from parent splitter
             try:
                 btn.clicked.connect(lambda _=False, n=name: self.parent().contextButtonClicked.emit(n))

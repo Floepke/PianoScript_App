@@ -7,7 +7,7 @@ from ui.widgets.tool_selector import ToolSelectorDock
 from ui.widgets.snap_size_selector import SnapSizeDock
 from ui.widgets.draw_util import DrawUtil
 from ui.widgets.draw_view import DrawUtilView
-from settings_manager import get_settings
+from settings_manager import open_preferences, get_preferences
 from engraver.engraver import Engraver
 from editor.tool_manager import ToolManager
 from editor.editor import Editor
@@ -16,11 +16,13 @@ from editor.editor import Editor
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("PianoScript (Cairo + PySide6)")
+        self.setWindowTitle("Pianoscript - (unsaved)")
         self.resize(1200, 800)
 
         # File management
         self.file_manager = FileManager(self)
+        # Install error-backup hook early so any unhandled exception triggers a backup
+        self.file_manager.install_error_backup_hook()
 
         self._create_menus()
 
@@ -48,6 +50,11 @@ class MainWindow(QtWidgets.QMainWindow):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         self.setCentralWidget(splitter)
+        # Hide dock sizer handles and prevent resize cursor changes (docks are fixed-size)
+        self.setStyleSheet(
+            "QMainWindow::separator { width: 0px; height: 0px; background: transparent; }\n"
+            "QMainWindow::separator:hover { background: transparent; }"
+        )
         # Place Snap Size dock above the Tool Selector dock on the left
         self.snap_dock = SnapSizeDock(self)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.snap_dock)
@@ -151,9 +158,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(self, "Export PDF failed", str(e))
 
     def _open_preferences(self) -> None:
-        s = get_settings()
-        s.save()  # ensure file exists
-        s.open_preferences()
+        # Ensure preferences file exists and open in system editor
+        open_preferences()
 
     def _file_new(self) -> None:
         self.file_manager.new()
@@ -198,12 +204,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_views_from_score()
 
     def _update_title(self) -> None:
-        base = "PianoScript (Cairo + PySide6)"
         p = self.file_manager.path()
         if p:
-            self.setWindowTitle(f"{base} - {p.name}")
+            self.setWindowTitle(f"Pianoscript - {str(p)}")
         else:
-            self.setWindowTitle(base)
+            self.setWindowTitle("Pianoscript - new project (unsaved)")
 
     def _page_dimensions_mm(self) -> tuple[float, float]:
         try:

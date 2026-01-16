@@ -87,6 +87,8 @@ class Editor(QtCore.QObject):
             self._undo.capture_coalesced(score, label)
         else:
             self._undo.capture(score, label)
+        # Autosave after every captured snapshot/change of model
+        self._file_manager.autosave_current()
 
     # Public undo/redo (optional consumers can bind Ctrl+Z / Ctrl+Shift+Z)
     def undo(self) -> None:

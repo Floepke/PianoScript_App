@@ -26,6 +26,11 @@ class SnapSizeSelector(QtWidgets.QWidget):
 
         # Base step list (no icons; compact rows)
         self.list = QtWidgets.QListWidget(self)
+        # Make the list span the full dock width
+        self.list.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                    QtWidgets.QSizePolicy.Policy.Fixed)
+        self.list.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         self.list.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -38,12 +43,25 @@ class SnapSizeSelector(QtWidgets.QWidget):
 
         # Divider control: [-] [label] [+]
         row = QtWidgets.QHBoxLayout()
-        # Create minus button and center it in a 48x48 wrapper; button shrinks to 75% (36x36)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+        # Create minus button and center it; will use icon when available
         self.minus_btn = QtWidgets.QToolButton(self)
-        self.minus_btn.setText("-")
+        ic_minus = None
+        try:
+            from icons.icons import get_qicon
+            ic_minus = get_qicon('minus', size=(72, 72))
+        except Exception:
+            ic_minus = None
+        if ic_minus:
+            self.minus_btn.setIcon(ic_minus)
+            self.minus_btn.setIconSize(QtCore.QSize(60, 60))
+            self.minus_btn.setText("")
+        else:
+            self.minus_btn.setText("-")
         self.minus_btn.clicked.connect(self._dec_divide)
-        # Button visual size at 75% of original 48 -> 36
-        self.minus_btn.setFixedSize(36, 36)
+        # Button visual size square 72x72
+        self.minus_btn.setFixedSize(72, 72)
         fbtn = self.minus_btn.font()
         try:
             base_sz = fbtn.pointSize()
@@ -54,11 +72,12 @@ class SnapSizeSelector(QtWidgets.QWidget):
         self.minus_btn.setFont(fbtn)
         # Wrapper to preserve original center position (48x48 area)
         self._minus_wrap = QtWidgets.QWidget(self)
-        self._minus_wrap.setFixedSize(48, 48)
+        # Wrapper widened and heightened to match button size
+        self._minus_wrap.setFixedSize(72, 72)
         wrap_l = QtWidgets.QVBoxLayout(self._minus_wrap)
         wrap_l.setContentsMargins(0, 0, 0, 0)
         wrap_l.setSpacing(0)
-        wrap_l.addWidget(self.minus_btn, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+        wrap_l.addWidget(self.minus_btn, 0, QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self._minus_wrap)
 
         self.label = QtWidgets.QLabel(self)
@@ -71,14 +90,25 @@ class SnapSizeSelector(QtWidgets.QWidget):
         except Exception:
             fl.setPointSize(20)
         self.label.setFont(fl)
-        self.label.setMinimumHeight(48)
+        self.label.setMinimumHeight(72)
         row.addWidget(self.label, 1)
 
         self.plus_btn = QtWidgets.QToolButton(self)
-        self.plus_btn.setText("+")
+        ic_plus = None
+        try:
+            from icons.icons import get_qicon
+            ic_plus = get_qicon('plus', size=(72, 72))
+        except Exception:
+            ic_plus = None
+        if ic_plus:
+            self.plus_btn.setIcon(ic_plus)
+            self.plus_btn.setIconSize(QtCore.QSize(60, 60))
+            self.plus_btn.setText("")
+        else:
+            self.plus_btn.setText("+")
         self.plus_btn.clicked.connect(self._inc_divide)
-        # Button visual size at 75% of original 48 -> 36
-        self.plus_btn.setFixedSize(36, 36)
+        # Button visual size square 72x72
+        self.plus_btn.setFixedSize(72, 72)
         fbtn2 = self.plus_btn.font()
         try:
             base_sz2 = fbtn2.pointSize()
@@ -89,11 +119,12 @@ class SnapSizeSelector(QtWidgets.QWidget):
         self.plus_btn.setFont(fbtn2)
         # Wrapper to preserve original center position (48x48 area)
         self._plus_wrap = QtWidgets.QWidget(self)
-        self._plus_wrap.setFixedSize(48, 48)
+        # Wrapper widened and heightened to match button size
+        self._plus_wrap.setFixedSize(72, 72)
         wrap_r = QtWidgets.QVBoxLayout(self._plus_wrap)
         wrap_r.setContentsMargins(0, 0, 0, 0)
         wrap_r.setSpacing(0)
-        wrap_r.addWidget(self.plus_btn, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+        wrap_r.addWidget(self.plus_btn, 0, QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self._plus_wrap)
         layout.addLayout(row)
 
@@ -146,18 +177,17 @@ class SnapSizeSelector(QtWidgets.QWidget):
             list_h = total_rows_h + frame + int(cm.top() + cm.bottom())
             self.list.setFixedHeight(list_h)
 
-            # Compute width based on longest text
+            # Allow the list to fill the available dock width via size policy
             fm = QtGui.QFontMetrics(self.list.font())
             max_text = ""
             for i in range(count):
                 t = self.list.item(i).text()
                 if len(t) > len(max_text):
                     max_text = t
-            text_w = fm.horizontalAdvance(max_text) + 24  # padding
-            self.list.setFixedWidth(text_w)
+            text_w = fm.horizontalAdvance(max_text) + 24  # padding baseline
 
             # Controls row height (buttons/label at least 48)
-            ctrl_h = 48
+            ctrl_h = 72
 
             # Total widget size
             layout_margins = 6 * 2
@@ -166,7 +196,8 @@ class SnapSizeSelector(QtWidgets.QWidget):
             fudge = 2
             total_h = list_h + layout_spacing + ctrl_h + layout_margins + fudge
             total_w = max(text_w, 48 + 8 + fm.horizontalAdvance("÷ 64") + 8 + 48) + layout_margins
-            self.setFixedSize(total_w, total_h)
+            # Fix height, allow width to expand with the dock
+            self.setFixedHeight(total_h)
             # If hosted in a dock, clamp dock size too (include title bar height)
             p = self.parent()
             if isinstance(p, QtWidgets.QDockWidget):
@@ -176,8 +207,9 @@ class SnapSizeSelector(QtWidgets.QWidget):
                 except Exception:
                     title_h = 24
                 dock_h = total_h + int(title_h)
-                p.setMinimumSize(total_w, dock_h)
-                p.setMaximumSize(total_w, dock_h)
+                # Only clamp height; keep width flexible to match other docks
+                p.setMinimumHeight(dock_h)
+                p.setMaximumHeight(dock_h)
         except Exception:
             pass
 
@@ -283,10 +315,8 @@ class SnapSizeDock(QtWidgets.QDockWidget):
         self._update_title()
 
     def _update_title(self) -> None:
-        try:
-            frac = self.selector.get_snap_fraction()
-            # Display as numerator/denominator (e.g., 1/8)
-            text = f"Snap Size: {frac.numerator}/{frac.denominator}"
-            self.setWindowTitle(text)
-        except Exception:
-            pass
+        frac = self.selector.get_snap_fraction()
+        size = self.selector.get_snap_size()
+        # Display as numerator/denominator and time units
+        text = f"Snap Size: {frac.numerator}/{frac.denominator} | {size}"
+        self.setWindowTitle(text)

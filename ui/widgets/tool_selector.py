@@ -25,6 +25,15 @@ class ToolSelectorWidget(QtWidgets.QListWidget):
         self.setIconSize(QtCore.QSize(36, 36))
         self.setUniformItemSizes(True)
         self.setSpacing(4)
+        # Fill available dock width and avoid extra inner borders/scrollbars
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                           QtWidgets.QSizePolicy.Policy.Preferred)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        # Remove any inner margins to match Snap Size listbox appearance
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setViewportMargins(0, 0, 0, 0)
         self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         self.itemSelectionChanged.connect(self._emit_selected)
         self._populate()
@@ -63,8 +72,14 @@ class ToolSelectorDock(QtWidgets.QDockWidget):
         self.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable |
                          QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
-        self.selector = ToolSelectorWidget(self)
-        self.setWidget(self.selector)
+        # Wrap the list in a container with small margins to match Snap Size indent
+        container = QtWidgets.QWidget(self)
+        lay = QtWidgets.QVBoxLayout(container)
+        lay.setContentsMargins(6, 6, 6, 6)
+        lay.setSpacing(6)
+        self.selector = ToolSelectorWidget(container)
+        lay.addWidget(self.selector)
+        self.setWidget(container)
         try:
             self.selector.toolSelected.connect(self._on_tool_selected_update_title)
         except Exception:

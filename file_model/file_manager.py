@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional, Tuple
+import os
+import sys
+from datetime import datetime
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from file_model.SCORE import SCORE
+from utils.CONSTANT import UTILS_SAVE_DIR
 
 
 class FileManager:
@@ -24,6 +28,8 @@ class FileManager:
         self._current: SCORE = SCORE().new()
         self._path: Optional[Path] = None
         self._last_dir: Path = Path.home()
+        # Ensure the autosave directory exists on initialization
+        os.makedirs(UTILS_SAVE_DIR, exist_ok=True)
 
     # Accessors
     def current(self) -> SCORE:
@@ -45,6 +51,8 @@ class FileManager:
     def replace_current(self, new_score: SCORE) -> None:
         """Replace the current SCORE instance (used by undo/redo)."""
         self._current = new_score
+        # Autosave on any model replacement (e.g., undo/redo application)
+        self.autosave_current()
 
     def open(self) -> Optional[SCORE]:
         """Open a .piano file via a native file dialog and load into SCORE."""
@@ -113,3 +121,29 @@ class FileManager:
         msg.setWindowTitle(title)
         msg.setText(text)
         msg.exec()
+
+    # Autosave and error-backup utilities
+    def autosave_current(self) -> None:
+        """Save the current SCORE to the user's autosave file."""
+        target = Path(UTILS_SAVE_DIR) / "pianoscript_prev_session.piano"
+        self._current.save(str(target))
+
+    def install_error_backup_hook(self) -> None:
+        """Install a global excepthook to save a timestamped backup on errors."""
+        # Preserve the original hook
+        original_hook = sys.excepthook
+
+        def _hook(exctype, value, tb):
+            # Save timestamped error backup; format: dd-mm-YYYY-HH.MM.SS
+            ts = datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
+            fname = f"pianoscript_error_backup_{ts}.piano"
+            target = Path(UTILS_SAVE_DIR) / fname
+            try:
+                self._current.save(str(target))
+            except Exception:
+                # If backup saving itself fails, continue to report the exception
+                pass
+            # Delegate to original hook to print traceback to terminal
+            original_hook(exctype, value, tb)
+
+        sys.excepthook = _hook

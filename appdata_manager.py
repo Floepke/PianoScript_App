@@ -1,15 +1,11 @@
 from __future__ import annotations
 import os
-import sys
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 from utils.CONSTANT import UTILS_SAVE_DIR
 
-
-# Paths under the user's home folder (~/ .pianoscript)
-PREFERENCES_PATH: Path = Path(UTILS_SAVE_DIR) / "preferences.py"
+APPDATA_PATH: Path = Path(UTILS_SAVE_DIR) / "appdata.py"
 
 
 def _ensure_dir() -> None:
@@ -17,24 +13,24 @@ def _ensure_dir() -> None:
 
 
 @dataclass
-class _PrefDef:
+class _DataDef:
     default: object
     description: str
 
 
-class PreferencesManager:
-    """Register and persist application preferences in ~/ .pianoscript/preferences.py.
+class AppDataManager:
+    """Register and persist application data (non-preferences) in ~/ .pianoscript/appdata.py.
 
-    Users can edit this file; changes take effect after restarting the app.
+    This is for runtime-managed data such as recent files, last session info, etc.
     """
 
-    def __init__(self, path: Path = PREFERENCES_PATH) -> None:
+    def __init__(self, path: Path = APPDATA_PATH) -> None:
         self.path = path
-        self._schema: Dict[str, _PrefDef] = {}
+        self._schema: Dict[str, _DataDef] = {}
         self._values: Dict[str, object] = {}
 
     def register(self, key: str, default: object, description: str) -> None:
-        self._schema[key] = _PrefDef(default=default, description=description)
+        self._schema[key] = _DataDef(default=default, description=description)
         if key not in self._values:
             self._values[key] = default
 
@@ -47,15 +43,13 @@ class PreferencesManager:
     def load(self) -> None:
         _ensure_dir()
         if not self.path.exists():
-            # Initialize defaults and write file
             self.save()
             return
         text = self.path.read_text(encoding="utf-8")
         parsed = self._parse_py_dict(text)
-        # Merge
         for k, d in self._schema.items():
             if k in parsed:
-                self._values[k] = self._coerce(parsed[k], d.default)
+                self._values[k] = parsed[k]
             else:
                 self._values.setdefault(k, d.default)
         for k, v in parsed.items():
@@ -67,17 +61,6 @@ class PreferencesManager:
         content = self._emit_py_file(self._values)
         self.path.write_text(content, encoding="utf-8")
 
-    def open_in_editor(self) -> None:
-        _ensure_dir()
-        if not self.path.exists():
-            self.save()
-        if sys.platform.startswith("linux"):
-            subprocess.Popen(["xdg-open", str(self.path)])
-        elif sys.platform == "darwin":
-            subprocess.Popen(["open", str(self.path)])
-        elif os.name == "nt":
-            os.startfile(str(self.path))  # type: ignore[attr-defined]
-
     # Internals
     def _parse_py_dict(self, text: str) -> Dict:
         import ast
@@ -85,34 +68,17 @@ class PreferencesManager:
         for node in tree.body:
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == 'preferences':
+                    if isinstance(target, ast.Name) and target.id == 'appdata':
                         value = ast.literal_eval(node.value)
                         if isinstance(value, dict):
                             return value
                         return {}
         return {}
 
-    def _coerce(self, value: object, default: object) -> object:
-        if isinstance(default, bool):
-            return bool(value)
-        if isinstance(default, int):
-            try:
-                return int(value)
-            except Exception:
-                return default
-        if isinstance(default, float):
-            try:
-                return float(value)
-            except Exception:
-                return default
-        if isinstance(default, str):
-            return str(value)
-        return value
-
     def _emit_py_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# PianoScript preferences\n\n# You can edit this file to change the application preferences.\n# Changes take effect after restarting the app.\n")
-        lines.append("preferences = {")
+        lines.append("# PianoScript app data\n\n# Application-managed data. Editing is possible but not recommended.\n# Some changes may only take effect after restart.\n")
+        lines.append("appdata = {")
         indent = "    "
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]
         seen: set[str] = set()
@@ -136,10 +102,8 @@ class PreferencesManager:
         if isinstance(v, list):
             if not v:
                 return "[]"
-            if len(v) <= 3 and all(isinstance(x, (int, float, str)) for x in v):
-                return f"[{', '.join(self._format_value(x) for x in v)}]"
-            inner = ",\n".join("        " + self._format_value(x) for x in v)
-            return "[\n" + inner + "\n    ]"
+            inner = ", ".join(repr(x) for x in v)
+            return f"[{inner}]"
         if isinstance(v, dict):
             if not v:
                 return "{}"
@@ -154,25 +118,16 @@ class PreferencesManager:
         return repr(v)
 
 
-# ---- Registration hub (add new app preferences here) ----
-_prefs_manager: Optional[PreferencesManager] = None
+# ---- Registration hub (add app data keys here) ----
+_appdata_manager: Optional[AppDataManager] = None
 
 
-def get_preferences_manager() -> PreferencesManager:
-    global _prefs_manager
-    if _prefs_manager is None:
-        pm = PreferencesManager(PREFERENCES_PATH)
-        # Register known preferences here
-        pm.register("ui_scale", 1.0, "Global UI scale: (0.5 .. 3.0)")
-        pm.register("theme", "light", "UI theme: ('light' | 'dark')")
-        pm.load()
-        _prefs_manager = pm
-    return _prefs_manager
-
-
-def get_preferences() -> Dict:
-    return get_preferences_manager()._values
-
-
-def open_preferences() -> None:
-    get_preferences_manager().open_in_editor()
+def get_appdata_manager() -> AppDataManager:
+    global _appdata_manager
+    if _appdata_manager is None:
+        adm = AppDataManager(APPDATA_PATH)
+        # Register known app data here (not user preferences)
+        adm.register("recent_files", [], "List of recently opened files (most recent first)")
+        adm.load()
+        _appdata_manager = adm
+    return _appdata_manager
