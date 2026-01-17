@@ -2,6 +2,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 import cairo
 from ui.widgets.draw_util import DrawUtil
+from utils.CONSTANT import ENGRAVER_LAYERING
 from engraver.engraver import do_engrave
 
 
@@ -43,7 +44,7 @@ class RenderTask(QtCore.QRunnable):
                 print(f"Engrave error: {e}")
         image, surface, _buf = _make_image_and_surface(self._w_px, self._h_px)
         ctx = cairo.Context(surface)
-        self._du.render_to_cairo(ctx, self._page_index, self._px_per_mm)
+        self._du.render_to_cairo(ctx, self._page_index, self._px_per_mm, layering=ENGRAVER_LAYERING)
         image.setDevicePixelRatio(self._dpr)
         # Emit back to the UI thread
         self._emitter.rendered.emit(image.copy(), self._page_index)

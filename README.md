@@ -24,6 +24,22 @@ source .venv/bin/activate
 python pianoscript.py
 ```
 
+## Debugging Viewport & Scroll
+
+- Set environment variables before launching to enable diagnostics:
+	- `PIANOSCRIPT_DEBUG_VIEWPORT=1`: draws a red border around the visible viewport to verify clipping edges remain fixed while content scrolls.
+	- `PIANOSCRIPT_DEBUG_SCROLL=1`: logs scroll diagnostics: logical scroll px, device pixel ratio, `px_per_mm`, and computed `clip_y_mm`/`clip_h_mm`.
+
+Example:
+
+```bash
+PIANOSCRIPT_DEBUG_VIEWPORT=1 PIANOSCRIPT_DEBUG_SCROLL=1 python3 pianoscript.py
+```
+
+Notes:
+- Scrollbar steps auto-scale with zoom so wheel movement feels consistent at different zoom levels.
+- On HiDPI displays, the widget uses device pixel ratio (`dpr`) properly by converting logical scrollbar values to device pixels for the clip calculation.
+
 ## Settings
 
 - Location: `~/.pianoscript_settings.py` (Python file with a `settings` dict)

@@ -74,6 +74,19 @@ class FileManager:
             self._show_error("Failed to open score", f"{exc}")
             return None
 
+    def open_path(self, path: str) -> Optional[SCORE]:
+        """Programmatically open a .piano file from a given path.
+
+        Returns the SCORE on success, None on failure.
+        """
+        try:
+            self._current = SCORE().load(path)
+            self._path = Path(path)
+            self._last_dir = self._path.parent
+            return self._current
+        except Exception:
+            return None
+
     def save(self) -> bool:
         """Save to the current path, or prompt Save As if none."""
         if self._path is None:

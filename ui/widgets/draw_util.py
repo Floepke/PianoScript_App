@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable, List, Optional, Sequence, Tuple
 import cairo
-from utils.CONSTANT import EDITOR_DRAWING_ORDER
+from utils.CONSTANT import EDITOR_LAYERING
 
 MM_PER_INCH = 25.4
 PT_PER_INCH = 72.0
@@ -276,16 +276,40 @@ class DrawUtil:
         if self._current_index < 0:
             raise RuntimeError("No page: call new_page(width_mm, height_mm) first")
 
-    def render_to_cairo(self, ctx: cairo.Context, page_index: int, px_per_mm: float) -> None:
+    def render_to_cairo(self, ctx: cairo.Context, page_index: int, px_per_mm: float,
+                        clip_rect_mm: Optional[Tuple[float, float, float, float]] = None,
+                        overscan_mm: float = 0.0,
+                        layering: Optional[Sequence[str]] = None) -> None:
         page = self._pages[page_index]
         ctx.save()
-        ctx.set_antialias(cairo.ANTIALIAS_BEST)
+        # Use faster antialiasing when zoomed-in to reduce per-pixel cost
+        if px_per_mm >= 4.0:
+            ctx.set_antialias(cairo.ANTIALIAS_FAST)
+        else:
+            ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.scale(px_per_mm, px_per_mm)
+        # Static viewport: translate to the clip origin only; do not apply Cairo clipping.
+        # Determine viewport origin and size in mm and translate to anchor at (0,0)
+        x_o = 0.0
+        y_o = 0.0
+        vp_w_mm = page.width_mm
+        vp_h_mm = page.height_mm
+        if clip_rect_mm is not None:
+            clip_x, clip_y, w, h = clip_rect_mm
+            # Translate to the viewport origin; shapes are drawn as-is.
+            ctx.translate(-clip_x, -clip_y)
+            # Logical viewport dimensions
+            x_o = clip_x
+            y_o = clip_y
+            vp_w_mm = w
+            vp_h_mm = h
         # Do not auto-fill a white background; honor caller-supplied background
         # (e.g., explicit rectangle item or widget painter).
 
-        for item in self._iter_items_in_editor_order(page):
+        layering_list = list(layering) if layering is not None else list(EDITOR_LAYERING)
+        for item in self._iter_items_in_editor_order(page, clip_rect_mm, layering_list):
             if isinstance(item, Line):
+                # Draw lines without trimming; rely on culling by hit-rect only.
                 self._draw_line(ctx, item)
             elif isinstance(item, Rect):
                 self._draw_rect(ctx, item)
@@ -360,27 +384,45 @@ class DrawUtil:
 
     # ---- Drawing order based on tags ----
 
-    def _item_layer_index(self, item: object) -> int:
-        """Return the index in EDITOR_DRAWING_ORDER for the item's tags.
+    def _item_layer_index(self, item: object, layering: Sequence[str]) -> int:
+        """Return the index in provided layering sequence for the item's tags.
 
         If multiple tags match layers, the earliest layer index is used.
         Items with no matching tags are placed after all known layers.
         """
         item_tags = getattr(item, "tags", [])
-        best = len(EDITOR_DRAWING_ORDER)
+        best = len(layering)
         for t in item_tags:
             try:
-                idx = EDITOR_DRAWING_ORDER.index(t)
+                idx = layering.index(t)
                 if idx < best:
                     best = idx
             except ValueError:
                 continue
         return best
 
-    def _iter_items_in_editor_order(self, page: Page):
+    def _rect_intersects_rect(self, a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> bool:
+        ax, ay, aw, ah = a
+        bx, by, bw, bh = b
+        return not (ax + aw < bx or bx + bw < ax or ay + ah < by or by + bh < ay)
+
+    def _iter_items_in_editor_order(self, page: Page, clip_rect_mm: Optional[Tuple[float, float, float, float]] = None,
+                                    layering: Sequence[str] = tuple(EDITOR_LAYERING)):
         # Stable sort: by layer index, then by insertion order
         with_index = list(enumerate(page.items))
-        with_index.sort(key=lambda pair: (self._item_layer_index(pair[1]), pair[0]))
+        # Optional culling by clip rect
+        if clip_rect_mm is not None:
+            culled = []
+            for idx, it in with_index:
+                rect = getattr(it, "hit_rect_mm", None)
+                if rect is None:
+                    # If no rect, keep (e.g., text without metrics) — rely on Cairo clip
+                    culled.append((idx, it))
+                else:
+                    if self._rect_intersects_rect(rect, clip_rect_mm):
+                        culled.append((idx, it))
+            with_index = culled
+        with_index.sort(key=lambda pair: (self._item_layer_index(pair[1], layering), pair[0]))
         for _i, item in with_index:
             yield item
 
@@ -433,7 +475,7 @@ class DrawUtil:
         out.sort(key=lambda t: t[0])
         return [i for (_a, i) in out]
 
-    def save_pdf(self, path: str) -> None:
+    def save_pdf(self, path: str, layering: Optional[Sequence[str]] = None) -> None:
         if not self._pages:
             return
         for i, page in enumerate(self._pages):
@@ -451,7 +493,8 @@ class DrawUtil:
             ctx.set_source_rgb(1, 1, 1)
             ctx.rectangle(0, 0, page.width_mm, page.height_mm)
             ctx.fill()
-            for item in self._iter_items_in_editor_order(page):
+            layering_list = list(layering) if layering is not None else list(EDITOR_LAYERING)
+            for item in self._iter_items_in_editor_order(page, None, layering_list):
                 if isinstance(item, Line):
                     self._draw_line(ctx, item)
                 elif isinstance(item, Rect):
@@ -480,6 +523,51 @@ class DrawUtil:
         if fill and fill.color[3] > 0:
             ctx.set_source_rgba(*fill.color)
             ctx.fill_preserve()
+
+    def _clip_line_to_viewport(self, x1: float, y1: float, x2: float, y2: float, vp_w: float, vp_h: float):
+        """Liang-Barsky line clipping. Returns None if fully outside, else endpoints in viewport space."""
+        dx = x2 - x1
+        dy = y2 - y1
+        p = [-dx, dx, -dy, dy]
+        q = [x1, vp_w - x1, y1, vp_h - y1]
+        u1 = 0.0
+        u2 = 1.0
+        for pi, qi in zip(p, q):
+            if pi == 0.0:
+                if qi < 0.0:
+                    return None
+            else:
+                t = qi / pi
+                if pi < 0.0:
+                    if t > u2:
+                        return None
+                    if t > u1:
+                        u1 = t
+                else:  # pi > 0
+                    if t < u1:
+                        return None
+                    if t < u2:
+                        u2 = t
+        cx1 = x1 + u1 * dx
+        cy1 = y1 + u1 * dy
+        cx2 = x1 + u2 * dx
+        cy2 = y1 + u2 * dy
+        return (cx1, cy1, cx2, cy2)
+
+    def _draw_line_clipped(self, ctx: cairo.Context, line: Line, x_o: float, y_o: float, vp_w_mm: float, vp_h_mm: float):
+        # Transform line endpoints into viewport space (after translation by -x_o, -y_o)
+        x1 = line.x1_mm - x_o
+        y1 = line.y1_mm - y_o
+        x2 = line.x2_mm - x_o
+        y2 = line.y2_mm - y_o
+        clipped = self._clip_line_to_viewport(x1, y1, x2, y2, vp_w_mm, vp_h_mm)
+        if clipped is None:
+            return
+        cx1, cy1, cx2, cy2 = clipped
+        self._apply_stroke(ctx, line.stroke)
+        ctx.move_to(cx1, cy1)
+        ctx.line_to(cx2, cy2)
+        ctx.stroke()
 
     def _draw_line(self, ctx: cairo.Context, line: Line):
         self._apply_stroke(ctx, line.stroke)

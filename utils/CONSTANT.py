@@ -15,35 +15,54 @@ QUARTER_NOTE_UNIT: float = 256.0
 # Drawing orders (single sources of truth)
 # Each string corresponds to a drawer name registered in editor/drawers/__init__.py
 # Update these lists to control layer stacking in the Editor and Engraver.
-EDITOR_DRAWING_ORDER = [
-    'grid',
-    'stave',
-    'note',
+EDITOR_LAYERING = [
+    # midi_note in background of the notation.
+    'cursor_grid',
+    'midi_note', 
+    
+    # stave elements
+    'chord_guide',
+    'grid_line',
+    'stave_three_line',
+    'stave_two_line',
+    'stave_clef_line',
+    'barline',
+    'stem_white_space',
+    
+    # note elements
+    'stop_sign',
+    'accidental',
+    'notehead_white',
+    'notehead_black',
+    'left_dot',
+    'stem',
+    'chord_connect',
+
+    # grace_note
     'grace_note',
+
+    # beam elements
     'beam',
-    'pedal',
-    'text',
+    'beam_stem',
+
+    # other notation elements
+    'measure_number',
     'slur',
-    'start_repeat',
-    'end_repeat',
-    'count_line',
+    'text',
+    'tempo',
     'line_break',
+    'count_line',
+    
+    # UI elements (top layers)
+    'selection_rect',  # Selection rectangle
+    'keyboard_overlay_bg',     # Piano keyboard overlay background
+    'keyboard_overlay_keys',   # Piano keyboard overlay keys
+    'cursor',            # Always on top
 ]
 
-ENGRAVER_DRAWING_ORDER = [
-    # Default engraver order; customize independently if needed
-    'grid',
-    'stave',
-    'note',
-    'beam',
-    'slur',
-    'grace_note',
-    'text',
-    'start_repeat',
-    'end_repeat',
-    'count_line',
-    'line_break',
-    'pedal',
+ENGRAVER_LAYERING = [
+    # to be entered later
+    ...
 ]
 
 # Keyboard constants

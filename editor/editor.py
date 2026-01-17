@@ -17,7 +17,7 @@ from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
 from editor.undo_manager import UndoManager
-from utils.CONSTANT import EDITOR_DRAWING_ORDER
+from utils.CONSTANT import EDITOR_LAYERING
 from editor.drawers.stave_drawer import StaveDrawerMixin
 from editor.drawers.grid_drawer import GridDrawerMixin
 from editor.drawers.note_drawer import NoteDrawerMixin
@@ -58,6 +58,7 @@ class Editor(QtCore.QObject,
         self._tool: BaseTool = BaseGridTool()  # default tool
         self._undo = UndoManager()
         self._file_manager = None
+        self._score = None
         self._tool_classes: Dict[str, Type[BaseTool]] = {
             'beam': BeamTool,
             'count_line': CountLineTool,
@@ -85,6 +86,11 @@ class Editor(QtCore.QObject,
         self.stave_width: float = 100.0
         self.semitone_width: float = 1.0
 
+        # colors
+        self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.05, 1.0)
+
+        # 
+
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
         """Fill the current page with print-view grey (#7a7a7a)."""
@@ -93,24 +99,27 @@ class Editor(QtCore.QObject,
         du.add_rectangle(0.0, 0.0, w_mm, h_mm, stroke_color=None, fill_color=grey, id=0, tags=["background"])
 
     def draw_all(self, du) -> None:
-        """Invoke drawer mixin methods in EDITOR_DRAWING_ORDER."""
-        for name in EDITOR_DRAWING_ORDER:
-            method = {
-                'stave': self.draw_stave,
-                'grid': self.draw_grid,
-                'note': self.draw_note,
-                'grace_note': self.draw_grace_note,
-                'beam': self.draw_beam,
-                'pedal': self.draw_pedal,
-                'text': self.draw_text,
-                'slur': self.draw_slur,
-                'start_repeat': self.draw_start_repeat,
-                'end_repeat': self.draw_end_repeat,
-                'count_line': self.draw_count_line,
-                'line_break': self.draw_line_break,
-            }.get(name)
-            if method is not None:
-                method(du)
+        """Invoke drawer mixin methods; layer order is enforced by DrawUtil tags.
+
+        We simply call all drawer methods; DrawUtil sorts items by tag layering.
+        """
+        methods = [
+            getattr(self, 'draw_grid', None),
+            getattr(self, 'draw_stave', None),
+            getattr(self, 'draw_note', None),
+            getattr(self, 'draw_grace_note', None),
+            getattr(self, 'draw_beam', None),
+            getattr(self, 'draw_pedal', None),
+            getattr(self, 'draw_text', None),
+            getattr(self, 'draw_slur', None),
+            getattr(self, 'draw_start_repeat', None),
+            getattr(self, 'draw_end_repeat', None),
+            getattr(self, 'draw_count_line', None),
+            getattr(self, 'draw_line_break', None),
+        ]
+        for fn in methods:
+            if callable(fn):
+                fn(du)
 
     def _calculate_layout(self, view_width_mm: float) -> None:
         """Compute editor-specific layout based on the current view width.
@@ -121,7 +130,7 @@ class Editor(QtCore.QObject,
         """
         from utils.CONSTANT import PIANO_KEY_AMOUNT
         w = max(1.0, float(view_width_mm))
-        margin = w / 10.0
+        margin = w / 6.0
         self.margin = margin
         self.stave_width = max(1.0, w - 2.0 * margin)
         self.semitone_width = self.stave_width / float(max(1, PIANO_KEY_AMOUNT - 1))
@@ -133,6 +142,10 @@ class Editor(QtCore.QObject,
         self._tool = cls()
         self._tm.set_tool(self._tool)
 
+    def set_score(self, score):
+        # Set an explicit score model when not using FileManager
+        self._score = score
+
     # Model provider for undo snapshots
     def set_file_manager(self, fm) -> None:
         """Provide FileManager so we can snapshot/restore SCORE for undo/redo."""
@@ -142,10 +155,10 @@ class Editor(QtCore.QObject,
             self._undo.reset_initial(self._file_manager.current())
 
     def current_score(self):
-        """Return the current SCORE from FileManager if available."""
+        """Return the current SCORE: prefer FileManager; fall back to explicit _score."""
         if self._file_manager is not None:
             return self._file_manager.current()
-        return None
+        return getattr(self, "_score", None)
 
     def _snapshot_if_changed(self, coalesce: bool = False, label: str = "") -> None:
         if self._file_manager is None:

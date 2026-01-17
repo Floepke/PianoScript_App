@@ -33,13 +33,9 @@ class MainWindow(QtWidgets.QMainWindow):
             "QSplitter::handle { background: transparent; image: none; }\n"
             "QSplitter::handle:hover { background: transparent; }"
         )
-        # Editor view inside a scroll area for native scrolling
+        # Editor view with external scrollbar for static viewport scrolling
         self.editor_canvas = CairoEditorWidget()
-        self.editor_scroll = QtWidgets.QScrollArea()
-        self.editor_scroll.setWidget(self.editor_canvas)
-        self.editor_scroll.setWidgetResizable(True)
-        self.editor_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.editor_scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.editor_vscroll = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Vertical)
         # For external code, expose the canvas under the same name
         self.editor = self.editor_canvas
 
@@ -51,10 +47,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self.engraver = Engraver(self.du, self)
         # When engraving completes, re-render the print view
         self.engraver.engraved.connect(self.print_view.request_render)
+        # Try to load a default test score from Desktop; fallback to new
+        try:
+            default_path = "/home/flop/Desktop/music.piano"
+            loaded = None
+            if default_path:
+                loaded = self.file_manager.open_path(default_path)
+            if loaded is None:
+                self.file_manager.new()
+        except Exception:
+            # Fallback to a new blank score on any error
+            self.file_manager.new()
+
         # Provide initial score to engrave
         self._refresh_views_from_score()
 
-        splitter.addWidget(self.editor_scroll)
+        # Build a container with the canvas and external vertical scrollbar
+        editor_container = QtWidgets.QWidget()
+        editor_layout = QtWidgets.QHBoxLayout(editor_container)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(0)
+        editor_layout.addWidget(self.editor_canvas, stretch=1)
+        editor_layout.addWidget(self.editor_vscroll, stretch=0)
+        splitter.addWidget(editor_container)
         splitter.addWidget(self.print_view)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
@@ -104,6 +119,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # Page navigation state
         self._page_counter = 0
         self._total_pages_placeholder = 4  # TODO: replace with real page count
+
+        # Connect external scrollbar to the editor canvas
+        try:
+            self.editor.viewportMetricsChanged.connect(self._on_editor_metrics)
+            self.editor_vscroll.valueChanged.connect(self._on_editor_scroll_changed)
+            # Keep external scrollbar in sync with wheel-driven scroll from the editor
+            self.editor.scrollLogicalPxChanged.connect(self.editor_vscroll.setValue)
+        except Exception:
+            pass
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
@@ -168,7 +192,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             out_path = dlg.selectedFiles()[0]
             try:
-                self.du.save_pdf(out_path)
+                from utils.CONSTANT import ENGRAVER_LAYERING
+                self.du.save_pdf(out_path, layering=ENGRAVER_LAYERING)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Export PDF failed", str(e))
 
@@ -179,12 +204,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def _file_new(self) -> None:
         self.file_manager.new()
         self._refresh_views_from_score()
+        # Provide current score to editor for drawers needing direct access
+        try:
+            self.editor_controller.set_score(self.file_manager.current())
+        except Exception:
+            pass
         self._update_title()
 
     def _file_open(self) -> None:
         sc = self.file_manager.open()
         if sc:
             self._refresh_views_from_score()
+            try:
+                self.editor_controller.set_score(self.file_manager.current())
+            except Exception:
+                pass
             self._update_title()
 
     def _file_save(self) -> None:
@@ -210,13 +244,43 @@ class MainWindow(QtWidgets.QMainWindow):
         # Also refresh the editor view
         self.editor.update()
 
+    @QtCore.Slot(int, int, float, float)
+    def _on_editor_metrics(self, content_px: int, viewport_px: int, px_per_mm: float, dpr: float) -> None:
+        # External QScrollBar works in logical pixels
+        scale = max(1.0, dpr)
+        max_scroll = max(0, int(round((content_px - viewport_px) / scale)))
+        self.editor_vscroll.setRange(0, max_scroll)
+        # Page step ~ 80% of viewport height (logical px)
+        self.editor_vscroll.setPageStep(int(max(1, round(0.8 * viewport_px / scale))))
+        # Single step ~ 40mm in logical pixels (independent of editor zoom)
+        base_mm_per_step = 40.0
+        device_px_step = base_mm_per_step * px_per_mm
+        logical_px_step = int(max(1, round(device_px_step / scale)))
+        self.editor_vscroll.setSingleStep(logical_px_step)
+        # Clamp current value within new range to avoid unbounded wheel scroll
+        cur = int(self.editor_vscroll.value())
+        if cur > max_scroll:
+            self.editor_vscroll.setValue(max_scroll)
+
+    @QtCore.Slot(int)
+    def _on_editor_scroll_changed(self, value: int) -> None:
+        self.editor.set_scroll_logical_px(value)
+
     def _edit_undo(self) -> None:
         self.editor_controller.undo()
         self._refresh_views_from_score()
+        try:
+            self.editor_controller.set_score(self.file_manager.current())
+        except Exception:
+            pass
 
     def _edit_redo(self) -> None:
         self.editor_controller.redo()
         self._refresh_views_from_score()
+        try:
+            self.editor_controller.set_score(self.file_manager.current())
+        except Exception:
+            pass
 
     def _update_title(self) -> None:
         p = self.file_manager.path()
