@@ -1,12 +1,7 @@
-from __future__ import annotations
-from typing import Any
 from ui.widgets.draw_util import DrawUtil
-from editor.editor import Editor
-from .base import DrawerBase
 
 
-class LineBreakDrawer(DrawerBase):
-    def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
-        self.setup_context(du, score, editor)
-        
-        ... # Implementation for drawing line break elements would go here
+class LineBreakDrawerMixin:
+    def draw_line_break(self, du: DrawUtil) -> None:
+        # Implementation for drawing line break elements would go here (placeholder)
+        ...

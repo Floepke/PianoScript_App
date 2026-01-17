@@ -5,22 +5,23 @@ from typing import List
 @dataclass
 class BaseGrid:
     """
-    Defines the musical grid in measures without specifying literal time positions.
-    Attributes:
-        numerator (int): The numerator of the time signature.
-        denominator (int): The denominator of the time signature.
-        grid_step (int): The subdivision of the measure for the grid.
-            grid_step defines in how many steps we divide the measure.
-        grid_positions (List[int]): The positions within the measure that define the grid.
-            1 is the barline. So if 1 misses the app will not print the barline.
-            2, 3, 4 are the grid lines.
-            so we can hide any of them if needed.
-        measure_amount (int): The number of measures with these settings we create.
+    Defines the musical grid across a sequence of measures.
 
-        So grid_step and grid_positions together define the actual time positions of the grid.
+    - numerator: time signature numerator (e.g., 4 in 4/4)
+    - denominator: time signature denominator (e.g., 4 in 4/4)
+
+    Denominator defines the smallest possible time step for the base grid in
+    this context. A denominator of 1 enforces drawing the barline (beat 1) for
+    each measure. Higher denominators subdivide the measure into smaller units
+    and `grid_beats_enabled` selects which beats are drawn/enabled.
+
+    For example, in 4/4, `grid_beats_enabled=[1,2,3,4]` draws beats 1–4.
+
+    - grid_beats_enabled: list of beat indices within the measure to draw/enable.
+      Beat 1 always corresponds to the barline.
+    - measure_amount: number of measures to generate with these settings.
     """
     numerator: int = 4
     denominator: int = 4
-    grid_step: int = 4
-    grid_positions: List[int] = field(default_factory=lambda: [1, 2, 3, 4])
+    grid_beats_enabled: List[int] = field(default_factory=lambda: [1, 2, 3, 4])
     measure_amount: int = 1

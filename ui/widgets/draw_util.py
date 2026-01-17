@@ -1,7 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple
 import cairo
+from utils.CONSTANT import EDITOR_DRAWING_ORDER
 
 MM_PER_INCH = 25.4
 PT_PER_INCH = 72.0
@@ -30,7 +31,7 @@ class Line:
     x2_mm: float
     y2_mm: float
     stroke: Stroke = field(default_factory=Stroke)
-    # Picking metadata
+    # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
     hit_rect_mm: Optional[Tuple[float, float, float, float]] = None
@@ -44,7 +45,7 @@ class Rect:
     h_mm: float
     stroke: Optional[Stroke] = field(default_factory=Stroke)
     fill: Optional[Fill] = field(default_factory=Fill)
-    # Picking metadata
+    # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
     hit_rect_mm: Optional[Tuple[float, float, float, float]] = None
@@ -58,7 +59,7 @@ class Oval:
     h_mm: float
     stroke: Optional[Stroke] = field(default_factory=Stroke)
     fill: Optional[Fill] = field(default_factory=Fill)
-    # Picking metadata
+    # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
     hit_rect_mm: Optional[Tuple[float, float, float, float]] = None
@@ -70,7 +71,7 @@ class Polyline:
     closed: bool = False
     stroke: Optional[Stroke] = field(default_factory=Stroke)
     fill: Optional[Fill] = field(default_factory=Fill)
-    # Picking metadata
+    # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
     hit_rect_mm: Optional[Tuple[float, float, float, float]] = None
@@ -95,8 +96,8 @@ class Text:
     italic: bool = False
     bold: bool = False
     color: Color = (0, 0, 0, 1)
-    # Identity and picking
-    id: int = 0  # non-zero => clickable; 0 => skip detection
+    # Deprecated: `id` is no longer used for picking; kept for compatibility.
+    id: int = 0
     tags: List[str] = field(default_factory=list)
     hit_rect_mm: Optional[Tuple[float, float, float, float]] = None  # (x,y,w,h)
 
@@ -152,7 +153,8 @@ class DrawUtil:
                         dash_pattern_mm=dash_pattern, dash_offset_mm=dash_offset_mm)
         if tags is None:
             tags = []
-        if hit_rect_mm is None and id != 0:
+        # Compute a default hit rect for picking if not provided.
+        if hit_rect_mm is None:
             x = min(x1_mm, x2_mm)
             y = min(y1_mm, y2_mm)
             w = abs(x2_mm - x1_mm)
@@ -177,7 +179,7 @@ class DrawUtil:
             fill = Fill(fill_color)
         if tags is None:
             tags = []
-        if hit_rect_mm is None and id != 0:
+        if hit_rect_mm is None:
             hit_rect_mm = (x_mm, y_mm, w_mm, h_mm)
         self._pages[self._current_index].items.append(Rect(x_mm, y_mm, w_mm, h_mm, stroke, fill, id, tags, hit_rect_mm))
 
@@ -198,7 +200,7 @@ class DrawUtil:
             fill = Fill(fill_color)
         if tags is None:
             tags = []
-        if hit_rect_mm is None and id != 0:
+        if hit_rect_mm is None:
             hit_rect_mm = (x_mm, y_mm, w_mm, h_mm)
         self._pages[self._current_index].items.append(Oval(x_mm, y_mm, w_mm, h_mm, stroke, fill, id, tags, hit_rect_mm))
 
@@ -219,7 +221,7 @@ class DrawUtil:
             fill = Fill(fill_color)
         if tags is None:
             tags = []
-        if hit_rect_mm is None and id != 0:
+        if hit_rect_mm is None:
             xs = [p[0] for p in points_mm]
             ys = [p[1] for p in points_mm]
             x = min(xs) if xs else 0.0
@@ -240,7 +242,7 @@ class DrawUtil:
         stroke = Stroke(stroke_color, stroke_width_mm, dash_pattern, dash_offset_mm)
         if tags is None:
             tags = []
-        if hit_rect_mm is None and id != 0:
+        if hit_rect_mm is None:
             xs = [p[0] for p in points_mm]
             ys = [p[1] for p in points_mm]
             x = min(xs) if xs else 0.0
@@ -279,13 +281,10 @@ class DrawUtil:
         ctx.save()
         ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.scale(px_per_mm, px_per_mm)
-        ctx.save()
-        ctx.set_source_rgb(1, 1, 1)
-        ctx.rectangle(0, 0, page.width_mm, page.height_mm)
-        ctx.fill()
-        ctx.restore()
+        # Do not auto-fill a white background; honor caller-supplied background
+        # (e.g., explicit rectangle item or widget painter).
 
-        for item in page.items:
+        for item in self._iter_items_in_editor_order(page):
             if isinstance(item, Line):
                 self._draw_line(ctx, item)
             elif isinstance(item, Rect):
@@ -298,6 +297,93 @@ class DrawUtil:
                 self._draw_text(ctx, item)
         ctx.restore()
 
+    # ---- Tag system (tkinter-style) ----
+
+    def find_with_tag(self, tag: str, page_index: Optional[int] = None) -> List[object]:
+        """Return all items on the page that have the given tag."""
+        if page_index is None:
+            page_index = self._current_index
+        if page_index < 0 or page_index >= len(self._pages):
+            return []
+        page = self._pages[page_index]
+        return [it for it in page.items if tag in getattr(it, "tags", [])]
+
+    def find_all(self, tags: Iterable[str], match_all: bool = False, page_index: Optional[int] = None) -> List[object]:
+        """Find items that match one or all of the provided tags.
+
+        - match_all=False: item has any of the tags
+        - match_all=True:  item has all of the tags
+        """
+        tag_set = set(tags)
+        if not tag_set:
+            return []
+        if page_index is None:
+            page_index = self._current_index
+        if page_index < 0 or page_index >= len(self._pages):
+            return []
+        page = self._pages[page_index]
+        if match_all:
+            return [it for it in page.items if tag_set.issubset(set(getattr(it, "tags", [])))]
+        else:
+            return [it for it in page.items if set(getattr(it, "tags", [])).intersection(tag_set)]
+
+    def delete_with_tag(self, tag: str, page_index: Optional[int] = None) -> int:
+        """Delete all items with the given tag. Returns count removed."""
+        return self.delete_with_tags([tag], match_all=False, page_index=page_index)
+
+    def delete_with_tags(self, tags: Iterable[str], match_all: bool = False, page_index: Optional[int] = None) -> int:
+        """Delete all items that match one/all of the tags. Returns count removed."""
+        tag_set = set(tags)
+        if page_index is None:
+            page_index = self._current_index
+        if page_index < 0 or page_index >= len(self._pages):
+            return 0
+        page = self._pages[page_index]
+        before = len(page.items)
+        if match_all:
+            page.items = [it for it in page.items if not tag_set.issubset(set(getattr(it, "tags", [])))]
+        else:
+            page.items = [it for it in page.items if not set(getattr(it, "tags", [])).intersection(tag_set)]
+        return before - len(page.items)
+
+    def add_tag(self, item: object, tag: str) -> None:
+        """Add a tag to an item if not present."""
+        tags = getattr(item, "tags", None)
+        if tags is not None and tag not in tags:
+            tags.append(tag)
+
+    def remove_tag(self, item: object, tag: str) -> None:
+        """Remove a tag from an item if present."""
+        tags = getattr(item, "tags", None)
+        if tags is not None and tag in tags:
+            tags.remove(tag)
+
+    # ---- Drawing order based on tags ----
+
+    def _item_layer_index(self, item: object) -> int:
+        """Return the index in EDITOR_DRAWING_ORDER for the item's tags.
+
+        If multiple tags match layers, the earliest layer index is used.
+        Items with no matching tags are placed after all known layers.
+        """
+        item_tags = getattr(item, "tags", [])
+        best = len(EDITOR_DRAWING_ORDER)
+        for t in item_tags:
+            try:
+                idx = EDITOR_DRAWING_ORDER.index(t)
+                if idx < best:
+                    best = idx
+            except ValueError:
+                continue
+        return best
+
+    def _iter_items_in_editor_order(self, page: Page):
+        # Stable sort: by layer index, then by insertion order
+        with_index = list(enumerate(page.items))
+        with_index.sort(key=lambda pair: (self._item_layer_index(pair[1]), pair[0]))
+        for _i, item in with_index:
+            yield item
+
     # ---- Hit detection ----
 
     def _rect_contains_point(self, rect_mm: Tuple[float, float, float, float], x_mm: float, y_mm: float) -> bool:
@@ -307,7 +393,7 @@ class DrawUtil:
     def hit_test_point_mm(self, x_mm: float, y_mm: float, page_index: Optional[int] = None):
         """Return the smallest-area clickable item at (x_mm, y_mm) or None.
 
-        Only items with `id != 0` and a `hit_rect_mm` are considered.
+        Only items with a `hit_rect_mm` are considered.
         """
         if page_index is None:
             page_index = self._current_index
@@ -317,8 +403,7 @@ class DrawUtil:
         candidates = []
         for item in page.items:
             rect = getattr(item, "hit_rect_mm", None)
-            item_id = getattr(item, "id", 0)
-            if item_id == 0 or rect is None:
+            if rect is None:
                 continue
             if self._rect_contains_point(rect, x_mm, y_mm):
                 rx, ry, rw, rh = rect
@@ -339,8 +424,7 @@ class DrawUtil:
         out = []
         for item in page.items:
             rect = getattr(item, "hit_rect_mm", None)
-            item_id = getattr(item, "id", 0)
-            if item_id == 0 or rect is None:
+            if rect is None:
                 continue
             if self._rect_contains_point(rect, x_mm, y_mm):
                 rx, ry, rw, rh = rect
@@ -367,7 +451,7 @@ class DrawUtil:
             ctx.set_source_rgb(1, 1, 1)
             ctx.rectangle(0, 0, page.width_mm, page.height_mm)
             ctx.fill()
-            for item in page.items:
+            for item in self._iter_items_in_editor_order(page):
                 if isinstance(item, Line):
                     self._draw_line(ctx, item)
                 elif isinstance(item, Rect):

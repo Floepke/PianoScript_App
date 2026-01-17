@@ -1,12 +1,7 @@
-from __future__ import annotations
-from typing import Any
 from ui.widgets.draw_util import DrawUtil
-from editor.editor import Editor
-from .base import DrawerBase
 
 
-class GraceNoteDrawer(DrawerBase):
-    def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
-        self.setup_context(du, score, editor)
-        
-        ... # Implementation for drawing grace note elements would go here
+class GraceNoteDrawerMixin:
+    def draw_grace_note(self, du: DrawUtil) -> None:
+        # Implementation for drawing grace note elements would go here (placeholder)
+        ...

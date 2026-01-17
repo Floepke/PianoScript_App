@@ -17,9 +17,34 @@ from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
 from editor.undo_manager import UndoManager
+from utils.CONSTANT import EDITOR_DRAWING_ORDER
+from editor.drawers.stave_drawer import StaveDrawerMixin
+from editor.drawers.grid_drawer import GridDrawerMixin
+from editor.drawers.note_drawer import NoteDrawerMixin
+from editor.drawers.grace_note_drawer import GraceNoteDrawerMixin
+from editor.drawers.beam_drawer import BeamDrawerMixin
+from editor.drawers.pedal_drawer import PedalDrawerMixin
+from editor.drawers.text_drawer import TextDrawerMixin
+from editor.drawers.slur_drawer import SlurDrawerMixin
+from editor.drawers.start_repeat_drawer import StartRepeatDrawerMixin
+from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
+from editor.drawers.count_line_drawer import CountLineDrawerMixin
+from editor.drawers.line_break_drawer import LineBreakDrawerMixin
 
 
-class Editor(QtCore.QObject):
+class Editor(QtCore.QObject,
+             StaveDrawerMixin,
+             GridDrawerMixin,
+             NoteDrawerMixin,
+             GraceNoteDrawerMixin,
+             BeamDrawerMixin,
+             SlurDrawerMixin,
+             TextDrawerMixin,
+             PedalDrawerMixin,
+             StartRepeatDrawerMixin,
+             EndRepeatDrawerMixin,
+             CountLineDrawerMixin,
+             LineBreakDrawerMixin):
     """Main editor class: routes UI events to the current tool.
 
     Handles click vs drag classification using a 3px threshold.
@@ -55,10 +80,37 @@ class Editor(QtCore.QObject):
         self._dragging_left: bool = False
         self._dragging_right: bool = False
 
-        # Editor layout metrics (mm)
-        self.editor_margin_mm: float = 10.0
-        self.stave_width_mm: float = 100.0
-        self.semitone_width_mm: float = 1.0
+        # layout metrics (mm)
+        self.margin: float = 10.0
+        self.stave_width: float = 100.0
+        self.semitone_width: float = 1.0
+
+    # ---- Drawing via mixins ----
+    def draw_background_gray(self, du) -> None:
+        """Fill the current page with print-view grey (#7a7a7a)."""
+        w_mm, h_mm = du.current_page_size_mm()
+        grey = (122/255.0, 122/255.0, 122/255.0, 1.0)
+        du.add_rectangle(0.0, 0.0, w_mm, h_mm, stroke_color=None, fill_color=grey, id=0, tags=["background"])
+
+    def draw_all(self, du) -> None:
+        """Invoke drawer mixin methods in EDITOR_DRAWING_ORDER."""
+        for name in EDITOR_DRAWING_ORDER:
+            method = {
+                'stave': self.draw_stave,
+                'grid': self.draw_grid,
+                'note': self.draw_note,
+                'grace_note': self.draw_grace_note,
+                'beam': self.draw_beam,
+                'pedal': self.draw_pedal,
+                'text': self.draw_text,
+                'slur': self.draw_slur,
+                'start_repeat': self.draw_start_repeat,
+                'end_repeat': self.draw_end_repeat,
+                'count_line': self.draw_count_line,
+                'line_break': self.draw_line_break,
+            }.get(name)
+            if method is not None:
+                method(du)
 
     def _calculate_layout(self, view_width_mm: float) -> None:
         """Compute editor-specific layout based on the current view width.
@@ -70,19 +122,16 @@ class Editor(QtCore.QObject):
         from utils.CONSTANT import PIANO_KEY_AMOUNT
         w = max(1.0, float(view_width_mm))
         margin = w / 10.0
-        self.editor_margin_mm = margin
-        self.stave_width_mm = max(1.0, w - 2.0 * margin)
-        self.semitone_width_mm = self.stave_width_mm / float(max(1, PIANO_KEY_AMOUNT - 1))
+        self.margin = margin
+        self.stave_width = max(1.0, w - 2.0 * margin)
+        self.semitone_width = self.stave_width / float(max(1, PIANO_KEY_AMOUNT - 1))
 
     def set_tool_by_name(self, name: str) -> None:
         cls = self._tool_classes.get(name)
         if cls is None:
             return
-        try:
-            self._tool = cls()
-            self._tm.set_tool(self._tool)
-        except Exception:
-            pass
+        self._tool = cls()
+        self._tm.set_tool(self._tool)
 
     # Model provider for undo snapshots
     def set_file_manager(self, fm) -> None:

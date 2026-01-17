@@ -41,12 +41,9 @@ class UndoManager:
         if cur is None:
             return True
         # Compare by identity; SCORE lacks equality, so approximate by json dict
-        try:
-            # If both objects are the same instance, skip
-            if cur is score:
-                return False
-        except Exception:
-            pass
+        # If both objects are the same instance, skip
+        if cur is score:
+            return False
         # Fallback: always treat as different and rely on coalescing to limit noise
         return True
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Directory in the user's home used for autosaves and error backups
 # Expanded once and reused across the app for any non-user-initiated saves.
-UTILS_SAVE_DIR: Path = Path(os.path.expanduser("~/.pianoscript"))
+UTILS_SAVE_DIR: Path = Path(os.path.expanduser('~/.pianoscript'))
 
 # the meaning of time is defined in this constant.
 QUARTER_NOTE_UNIT: float = 256.0
@@ -16,34 +16,34 @@ QUARTER_NOTE_UNIT: float = 256.0
 # Each string corresponds to a drawer name registered in editor/drawers/__init__.py
 # Update these lists to control layer stacking in the Editor and Engraver.
 EDITOR_DRAWING_ORDER = [
-    "grid",
-    "stave",
-    "note",
-    "grace_note",
-    "beam",
-    "pedal",
-    "text",
-    "slur",
-    "start_repeat",
-    "end_repeat",
-    "count_line",
-    "line_break",
+    'grid',
+    'stave',
+    'note',
+    'grace_note',
+    'beam',
+    'pedal',
+    'text',
+    'slur',
+    'start_repeat',
+    'end_repeat',
+    'count_line',
+    'line_break',
 ]
 
 ENGRAVER_DRAWING_ORDER = [
     # Default engraver order; customize independently if needed
-    "grid",
-    "stave",
-    "note",
-    "beam",
-    "slur",
-    "grace_note",
-    "text",
-    "start_repeat",
-    "end_repeat",
-    "count_line",
-    "line_break",
-    "pedal",
+    'grid',
+    'stave',
+    'note',
+    'beam',
+    'slur',
+    'grace_note',
+    'text',
+    'start_repeat',
+    'end_repeat',
+    'count_line',
+    'line_break',
+    'pedal',
 ]
 
 # Keyboard constants

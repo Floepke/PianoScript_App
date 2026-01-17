@@ -23,22 +23,33 @@ class EditorAccessMixin:
     def add_highlight_rect(self, x_mm: float, y_mm: float, w_mm: float, h_mm: float):
         if self._du is None:
             return
-        try:
-            self._du.add_rectangle(x_mm, y_mm, w_mm, h_mm,
-                                   stroke_color=(0.0, 0.5, 1.0, 1.0),
-                                   stroke_width_mm=0.3,
-                                   fill_color=(0.0, 0.5, 1.0, 0.08),
-                                   id=0, tags=["highlight"])
-        except Exception:
-            pass
+        self._du.add_rectangle(x_mm, y_mm, w_mm, h_mm,
+                               stroke_color=(0.0, 0.5, 1.0, 1.0),
+                               stroke_width_mm=0.3,
+                               fill_color=(0.0, 0.5, 1.0, 0.08),
+                               id=0, tags=["highlight"])
 
     def page_size_mm(self) -> tuple[float, float]:
         if self._du is None:
             return (210.0, 297.0)
-        try:
-            return self._du.current_page_size_mm()
-        except Exception:
-            return (210.0, 297.0)
+        return self._du.current_page_size_mm()
+
+    def draw_background_gray(self) -> None:
+        """Draw a full-page background rectangle in print-view grey.
+
+        This ensures the rendered image has the desired background,
+        independent of QImage defaults.
+        """
+        if self._du is None:
+            return
+        w_mm, h_mm = self.page_size_mm()
+        grey = (122/255.0, 122/255.0, 122/255.0, 1.0)  # #7a7a7a
+        # Pure fill, no stroke
+        self._du.add_rectangle(0.0, 0.0, w_mm, h_mm,
+                               stroke_color=None,
+                               fill_color=grey,
+                               id=0,
+                               tags=["background"])
 
 
 class DrawerBase(EditorAccessMixin):

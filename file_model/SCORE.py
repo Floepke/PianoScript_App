@@ -206,9 +206,6 @@ class SCORE:
 			incoming = incoming or {}
 			defaults = _defaults_for(dc_type)
 			merged = {**defaults, **{k: v for k, v in incoming.items() if k in defaults}}
-			missing_keys = [k for k in defaults.keys() if k not in incoming and k not in skip_keys]
-			for k in missing_keys:
-				print(f"[Repair] Missing '{context}.{k}', using default: {defaults[k]!r}")
 			return merged
 		# Meta/Header
 		md = data.get('meta_data', {})
@@ -217,21 +214,16 @@ class SCORE:
 		self.header = Header(**_merge_with_defaults(Header, hd, 'header'))
 		# Base grid: at least one
 		bg_list = data.get('base_grid', [])
-		if not isinstance(bg_list, list):
-			print("[Repair] 'base_grid' is not a list; resetting to empty.")
-			bg_list = []
-		if not bg_list:
-			print("[Repair] 'base_grid' missing or empty; inserting default BaseGrid.")
-			self.base_grid = [BaseGrid(**_merge_with_defaults(BaseGrid, {}, 'base_grid[0]'))]
-		else:
+		if isinstance(bg_list, list) and bg_list:
 			self.base_grid = [
 				BaseGrid(**_merge_with_defaults(BaseGrid, item if isinstance(item, dict) else {}, f'base_grid[{i}]'))
 				for i, item in enumerate(bg_list)
 			]
+		else:
+			self.base_grid = [BaseGrid(**_merge_with_defaults(BaseGrid, {}, 'base_grid[0]'))]
 		# Layout (optional)
 		lay = data.get('layout', {}) or {}
-		try:
-			def _flatten_layout(ld: dict) -> dict:
+		def _flatten_layout(ld: dict) -> dict:
 				flat = dict(ld)
 				# Note
 				n = ld.get('note')
@@ -306,21 +298,14 @@ class SCORE:
 					flat.pop(k, None)
 				return flat
 
-			flat_lay = _flatten_layout(lay)
-			allowed = Layout().__dataclass_fields__.keys()
-			kwargs = {k: flat_lay[k] for k in flat_lay.keys() if k in allowed}
-			self.layout = Layout(**_merge_with_defaults(Layout, kwargs, 'layout'))
-		except Exception:
-			print("[Repair] Layout section invalid; using default Layout.")
-			self.layout = Layout()
+		flat_lay = _flatten_layout(lay)
+		allowed = Layout().__dataclass_fields__.keys()
+		kwargs = {k: flat_lay[k] for k in flat_lay.keys() if k in allowed}
+		self.layout = Layout(**_merge_with_defaults(Layout, kwargs, 'layout'))
 
 		# Editor settings (optional)
 		ed = data.get('editor', {}) or {}
-		try:
-			self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
-		except Exception:
-			print("[Repair] Editor section invalid; using default EditorSettings.")
-			self.editor = EditorSettings()
+		self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
 
 		# Events lists: reset id counter and assign sequential ids starting from 1
 		ev = data.get('events', {}) or {}

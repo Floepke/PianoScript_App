@@ -4,7 +4,6 @@ import cairo
 import math
 from typing import Optional
 from editor.editor import Editor
-from editor.drawers import get_all_drawers
 from ui.widgets.draw_util import DrawUtil
 
 
@@ -74,8 +73,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
                     top_m = float(getattr(lay, 'page_top_margin_mm', 0.0))
                     bot_m = float(getattr(lay, 'page_bottom_margin_mm', 0.0))
                     page_h_mm = max(10.0, total_mm + top_m + bot_m)
-        if self._du is None:
-            self._du = DrawUtil()
+        # Always use a fresh DrawUtil per paint to avoid item accumulation
+        self._du = DrawUtil()
         self._du.set_current_page_size_mm(page_w_mm, page_h_mm)
         # Scale to fit width: compute px_per_mm from current widget width
         px_per_mm = (w_px) / page_w_mm
@@ -92,28 +91,24 @@ class CairoEditorWidget(QtWidgets.QWidget):
         image, surface, _buf = _make_image_and_surface(w_px, max(1, h_px_content))
         ctx = cairo.Context(surface)
         ctx.set_antialias(cairo.ANTIALIAS_BEST)
-        # Fill page background white
-        ctx.save()
-        ctx.scale(px_per_mm, px_per_mm)
-        ctx.set_source_rgb(1, 1, 1)
-        ctx.rectangle(0, 0, page_w_mm, page_h_mm)
-        ctx.fill()
-        ctx.restore()
+        # Do not paint a white page background; keep transparent so the
+        # widget background shows through (matched to print view grey).
         # Let drawers enqueue primitives in DrawUtil
         if self._editor is not None:
             score = self._editor.current_score()
             # Update editor layout metrics from current view width (mm)
             self._editor._calculate_layout(page_w_mm)
             if score is not None:
-                for drawer in get_all_drawers():
-                    drawer.draw(self._du, score, self._editor)
+                # Draw background and all editor layers via Editor mixins
+                self._editor.draw_background_gray(self._du)
+                self._editor.draw_all(self._du)
         # Render primitives to the Cairo surface
         self._du.render_to_cairo(ctx, page_index=self._du.current_page_index(), px_per_mm=px_per_mm)
         image.setDevicePixelRatio(dpr)
         # Paint onto the widget; the scroll area will clip/scroll naturally
         painter = QtGui.QPainter(self)
-        base = self.palette().color(QtGui.QPalette.Base)
-        painter.fillRect(self.rect(), base)
+        # Match print view background grey (#7a7a7a)
+        painter.fillRect(self.rect(), QtGui.QColor("#7a7a7a"))
         painter.drawImage(QtCore.QPoint(0, 0), image)
         painter.end()
 

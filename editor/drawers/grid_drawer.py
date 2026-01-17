@@ -1,12 +1,7 @@
-from __future__ import annotations
-from typing import Any
 from ui.widgets.draw_util import DrawUtil
-from editor.editor import Editor
-from .base import DrawerBase
 
 
-class GridDrawer(DrawerBase):
-    def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
-        self.setup_context(du, score, editor)
-        
-        ... # Implementation for drawing grid lines would go here
+class GridDrawerMixin:
+    def draw_grid(self, du: DrawUtil) -> None:
+        # Implementation for drawing grid lines would go here (placeholder)
+        ...
