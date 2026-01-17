@@ -5,6 +5,7 @@ import math
 from typing import Optional
 from editor.editor import Editor
 from editor.drawers import get_all_drawers
+from ui.widgets.draw_util import DrawUtil
 
 
 def _make_image_and_surface(width: int, height: int):
@@ -32,6 +33,11 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self._current_tool: str | None = None
         self._editor: Optional[Editor] = None
         self._last_pos: QtCore.QPointF | None = None
+        self._du: DrawUtil | None = None
+        self._last_px_per_mm: float = 1.0
+        self._last_dpr: float = 1.0
+        self._content_h_px: int = 0
+        self._scroll_y_px: int = 0
 
     def set_editor(self, editor: Editor) -> None:
         self._editor = editor
@@ -44,23 +50,76 @@ class CairoEditorWidget(QtWidgets.QWidget):
         sz = self.size()
         dpr = float(self.devicePixelRatioF())
         w_px = int(max(1, sz.width() * dpr))
-        h_px = int(max(1, sz.height() * dpr))
-        image, surface, _buf = _make_image_and_surface(w_px, h_px)
+        # Prepare DrawUtil with page dimensions from SCORE
+        page_w_mm = 210.0
+        page_h_mm = 297.0
+        if self._editor is not None:
+            sc = self._editor.current_score()
+            if sc is not None:
+                lay = getattr(sc, 'layout', None)
+                if lay is not None:
+                    page_w_mm = float(getattr(lay, 'page_width_mm', page_w_mm))
+                    # Compute dynamic height from base_grid and editor zoom
+                    ed = getattr(sc, 'editor', None)
+                    zoom_mm_per_quarter = float(getattr(ed, 'zoom_mm_per_quarter', 5.0)) if ed else 5.0
+                    total_mm = 0.0
+                    bg_list = getattr(sc, 'base_grid', []) or []
+                    for bg in bg_list:
+                        num = float(getattr(bg, 'numerator', 4))
+                        den = float(getattr(bg, 'denominator', 4))
+                        measures = int(getattr(bg, 'measure_amount', 1))
+                        quarters_per_measure = num * (4.0 / max(1.0, den))
+                        total_mm += measures * quarters_per_measure * zoom_mm_per_quarter
+                    # Include top/bottom margins
+                    top_m = float(getattr(lay, 'page_top_margin_mm', 0.0))
+                    bot_m = float(getattr(lay, 'page_bottom_margin_mm', 0.0))
+                    page_h_mm = max(10.0, total_mm + top_m + bot_m)
+        if self._du is None:
+            self._du = DrawUtil()
+        self._du.set_current_page_size_mm(page_w_mm, page_h_mm)
+        # Scale to fit width: compute px_per_mm from current widget width
+        px_per_mm = (w_px) / page_w_mm
+        h_px_content = int(page_h_mm * px_per_mm)
+        self._last_px_per_mm = px_per_mm
+        self._last_dpr = dpr
+        self._content_h_px = h_px_content
+        # Update widget preferred height for scroll areas
+        try:
+            self.setMinimumHeight(int(h_px_content / max(1.0, dpr)))
+        except Exception:
+            pass
+        # Compose page into an offscreen surface with full content height
+        image, surface, _buf = _make_image_and_surface(w_px, max(1, h_px_content))
         ctx = cairo.Context(surface)
         ctx.set_antialias(cairo.ANTIALIAS_BEST)
-        # Use palette base color for neutral background
-        base = self.palette().color(QtGui.QPalette.Base)
-        _draw_editor_background(ctx, w_px, h_px, (base.redF(), base.greenF(), base.blueF()))
-        # Draw all element drawers if an editor and score are available
+        # Fill page background white
+        ctx.save()
+        ctx.scale(px_per_mm, px_per_mm)
+        ctx.set_source_rgb(1, 1, 1)
+        ctx.rectangle(0, 0, page_w_mm, page_h_mm)
+        ctx.fill()
+        ctx.restore()
+        # Let drawers enqueue primitives in DrawUtil
         if self._editor is not None:
             score = self._editor.current_score()
+            # Update editor layout metrics from current view width (mm)
+            self._editor._calculate_layout(page_w_mm)
             if score is not None:
                 for drawer in get_all_drawers():
-                    drawer.draw(ctx, score)
+                    drawer.draw(self._du, score, self._editor)
+        # Render primitives to the Cairo surface
+        self._du.render_to_cairo(ctx, page_index=self._du.current_page_index(), px_per_mm=px_per_mm)
         image.setDevicePixelRatio(dpr)
+        # Paint onto the widget; the scroll area will clip/scroll naturally
         painter = QtGui.QPainter(self)
-        painter.drawImage(0, 0, image)
+        base = self.palette().color(QtGui.QPalette.Base)
+        painter.fillRect(self.rect(), base)
+        painter.drawImage(QtCore.QPoint(0, 0), image)
         painter.end()
+
+    def wheelEvent(self, ev: QtGui.QWheelEvent) -> None:
+        # If embedded in a QScrollArea, let it handle scrolling naturally.
+        super().wheelEvent(ev)
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         self._last_pos = ev.position()

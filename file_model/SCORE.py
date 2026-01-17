@@ -22,6 +22,16 @@ from file_model.base_grid import BaseGrid
 
 
 @dataclass
+class EditorSettings:
+	"""Editor-specific settings for the piano-roll style editor.
+
+	- zoom_mm_per_quarter: how many millimeters a quarter note occupies vertically.
+	"""
+	zoom_mm_per_quarter: float = 5.0
+
+
+
+@dataclass
 class MetaData:
 	description: str = 'This is a .piano score file created with PianoScript.'
 	creator: str = 'PianoScript'
@@ -62,6 +72,7 @@ class SCORE:
 	base_grid: List[BaseGrid] = field(default_factory=list)
 	events: Events = field(default_factory=Events)
 	layout: Layout = field(default_factory=Layout)
+	editor: EditorSettings = field(default_factory=EditorSettings)
 	_next_id: int = 1
 
 	# ---- Builders (ensure unique id) ----
@@ -303,6 +314,14 @@ class SCORE:
 			print("[Repair] Layout section invalid; using default Layout.")
 			self.layout = Layout()
 
+		# Editor settings (optional)
+		ed = data.get('editor', {}) or {}
+		try:
+			self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
+		except Exception:
+			print("[Repair] Editor section invalid; using default EditorSettings.")
+			self.editor = EditorSettings()
+
 		# Events lists: reset id counter and assign sequential ids starting from 1
 		ev = data.get('events', {}) or {}
 		self.events = Events()
@@ -358,5 +377,7 @@ class SCORE:
 		self.header = Header()
 		self.base_grid = [BaseGrid()]
 		self.events = Events()
+		self.layout = Layout()
+		self.editor = EditorSettings()
 		self._next_id = 1
 		return self

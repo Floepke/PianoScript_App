@@ -10,8 +10,8 @@ TOOL_ITEMS = [
     ('beam', 'beam'),
     #('pedal', 'pedal'),
     ('slur', 'slur'),
-    ('start_repeat', 'repeats'),
-    ('end_repeat', 'repeats'),
+    ('start_repeat', 'start_repeat'),
+    ('end_repeat', 'end_repeat'),
     ('text', 'text'),
 ]
 

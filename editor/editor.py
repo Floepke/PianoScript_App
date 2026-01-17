@@ -55,6 +55,25 @@ class Editor(QtCore.QObject):
         self._dragging_left: bool = False
         self._dragging_right: bool = False
 
+        # Editor layout metrics (mm)
+        self.editor_margin_mm: float = 10.0
+        self.stave_width_mm: float = 100.0
+        self.semitone_width_mm: float = 1.0
+
+    def _calculate_layout(self, view_width_mm: float) -> None:
+        """Compute editor-specific layout based on the current view width.
+
+        - margin: 1/10 of the width
+        - stave width: width - 2*margin
+        - semitone spacing: stave width / (PIANO_KEY_AMOUNT - 1)
+        """
+        from utils.CONSTANT import PIANO_KEY_AMOUNT
+        w = max(1.0, float(view_width_mm))
+        margin = w / 10.0
+        self.editor_margin_mm = margin
+        self.stave_width_mm = max(1.0, w - 2.0 * margin)
+        self.semitone_width_mm = self.stave_width_mm / float(max(1, PIANO_KEY_AMOUNT - 1))
+
     def set_tool_by_name(self, name: str) -> None:
         cls = self._tool_classes.get(name)
         if cls is None:

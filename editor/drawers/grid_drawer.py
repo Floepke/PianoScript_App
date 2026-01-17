@@ -5,8 +5,8 @@ from editor.editor import Editor
 from .base import DrawerBase
 
 
-class EndRepeatDrawer(DrawerBase):
+class GridDrawer(DrawerBase):
     def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
         self.setup_context(du, score, editor)
         
-        ... # Implementation for drawing end repeat elements would go here
+        ... # Implementation for drawing grid lines would go here

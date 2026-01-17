@@ -1,8 +1,12 @@
 from __future__ import annotations
-import cairo
 from typing import Any
+from ui.widgets.draw_util import DrawUtil
+from editor.editor import Editor
+from .base import DrawerBase
 
-class NoteDrawer:
-    def draw(self, ctx: cairo.Context, score: Any) -> None:
-        # Placeholder: draw nothing yet; implement your note rendering here
-        pass
+
+class NoteDrawer(DrawerBase):
+    def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
+        self.setup_context(du, score, editor)
+        
+        ... # Implementation for drawing note elements would go here

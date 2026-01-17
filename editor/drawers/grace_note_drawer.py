@@ -1,7 +1,12 @@
 from __future__ import annotations
-import cairo
 from typing import Any
+from ui.widgets.draw_util import DrawUtil
+from editor.editor import Editor
+from .base import DrawerBase
 
-class GraceNoteDrawer:
-    def draw(self, ctx: cairo.Context, score: Any) -> None:
-        pass
+
+class GraceNoteDrawer(DrawerBase):
+    def draw(self, du: DrawUtil, score: Any, editor: Editor) -> None:
+        self.setup_context(du, score, editor)
+        
+        ... # Implementation for drawing grace note elements would go here

@@ -17,7 +17,7 @@ from editor.editor import Editor
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Pianoscript - (unsaved)")
+        self.setWindowTitle("Pianoscript - new project (unsaved)")
         self.resize(1200, 800)
 
         # File management
@@ -33,7 +33,15 @@ class MainWindow(QtWidgets.QMainWindow):
             "QSplitter::handle { background: transparent; image: none; }\n"
             "QSplitter::handle:hover { background: transparent; }"
         )
-        self.editor = CairoEditorWidget()
+        # Editor view inside a scroll area for native scrolling
+        self.editor_canvas = CairoEditorWidget()
+        self.editor_scroll = QtWidgets.QScrollArea()
+        self.editor_scroll.setWidget(self.editor_canvas)
+        self.editor_scroll.setWidgetResizable(True)
+        self.editor_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.editor_scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        # For external code, expose the canvas under the same name
+        self.editor = self.editor_canvas
 
         self.du = DrawUtil()
         self.du.new_page(width_mm=210, height_mm=297)
@@ -46,7 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Provide initial score to engrave
         self._refresh_views_from_score()
 
-        splitter.addWidget(self.editor)
+        splitter.addWidget(self.editor_scroll)
         splitter.addWidget(self.print_view)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
@@ -213,7 +221,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _update_title(self) -> None:
         p = self.file_manager.path()
         if p:
-            self.setWindowTitle(f"Pianoscript - {str(p)}")
+            self.setWindowTitle(f"Pianoscript - existing project ({str(p)})")
         else:
             self.setWindowTitle("Pianoscript - new project (unsaved)")
 

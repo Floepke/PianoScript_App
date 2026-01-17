@@ -88,9 +88,9 @@ class Page:
 @dataclass
 class Text:
     x_mm: float
-    y_mm: float  # baseline Y position in mm
+    y_mm: float
     text: str
-    family: str = "Sans"
+    family: str = "Courier New"
     size_pt: float = 10.0
     italic: bool = False
     bold: bool = False

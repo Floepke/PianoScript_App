@@ -1,7 +1,10 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Dict
+from utils.CONSTANT import EDITOR_DRAWING_ORDER
 
-# Import drawer stubs
+# Import drawer classes
+from .grid_drawer import GridDrawer
+from .stave_drawer import StaveDrawer
 from .note_drawer import NoteDrawer
 from .grace_note_drawer import GraceNoteDrawer
 from .beam_drawer import BeamDrawer
@@ -14,17 +17,30 @@ from .count_line_drawer import CountLineDrawer
 from .line_break_drawer import LineBreakDrawer
 
 
+_DRAWER_CLASSES: Dict[str, type] = {
+    "grid": GridDrawer,
+    "stave": StaveDrawer,
+    "note": NoteDrawer,
+    "grace_note": GraceNoteDrawer,
+    "beam": BeamDrawer,
+    "pedal": PedalDrawer,
+    "text": TextDrawer,
+    "slur": SlurDrawer,
+    "start_repeat": StartRepeatDrawer,
+    "end_repeat": EndRepeatDrawer,
+    "count_line": CountLineDrawer,
+    "line_break": LineBreakDrawer,
+}
+
+
 def get_all_drawers() -> List[object]:
-    """Return all element drawers to be invoked by the editor view."""
-    return [
-        NoteDrawer(),
-        GraceNoteDrawer(),
-        BeamDrawer(),
-        PedalDrawer(),
-        TextDrawer(),
-        SlurDrawer(),
-        StartRepeatDrawer(),
-        EndRepeatDrawer(),
-        CountLineDrawer(),
-        LineBreakDrawer(),
-    ]
+    """Return all element drawers ordered by EDITOR_DRAWING_ORDER."""
+    out: List[object] = []
+    for name in EDITOR_DRAWING_ORDER:
+        cls = _DRAWER_CLASSES.get(name)
+        if cls is not None:
+            try:
+                out.append(cls())
+            except Exception:
+                pass
+    return out
