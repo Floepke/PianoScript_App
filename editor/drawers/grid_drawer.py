@@ -14,10 +14,31 @@ if TYPE_CHECKING:
 
 
 class GridDrawerMixin:
+    '''
+        Draws:
+            - barlines
+            - measure numbers
+            - gridlines
+            - time signature indicators
+            - project title and composer at top-left
+    '''
     
     def draw_grid(self, du: DrawUtil) -> None:
         self = cast("Editor", self)
         score: SCORE = self.current_score()
+
+        # draw title and composer at top-left
+        du.add_text(
+            1,
+            1,
+            f"'{score.header.title}' by composer: {score.header.composer}",
+            size_pt=12.0,
+            color=self.notation_color,
+            id=0,
+            tags=["title"],
+            anchor='nw',
+            family="Courier New",
+        )
 
         # Page metrics (mm)
         width_mm, height_mm = du.current_page_size_mm()
@@ -28,14 +49,54 @@ class GridDrawerMixin:
         # Editor zoom controls vertical mm per quarter note
         zoom_mm_per_quarter = score.editor.zoom_mm_per_quarter
 
-        # drawing the grid lines, barlines and measure numbers
+        # --------------- drawing the grid lines, barlines, measure numbers and time signature indicators ---------------
         base_grid = score.base_grid
         measure_numbering_cursor = 1
         time_cursor = margin
         for bg in base_grid:
-            numerator = int(getattr(bg, 'numerator', 4) or 4)
-            denominator = int(getattr(bg, 'denominator', 4) or 4)
-            measure_amount = int(getattr(bg, 'measure_amount', 1) or 1)
+            numerator = bg.numerator
+            denominator = bg.denominator
+            measure_amount = bg.measure_amount
+
+            # numerator text
+            tsig_indicator_x = stave_left_position - ((margin / 4) * 2)
+            du.add_text(
+                tsig_indicator_x,
+                time_cursor - 3,
+                f"{numerator}",
+                size_pt=32.0,
+                color=self.notation_color,
+                id=0,
+                tags=["time_signature"],
+                anchor='s',
+                family="Courier New",
+            )
+
+            # indicator line between numerator and denominator
+            du.add_line(
+                tsig_indicator_x - 5,
+                time_cursor,
+                tsig_indicator_x + 5,
+                time_cursor,
+                color=self.notation_color,
+                width_mm=1.5,
+                id=0,
+                tags=["time_signature_line"],
+                dash_pattern=None,
+            )
+
+            # denominator text
+            du.add_text(
+                tsig_indicator_x,
+                time_cursor + 3,
+                f"{denominator}",
+                size_pt=32.0,
+                color=self.notation_color,
+                id=0,
+                tags=["time_signature"],
+                anchor='n',
+                family="Courier New",
+            )
 
             # General formula: quarters per measure = numerator * (4/denominator)
             quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))
@@ -48,7 +109,17 @@ class GridDrawerMixin:
             for i in range(measure_amount):
                 # measure numbers:
                 measure_number_str = str(measure_numbering_cursor)
-                du.add_text(1.0, time_cursor, measure_number_str, size_pt=16.0, color=color, id=0, tags=["measure_number"], anchor='w')
+                du.add_text(
+                    1.0,
+                    time_cursor,
+                    measure_number_str,
+                    size_pt=16.0,
+                    color=color,
+                    id=0,
+                    tags=["measure_number"],
+                    anchor='w',
+                    family="Courier New"
+                )
 
                 # Beat length inside this measure
                 beat_length = measure_len_mm / max(1, numerator)

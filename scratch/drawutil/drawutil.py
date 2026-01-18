@@ -111,21 +111,44 @@ class DrawUtil:
             hit_rect_mm = (x, y, w, h)
         self._items.append(Line(x1_mm, y1_mm, x2_mm, y2_mm, stroke, tags, hit_rect_mm))
 
-    def add_rectangle(self, x_mm: float, y_mm: float, w_mm: float, h_mm: float,
+    def add_rectangle(self,
+                      x_mm: float,
+                      y_mm: float,
+                      w_mm: float,
+                      h_mm: float,
                       stroke_color: Optional[Color] = (0, 0, 0, 1),
                       stroke_width_mm: float = 0.3,
                       fill_color: Optional[Color] = None,
                       dash_pattern: Optional[Sequence[float]] = None,
                       dash_offset_mm: float = 0.0,
                       tags: Optional[List[str]] = None,
-                      hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
+                      hit_rect_mm: Optional[Tuple[float, float, float, float]] = None,
+                      *,
+                      x2_mm: Optional[float] = None,
+                      y2_mm: Optional[float] = None,
+                      as_points: Optional[bool] = None) -> None:
         stroke = Stroke(stroke_color, stroke_width_mm, dash_pattern, dash_offset_mm) if stroke_color is not None else None
         fill = Fill(fill_color) if fill_color is not None else None
         if tags is None:
             tags = []
+        use_points = bool(as_points) or (x2_mm is not None and y2_mm is not None)
+        if use_points:
+            x_a = float(x_mm)
+            y_a = float(y_mm)
+            x_b = float(x2_mm if x2_mm is not None else x_mm)
+            y_b = float(y2_mm if y2_mm is not None else y_mm)
+            rx = min(x_a, x_b)
+            ry = min(y_a, y_b)
+            rw = abs(x_b - x_a)
+            rh = abs(y_b - y_a)
+        else:
+            rx = float(x_mm)
+            ry = float(y_mm)
+            rw = float(w_mm)
+            rh = float(h_mm)
         if hit_rect_mm is None:
-            hit_rect_mm = (x_mm, y_mm, w_mm, h_mm)
-        self._items.append(Rect(x_mm, y_mm, w_mm, h_mm, stroke, fill, tags, hit_rect_mm))
+            hit_rect_mm = (rx, ry, rw, rh)
+        self._items.append(Rect(rx, ry, rw, rh, stroke, fill, tags, hit_rect_mm))
 
     def add_polyline(self, points_mm: Sequence[Tuple[float, float]],
                      stroke_color: Optional[Color] = (0, 0, 0, 1),

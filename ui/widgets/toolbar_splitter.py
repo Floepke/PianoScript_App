@@ -28,10 +28,6 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         self.fit_btn.setFixedWidth(self._button_size)
         self.fit_btn.setFixedHeight(max(1, self._button_size // 2))
         layout.addWidget(self.fit_btn)
-        try:
-            self.fit_btn.clicked.connect(parent.fitRequested.emit)
-        except Exception:
-            pass
 
         self.next_btn = QtWidgets.QToolButton(self)
         icn = get_qicon('next', size=(64, 64))
@@ -120,10 +116,13 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             "#ToolbarHandle { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #3a3f44, stop:1 #2b2f33); }"
         )
 
+        # Fit button toggles (emit False); double-click will force True
+        self.fit_btn.clicked.connect(lambda: parent.fitRequested.emit(False))
+
     def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
         # Forward double-click on the handle to request a fit action
         try:
-            self.parent().fitRequested.emit()
+            self.parent().fitRequested.emit(True)
         except Exception:
             pass
         super().mouseDoubleClickEvent(ev)
@@ -157,8 +156,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
 
 
 class ToolbarSplitter(QtWidgets.QSplitter):
-    # External trigger to request a fit action
-    fitRequested = QtCore.Signal()
+    # External trigger to request a fit action (True = force double-fit)
+    fitRequested = QtCore.Signal(bool)
     # ToolManager contextual toolbar button clicked
     contextButtonClicked = QtCore.Signal(str)
     # Default toolbar actions
@@ -193,9 +192,9 @@ class ToolbarSplitter(QtWidgets.QSplitter):
             pass
 
     def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
-        # Double-click anywhere on the splitter requests fit
+        # Double-click anywhere on the splitter requests fit (force True)
         try:
-            self.fitRequested.emit()
+            self.fitRequested.emit(True)
         except Exception:
             pass
         super().mouseDoubleClickEvent(ev)

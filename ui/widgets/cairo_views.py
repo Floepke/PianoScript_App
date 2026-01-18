@@ -69,7 +69,9 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self._last_debug_key: tuple | None = None
         # Static viewport: no tiling/cache/renderer state
         self._last_cache_params: tuple[float, float, float] | None = None
-        # (Signal defined at class level)
+        
+        # frame counter for debug logging
+        self.frameno = 0
 
     def set_editor(self, editor: Editor) -> None:
         self._editor = editor
@@ -84,12 +86,18 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
+        # debug frame counter
+        print(f'[Paint] frame: {self.frameno}')
+        self.frameno += 1
+
         # Use widget size as static viewport; do not rely on QScrollArea.
         vp = self
         dpr = float(self.devicePixelRatioF())
         vp_w = self.size().width()
         vp_h = self.size().height()
-        w_px = int(max(1, vp_w * dpr))
+        # Use fractional width for scale to avoid stepwise jumps
+        w_px_float = max(1.0, float(vp_w) * float(dpr))
+        w_px = int(max(1, round(w_px_float)))
         # Prepare DrawUtil with page dimensions from SCORE/layout and Editor layout
         page_w_mm = 210.0
         page_h_mm = 297.0
@@ -106,7 +114,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
             except Exception:
                 page_h_mm = page_h_mm
         # Invalidate cache when scale or page dimensions change
-        px_per_mm = (w_px) / page_w_mm
+        # Derive px_per_mm from the fractional logical width instead of rounded image width
+        px_per_mm = (w_px_float) / page_w_mm
         h_px_content = int(page_h_mm * px_per_mm)
         cache_params = (round(px_per_mm, 6), round(page_w_mm, 3), round(page_h_mm, 3))
         if self._last_cache_params is None or self._last_cache_params != cache_params:
@@ -206,7 +215,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
                     steps = int(round(angle / 120.0))
                     current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
                     factor = (1.10 ** steps)
-                    new_zoom = max(0.5, min(50.0, current * factor))
+                    new_zoom = max(10.0, min(50.0, current * factor))
                     try:
                         ed.zoom_mm_per_quarter = float(new_zoom)
                     except Exception:

@@ -84,7 +84,8 @@ class FileManager:
             self._path = Path(path)
             self._last_dir = self._path.parent
             return self._current
-        except Exception:
+        except Exception as exc:
+            self._show_error("Failed to open score", f"{exc}")
             return None
 
     def save(self) -> bool:

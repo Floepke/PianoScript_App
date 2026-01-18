@@ -27,7 +27,7 @@ class EditorSettings:
 
 	- zoom_mm_per_quarter: how many millimeters a quarter note occupies vertically.
 	"""
-	zoom_mm_per_quarter: float = 5.0
+	zoom_mm_per_quarter: float = 25.0
 
 
 

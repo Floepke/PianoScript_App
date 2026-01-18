@@ -167,14 +167,20 @@ class DrawUtil:
             hit_rect_mm = (x, y, w, h)
         self._pages[self._current_index].items.append(Line(x1_mm, y1_mm, x2_mm, y2_mm, stroke, id, tags, hit_rect_mm))
 
-    def add_rectangle(self, x_mm: float, y_mm: float, w_mm: float, h_mm: float,
+    def add_rectangle(self,
+                      x1_mm: float,
+                      y1_mm: float,
+                      x2_mm: float,
+                      y2_mm: float,
                       stroke_color: Optional[Color] = (0, 0, 0, 1),
                       stroke_width_mm: float = 0.3,
                       fill_color: Optional[Color] = None,
                       dash_pattern: Optional[Sequence[float]] = None,
                       dash_offset_mm: float = 0.0,
-                      id: int = 0, tags: Optional[List[str]] = None,
+                      id: int = 0,
+                      tags: Optional[List[str]] = None,
                       hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
+        """Add a rectangle by specifying two opposite corner points (x1,y1) and (x2,y2)."""
         self._ensure_page()
         stroke = None
         fill = None
@@ -184,9 +190,19 @@ class DrawUtil:
             fill = Fill(fill_color)
         if tags is None:
             tags = []
+        # Interpret inputs as two opposite corners
+        x_a = float(x1_mm)
+        y_a = float(y1_mm)
+        x_b = float(x2_mm)
+        y_b = float(y2_mm)
+        rx = min(x_a, x_b)
+        ry = min(y_a, y_b)
+        rw = abs(x_b - x_a)
+        rh = abs(y_b - y_a)
+
         if hit_rect_mm is None:
-            hit_rect_mm = (x_mm, y_mm, w_mm, h_mm)
-        self._pages[self._current_index].items.append(Rect(x_mm, y_mm, w_mm, h_mm, stroke, fill, id, tags, hit_rect_mm))
+            hit_rect_mm = (rx, ry, rw, rh)
+        self._pages[self._current_index].items.append(Rect(rx, ry, rw, rh, stroke, fill, id, tags, hit_rect_mm))
 
     def add_oval(self, x_mm: float, y_mm: float, w_mm: float, h_mm: float,
                  stroke_color: Optional[Color] = (0, 0, 0, 1),
@@ -328,11 +344,8 @@ class DrawUtil:
                         layering: Optional[Sequence[str]] = None) -> None:
         page = self._pages[page_index]
         ctx.save()
-        # Use faster antialiasing when zoomed-in to reduce per-pixel cost
-        if px_per_mm >= 4.0:
-            ctx.set_antialias(cairo.ANTIALIAS_FAST)
-        else:
-            ctx.set_antialias(cairo.ANTIALIAS_BEST)
+        # Prefer highest quality to keep text and thin lines smooth across scales
+        ctx.set_antialias(cairo.ANTIALIAS_BEST)
         ctx.scale(px_per_mm, px_per_mm)
         # Static viewport: translate to the clip origin only; do not apply Cairo clipping.
         # Determine viewport origin and size in mm and translate to anchor at (0,0)

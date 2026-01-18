@@ -20,6 +20,7 @@ from editor.undo_manager import UndoManager
 from file_model.SCORE import SCORE
 from utils.CONSTANT import EDITOR_LAYERING, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
+from editor.drawers.snap_drawer import SnapDrawerMixin
 from editor.drawers.grid_drawer import GridDrawerMixin
 from editor.drawers.note_drawer import NoteDrawerMixin
 from editor.drawers.grace_note_drawer import GraceNoteDrawerMixin
@@ -35,6 +36,7 @@ from editor.drawers.line_break_drawer import LineBreakDrawerMixin
 
 class Editor(QtCore.QObject,
              StaveDrawerMixin,
+             SnapDrawerMixin,
              GridDrawerMixin,
              NoteDrawerMixin,
              GraceNoteDrawerMixin,
@@ -92,6 +94,8 @@ class Editor(QtCore.QObject,
         self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.05, 1.0)
 
         # 
+        # snap size in time units (default matches SnapSizeSelector: base=8, divide=1 -> 128)
+        self.snap_size_units: float = (QUARTER_NOTE_UNIT * 4.0) / 8.0
 
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
@@ -106,6 +110,7 @@ class Editor(QtCore.QObject,
         We simply call all drawer methods; DrawUtil sorts items by tag layering.
         """
         methods = [
+            getattr(self, 'draw_snap', None),
             getattr(self, 'draw_grid', None),
             getattr(self, 'draw_stave', None),
             getattr(self, 'draw_note', None),
@@ -134,7 +139,7 @@ class Editor(QtCore.QObject,
         w = max(1.0, float(view_width_mm))
         margin = w / 6
         self.margin = margin
-        self.stave_width = max(1.0, w - 2.0 * margin)
+        self.stave_width = w - 2.0 * margin
         self.semitone_width = self.stave_width / float(max(1, PIANO_KEY_AMOUNT - 1))
         # Ensure editor_height reflects the current SCORE content height in mm
         self.editor_height = self._calc_editor_height()
@@ -291,3 +296,10 @@ class Editor(QtCore.QObject,
         top_bottom_mm = float(self.margin or 0.0) * 2.0
         height_mm = max(10.0, stave_length_mm + top_bottom_mm)
         return height_mm
+
+    # ---- External controls ----
+    def set_snap_size_units(self, units: float) -> None:
+        try:
+            self.snap_size_units = max(0.0, float(units))
+        except Exception:
+            pass

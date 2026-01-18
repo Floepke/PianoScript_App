@@ -23,6 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # File management
         self.file_manager = FileManager(self)
+        
         # Install error-backup hook early so any unhandled exception triggers a backup
         self.file_manager.install_error_backup_hook()
 
@@ -34,9 +35,11 @@ class MainWindow(QtWidgets.QMainWindow):
             "QSplitter::handle { background: transparent; image: none; }\n"
             "QSplitter::handle:hover { background: transparent; }"
         )
+        
         # Editor view with external scrollbar for static viewport scrolling
         self.editor_canvas = CairoEditorWidget()
         self.editor_vscroll = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Vertical)
+        
         # For external code, expose the canvas under the same name
         self.editor = self.editor_canvas
 
@@ -44,24 +47,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.du.new_page(width_mm=210, height_mm=297)
 
         self.print_view = DrawUtilView(self.du)
+        
         # Engraver instance (single)
         self.engraver = Engraver(self.du, self)
+        
         # When engraving completes, re-render the print view
         self.engraver.engraved.connect(self.print_view.request_render)
-        # Try to load a default test score from Desktop; fallback to new
-        try:
-            default_path = "/home/flop/Desktop/music.piano"
-            loaded = None
-            if default_path:
-                loaded = self.file_manager.open_path(default_path)
-            if loaded is None:
-                self.file_manager.new()
-        except Exception:
-            # Fallback to a new blank score on any error
+        
+        # Loading test file on startup if available, else new blank score
+        default_path = "/home/flop/Desktop/music.piano"
+        loaded = self.file_manager.open_path(default_path)
+        if loaded is None:
             self.file_manager.new()
 
-        # Provide initial score to engrave
+        # Provide initial score to engrave and update titlebar
         self._refresh_views_from_score()
+
+        self._update_title()
 
         # Build a container with the canvas and external vertical scrollbar
         editor_container = QtWidgets.QWidget()
@@ -99,7 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editor_controller.set_tool_by_name('note')
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # 'Fit' button on splitter handle triggers fit action
-        splitter.fitRequested.connect(self._fit_print_view_to_page)
+        splitter.fitRequested.connect(self._fit_print_view_to_page_switch)
         # Default toolbar actions
         splitter.nextRequested.connect(self._next_page)
         splitter.previousRequested.connect(self._previous_page)
@@ -107,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         splitter.playRequested.connect(self._play_midi)
         splitter.stopRequested.connect(self._stop_midi)
         # Fit print view to page on startup
-        QtCore.QTimer.singleShot(0, self._fit_print_view_to_page)
+        QtCore.QTimer.singleShot(0, lambda: self._fit_print_view_to_page_switch(True))
         # Also request an initial render
         QtCore.QTimer.singleShot(0, self.print_view.request_render)
         # Strip demo timers
@@ -129,6 +131,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor.scrollLogicalPxChanged.connect(self.editor_vscroll.setValue)
         except Exception:
             pass
+
+        # fit switch state
+        self.fit_switch = True
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
@@ -304,8 +309,13 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             return (210.0, 297.0)
 
-    def _fit_print_view_to_page(self) -> None:
-        try:
+    def _fit_print_view_to_page_switch(self, double_fit: bool = False) -> None:
+        """
+            Adjust the splitter to fit the print view to the page size.
+            it switches between closing the print view and fitting it to 
+            the page size / opening the print view.
+        """
+        if self.fit_switch or double_fit:
             w_mm, h_mm = self._page_dimensions_mm()
             if w_mm <= 0 or h_mm <= 0:
                 return
@@ -323,8 +333,13 @@ class MainWindow(QtWidgets.QMainWindow):
             editor_w = max(0, total_w - ideal_pv_w)
             splitter.setSizes([editor_w, ideal_pv_w])
             QtCore.QTimer.singleShot(0, self.print_view.request_render)
-        except Exception:
-            pass
+            self.fit_switch = False  # reset switch for next time
+        else:
+            # Close print view by allocating all space to editor
+            splitter = self.centralWidget()
+            total_w = splitter.width()
+            splitter.setSizes([total_w, 0])
+            self.fit_switch = True  # reset switch for next time
 
     def _current_score_dict(self) -> dict:
         try:
@@ -392,17 +407,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
-        # Always refit print view on main window resize
-        try:
-            self._fit_print_view_to_page()
-        except Exception:
-            pass
+        ...
 
     def _on_snap_changed(self, base: int, divide: int) -> None:
-        # Placeholder: integrate with editor snapping later.
-        # For now, print to console to verify wiring.
+        # Update editor snap size units and request a redraw
         try:
-            print(f"Snap changed: base={base} divide={divide}")
+            size_units = self.snap_dock.selector.get_snap_size()
+            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+                self.editor_controller.set_snap_size_units(size_units)
+            if hasattr(self, 'editor_canvas') and self.editor_canvas is not None:
+                self.editor_canvas.update()
         except Exception:
             pass
 
