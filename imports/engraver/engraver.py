@@ -372,7 +372,6 @@ def render(
         text_onoff = io['score']['properties']['text_onoff']
 
         staffs_settings = io['score']['properties']['staffs']
-        threeline_scale = io['score']['properties']['threeline_scale']
         stop_sign_style = io['score']['properties']['stop_sign_style']
         continuation_dot_style = io['score']['properties']['continuation_dot_style']
 

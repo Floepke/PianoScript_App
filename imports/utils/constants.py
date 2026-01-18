@@ -10,7 +10,7 @@ import datetime
 
 # colors
 BACKGROUND_COLOR_EDITOR = '#fff'
-NOTATION_COLOR_EDITOR = '#222'
+NOTATION_COLOR_EDITOR = '#222232'
 
 # the default text of the statusbar.
 STATUSBAR_DEFAULT_TEXT = 'Ready to write music :D'
@@ -53,9 +53,8 @@ SCORE_TEMPLATE = {
             'OnlyChordUp',
             'AlwaysDownExceptCollisions',
             'AlwaysUpExceptCollisions'
-        ][1],
-        'threeline_scale': 2.0, # this parameter get's deleted, is now replaced by staff_threeline_width
-        'stop_sign_style': ['PianoScript', 'Klavarskribo'][0],
+        ][0],
+        'stop_sign_style': ['PianoScript', 'Klavarskribo'][1],
         'continuation_dot_style': ['PianoScript', 'Klavarskribo'][1],
 
         'staff_onoff': True,
@@ -63,7 +62,7 @@ SCORE_TEMPLATE = {
         'stem_onoff': True,
         'beam_onoff': True,
         'note_onoff': True,
-        'midinote_onoff': True,
+        'midinote_onoff': False,
         'notestop_onoff': True,
         'page_numbering_onoff': True,
         'barlines_onoff': True,
@@ -72,7 +71,7 @@ SCORE_TEMPLATE = {
         'measure_numbering_onoff': True,
         'accidental_onoff': True,
         'continuationdot_onoff': True,
-        'leftdot_onoff': True,
+        'leftdot_onoff': False,
         'staffs': [
             {
                 'onoff': True,
@@ -102,13 +101,13 @@ SCORE_TEMPLATE = {
         'timestamp_onoff': True,
         'text_onoff': True,
         # line widths:
-        'staff_threeline_width': .4,
+        'staff_threeline_width': .6,
         'staff_twoline_width': .2,
-        'barline_width': .2,
+        'barline_width': .4,
         'beam_width': 1,
         'stem_width': .5,
-        'basegrid_width': .15,
-        'countline_width': .2,
+        'basegrid_width': .3,
+        'countline_width': .4,
         'slur_width_middle': .6,
         'slur_width_sides': .2,
         # font_sizes:
@@ -134,7 +133,8 @@ SCORE_TEMPLATE = {
         'note': [],
         'countline': [],
         'linebreak': [
-            SaveFileStructureSource.new_linebreak('lockedlinebreak')
+            SaveFileStructureSource.new_linebreak('lockedlinebreak'),
+            SaveFileStructureSource.new_linebreak('linebreak0', time=4096)
         ],
         'startrepeat': [],
         'endrepeat': [],

@@ -1,5 +1,5 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from PySide6.QtCore import Qt, QSize, QPoint
+from PySide6.QtCore import QTimer, Qt, QSize, QPoint, QItemSelectionModel
 from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene, QInputDialog
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton
 from PySide6.QtWidgets import QSpinBox, QLabel, QDockWidget, QTreeView
@@ -371,10 +371,33 @@ class Gui():
         self.tool_layout.addWidget(self.tool_selector)
         # connect the treeview to the select_tool function
         self.tool_selector.clicked.connect(self.tree_view_click)
-        # select the note tool by default
-        self.tool_selector.setCurrentIndex(
-            self.tool_selector.model().index(0, 0))
-        self.last_selected_child = None
+
+        # select the 'note' tool by default (child row 0 of 'Harmony')
+        harmony_index = self.tool_selector.model().index(0, 0)
+        note_index = self.tool_selector.model().index(0, 0, harmony_index)
+        self.tool_selector.setCurrentIndex(note_index)
+        self.tool_selector.selectionModel().select(
+            note_index,
+            QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+        )
+        self.last_selected_child = note_index
+        self.tool_label.setText('Tool: note')
+
+        # if MainEditor is ready, apply the default; otherwise defer and store
+        if 'maineditor' in self.io:
+            self.io['maineditor'].select_tool('note')
+        else:
+            self.io['selected_tool'] = 'note'
+            self._default_tool_timer = QTimer(self.main)
+            self._default_tool_timer.setInterval(100)
+            self._default_tool_timer.timeout.connect(self._try_apply_default_tool)
+            self._default_tool_timer.start()
+
+        # keep selection blue even when the tree view doesn't have focus
+        self.tool_selector.setStyleSheet(
+            "QTreeView::item:selected { background:#2a7cf7; color:white; }"
+            "QTreeView::item:selected:!active { background:#2a7cf7; color:white; }"
+        )
 
         # create file browser
         # Create a second dockable widget on the left side
@@ -516,3 +539,11 @@ class Gui():
         if ok and timestamp:
             self.io['score']['header']['timestamp'] = timestamp
             self.io['maineditor'].update('grid_editor')
+
+    def _try_apply_default_tool(self):
+        # called by timer until maineditor is available
+        if 'maineditor' in self.io:
+            self.io['maineditor'].select_tool('note')
+            if hasattr(self, '_default_tool_timer'):
+                self._default_tool_timer.stop()
+                self._default_tool_timer.deleteLater()

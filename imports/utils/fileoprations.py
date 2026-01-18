@@ -223,6 +223,9 @@ class File:
         else:
             with open(self.save_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
+                self.add_recent_file(self.save_path)
+                self.update_recent_file_menu()
+                self.file_changed = False
             return True
 
     def saveas(self):
@@ -236,7 +239,9 @@ class File:
             # save the score to the file:
             with open(file_path, 'w') as file:
                 json.dump(self.io['score'], file, separators=(',', ':'))
-            
+                self.add_recent_file(file_path)
+                self.update_recent_file_menu()
+                self.file_changed = False
             # set save path:
             self.save_path = file_path
 

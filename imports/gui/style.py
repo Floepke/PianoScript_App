@@ -5,7 +5,7 @@ class Style():
     def __init__(self, io):
         
         self.io = io
-        self.set_dynamic_theme(tint=.7)
+        self.set_dynamic_theme(tint=.75)
 
     def calculate_luminance(self, rgb):
         """Calculate relative luminance of an RGB color"""
