@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from ui.widgets.draw_util import DrawUtil
-from editor.editor import Editor
+
+if TYPE_CHECKING:
+    from editor.editor import Editor
 
 
 class EditorAccessMixin:

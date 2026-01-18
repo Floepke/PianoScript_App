@@ -17,7 +17,8 @@ from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
 from editor.undo_manager import UndoManager
-from utils.CONSTANT import EDITOR_LAYERING
+from file_model.SCORE import SCORE
+from utils.CONSTANT import EDITOR_LAYERING, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
 from editor.drawers.grid_drawer import GridDrawerMixin
 from editor.drawers.note_drawer import NoteDrawerMixin
@@ -95,7 +96,7 @@ class Editor(QtCore.QObject,
     def draw_background_gray(self, du) -> None:
         """Fill the current page with print-view grey (#7a7a7a)."""
         w_mm, h_mm = du.current_page_size_mm()
-        grey = (122/255.0, 122/255.0, 122/255.0, 1.0)
+        grey = (200, 240, 240, 1.0)
         du.add_rectangle(0.0, 0.0, w_mm, h_mm, stroke_color=None, fill_color=grey, id=0, tags=["background"])
 
     def draw_all(self, du) -> None:
@@ -130,7 +131,7 @@ class Editor(QtCore.QObject,
         """
         from utils.CONSTANT import PIANO_KEY_AMOUNT
         w = max(1.0, float(view_width_mm))
-        margin = w / 6.0
+        margin = w / 6
         self.margin = margin
         self.stave_width = max(1.0, w - 2.0 * margin)
         self.semitone_width = self.stave_width / float(max(1, PIANO_KEY_AMOUNT - 1))
@@ -186,7 +187,9 @@ class Editor(QtCore.QObject,
         if snap is not None:
             self._file_manager.replace_current(snap)
 
-    # UI event forwarding APIs for the view
+    '''
+        ---- Mouse event routing ----
+    '''
     def mouse_press(self, button: int, x: float, y: float) -> None:
         if button == 1:
             self._left_pressed = True
@@ -256,3 +259,16 @@ class Editor(QtCore.QObject,
             self._tool.on_left_double_click(x, y)
         elif button == 2:
             self._tool.on_right_double_click(x, y)
+
+    '''
+        ---- Editor drawer mixin helper methods ----
+    '''
+    def get_score_time(self) -> int:
+        """Return the total length of the current SCORE in ticks."""
+        score: SCORE = self.current_score()
+        
+        length_ticks = 0
+        for bg in score.base_grid:
+            measure_length = bg.numerator * (4.0 / bg.denominator) * bg.measure_amount * QUARTER_NOTE_UNIT
+            length_ticks += measure_length
+        return length_ticks

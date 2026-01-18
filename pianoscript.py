@@ -51,7 +51,29 @@ def main():
     win = MainWindow()
     # Ensure clean shutdown of background threads on app exit
     app.aboutToQuit.connect(win.prepare_close)
-    win.show()
+    # Restore window state or start maximized based on appdata
+    try:
+        adm = get_appdata_manager()
+        start_max = bool(adm.get("window_maximized", True))
+        if not start_max:
+            geom_b64 = str(adm.get("window_geometry", ""))
+            state_b64 = str(adm.get("window_state", ""))
+            try:
+                if geom_b64:
+                    win.restoreGeometry(QtCore.QByteArray.fromBase64(geom_b64.encode("ascii")))
+            except Exception:
+                pass
+            try:
+                if state_b64:
+                    win.restoreState(QtCore.QByteArray.fromBase64(state_b64.encode("ascii")))
+            except Exception:
+                pass
+            win.show()
+        else:
+            win.showMaximized()
+    except Exception:
+        # Fallback: show maximized
+        win.showMaximized()
     app.exec()
 
 

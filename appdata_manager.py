@@ -77,7 +77,7 @@ class AppDataManager:
 
     def _emit_py_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# PianoScript app data\n\n# Application-managed data. Editing is possible but not recommended.\n# Some changes may only take effect after restart.\n")
+        lines.append("# PianoScript app data\n\n# Application-managed data. Editing is possible but it's not meant for that.")
         lines.append("appdata = {")
         indent = "    "
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]
@@ -128,6 +128,10 @@ def get_appdata_manager() -> AppDataManager:
         adm = AppDataManager(APPDATA_PATH)
         # Register known app data here (not user preferences)
         adm.register("recent_files", [], "List of recently opened files (most recent first)")
+        # Window state (session-managed)
+        adm.register("window_maximized", True, "Start maximized; updated on exit")
+        adm.register("window_geometry", "", "Base64-encoded Qt window geometry for normal state")
+        adm.register("window_state", "", "Base64-encoded Qt window state (dock/toolbar layout)")
         adm.load()
         _appdata_manager = adm
     return _appdata_manager

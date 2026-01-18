@@ -9,6 +9,7 @@ from ui.widgets.snap_size_selector import SnapSizeDock
 from ui.widgets.draw_util import DrawUtil
 from ui.widgets.draw_view import DrawUtilView
 from settings_manager import open_preferences, get_preferences
+from appdata_manager import get_appdata_manager
 from engraver.engraver import Engraver
 from editor.tool_manager import ToolManager
 from editor.editor import Editor
@@ -412,6 +413,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _center_on_primary(self) -> None:
         # Move window to the center of the primary screen
         try:
+            # If the window is maximized or fullscreen, do not attempt to center
+            if self.isMaximized() or self.isFullScreen():
+                return
             scr = QtGui.QGuiApplication.primaryScreen()
             if not scr:
                 return
@@ -432,6 +436,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def prepare_close(self) -> None:
         # Ensure worker threads are stopped before application exits
+        # Persist window state to appdata
+        try:
+            adm = get_appdata_manager()
+            adm.set("window_maximized", bool(self.isMaximized()))
+            try:
+                geom_b64 = bytes(self.saveGeometry().toBase64()).decode("ascii")
+                adm.set("window_geometry", geom_b64)
+            except Exception:
+                pass
+            try:
+                state_b64 = bytes(self.saveState().toBase64()).decode("ascii")
+                adm.set("window_state", state_b64)
+            except Exception:
+                pass
+            adm.save()
+        except Exception:
+            pass
         if hasattr(self, "print_view") and self.print_view is not None:
             try:
                 self.print_view.shutdown()

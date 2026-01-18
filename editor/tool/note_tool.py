@@ -24,7 +24,7 @@ class NoteTool(BaseTool):
     def on_right_drag_start(self, x: float, y: float) -> None: print('NoteTool: on_right_drag_start()')
     def on_right_drag(self, x: float, y: float, dx: float, dy: float) -> None: print('NoteTool: on_right_drag()')
     def on_right_drag_end(self, x: float, y: float) -> None: print('NoteTool: on_right_drag_end()')
-    def on_mouse_move(self, x: float, y: float) -> None: print('NoteTool: on_mouse_move()')
+    def on_mouse_move(self, x: float, y: float) -> None: ...#print('NoteTool: on_mouse_move()')
 
     def on_toolbar_button(self, name: str) -> None:
         print(f"NoteTool: on_toolbar_button(name='{name}')")

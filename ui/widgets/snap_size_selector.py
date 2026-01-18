@@ -50,18 +50,20 @@ class SnapSizeSelector(QtWidgets.QWidget):
         ic_minus = None
         try:
             from icons.icons import get_qicon
-            ic_minus = get_qicon('minus', size=(72, 72))
+            # Request a smaller source icon for crisper scaling
+            ic_minus = get_qicon('minus', size=(36, 36))
         except Exception:
             ic_minus = None
         if ic_minus:
             self.minus_btn.setIcon(ic_minus)
-            self.minus_btn.setIconSize(QtCore.QSize(60, 60))
+            # 25% smaller than previous 45x45 -> ~34x34
+            self.minus_btn.setIconSize(QtCore.QSize(34, 34))
             self.minus_btn.setText("")
         else:
             self.minus_btn.setText("-")
         self.minus_btn.clicked.connect(self._dec_divide)
-        # Button visual size square 72x72
-        self.minus_btn.setFixedSize(72, 72)
+        # Button visual size square 54x54 (25% smaller)
+        self.minus_btn.setFixedSize(54, 54)
         fbtn = self.minus_btn.font()
         try:
             base_sz = fbtn.pointSize()
@@ -70,10 +72,10 @@ class SnapSizeSelector(QtWidgets.QWidget):
         except Exception:
             fbtn.setPointSize(15)
         self.minus_btn.setFont(fbtn)
-        # Wrapper to preserve original center position (48x48 area)
+        # Wrapper to preserve original center position (54x54 area)
         self._minus_wrap = QtWidgets.QWidget(self)
         # Wrapper widened and heightened to match button size
-        self._minus_wrap.setFixedSize(72, 72)
+        self._minus_wrap.setFixedSize(54, 54)
         wrap_l = QtWidgets.QVBoxLayout(self._minus_wrap)
         wrap_l.setContentsMargins(0, 0, 0, 0)
         wrap_l.setSpacing(0)
@@ -90,25 +92,27 @@ class SnapSizeSelector(QtWidgets.QWidget):
         except Exception:
             fl.setPointSize(20)
         self.label.setFont(fl)
-        self.label.setMinimumHeight(72)
+        self.label.setMinimumHeight(54)
         row.addWidget(self.label, 1)
 
         self.plus_btn = QtWidgets.QToolButton(self)
         ic_plus = None
         try:
             from icons.icons import get_qicon
-            ic_plus = get_qicon('plus', size=(72, 72))
+            # Request a smaller source icon for crisper scaling
+            ic_plus = get_qicon('plus', size=(36, 36))
         except Exception:
             ic_plus = None
         if ic_plus:
             self.plus_btn.setIcon(ic_plus)
-            self.plus_btn.setIconSize(QtCore.QSize(60, 60))
+            # 25% smaller than previous 45x45 -> ~34x34
+            self.plus_btn.setIconSize(QtCore.QSize(34, 34))
             self.plus_btn.setText("")
         else:
             self.plus_btn.setText("+")
         self.plus_btn.clicked.connect(self._inc_divide)
-        # Button visual size square 72x72
-        self.plus_btn.setFixedSize(72, 72)
+        # Button visual size square 54x54 (25% smaller)
+        self.plus_btn.setFixedSize(54, 54)
         fbtn2 = self.plus_btn.font()
         try:
             base_sz2 = fbtn2.pointSize()
@@ -117,10 +121,10 @@ class SnapSizeSelector(QtWidgets.QWidget):
         except Exception:
             fbtn2.setPointSize(15)
         self.plus_btn.setFont(fbtn2)
-        # Wrapper to preserve original center position (48x48 area)
+        # Wrapper to preserve original center position (54x54 area)
         self._plus_wrap = QtWidgets.QWidget(self)
         # Wrapper widened and heightened to match button size
-        self._plus_wrap.setFixedSize(72, 72)
+        self._plus_wrap.setFixedSize(54, 54)
         wrap_r = QtWidgets.QVBoxLayout(self._plus_wrap)
         wrap_r.setContentsMargins(0, 0, 0, 0)
         wrap_r.setSpacing(0)
@@ -186,8 +190,8 @@ class SnapSizeSelector(QtWidgets.QWidget):
                     max_text = t
             text_w = fm.horizontalAdvance(max_text) + 24  # padding baseline
 
-            # Controls row height (buttons/label at least 48)
-            ctrl_h = 72
+            # Controls row height (buttons/label)
+            ctrl_h = 54
 
             # Total widget size
             layout_margins = 6 * 2
@@ -195,7 +199,7 @@ class SnapSizeSelector(QtWidgets.QWidget):
             # Add a small fudge factor to avoid off-by-1 cropping
             fudge = 2
             total_h = list_h + layout_spacing + ctrl_h + layout_margins + fudge
-            total_w = max(text_w, 48 + 8 + fm.horizontalAdvance("÷ 64") + 8 + 48) + layout_margins
+            total_w = max(text_w, 54 + 8 + fm.horizontalAdvance("÷ 64") + 8 + 54) + layout_margins
             # Fix height, allow width to expand with the dock
             self.setFixedHeight(total_h)
             # If hosted in a dock, clamp dock size too (include title bar height)
