@@ -456,13 +456,10 @@ class Editor(QtCore.QObject,
 
         Example: with snap size S, values in [k*S, (k+1)*S) snap to k*S.
         """
-        try:
-            units = max(1e-6, float(self.snap_size_units))
-            ratio = float(ticks) / units
-            k = math.floor(ratio + 1e-9)  # tiny epsilon to counter floating error
-            return k * units
-        except Exception:
-            return float(ticks)
+        units = max(1e-6, float(self.snap_size_units))
+        ratio = float(ticks) / units
+        k = math.floor(ratio + 1e-9)  # tiny epsilon to counter floating error
+        return k * units
 
     # ---- Editor guides (tool-agnostic overlays) ----
     def draw_guides(self, du: DrawUtil) -> None:
@@ -483,13 +480,13 @@ class Editor(QtCore.QObject,
 
         # Left side of stave
         du.add_line(
-            0.0,
+            2.0,
             y_mm,
             margin,
             y_mm,
             color=(0, 0, 0, 1),
-            width_mm=0.5,
-            dash_pattern=[2, 2],
+            width_mm=.75,
+            dash_pattern=[0, 2],
             id=0,
             tags=["cursor"],
         )
@@ -498,11 +495,11 @@ class Editor(QtCore.QObject,
         du.add_line(
             margin + stave_width,
             y_mm,
-            margin * 2.0 + stave_width,
+            margin * 2.0 + stave_width - 2,
             y_mm,
             color=(0, 0, 0, 1),
-            width_mm=0.5,
-            dash_pattern=[2, 2],
+            width_mm=.75,
+            dash_pattern=[0, 2],
             id=0,
             tags=["cursor"],
         )
