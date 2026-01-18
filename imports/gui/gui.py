@@ -1,7 +1,7 @@
 # in CONSTANT.py you can find all constants that are used in the application along with the description.
-from PySide6.QtCore import QTimer, Qt, QSize, QPoint, QItemSelectionModel
-from PySide6.QtWidgets import QMenu, QSlider, QGraphicsScene, QInputDialog
-from PySide6.QtWidgets import QSplitter, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton
+from PySide6.QtCore import QTimer, Qt, QSize, QItemSelectionModel
+from PySide6.QtWidgets import QMenu, QGraphicsScene, QInputDialog
+from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget, QRadioButton
 from PySide6.QtWidgets import QSpinBox, QLabel, QDockWidget, QTreeView
 from PySide6.QtGui import QAction, QColor, QBrush, QStandardItemModel, QStandardItem
 
@@ -353,6 +353,7 @@ class Gui():
 
         # Create a QTreeView and set the model (create_tree_model is defined below)
         self.tool_selector = QTreeView()
+        self.tool_selector.setObjectName('toolTree')
         self.tool_selector.setModel(self.create_tree_model())
         self.tool_selector.header().hide()
         self.tool_selector.setEditTriggers(
@@ -392,12 +393,6 @@ class Gui():
             self._default_tool_timer.setInterval(100)
             self._default_tool_timer.timeout.connect(self._try_apply_default_tool)
             self._default_tool_timer.start()
-
-        # keep selection blue even when the tree view doesn't have focus
-        self.tool_selector.setStyleSheet(
-            "QTreeView::item:selected { background:#2a7cf7; color:white; }"
-            "QTreeView::item:selected:!active { background:#2a7cf7; color:white; }"
-        )
 
         # create file browser
         # Create a second dockable widget on the left side
