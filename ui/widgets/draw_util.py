@@ -204,14 +204,23 @@ class DrawUtil:
             hit_rect_mm = (rx, ry, rw, rh)
         self._pages[self._current_index].items.append(Rect(rx, ry, rw, rh, stroke, fill, id, tags, hit_rect_mm))
 
-    def add_oval(self, x_mm: float, y_mm: float, w_mm: float, h_mm: float,
+    def add_oval(self,
+                 x1_mm: float,
+                 y1_mm: float,
+                 x2_mm: float,
+                 y2_mm: float,
                  stroke_color: Optional[Color] = (0, 0, 0, 1),
                  stroke_width_mm: float = 0.3,
                  fill_color: Optional[Color] = None,
                  dash_pattern: Optional[Sequence[float]] = None,
                  dash_offset_mm: float = 0.0,
-                 id: int = 0, tags: Optional[List[str]] = None,
+                 id: int = 0,
+                 tags: Optional[List[str]] = None,
                  hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
+        """Add an oval defined by two opposite corners (x1_mm,y1_mm) and (x2_mm,y2_mm).
+
+        The oval is inscribed in the axis-aligned rectangle given by these corners.
+        """
         self._ensure_page()
         stroke = None
         fill = None
@@ -221,9 +230,18 @@ class DrawUtil:
             fill = Fill(fill_color)
         if tags is None:
             tags = []
+        # Normalize to rectangle origin + size
+        xa = float(x1_mm)
+        ya = float(y1_mm)
+        xb = float(x2_mm)
+        yb = float(y2_mm)
+        rx = min(xa, xb)
+        ry = min(ya, yb)
+        rw = abs(xb - xa)
+        rh = abs(yb - ya)
         if hit_rect_mm is None:
-            hit_rect_mm = (x_mm, y_mm, w_mm, h_mm)
-        self._pages[self._current_index].items.append(Oval(x_mm, y_mm, w_mm, h_mm, stroke, fill, id, tags, hit_rect_mm))
+            hit_rect_mm = (rx, ry, rw, rh)
+        self._pages[self._current_index].items.append(Oval(rx, ry, rw, rh, stroke, fill, id, tags, hit_rect_mm))
 
     def add_polygon(self, points_mm: Sequence[Tuple[float, float]],
                     stroke_color: Optional[Color] = (0, 0, 0, 1),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from file_model.SCORE import SCORE
-from utils.CONSTANT import QUARTER_NOTE_UNIT
+from utils.CONSTANT import BLACK, QUARTER_NOTE_UNIT
 from ui.widgets.draw_util import DrawUtil
 
 if TYPE_CHECKING:
@@ -57,3 +57,27 @@ class NoteDrawerMixin:
                 id=0,
                 tags=["midi_note"],
             )
+
+            # Draw note head
+            if n.pitch in BLACK:
+                du.add_oval(
+                    x_center - self.semitone_width,
+                    y_top,
+                    x_center + self.semitone_width,
+                    y_top + self.semitone_width * 2,
+                    stroke_color=None,
+                    fill_color=(0,0,0,1),
+                    id=0,
+                    tags=["notehead_black"],
+                )
+            else:
+                du.add_oval(
+                    x_center - self.semitone_width,
+                    y_top,
+                    x_center + self.semitone_width,
+                    y_top + self.semitone_width * 2,
+                    stroke_width_mm=.25,
+                    fill_color=(1,1,1,1),
+                    id=0,
+                    tags=["notehead_white"],
+                )
