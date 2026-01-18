@@ -150,4 +150,4 @@ class Style:
         if theme == 'dark':
             return (153, 153, 163)
         else:
-            return (200, 200, 200)
+            return (240, 240, 240)

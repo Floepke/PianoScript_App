@@ -165,12 +165,24 @@ class CairoEditorWidget(QtWidgets.QWidget):
         try:
             self.viewportMetricsChanged.emit(h_px_content, vis_h_px, px_per_mm, dpr)
         except Exception:
-            pass
+            print('CairoEditorWidget.paintEvent: Warning: failed to emit viewportMetricsChanged')
         # Provide view metrics to the editor for fast px↔mm/time conversions
         try:
             if self._editor is not None:
                 widget_px_per_mm = float(vis_w_px) / max(1e-6, page_w_mm) / max(1e-6, dpr)
                 self._editor.set_view_metrics(px_per_mm, widget_px_per_mm, dpr)
+                # Provide current clip origin offset in mm so px→mm conversions align with scroll
+                self._editor.set_view_offset_mm(clip_y_mm)
+                # Recompute cursor from last mouse position so guides follow scroll
+                if self._last_pos is not None:
+                    try:
+                        t = self._editor.y_to_time(self._last_pos.y())
+                        t = self._editor.snap_time(t)
+                        self._editor.time_cursor = t
+                        abs_mm = self._editor.time_to_mm(float(t))
+                        self._editor.mm_cursor = abs_mm - float(getattr(self._editor, '_view_y_mm_offset', 0.0) or 0.0)
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -180,22 +192,23 @@ class CairoEditorWidget(QtWidgets.QWidget):
             painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
             painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
         except Exception:
-            pass
+            print('CairoEditorWidget.paintEvent: Warning: failed to set QPainter render hints')
         try:
-            # Use the widget's palette/background; do not force a grey fill
-
-            if self._editor is not None:
-                # Layout was already calculated above to provide up-to-date editor_height
-                pass
-
             # Build all layers once using the editor controller
             # Use a pure viewport clip rect (no bleed). Overscan is applied in DrawUtil for Cairo clip only.
             clip_mm = (clip_x_mm, clip_y_mm, clip_w_mm, clip_h_mm)
             du_all = DrawUtil()
+            
             # Use the editor-provided height so scrolling matches drawer layout
             du_all.set_current_page_size_mm(page_w_mm, page_h_mm)
             if self._editor is not None:
                 self._editor.draw_all(du_all)
+                
+                # Draw shared guides (e.g., time cursor) after content
+                try:
+                    self._editor.draw_guides(du_all)
+                except Exception:
+                    pass
 
             # Offscreen buffer sized exactly to the viewport
             img, surf, _buf = _make_image_and_surface(vis_w_px, vis_h_px)
@@ -203,7 +216,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
             try:
                 ctx.set_antialias(cairo.ANTIALIAS_BEST)
             except Exception:
-                pass
+                print('CairoEditorWidget.paintEvent: Warning: failed to set antialiasing mode')
+            
             # Static viewport rendering: no overscan; draw items as-is with culling.
             du_all.render_to_cairo(ctx, du_all.current_page_index(), px_per_mm, clip_mm, overscan_mm=0.0)
             img.setDevicePixelRatio(dpr)
@@ -294,6 +308,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 dy = ev.position().y() - lp.y()
                 self._editor.mouse_move(ev.position().x(), ev.position().y(), dx, dy)
                 self._last_sent_pos = ev.position()
+                # Request repaint so shared guides render immediately
+                self.update()
         super().mouseMoveEvent(ev)
 
     def mouseReleaseEvent(self, ev: QtGui.QMouseEvent) -> None:
@@ -340,6 +356,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
         dy = pos.y() - lp.y()
         self._editor.mouse_move(pos.x(), pos.y(), dx, dy)
         self._last_sent_pos = pos
+        # Request repaint so shared guides render at the new position
+        self.update()
 
     def _configure_move_timer_from_prefs(self) -> None:
         prefs = get_preferences()

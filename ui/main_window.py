@@ -106,15 +106,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editor_controller.set_tool_by_name('note')
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # 'Fit' button on splitter handle triggers fit action
-        splitter.fitRequested.connect(self._fit_print_view_to_page_switch)
+        splitter.fitRequested.connect(self._fit_print_view_to_page)
         # Default toolbar actions
         splitter.nextRequested.connect(self._next_page)
         splitter.previousRequested.connect(self._previous_page)
         splitter.engraveRequested.connect(self._engrave_now)
         splitter.playRequested.connect(self._play_midi)
         splitter.stopRequested.connect(self._stop_midi)
-        # Fit print view to page on startup
-        QtCore.QTimer.singleShot(0, lambda: self._fit_print_view_to_page_switch(True))
+        # Fit print view to page on startup (schedule multiple passes to catch late geometry)
+        QtCore.QTimer.singleShot(200, self._fit_print_view_to_page)
         # Also request an initial render
         QtCore.QTimer.singleShot(0, self.print_view.request_render)
         # Strip demo timers
@@ -126,7 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Page navigation state
         self._page_counter = 0
-        self._total_pages_placeholder = 4  # TODO: replace with real page count
+        self._total_pages_placeholder = 2  # TODO: replace with real page count
 
         # Connect external scrollbar to the editor canvas
         try:
@@ -137,8 +137,10 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-        # fit switch state
-        self.fit_switch = True
+        # Fit state tracking
+        self.is_fit = False
+
+        self.is_startup = True
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
@@ -314,37 +316,70 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             return (210.0, 297.0)
 
-    def _fit_print_view_to_page_switch(self, double_fit: bool = False) -> None:
+    def _fit_print_view_to_page(self, *_args) -> None:
+        """Toggle fit/hidden state and ensure in-between positions snap to fit.
+
+        Behavior:
+        - If currently fitted (self.is_fit): hide the print view.
+        - Else: run the fit logic.
+        - If not hidden and not fitted (in-between): run the fit logic.
         """
-            Adjust the splitter to fit the print view to the page size.
-            it switches between closing the print view and fitting it to 
-            the page size / opening the print view.
-        """
-        if self.fit_switch or double_fit:
+        splitter = self.centralWidget()
+        if splitter is None:
+            return
+        
+        print("Fitting print view to page...")
+
+        # Helper: compute desired fit sizes
+        def compute_fit_sizes() -> tuple[int, int]:
             w_mm, h_mm = self._page_dimensions_mm()
             if w_mm <= 0 or h_mm <= 0:
-                return
-            splitter = self.centralWidget()
-            # Use content width excluding handle to avoid undersizing the print view
-            handle_w = 0
+                return (splitter.width(), 0)
+            # Exclude handle width to compute available content width
             try:
                 handle_w = int(splitter.handleWidth())
             except Exception:
                 handle_w = 0
             total_w = max(0, splitter.width() - handle_w)
-            pv_h = self.print_view.height()
-            # Ideal width to fit page exactly by height when scaling by width
+            # Use splitter height (more stable at startup/maximized) for fit computations
+            pv_h = max(1, splitter.height())
             ideal_pv_w = int(round(pv_h * (w_mm / h_mm)))
-            editor_w = max(0, total_w - ideal_pv_w)
-            splitter.setSizes([editor_w, ideal_pv_w])
+            # Clamp to available width to avoid oversizing when maximized/startup
+            pv_w = min(max(0, ideal_pv_w), total_w)
+            editor_w = max(0, total_w - pv_w)
+            return (editor_w, pv_w)
+
+        # Current sizes and state
+        sizes = splitter.sizes() or [splitter.width(), 0]
+        cur_editor_w = int(sizes[0]) if sizes else splitter.width()
+        cur_pv_w = int(sizes[1]) if len(sizes) > 1 else 0
+        fitted_editor_w, fitted_pv_w = compute_fit_sizes()
+
+        # on startup, we always start fitted
+        if self.is_startup:
+            self.is_startup = False
+            splitter.setSizes([fitted_editor_w, fitted_pv_w])
             QtCore.QTimer.singleShot(0, self.print_view.request_render)
-            self.fit_switch = False  # reset switch for next time
-        else:
-            # Close print view by allocating all space to editor
-            splitter = self.centralWidget()
-            total_w = splitter.width()
-            splitter.setSizes([total_w, 0])
-            self.fit_switch = True  # reset switch for next time
+            return
+
+        # Determine if hidden or fitted (with small tolerance)
+        hidden = (cur_pv_w <= 0)
+        fit_tolerance = 2
+        fitted = (abs(cur_pv_w - fitted_pv_w) <= fit_tolerance and abs(cur_editor_w - fitted_editor_w) <= fit_tolerance)
+        self.is_fit = fitted
+
+        if self.is_fit:
+            # Hide the print view
+            splitter.setSizes([cur_editor_w + cur_pv_w, 0])
+            self.is_fit = False
+            return
+
+        # If not hidden and not fitted (in-between), or hidden: run fit logic
+        if (not hidden and not fitted) or hidden:
+            splitter.setSizes([fitted_editor_w, fitted_pv_w])
+            QtCore.QTimer.singleShot(0, self.print_view.request_render)
+            self.is_fit = True
+            return
 
     def _current_score_dict(self) -> dict:
         try:

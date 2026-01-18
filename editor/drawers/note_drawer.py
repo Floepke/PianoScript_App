@@ -23,26 +23,24 @@ class NoteDrawerMixin:
             return margin + (float(ticks) / float(QUARTER_NOTE_UNIT)) * zpq
 
         for n in score.events.note:
-            # optimalization: skip notes outside visible area
+            # Note start/end in mm
             y1 = time_to_mm(n.time)
             y2 = time_to_mm(n.time + n.duration)
-            _, page_h_mm = du.current_page_size_mm()
-            if y1 > page_h_mm + margin or y2 < margin:
-                continue
 
+            # Note pitch to x
             x = self.pitch_to_x(n.pitch)
 
             # midinote color
-            if n.pitch in BLACK_KEYS:
-                midinote_color = (0.6, 0.6, 0.6, 1)
+            if n.hand == 'l':
+                midinote_color = (.6, .7, .8, 1)
             else:
-                midinote_color = (0.8, 0.8, 0.8, 1)
+                midinote_color = (.8, .7, .6, 1)
             
             # Draw note rectangle tagged for layering beneath notation
             du.add_rectangle(
-                x - self.semitone_dist / 2,
+                x - self.semitone_dist,
                 y1,
-                x + self.semitone_dist / 2,
+                x + self.semitone_dist,
                 y2,
                 stroke_color=None,
                 fill_color=midinote_color,

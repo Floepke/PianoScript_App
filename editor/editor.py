@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Dict, Type
+from typing import Optional, Tuple, Dict, Type, TYPE_CHECKING
+import math
 from PySide6 import QtCore
 
 from editor.tool.base_tool import BaseTool
@@ -18,7 +19,7 @@ from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
 from editor.undo_manager import UndoManager
 from file_model.SCORE import SCORE
-from utils.CONSTANT import BE_KEYS, EDITOR_LAYERING, QUARTER_NOTE_UNIT
+from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
 from editor.drawers.snap_drawer import SnapDrawerMixin
 from editor.drawers.grid_drawer import GridDrawerMixin
@@ -32,8 +33,11 @@ from editor.drawers.start_repeat_drawer import StartRepeatDrawerMixin
 from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
 from editor.drawers.count_line_drawer import CountLineDrawerMixin
 from editor.drawers.line_break_drawer import LineBreakDrawerMixin
-from utils.tiny_tool import key_class_filter
 from utils.CONSTANT import PIANO_KEY_AMOUNT
+
+if TYPE_CHECKING:
+    from editor.tool.base_tool import BaseTool
+    from ui.widgets.draw_util import DrawUtil
 
 
 class Editor(QtCore.QObject,
@@ -105,6 +109,12 @@ class Editor(QtCore.QObject,
         self._px_per_mm: float = 1.0            # device px per mm
         self._widget_px_per_mm: float = 1.0     # logical (Qt) px per mm
         self._dpr: float = 1.0                  # device pixel ratio
+        # View offset in mm (top of visible clip)
+        self._view_y_mm_offset: float = 0.0
+
+        # cursor
+        self.time_cursor: Optional[float] = None
+        self.mm_cursor: Optional[float] = None
 
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
@@ -259,6 +269,16 @@ class Editor(QtCore.QObject,
                 self._tool.on_right_drag(x, y, dx, dy)
                 # Skip intermediate drag snapshots
         else:
+            # Update shared cursor state for guide rendering (time + mm), with snapping
+            try:
+                t = self.y_to_time(y)
+                t = self.snap_time(t)
+                self.time_cursor = t
+                # Store cursor mm relative to viewport (local mm)
+                abs_mm = self.time_to_mm(float(t))
+                self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
+            except Exception:
+                pass
             self._tool.on_mouse_move(x, y)
 
     def mouse_release(self, button: int, x: float, y: float) -> None:
@@ -403,7 +423,9 @@ class Editor(QtCore.QObject,
 
     def px_to_time(self, y_px: float) -> float:
         """Convert Y in logical (Qt) pixels to time ticks efficiently using cached px/mm."""
-        y_mm = float(y_px) / max(1e-6, self._widget_px_per_mm)
+        # Convert local widget px to mm, then add current viewport clip offset
+        y_mm_local = float(y_px) / max(1e-6, self._widget_px_per_mm)
+        y_mm = y_mm_local + float(self._view_y_mm_offset or 0.0)
         return self.mm_to_time(y_mm)
 
     def set_view_metrics(self, px_per_mm: float, widget_px_per_mm: float, dpr: float) -> None:
@@ -414,3 +436,73 @@ class Editor(QtCore.QObject,
             self._dpr = float(dpr)
         except Exception:
             pass
+
+    def set_view_offset_mm(self, y_mm_offset: float) -> None:
+        """Set the current viewport origin offset (top of clip) in mm."""
+        try:
+            self._view_y_mm_offset = float(y_mm_offset)
+            # Recompute local mm cursor on scroll so overlays stay aligned
+            if self.time_cursor is not None:
+                try:
+                    abs_mm = self.time_to_mm(float(self.time_cursor))
+                    self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
+                except Exception:
+                    pass
+        except Exception:
+            self._view_y_mm_offset = 0.0
+
+    def snap_time(self, ticks: float) -> float:
+        """Snap time ticks to the start of the previous snap band.
+
+        Example: with snap size S, values in [k*S, (k+1)*S) snap to k*S.
+        """
+        try:
+            units = max(1e-6, float(self.snap_size_units))
+            ratio = float(ticks) / units
+            k = math.floor(ratio + 1e-9)  # tiny epsilon to counter floating error
+            return k * units
+        except Exception:
+            return float(ticks)
+
+    # ---- Editor guides (tool-agnostic overlays) ----
+    def draw_guides(self, du: DrawUtil) -> None:
+        """Draw shared editor guides such as the horizontal time cursor.
+
+        This runs independently of the active tool so overrides don't suppress it.
+        """
+        # get cursor mm position: convert local (viewport) mm -> absolute mm
+        if self.mm_cursor is None:
+            return
+        y_mm = float(self.mm_cursor) + float(self._view_y_mm_offset or 0.0)
+        
+        margin = float(self.margin or 0.0)
+        stave_width = float(self.stave_width or 0.0)
+
+        # Remove previous cursor guides by tag
+        du.delete_with_tag("cursor")
+
+        # Left side of stave
+        du.add_line(
+            0.0,
+            y_mm,
+            margin,
+            y_mm,
+            color=(0, 0, 0, 1),
+            width_mm=0.5,
+            dash_pattern=[2, 2],
+            id=0,
+            tags=["cursor"],
+        )
+
+        # Right side of stave
+        du.add_line(
+            margin + stave_width,
+            y_mm,
+            margin * 2.0 + stave_width,
+            y_mm,
+            color=(0, 0, 0, 1),
+            width_mm=0.5,
+            dash_pattern=[2, 2],
+            id=0,
+            tags=["cursor"],
+        )
