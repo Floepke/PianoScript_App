@@ -81,14 +81,14 @@ settings = {
 - `BaseGrid`:
 	- `numerator`: time signature numerator (e.g., 4 in 4/4)
 	- `denominator`: time signature denominator (e.g., 4 in 4/4)
-	- `grid_beats_enabled`: list of beat indices to draw/enable within a measure.
+	- `grid_positions`: list of beat indices to draw/enable within a measure.
 		Beat 1 corresponds to the barline; higher numbers control visible beats.
 	- `measure_amount`: number of measures using this grid.
 
 Behavior:
 - Denominator defines the smallest possible time step in the grid context.
 	A denominator of 1 enforces drawing the barline (beat 1) per measure.
-	Higher denominators subdivide the measure; `grid_beats_enabled` selects which beats are drawn.
+	Higher denominators subdivide the measure; `grid_positions` selects which beats are drawn.
 
 Note:
 - Legacy keys and automatic repairs are not applied in early stage; JSON should match the current schema.

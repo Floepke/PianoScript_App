@@ -20,7 +20,7 @@ class StaveDrawerMixin:
         semitone_dx = float(self.semitone_width)
         stave_left = margin
         stave_right = w_mm - margin
-        total_score_time = self.get_score_time()
+        total_score_time = self._calc_score_time()
         stave_length_mm = (total_score_time / QUARTER_NOTE_UNIT) * score.editor.zoom_mm_per_quarter
         y1 = margin
         y2 = margin + stave_length_mm
@@ -63,5 +63,7 @@ class StaveDrawerMixin:
                 width_mm = max(0.05, semitone_dx / 10.0)
                 dash = None
                 tag = "stave_two_line"
+            
+            # draw
             du.add_line(x_pos, y1, x_pos, y2, color=self.notation_color, width_mm=width_mm,
                         dash_pattern=dash, id=0, tags=[tag])

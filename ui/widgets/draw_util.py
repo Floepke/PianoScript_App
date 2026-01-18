@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable, List, Optional, Sequence, Tuple
+import os
 import cairo
 from utils.CONSTANT import EDITOR_LAYERING
 
@@ -96,6 +97,10 @@ class Text:
     italic: bool = False
     bold: bool = False
     color: Color = (0, 0, 0, 1)
+    # Optional anchor specifying how (x_mm, y_mm) positions the text bounding box.
+    # Supported values: 'center', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'.
+    # If None, defaults to baseline positioning (legacy behavior).
+    anchor: str | None = None
     # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
@@ -256,6 +261,7 @@ class DrawUtil:
                  family: str = "Sans", size_pt: float = 10.0,
                  italic: bool = False, bold: bool = False,
                  color: Color = (0, 0, 0, 1),
+                 anchor: str | None = None,
                  id: int = 0, tags: Optional[List[str]] = None,
                  hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
         """Add a text item. y_mm is the baseline.
@@ -266,10 +272,50 @@ class DrawUtil:
         self._ensure_page()
         if tags is None:
             tags = []
+        # Compute hit rect and baseline origin based on anchor
         if hit_rect_mm is None:
-            hit_rect_mm = self._compute_text_hit_rect_mm(x_mm, y_mm, text, family, size_pt, italic, bold)
+            hit_rect_mm = self._compute_text_hit_rect_mm(x_mm, y_mm, text, family, size_pt, italic, bold, anchor)
+        bx = x_mm
+        by = y_mm
+        if anchor:
+            xb_mm, yb_mm, w_mm, h_mm = self._get_text_extents_mm(text, family, size_pt, italic, bold)
+            ax = x_mm
+            ay = y_mm
+            if anchor == 'center':
+                rx = ax - w_mm / 2.0
+                ry = ay - h_mm / 2.0
+            elif anchor == 'n':
+                rx = ax - w_mm / 2.0
+                ry = ay
+            elif anchor == 's':
+                rx = ax - w_mm / 2.0
+                ry = ay - h_mm
+            elif anchor == 'w':
+                rx = ax
+                ry = ay - h_mm / 2.0
+            elif anchor == 'e':
+                rx = ax - w_mm
+                ry = ay - h_mm / 2.0
+            elif anchor == 'nw':
+                rx = ax
+                ry = ay
+            elif anchor == 'ne':
+                rx = ax - w_mm
+                ry = ay
+            elif anchor == 'sw':
+                rx = ax
+                ry = ay - h_mm
+            elif anchor == 'se':
+                rx = ax - w_mm
+                ry = ay - h_mm
+            else:
+                rx = None
+                ry = None
+            if rx is not None and ry is not None:
+                bx = rx - xb_mm
+                by = ry - yb_mm
         self._pages[self._current_index].items.append(
-            Text(x_mm, y_mm, text, family, size_pt, italic, bold, color, id, tags, hit_rect_mm)
+            Text(bx, by, text, family, size_pt, italic, bold, color, anchor, id, tags, hit_rect_mm)
         )
 
     def _ensure_page(self) -> None:
@@ -632,29 +678,107 @@ class DrawUtil:
         weight = cairo.FONT_WEIGHT_BOLD if t.bold else cairo.FONT_WEIGHT_NORMAL
         ctx.select_font_face(t.family, slant, weight)
         # We are in mm user units; convert pt size to mm
-        ctx.set_font_size(t.size_pt * PT_PER_MM)
+        ctx.set_font_size(t.size_pt / PT_PER_MM)
         ctx.set_source_rgba(*t.color)
-        # Text position uses baseline at (x_mm, y_mm)
+        # Baseline positioning: anchor is pre-applied in add_text()
         ctx.move_to(t.x_mm, t.y_mm)
         ctx.show_text(t.text)
+        # Optional debug: draw text bounds and anchor point
+        if os.getenv('PIANOSCRIPT_DEBUG_TEXT_BOUNDS', '0') in ('1', 'true', 'True'):
+            rect = getattr(t, 'hit_rect_mm', None)
+            if rect is not None:
+                rx, ry, rw, rh = rect
+                ctx.save()
+                ctx.set_source_rgba(1.0, 0.2, 0.2, 0.8)
+                ctx.set_line_width(0.2)
+                ctx.rectangle(rx, ry, rw, rh)
+                ctx.stroke()
+                # Anchor marker
+                ax = rx + rw / 2.0
+                ay = ry + rh / 2.0
+                if t.anchor == 'w':
+                    ax = rx
+                elif t.anchor == 'e':
+                    ax = rx + rw
+                elif t.anchor == 'n':
+                    ay = ry
+                elif t.anchor == 's':
+                    ay = ry + rh
+                elif t.anchor == 'nw':
+                    ax = rx; ay = ry
+                elif t.anchor == 'ne':
+                    ax = rx + rw; ay = ry
+                elif t.anchor == 'sw':
+                    ax = rx; ay = ry + rh
+                elif t.anchor == 'se':
+                    ax = rx + rw; ay = ry + rh
+                # draw cross
+                ctx.set_source_rgba(0.2, 0.8, 0.2, 0.9)
+                ctx.move_to(ax - 1.5, ay)
+                ctx.line_to(ax + 1.5, ay)
+                ctx.move_to(ax, ay - 1.5)
+                ctx.line_to(ax, ay + 1.5)
+                ctx.stroke()
+                ctx.restore()
 
     def _compute_text_hit_rect_mm(self, x_mm: float, y_mm: float, text: str,
                                   family: str, size_pt: float,
-                                  italic: bool, bold: bool) -> Tuple[float, float, float, float]:
-        # Use a scratch surface to get text extents; compute in mm using pt→mm conversion.
+                                  italic: bool, bold: bool,
+                                  anchor: str | None) -> Tuple[float, float, float, float]:
+        # Compute extents in mm using a scratch context (points → mm conversion).
+        xb_mm, yb_mm, width_mm, height_mm = self._get_text_extents_mm(text, family, size_pt, italic, bold)
+        if anchor:
+            ax = x_mm
+            ay = y_mm
+            if anchor == 'center':
+                rect_x = ax - width_mm / 2.0
+                rect_y = ay - height_mm / 2.0
+            elif anchor == 'n':
+                rect_x = ax - width_mm / 2.0
+                rect_y = ay
+            elif anchor == 's':
+                rect_x = ax - width_mm / 2.0
+                rect_y = ay - height_mm
+            elif anchor == 'w':
+                rect_x = ax
+                rect_y = ay - height_mm / 2.0
+            elif anchor == 'e':
+                rect_x = ax - width_mm
+                rect_y = ay - height_mm / 2.0
+            elif anchor == 'nw':
+                rect_x = ax
+                rect_y = ay
+            elif anchor == 'ne':
+                rect_x = ax - width_mm
+                rect_y = ay
+            elif anchor == 'sw':
+                rect_x = ax
+                rect_y = ay - height_mm
+            elif anchor == 'se':
+                rect_x = ax - width_mm
+                rect_y = ay - height_mm
+            else:
+                rect_x = x_mm + xb_mm
+                rect_y = y_mm + yb_mm
+        else:
+            # Baseline semantics
+            rect_x = x_mm + xb_mm
+            rect_y = y_mm + yb_mm
+        return (rect_x, rect_y, width_mm, height_mm)
+
+    def _get_text_extents_mm(self, text: str,
+                              family: str, size_pt: float,
+                              italic: bool, bold: bool) -> Tuple[float, float, float, float]:
+        """Return (x_bearing_mm, y_bearing_mm, width_mm, height_mm) for given text settings."""
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1, 1)
         ctx = cairo.Context(surf)
         slant = cairo.FONT_SLANT_ITALIC if italic else cairo.FONT_SLANT_NORMAL
         weight = cairo.FONT_WEIGHT_BOLD if bold else cairo.FONT_WEIGHT_NORMAL
         ctx.select_font_face(family, slant, weight)
-        ctx.set_font_size(size_pt)  # extents in 'user units'; here treat as points
+        ctx.set_font_size(size_pt)  # extents in points
         te = ctx.text_extents(text)
-        # Convert extents from points to mm
         x_bearing_mm = te.x_bearing / PT_PER_MM
         y_bearing_mm = te.y_bearing / PT_PER_MM
         width_mm = te.width / PT_PER_MM
         height_mm = te.height / PT_PER_MM
-        # Baseline at (x_mm, y_mm); top-left = (x_mm + x_bearing_mm, y_mm + y_bearing_mm)
-        rect_x = x_mm + x_bearing_mm
-        rect_y = y_mm + y_bearing_mm
-        return (rect_x, rect_y, width_mm, height_mm)
+        return (x_bearing_mm, y_bearing_mm, width_mm, height_mm)

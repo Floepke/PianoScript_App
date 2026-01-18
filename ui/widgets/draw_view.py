@@ -2,6 +2,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 import cairo
 from ui.widgets.draw_util import DrawUtil
+from ui.style import Style
 from utils.CONSTANT import ENGRAVER_LAYERING
 from engraver.engraver import do_engrave
 
@@ -66,6 +67,15 @@ class DrawUtilView(QtWidgets.QWidget):
         self._last_dpr: float = 1.0
         self._last_h_px: int = 0
         self._score: dict | None = None
+        # Apply a dedicated background color for DrawUtil views
+        try:
+            color = Style.get_named_qcolor('draw_util')
+            pal = self.palette()
+            pal.setColor(QtGui.QPalette.Window, color)
+            self.setPalette(pal)
+            self.setAutoFillBackground(True)
+        except Exception:
+            pass
 
     def set_page(self, index: int):
         self._page_index = index
@@ -103,7 +113,6 @@ class DrawUtilView(QtWidgets.QWidget):
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
-        painter.fillRect(self.rect(), QtGui.QColor("#7a7a7a"))
         if self._image is not None:
             x = 0
             y = (self.height() - int(self._image.height() / self._image.devicePixelRatio())) // 2

@@ -1,5 +1,6 @@
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
+from settings_manager import get_preferences
 
 
 class Style:
@@ -67,6 +68,30 @@ class Style:
     def __init__(self):
         # Match the old app's preferred light look by default
         self.set_dynamic_theme(0.75)
+        self.editor_background_color = self.get_editor_background_color()
+        self._sync_editor_named_color()
+
+    # Named custom colors registry
+    _NAMED: dict[str, tuple[int, int, int]] = {
+        # Print view (DrawUtilView): white by default
+        'draw_util': (255, 255, 255),
+        # Editor background: initialized/synced at runtime
+        'editor': (255, 255, 255),
+    }
+
+    @classmethod
+    def set_named_color(cls, name: str, rgb: tuple[int, int, int]) -> None:
+        cls._NAMED[name] = tuple(int(max(0, min(255, c))) for c in rgb)
+
+    @classmethod
+    def get_named_qcolor(cls, name: str, fallback: tuple[int, int, int] = (240, 240, 240)) -> QColor:
+        rgb = cls._NAMED.get(name, fallback)
+        return QColor(*rgb)
+
+    def _sync_editor_named_color(self) -> None:
+        rgb = self.get_editor_background_color()
+        self.editor_background_color = rgb
+        Style._NAMED['editor'] = tuple(int(c) for c in rgb)
 
     def _lerp_channel(self, a: int, b: int, t: float) -> int:
         return int(round(b + (a - b) * t))
@@ -107,11 +132,22 @@ class Style:
         """Blend between dark (0.0) and light (1.0)."""
         colors = self._interpolated_palette(tint)
         self._apply_palette(colors)
+        self._sync_editor_named_color()
 
     def set_light_theme(self):
         colors = {k: QColor(*rgb) for k, rgb in self._LIGHT.items()}
         self._apply_palette(colors)
+        self._sync_editor_named_color()
 
     def set_dark_theme(self):
         colors = {k: QColor(*rgb) for k, rgb in self._DARK.items()}
         self._apply_palette(colors)
+        self._sync_editor_named_color()
+
+    def get_editor_background_color(self) -> tuple[int, int, int]:
+        """Get the appropriate editor background color based on current theme."""
+        theme = get_preferences().get('theme')
+        if theme == 'dark':
+            return (153, 153, 163)
+        else:
+            return (200, 200, 200)

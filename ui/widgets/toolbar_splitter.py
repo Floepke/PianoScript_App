@@ -17,13 +17,16 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         self._button_size = 35
         # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
-        ic = get_qicon('fit', size=(64, 64))
-        if ic:
-            self.fit_btn.setIcon(ic)
-        else:
-            self.fit_btn.setText("Fit")
-        self.fit_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
-        self.fit_btn.setFixedSize(self._button_size, self._button_size)
+        # Fit button: no icon, no text, half-height
+        try:
+            self.fit_btn.setText("")
+            # Ensure no icon is displayed
+            self.fit_btn.setIcon(QtGui.QIcon())
+        except Exception:
+            pass
+        # Keep width; reduce height to half
+        self.fit_btn.setFixedWidth(self._button_size)
+        self.fit_btn.setFixedHeight(max(1, self._button_size // 2))
         layout.addWidget(self.fit_btn)
         try:
             self.fit_btn.clicked.connect(parent.fitRequested.emit)
@@ -117,6 +120,14 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             "#ToolbarHandle { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #3a3f44, stop:1 #2b2f33); }"
         )
 
+    def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
+        # Forward double-click on the handle to request a fit action
+        try:
+            self.parent().fitRequested.emit()
+        except Exception:
+            pass
+        super().mouseDoubleClickEvent(ev)
+
     def set_buttons(self, defs: list[dict]):
         # Clear previous buttons
         while self._toolbar_layout.count():
@@ -180,3 +191,11 @@ class ToolbarSplitter(QtWidgets.QSplitter):
                 self._handle.set_buttons(defs)
         except Exception:
             pass
+
+    def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
+        # Double-click anywhere on the splitter requests fit
+        try:
+            self.fitRequested.emit()
+        except Exception:
+            pass
+        super().mouseDoubleClickEvent(ev)

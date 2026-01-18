@@ -6,6 +6,7 @@ import math
 from typing import Optional
 from editor.editor import Editor
 from ui.widgets.draw_util import DrawUtil
+from ui.style import Style
 # Stripped renderer, tile cache, and spatial index for static viewport simplicity
 
 
@@ -35,6 +36,15 @@ class CairoEditorWidget(QtWidgets.QWidget):
         # Allow splitter to fully collapse this view
         self.setMinimumWidth(0)
         self.setMouseTracking(True)
+        # Apply the dedicated DrawUtil background color to the editor widget, too
+        try:
+            color = Style.get_named_qcolor('editor')
+            pal = self.palette()
+            pal.setColor(QtGui.QPalette.Window, color)
+            self.setPalette(pal)
+            self.setAutoFillBackground(True)
+        except Exception:
+            pass
         self._current_tool: str | None = None
         self._editor: Optional[Editor] = None
         self._last_pos: QtCore.QPointF | None = None
@@ -80,7 +90,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
         vp_w = self.size().width()
         vp_h = self.size().height()
         w_px = int(max(1, vp_w * dpr))
-        # Prepare DrawUtil with page dimensions from SCORE
+        # Prepare DrawUtil with page dimensions from SCORE/layout and Editor layout
         page_w_mm = 210.0
         page_h_mm = 297.0
         if self._editor is not None:
@@ -89,21 +99,12 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 lay = getattr(sc, 'layout', None)
                 if lay is not None:
                     page_w_mm = float(getattr(lay, 'page_width_mm', page_w_mm))
-                    # Compute dynamic height from base_grid and editor zoom
-                    ed = getattr(sc, 'editor', None)
-                    zoom_mm_per_quarter = float(getattr(ed, 'zoom_mm_per_quarter', 5.0)) if ed else 5.0
-                    total_mm = 0.0
-                    bg_list = getattr(sc, 'base_grid', []) or []
-                    for bg in bg_list:
-                        num = float(getattr(bg, 'numerator', 4))
-                        den = float(getattr(bg, 'denominator', 4))
-                        measures = int(getattr(bg, 'measure_amount', 1))
-                        quarters_per_measure = num * (4.0 / max(1.0, den))
-                        total_mm += measures * quarters_per_measure * zoom_mm_per_quarter
-                    # Include top/bottom margins
-                    top_m = float(getattr(lay, 'page_top_margin_mm', 0.0))
-                    bot_m = float(getattr(lay, 'page_bottom_margin_mm', 0.0))
-                    page_h_mm = max(10.0, total_mm + top_m + bot_m)
+            # Calculate editor layout metrics (margin, stave_width, editor_height)
+            self._editor._calculate_layout(page_w_mm)
+            try:
+                page_h_mm = float(getattr(self._editor, 'editor_height', page_h_mm) or page_h_mm)
+            except Exception:
+                page_h_mm = page_h_mm
         # Invalidate cache when scale or page dimensions change
         px_per_mm = (w_px) / page_w_mm
         h_px_content = int(page_h_mm * px_per_mm)
@@ -151,15 +152,17 @@ class CairoEditorWidget(QtWidgets.QWidget):
 
         painter = QtGui.QPainter(self)
         try:
-            painter.fillRect(self.rect(), QtGui.QColor("#7a7a7a"))
+            # Use the widget's palette/background; do not force a grey fill
 
             if self._editor is not None:
-                self._editor._calculate_layout(page_w_mm)
+                # Layout was already calculated above to provide up-to-date editor_height
+                pass
 
             # Build all layers once using the editor controller
             # Use a pure viewport clip rect (no bleed). Overscan is applied in DrawUtil for Cairo clip only.
             clip_mm = (clip_x_mm, clip_y_mm, clip_w_mm, clip_h_mm)
             du_all = DrawUtil()
+            # Use the editor-provided height so scrolling matches drawer layout
             du_all.set_current_page_size_mm(page_w_mm, page_h_mm)
             if self._editor is not None:
                 self._editor.draw_all(du_all)

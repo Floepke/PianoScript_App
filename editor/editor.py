@@ -83,9 +83,10 @@ class Editor(QtCore.QObject,
         self._dragging_right: bool = False
 
         # layout metrics (mm)
-        self.margin: float = 10.0
-        self.stave_width: float = 100.0
-        self.semitone_width: float = 1.0
+        self.margin: float = None
+        self.editor_height: float = None
+        self.stave_width: float = None
+        self.semitone_width: float = None
 
         # colors
         self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.05, 1.0)
@@ -135,6 +136,8 @@ class Editor(QtCore.QObject,
         self.margin = margin
         self.stave_width = max(1.0, w - 2.0 * margin)
         self.semitone_width = self.stave_width / float(max(1, PIANO_KEY_AMOUNT - 1))
+        # Ensure editor_height reflects the current SCORE content height in mm
+        self.editor_height = self._calc_editor_height()
 
     def set_tool_by_name(self, name: str) -> None:
         cls = self._tool_classes.get(name)
@@ -263,7 +266,7 @@ class Editor(QtCore.QObject,
     '''
         ---- Editor drawer mixin helper methods ----
     '''
-    def get_score_time(self) -> int:
+    def _calc_score_time(self) -> int:
         """Return the total length of the current SCORE in ticks."""
         score: SCORE = self.current_score()
         
@@ -272,3 +275,19 @@ class Editor(QtCore.QObject,
             measure_length = bg.numerator * (4.0 / bg.denominator) * bg.measure_amount * QUARTER_NOTE_UNIT
             length_ticks += measure_length
         return length_ticks
+    
+    def _calc_editor_height(self) -> float:
+        """Calculate the total height of the editor content in mm.
+
+        Height is based on the total score time scaled by the editor zoom, plus
+        top/bottom spacing using the editor's margin value. This ensures drawers
+        can rely on `self.editor_height` for vertical layout and that DrawUtil
+        uses a matching page height for scrolling.
+        """
+        total_time_ticks = float(self._calc_score_time())
+        score: SCORE | None = self.current_score()
+        zoom_mm_per_quarter: float = score.editor.zoom_mm_per_quarter
+        stave_length_mm = (total_time_ticks / float(QUARTER_NOTE_UNIT)) * zoom_mm_per_quarter
+        top_bottom_mm = float(self.margin or 0.0) * 2.0
+        height_mm = max(10.0, stave_length_mm + top_bottom_mm)
+        return height_mm
