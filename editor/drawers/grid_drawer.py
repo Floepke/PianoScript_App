@@ -43,11 +43,11 @@ class GridDrawerMixin:
         # Page metrics (mm)
         width_mm, height_mm = du.current_page_size_mm()
         margin = float(self.margin)
-        stave_left_position = margin + self.semitone_width
-        stave_right_position = max(0.0, width_mm - margin) - self.semitone_width * 2
+        stave_left_position = margin + self.semitone_dist
+        stave_right_position = max(0.0, width_mm - margin) - self.semitone_dist * 2
 
         # Editor zoom controls vertical mm per quarter note
-        zoom_mm_per_quarter = score.editor.zoom_mm_per_quarter
+        zpq = score.editor.zoom_mm_per_quarter
 
         # --------------- drawing the grid lines, barlines, measure numbers and time signature indicators ---------------
         base_grid = score.base_grid
@@ -100,7 +100,7 @@ class GridDrawerMixin:
 
             # General formula: quarters per measure = numerator * (4/denominator)
             quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))
-            measure_len_mm = quarters_per_measure * zoom_mm_per_quarter
+            measure_len_mm = quarters_per_measure * zpq
 
             # Draw horizontal barlines across the stave width for each measure boundary
             color = self.notation_color
@@ -111,13 +111,13 @@ class GridDrawerMixin:
                 measure_number_str = str(measure_numbering_cursor)
                 du.add_text(
                     1.0,
-                    time_cursor,
+                    time_cursor + 1.0,
                     measure_number_str,
                     size_pt=16.0,
                     color=color,
                     id=0,
                     tags=["measure_number"],
-                    anchor='w',
+                    anchor='nw',
                     family="Courier New"
                 )
 

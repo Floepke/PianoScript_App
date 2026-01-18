@@ -289,7 +289,10 @@ class SnapSizeSelector(QtWidgets.QWidget):
         base_den = max(1, int(self._base))
         base_units = (QUARTER_NOTE_UNIT * 4.0) / float(base_den)
         divide = max(1, int(self._divide))
-        return base_units / float(divide)
+        snap = base_units / float(divide)
+        if snap < 8.0:
+            snap = 8.0  # minimum snap size
+        return snap
 
 
 class SnapSizeDock(QtWidgets.QDockWidget):

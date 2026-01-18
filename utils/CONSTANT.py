@@ -5,6 +5,8 @@
 import os
 from pathlib import Path
 
+from utils.tiny_tool import key_class_filter
+
 # Directory in the user's home used for autosaves and error backups
 # Expanded once and reused across the app for any non-user-initiated saves.
 UTILS_SAVE_DIR: Path = Path(os.path.expanduser('~/.pianoscript'))
@@ -68,9 +70,7 @@ ENGRAVER_LAYERING = [
 # Keyboard constants
 PIANO_KEY_AMOUNT: int = 88
 
-# Black keys in 1..88 (1 = A0, 88 = C8)
-# Pattern: A#, C#, D#, F#, G# per 12-semitone group starting at A0
-BLACK: list[int] = [
-    k for k in range(1, PIANO_KEY_AMOUNT + 1)
-    if ((k - 1) % 12) in (1, 4, 6, 9, 11)
-]
+# key collections
+BLACK_KEYS: list[int] = key_class_filter('CDFGA')
+BE_KEYS: list[int] = key_class_filter('be')
+

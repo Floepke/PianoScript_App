@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.engraver.engraved.connect(self.print_view.request_render)
         
         # Loading test file on startup if available, else new blank score
-        default_path = "/home/flop/Desktop/music.piano"
+        default_path = "/home/flop/Desktop/moonlight_sample.piano"
         loaded = self.file_manager.open_path(default_path)
         if loaded is None:
             self.file_manager.new()
@@ -94,6 +94,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tool_manager = ToolManager(splitter)
         self.editor_controller = Editor(self.tool_manager)
         self.editor.set_editor(self.editor_controller)
+        # Provide editor to ToolManager so tools can use editor wrappers
+        try:
+            self.tool_manager.set_editor(self.editor_controller)
+        except Exception:
+            pass
         # Provide FileManager to editor (for undo snapshots)
         self.editor_controller.set_file_manager(self.file_manager)
         # Wire tool selector to Editor controller and set default tool

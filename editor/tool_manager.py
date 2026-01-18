@@ -14,6 +14,7 @@ class ToolManager(QtCore.QObject):
         super().__init__()
         self._splitter = splitter
         self._tool = None
+        self._editor = None
         self._splitter.contextButtonClicked.connect(self._on_context_button_clicked)
 
     def set_tool(self, tool) -> None:
@@ -26,6 +27,12 @@ class ToolManager(QtCore.QObject):
         self._splitter.set_context_buttons(defs)
         # Activate new tool
         if self._tool is not None:
+            # Provide editor reference for convenience wrappers
+            try:
+                if self._editor is not None and hasattr(self._tool, 'set_editor'):
+                    self._tool.set_editor(self._editor)
+            except Exception:
+                pass
             self._tool.on_activate()
         name = getattr(tool, 'TOOL_NAME', 'unknown')
         self.toolChanged.emit(str(name))
@@ -33,3 +40,7 @@ class ToolManager(QtCore.QObject):
     def _on_context_button_clicked(self, name: str) -> None:
         if self._tool is not None:
             self._tool.on_toolbar_button(name)
+
+    def set_editor(self, editor) -> None:
+        """Bind the active Editor so tools can access conversion wrappers."""
+        self._editor = editor

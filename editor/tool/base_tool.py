@@ -13,6 +13,7 @@ class BaseTool:
     def __init__(self):
         # Optional: shared state across events
         self._active: bool = False
+        self._editor = None  # set by ToolManager for convenient access to editor wrappers
 
     # Lifecycle hooks
     def on_activate(self) -> None:
@@ -30,6 +31,11 @@ class BaseTool:
 
     def on_toolbar_button(self, name: str) -> None:
         pass
+
+    # Editor wiring
+    def set_editor(self, editor) -> None:
+        """Provide the active Editor instance to tools for convenience wrappers."""
+        self._editor = editor
 
     # Mouse events
     def on_left_press(self, x: float, y: float) -> None: pass

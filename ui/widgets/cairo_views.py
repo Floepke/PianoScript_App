@@ -7,6 +7,7 @@ from typing import Optional
 from editor.editor import Editor
 from ui.widgets.draw_util import DrawUtil
 from ui.style import Style
+from settings_manager import get_preferences
 # Stripped renderer, tile cache, and spatial index for static viewport simplicity
 
 
@@ -48,6 +49,22 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self._current_tool: str | None = None
         self._editor: Optional[Editor] = None
         self._last_pos: QtCore.QPointF | None = None
+        # Throttled mouse move state (30 Hz cap)
+        self._pending_move: QtCore.QPointF | None = None
+        self._last_sent_pos: QtCore.QPointF | None = None
+        self._move_timer: QtCore.QTimer | None = QtCore.QTimer(self)
+        self._fps_interval_ms: int = 33
+        try:
+            self._move_timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
+            self._move_timer.setInterval(self._fps_interval_ms)  # default ~30 FPS
+            self._move_timer.timeout.connect(self._dispatch_throttled_move)
+        except Exception:
+            pass
+        # Load FPS limit from preferences
+        try:
+            self._configure_move_timer_from_prefs()
+        except Exception:
+            pass
         self._du: DrawUtil | None = None
         self._last_px_per_mm: float = 1.0
         self._last_dpr: float = 1.0
@@ -69,9 +86,6 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self._last_debug_key: tuple | None = None
         # Static viewport: no tiling/cache/renderer state
         self._last_cache_params: tuple[float, float, float] | None = None
-        
-        # frame counter for debug logging
-        self.frameno = 0
 
     def set_editor(self, editor: Editor) -> None:
         self._editor = editor
@@ -86,18 +100,14 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
-        # debug frame counter
-        print(f'[Paint] frame: {self.frameno}')
-        self.frameno += 1
-
         # Use widget size as static viewport; do not rely on QScrollArea.
         vp = self
         dpr = float(self.devicePixelRatioF())
         vp_w = self.size().width()
         vp_h = self.size().height()
-        # Use fractional width for scale to avoid stepwise jumps
-        w_px_float = max(1.0, float(vp_w) * float(dpr))
-        w_px = int(max(1, round(w_px_float)))
+        # Device pixel dimensions (rounded) for the backing image
+        vis_w_px = int(max(1, round(float(vp_w) * dpr)))
+        vis_h_px = int(max(1, round(float(vp_h) * dpr)))
         # Prepare DrawUtil with page dimensions from SCORE/layout and Editor layout
         page_w_mm = 210.0
         page_h_mm = 297.0
@@ -114,8 +124,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
             except Exception:
                 page_h_mm = page_h_mm
         # Invalidate cache when scale or page dimensions change
-        # Derive px_per_mm from the fractional logical width instead of rounded image width
-        px_per_mm = (w_px_float) / page_w_mm
+        # Derive px_per_mm from the actual backing image width to avoid anisotropy
+        px_per_mm = (float(vis_w_px)) / page_w_mm
         h_px_content = int(page_h_mm * px_per_mm)
         cache_params = (round(px_per_mm, 6), round(page_w_mm, 3), round(page_h_mm, 3))
         if self._last_cache_params is None or self._last_cache_params != cache_params:
@@ -128,8 +138,6 @@ class CairoEditorWidget(QtWidgets.QWidget):
         # Keep widget height independent from content to maintain a static viewport
 
         # Visible region equals viewport; use external scroll for offset (logical px)
-        vis_w_px = max(1, int(vp_w * dpr))
-        vis_h_px = max(1, int(vp_h * dpr))
         # No overscan/bleed: viewport is strictly the visible area.
         bleed_px = 0
         vis_h_px_bleed = vis_h_px
@@ -138,7 +146,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
         clip_x_mm = 0.0
         clip_y_mm = float(scroll_val_px) * dpr / max(1e-6, px_per_mm)
         clip_w_mm = page_w_mm
-        clip_h_mm = float(vp_h) * dpr / max(1e-6, px_per_mm)
+        clip_h_mm = float(vis_h_px) / max(1e-6, px_per_mm)
         # No bleed: clip is exactly the viewport size in mm
         clip_y_mm_bleed = clip_y_mm
         clip_h_mm_bleed = float(vis_h_px_bleed) / max(1e-6, px_per_mm)
@@ -158,8 +166,21 @@ class CairoEditorWidget(QtWidgets.QWidget):
             self.viewportMetricsChanged.emit(h_px_content, vis_h_px, px_per_mm, dpr)
         except Exception:
             pass
+        # Provide view metrics to the editor for fast px↔mm/time conversions
+        try:
+            if self._editor is not None:
+                widget_px_per_mm = float(vis_w_px) / max(1e-6, page_w_mm) / max(1e-6, dpr)
+                self._editor.set_view_metrics(px_per_mm, widget_px_per_mm, dpr)
+        except Exception:
+            pass
 
         painter = QtGui.QPainter(self)
+        try:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+            painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
+            painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
+        except Exception:
+            pass
         try:
             # Use the widget's palette/background; do not force a grey fill
 
@@ -179,6 +200,10 @@ class CairoEditorWidget(QtWidgets.QWidget):
             # Offscreen buffer sized exactly to the viewport
             img, surf, _buf = _make_image_and_surface(vis_w_px, vis_h_px)
             ctx = cairo.Context(surf)
+            try:
+                ctx.set_antialias(cairo.ANTIALIAS_BEST)
+            except Exception:
+                pass
             # Static viewport rendering: no overscan; draw items as-is with culling.
             du_all.render_to_cairo(ctx, du_all.current_page_index(), px_per_mm, clip_mm, overscan_mm=0.0)
             img.setDevicePixelRatio(dpr)
@@ -215,7 +240,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
                     steps = int(round(angle / 120.0))
                     current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
                     factor = (1.10 ** steps)
-                    new_zoom = max(10.0, min(50.0, current * factor))
+                    new_zoom = max(10.0, min(100.0, current * factor))
                     try:
                         ed.zoom_mm_per_quarter = float(new_zoom)
                     except Exception:
@@ -243,6 +268,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         self._last_pos = ev.position()
+        self._last_sent_pos = ev.position()
         if self._editor:
             if ev.button() == QtCore.Qt.MouseButton.LeftButton:
                 self._editor.mouse_press(1, ev.position().x(), ev.position().y())
@@ -251,15 +277,34 @@ class CairoEditorWidget(QtWidgets.QWidget):
         super().mousePressEvent(ev)
 
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
-        if self._editor:
-            lp = self._last_pos or ev.position()
-            dx = ev.position().x() - lp.x()
-            dy = ev.position().y() - lp.y()
-            self._editor.mouse_move(ev.position().x(), ev.position().y(), dx, dy)
+        # Always record last raw position
         self._last_pos = ev.position()
+        # Coalesce moves and dispatch at most 30 times/sec
+        self._pending_move = ev.position()
+        try:
+            if self._move_timer and self._fps_interval_ms > 0 and not self._move_timer.isActive():
+                # Fire one immediately for responsiveness, then continue at 30 Hz
+                self._dispatch_throttled_move()
+                self._move_timer.start()
+        except Exception:
+            # Fallback: if timer unavailable, deliver immediately (no throttle)
+            if self._editor:
+                lp = self._last_sent_pos or self._last_pos or ev.position()
+                dx = ev.position().x() - lp.x()
+                dy = ev.position().y() - lp.y()
+                self._editor.mouse_move(ev.position().x(), ev.position().y(), dx, dy)
+                self._last_sent_pos = ev.position()
         super().mouseMoveEvent(ev)
 
     def mouseReleaseEvent(self, ev: QtGui.QMouseEvent) -> None:
+        # Flush any pending move before release to deliver final position
+        try:
+            if self._pending_move is not None:
+                self._dispatch_throttled_move()
+            if self._move_timer and self._move_timer.isActive():
+                self._move_timer.stop()
+        except Exception:
+            pass
         if self._editor:
             if ev.button() == QtCore.Qt.MouseButton.LeftButton:
                 self._editor.mouse_release(1, ev.position().x(), ev.position().y())
@@ -274,3 +319,48 @@ class CairoEditorWidget(QtWidgets.QWidget):
             elif ev.button() == QtCore.Qt.MouseButton.RightButton:
                 self._editor.mouse_double_click(2, ev.position().x(), ev.position().y())
         super().mouseDoubleClickEvent(ev)
+
+    def _dispatch_throttled_move(self) -> None:
+        """Deliver at most one coalesced move event per timer tick (~30 Hz)."""
+        if not self._editor:
+            self._pending_move = None
+            return
+        pos = self._pending_move
+        self._pending_move = None
+        if pos is None:
+            # No new data; stop timer to save CPU
+            try:
+                if self._move_timer and self._move_timer.isActive():
+                    self._move_timer.stop()
+            except Exception:
+                pass
+            return
+        lp = self._last_sent_pos or pos
+        dx = pos.x() - lp.x()
+        dy = pos.y() - lp.y()
+        self._editor.mouse_move(pos.x(), pos.y(), dx, dy)
+        self._last_sent_pos = pos
+
+    def _configure_move_timer_from_prefs(self) -> None:
+        prefs = get_preferences()
+        raw = prefs.get('editor_fps_limit', 30)
+        try:
+            fps = int(raw)
+        except Exception:
+            fps = 30
+        # 0 disables throttling (deliver immediately); otherwise clamp 1..1000
+        if fps <= 0:
+            self._fps_interval_ms = 0
+            try:
+                if self._move_timer:
+                    self._move_timer.stop()
+            except Exception:
+                pass
+            return
+        fps = max(1, min(1000, fps))
+        self._fps_interval_ms = max(1, int(round(1000.0 / float(fps))))
+        if self._move_timer:
+            try:
+                self._move_timer.setInterval(self._fps_interval_ms)
+            except Exception:
+                pass

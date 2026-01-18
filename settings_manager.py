@@ -180,6 +180,7 @@ def get_preferences_manager() -> PreferencesManager:
         # Register known preferences here
         pm.register("ui_scale", 1.0, "Global UI scale: (0.5 .. 3.0)")
         pm.register("theme", "light", "UI theme: ('light' | 'dark')")
+        pm.register("editor_fps_limit", 30, "Max mouse-move dispatch rate (FPS). Set 0 to disable throttling.")
         pm.load()
         _prefs_manager = pm
     return _prefs_manager

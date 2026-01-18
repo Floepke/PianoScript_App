@@ -17,27 +17,26 @@ if TYPE_CHECKING:
 
 
 class SnapDrawerMixin:
+    '''
+        Draws:
+            - Alternating light/darker snap bands along the vertical timeline the size of the snap.
+    '''
+    
     def _editor_bg_tint_rgba(self) -> tuple[float, float, float, float]:
         """Return a slightly darker tint than the editor background as RGBA floats.
 
         Uses the named 'editor' color from Style if available; otherwise falls back
         to a neutral grey.
         """
-        try:
-            if Style is not None:
-                qc = Style.get_named_qcolor('editor')
-                r = max(0, min(255, qc.red()))
-                g = max(0, min(255, qc.green()))
-                b = max(0, min(255, qc.blue()))
-                # Slightly darker (about -10%)
-                dr = int(round(r * 0.90))
-                dg = int(round(g * 0.90))
-                db = int(round(b * 0.90))
-                return (dr / 255.0, dg / 255.0, db / 255.0, 1.0)
-        except Exception:
-            pass
-        # Fallback tint
-        return (0.7, 0.7, 0.7, 1.0)
+        qc = Style.get_named_qcolor('editor')
+        r = max(0, min(255, qc.red()))
+        g = max(0, min(255, qc.green()))
+        b = max(0, min(255, qc.blue()))
+        # Slightly darker (about -7%)
+        dr = int(round(r * 0.92))
+        dg = int(round(g * 0.92))
+        db = int(round(b * 0.92))
+        return (dr / 255.0, dg / 255.0, db / 255.0, 1.0)
 
     def draw_snap(self, du: DrawUtil) -> None:
         """Draw alternating light/darker snap bands along the vertical timeline.
@@ -62,9 +61,9 @@ class SnapDrawerMixin:
         margin = float(self.margin)
         
         # Match horizontal span under the stave
-        stave_left = self.margin + self.semitone_width
-        stave_right = page_w_mm - self.margin - self.semitone_width * 2.0
-        mm_per_quarter = float(score.editor.zoom_mm_per_quarter)
+        stave_left = self.margin + self.semitone_dist
+        stave_right = page_w_mm - self.margin - self.semitone_dist * 2.0
+        zpq = float(score.editor.zoom_mm_per_quarter)
 
         # Snap size in time units → mm
         snap_units: float
@@ -75,7 +74,7 @@ class SnapDrawerMixin:
         else:
             # Fallback: eighth-note snap
             snap_units = float(QUARTER_NOTE_UNIT) / 2.0
-        snap_mm = (snap_units / float(QUARTER_NOTE_UNIT)) * mm_per_quarter
+        snap_mm = (snap_units / float(QUARTER_NOTE_UNIT)) * zpq
 
         fill_rgba = self._editor_bg_tint_rgba()
 
@@ -87,7 +86,7 @@ class SnapDrawerMixin:
             measure_amount = int(getattr(bg, 'measure_amount', 1) or 1)
 
             quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))
-            measure_len_mm = quarters_per_measure * mm_per_quarter
+            measure_len_mm = quarters_per_measure * zpq
 
             for _ in range(measure_amount):
                 sub_cursor = time_cursor_mm
