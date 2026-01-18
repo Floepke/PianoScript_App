@@ -328,6 +328,12 @@ class File:
     def update_recent_file_menu(self):
         # Update the menu items with the list of recent files max 10
         for i, path in enumerate(self.io['settings']['recent_files']):
+            # check if the file exists
+            if not os.path.exists(path):
+                self.io['settings']['recent_files'].remove(path)
+                continue
+
+            # add the recent file to the menu
             action = self.recent_file_actions[i]
             action.setText(os.path.basename(path))
             action.setVisible(True)
