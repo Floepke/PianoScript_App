@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional, Tuple, Dict, Type, TYPE_CHECKING
-import math
+import math, bisect
 from PySide6 import QtCore
 
 from editor.tool.base_tool import BaseTool
@@ -34,6 +34,7 @@ from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
 from editor.drawers.count_line_drawer import CountLineDrawerMixin
 from editor.drawers.line_break_drawer import LineBreakDrawerMixin
 from utils.CONSTANT import PIANO_KEY_AMOUNT
+from utils.operator import Operator
 
 if TYPE_CHECKING:
     from editor.tool.base_tool import BaseTool
@@ -120,6 +121,9 @@ class Editor(QtCore.QObject,
         self.time_cursor: Optional[float] = None
         self.mm_cursor: Optional[float] = None
 
+        # Per-frame shared render cache (built at draw_all)
+        self._draw_cache: dict | None = None
+
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
         """Fill the current page with print-view grey (#7a7a7a)."""
@@ -132,6 +136,8 @@ class Editor(QtCore.QObject,
 
         We simply call all drawer methods; DrawUtil sorts items by tag layering.
         """
+        # Build shared render cache for this draw pass
+        self._build_render_cache()
         methods = [
             getattr(self, 'draw_snap', None),
             getattr(self, 'draw_grid', None),
@@ -150,6 +156,8 @@ class Editor(QtCore.QObject,
         for fn in methods:
             if callable(fn):
                 fn(du)
+        # Clear cache after draw pass to avoid stale state
+        self._draw_cache = None
 
     def _calculate_layout(self, view_width_mm: float) -> None:
         """Compute editor-specific layout based on the current view width.
@@ -350,6 +358,109 @@ class Editor(QtCore.QObject,
         top_bottom_mm = float(self.margin or 0.0) * 2.0
         height_mm = max(10.0, stave_length_mm + top_bottom_mm)
         return height_mm
+
+    # ---- Shared render cache ----
+    def _build_render_cache(self) -> None:
+        """Build per-frame cached, time-sorted viewport data for drawers.
+
+        Cache includes:
+        - viewport times (begin/end)
+        - Operator(7) comparator
+        - notes sorted, starts, ends
+        - candidate indices ensuring notes with visible ends or spanning viewport are included
+        - notes_view slice and notes grouped by hand
+        - beam markers by hand (if available) and grid helpers (for future beam grouping)
+        """
+        score: SCORE | None = self.current_score()
+        if score is None:
+            self._draw_cache = None
+            return
+
+        # Compute viewport times (ticks) from mm offset and height
+        try:
+            top_mm = float(getattr(self, '_view_y_mm_offset', 0.0) or 0.0)
+            vp_h_mm = float(getattr(self, '_viewport_h_mm', 0.0) or 0.0)
+            bottom_mm = top_mm + vp_h_mm
+        except Exception:
+            top_mm = 0.0
+            bottom_mm = 0.0
+        # Small bleed similar to prior behavior
+        zpq = float(score.editor.zoom_mm_per_quarter)
+        bleed_mm = max(2.0, zpq * 0.25)
+        time_begin = float(self.mm_to_time(top_mm - bleed_mm))
+        time_end = float(self.mm_to_time(bottom_mm + bleed_mm))
+
+        # Comparator with threshold of 7 ticks
+        op = Operator(7)
+
+        # Notes sorted by (time, pitch)
+        notes = list(getattr(score.events, 'note', []) or [])
+        notes_sorted = sorted(notes, key=lambda n: (float(n.time), int(n.pitch)))
+        starts = [float(n.time) for n in notes_sorted]
+        ends = [float(n.time + n.duration) for n in notes_sorted]
+
+        # Candidate indices: union of ranges by start and end, plus back expansion over one viewport length
+        lo_start = bisect.bisect_left(starts, time_begin)
+        hi_start = bisect.bisect_right(starts, time_end)
+        lo_end = bisect.bisect_left(ends, time_begin)
+        hi_end = bisect.bisect_right(ends, time_end)
+        viewport_len = float(max(0.0, time_end - time_begin))
+        slack = float(op.threshold)
+        back_lo = bisect.bisect_left(starts, float(time_begin - viewport_len - slack))
+        candidate_idx_set = set(range(back_lo, hi_start)) | set(range(lo_end, hi_end))
+        candidate_indices = sorted(candidate_idx_set)
+
+        # Filtered view: will be further intersection-tested by drawers
+        notes_view = [notes_sorted[i] for i in candidate_indices] if candidate_indices else []
+
+        # Group by hand for convenience
+        notes_by_hand: dict[str, list] = {}
+        for m in notes_view:
+            h = str(getattr(m, 'hand', '<'))
+            notes_by_hand.setdefault(h, []).append(m)
+
+        # Beam markers (optional; future use)
+        beam_markers = list(getattr(score.events, 'beam', []) or [])
+        beam_by_hand: dict[str, list] = {}
+        for b in beam_markers:
+            h = str(getattr(b, 'hand', '<'))
+            beam_by_hand.setdefault(h, []).append(b)
+        for h in beam_by_hand:
+            beam_by_hand[h] = sorted(beam_by_hand[h], key=lambda b: float(getattr(b, 'time', 0.0)))
+
+        # Grid helpers: absolute times (ticks) of drawn grid lines across the score
+        grid_den_times: list[float] = []
+        cur_t = 0.0
+        for bg in getattr(score, 'base_grid', []) or []:
+            # Total measure length in ticks
+            measure_len_ticks = float(bg.numerator) * (4.0 / float(bg.denominator)) * float(QUARTER_NOTE_UNIT)
+            # Beat length inside this measure (ticks)
+            beat_len_ticks = measure_len_ticks / max(1, int(bg.numerator))
+            # For each measure in this segment
+            for _ in range(int(bg.measure_amount)):
+                # Append grid line times for configured grid positions
+                for grid in list(getattr(bg, 'grid_positions', []) or []):
+                    # grid == 1 marks the barline (measure start); positions are 1-based
+                    t_line = cur_t + (int(grid) - 1) * beat_len_ticks
+                    grid_den_times.append(float(t_line))
+                # Advance to next measure start
+                cur_t += measure_len_ticks
+        # Append final end barline time for completeness
+        grid_den_times.append(float(cur_t))
+
+        self._draw_cache = {
+            'time_begin': time_begin,
+            'time_end': time_end,
+            'op': op,
+            'notes_sorted': notes_sorted,
+            'starts': starts,
+            'ends': ends,
+            'candidate_indices': candidate_indices,
+            'notes_view': notes_view,
+            'notes_by_hand': notes_by_hand,
+            'beam_by_hand': beam_by_hand,
+            'grid_den_times': grid_den_times,
+        }
 
     # ---- External controls ----
     def set_snap_size_units(self, units: float) -> None:

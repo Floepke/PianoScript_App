@@ -56,28 +56,22 @@ class NoteDrawerMixin:
         time_begin = float(self.mm_to_time(top_mm - bleed_mm))
         time_end = float(self.mm_to_time(bottom_mm + bleed_mm))
 
-        # Build a time-indexed view: sort by start time once
-        notes_sorted = sorted(score.events.note or [], key=lambda n: (n.time, n.pitch))
-        starts = [float(n.time) for n in notes_sorted]
-        ends = [float(n.time + n.duration) for n in notes_sorted]
-        # Slice candidates whose start or end falls within range; also include spans via backward expansion
-        lo_start = bisect.bisect_left(starts, time_begin)
-        hi_start = bisect.bisect_right(starts, time_end)
-        lo_end = bisect.bisect_left(ends, time_begin)
-        hi_end = bisect.bisect_right(ends, time_end)
-        viewport_len = float(time_end - time_begin)
-        slack = float(self._time_op.threshold)
-        back_lo = bisect.bisect_left(starts, float(time_begin - viewport_len - slack))
-        # Union of index ranges to ensure ends-only and spanning notes are included
-        candidate_idx_set = set(range(back_lo, hi_start)) | set(range(lo_end, hi_end))
-        candidate_indices = sorted(candidate_idx_set)
-
-        # Cache the candidate window for helper methods
-        self._cached_notes_sorted = notes_sorted
-        self._cached_notes_starts = starts
-        self._cached_window_lo = candidate_indices[0] if candidate_indices else 0
-        self._cached_window_hi = (candidate_indices[-1] + 1) if candidate_indices else 0
-        self._cached_notes_view = [notes_sorted[i] for i in candidate_indices]
+        # Use shared render cache from Editor if available
+        cache = cast("Editor", self)._draw_cache or None
+        if cache is not None:
+            notes_sorted = cache.get('notes_sorted') or []
+            candidate_indices = cache.get('candidate_indices') or []
+            self._cached_notes_view = cache.get('notes_view') or []
+            self._cached_notes_sorted = cache.get('notes_sorted') or []
+            self._cached_notes_starts = cache.get('starts') or []
+        else:
+            # Fallback: minimal local candidate selection (start-only)
+            notes_sorted = sorted(score.events.note or [], key=lambda n: (n.time, n.pitch))
+            starts = [float(n.time) for n in notes_sorted]
+            lo = bisect.bisect_left(starts, time_begin)
+            hi = bisect.bisect_right(starts, time_end)
+            candidate_indices = list(range(max(0, lo - 1), hi))
+            self._cached_notes_view = [notes_sorted[i] for i in candidate_indices]
 
         # Iterate candidate set only
         for idx in candidate_indices:
@@ -95,34 +89,17 @@ class NoteDrawerMixin:
             y2 = time_to_mm(n_end)
             self._draw_single_note(du, n, x, y1, y2, draw_mode=draw_mode)
 
-        # Clear caches after draw pass
-        self._cached_notes_sorted = None
-        self._cached_notes_starts = None
-        self._cached_window_lo = None
-        self._cached_window_hi = None
-        self._cached_notes_view = None
+        # Do not clear caches here; when using shared cache, Editor manages lifecycle
 
     def _draw_single_note(self, du: DrawUtil, n, x: float, y1: float, y2: float, draw_mode: str = 'note') -> None:
         
-        # Midinote rectangle
+        # Draw all parts of the note
         self._draw_midinote(du, n, x, y1, y2, draw_mode)
-        
-        # Notehead
         self._draw_notehead(du, n, x, y1, draw_mode)
-        
-        # Stop sign (triangle) when followed by rest
         self._draw_notestop(du, n, x, y2, draw_mode)
-        
-        # Stem (horizontal tick at start)
         self._draw_stem(du, n, x, y1, draw_mode)
-        
-        # Continuation dot(s) for overlaps within the duration
         self._draw_note_continuation_dot(du, n, x, y1, y2, draw_mode)
-        
-        # Connect stem between extremes in chord at same start time (hand-local)
         self._draw_connect_stem(du, n, x, y1, draw_mode)
-        
-        # Left-hand indicator dot inside notehead
         self._draw_left_dot(du, n, x, y1, draw_mode)
 
     def _midinote_color(self, n, draw_mode: str) -> tuple[float, float, float, float]:
@@ -153,9 +130,9 @@ class NoteDrawerMixin:
             y1 = y1 - (w * 2.0)
         if n.pitch in BLACK_KEYS:
             du.add_oval(
-                x - w,
+                x - (w*.8),
                 y1,
-                x + w,
+                x + (w*.8),
                 y1 + w * 2.0,
                 stroke_color=None,
                 fill_color=(0, 0, 0, 1),
@@ -180,7 +157,7 @@ class NoteDrawerMixin:
             return
         
         # Draw triangle pointing down at end of note
-        w = float(self.semitone_dist or 0.5) * 2.0
+        w = float(self.semitone_dist or 0.5) * 1.8
         points = [
             (x - w / 2, y2 - w),
             (x, y2),
@@ -190,12 +167,19 @@ class NoteDrawerMixin:
         # For cursor/edit/selected, emphasize
         if draw_mode in ('cursor', 'edit', 'selected'):
             fill = self.accent_color
-        du.add_polygon(points_mm=points, stroke_color=None, fill_color=fill, id=0, tags=["stop_sign"]) 
+        du.add_polyline(
+            points,
+            stroke_color=fill,
+            stroke_width_mm=0.4,
+            id=0,
+            tags=["stop_sign"],
+        )
 
     def _draw_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         layout = cast("Editor", self).current_score().layout
-        stem_len = 7.5
-        stem_w = .75
+        stem_len = float(layout.note_stem_length_mm or 5.0)
+        stem_w = float(layout.note_stem_width_mm or 0.5)
+        # Stem direction based on hand
         if getattr(n, 'hand', '<') in ('l', '<'):
             x2 = x - stem_len
         else:
@@ -220,7 +204,9 @@ class NoteDrawerMixin:
 
         # Collect dot times
         dot_times: list[float] = []
-        notes_view = self._cached_notes_view or []
+        # Prefer shared cached viewport notes
+        cache = cast("Editor", self)._draw_cache or {}
+        notes_view = cache.get('notes_view') or (self._cached_notes_view or [])
         for m in notes_view:
             if m.id == n.id or getattr(m, 'hand', '<') != hand:
                 continue
@@ -249,10 +235,12 @@ class NoteDrawerMixin:
             )
 
     def _draw_connect_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
-        # Connect extreme notes in a chord (same start time, same hand)
+        # Connect notes in a chord (same start time, same hand)
+        layout = cast("Editor", self).current_score().layout
         hand = getattr(n, 'hand', '<')
         t = float(n.time)
-        notes_view = self._cached_notes_view or []
+        cache = cast("Editor", self)._draw_cache or {}
+        notes_view = cache.get('notes_view') or (self._cached_notes_view or [])
         same_time = [m for m in notes_view if getattr(m, 'hand', '<') == hand and self._time_op.eq(float(m.time), t)]
         if len(same_time) < 2:
             return
@@ -266,7 +254,7 @@ class NoteDrawerMixin:
             x2,
             y1,
             color=(0, 0, 0, 1),
-            width_mm=.75,
+            width_mm=layout.note_stem_width_mm or 0.5,
             id=0,
             tags=["chord_connect"],
         )
@@ -280,10 +268,10 @@ class NoteDrawerMixin:
         cy = y1 + (w / 2.0)
         fill = (1, 1, 1, 1) if (n.pitch in BLACK_KEYS) else (0, 0, 0, 1)
         du.add_oval(
-            x - dot_d / 2.0,
-            cy - dot_d / 2.0,
-            x + dot_d / 2.0,
-            cy + dot_d / 2.0,
+            x - dot_d / 3.0,
+            cy - dot_d / 3.0,
+            x + dot_d / 3.0,
+            cy + dot_d / 3.0,
             stroke_color=None,
             fill_color=fill,
             id=0,
@@ -304,13 +292,41 @@ class NoteDrawerMixin:
 
     def _is_followed_by_rest(self, n) -> bool:
         # True if there is a gap after this note before next note in same hand
+        self = cast("Editor", self)
         hand = getattr(n, 'hand', '<')
         end = float(n.time + n.duration)
-        min_delta = None
-        thr = float(self._time_op.threshold)
-        starts = self._cached_notes_starts or []
-        notes_sorted = self._cached_notes_sorted or []
+        cache = getattr(self, '_draw_cache', None) or {}
+        op: Operator = cache.get('op') or self._time_op
+        thr = float(op.threshold)
+
+        # Prefer hand-specific lists from cache for accuracy and speed
+        notes_by_hand = cache.get('notes_by_hand') or {}
+        hand_list = notes_by_hand.get(hand)
+        if hand_list:
+            starts_hand = [float(m.time) for m in hand_list]
+            idx = bisect.bisect_left(starts_hand, float(end - thr))
+            min_delta = None
+            for j in range(idx, len(hand_list)):
+                m = hand_list[j]
+                if m.id == n.id:
+                    continue
+                delta = float(m.time) - end
+                if delta >= -thr:
+                    min_delta = delta
+                    break
+            if min_delta is None:
+                return True
+            return op.gt(float(min_delta), 0.0)
+
+        # Fallback: scan globally if cache lacks hand grouping
+        starts = cache.get('starts') or (self._cached_notes_starts or [])
+        notes_sorted = cache.get('notes_sorted') or (self._cached_notes_sorted or [])
+        if not starts or not notes_sorted:
+            score: SCORE = self.current_score()
+            notes_sorted = sorted(getattr(score.events, 'note', []) or [], key=lambda nn: (float(nn.time), int(nn.pitch)))
+            starts = [float(nn.time) for nn in notes_sorted]
         idx = bisect.bisect_left(starts, float(end - thr)) if starts else 0
+        min_delta = None
         for j in range(idx, len(notes_sorted)):
             m = notes_sorted[j]
             if m.id == n.id or getattr(m, 'hand', '<') != hand:
@@ -321,4 +337,4 @@ class NoteDrawerMixin:
                 break
         if min_delta is None:
             return True
-        return self._time_op.gt(float(min_delta), 0.0)
+        return op.gt(float(min_delta), 0.0)
