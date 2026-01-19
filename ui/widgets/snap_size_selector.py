@@ -299,9 +299,9 @@ class SnapSizeDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):
         super().__init__("Snap Size", parent)
         self.setObjectName("SnapSizeDock")
+        # Lock dock: no moving, no floating, no closing
         self.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable |
-                         QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        self.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.selector = SnapSizeSelector(self)
         self.setWidget(self.selector)
         try:

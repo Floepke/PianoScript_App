@@ -104,7 +104,7 @@ class GridDrawerMixin:
 
             # Draw horizontal barlines across the stave width for each measure boundary
             color = self.notation_color
-            bar_width_mm = 0.5
+            bar_width_mm = 0.25
 
             for i in range(measure_amount):
                 # measure numbers:

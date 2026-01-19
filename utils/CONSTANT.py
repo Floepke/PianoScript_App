@@ -19,8 +19,8 @@ QUARTER_NOTE_UNIT: float = 256.0
 # Update these lists to control layer stacking in the Editor and Engraver.
 EDITOR_LAYERING = [
     # midi_note in background of the notation.
-    'cursor_grid',
-    'midi_note', 
+    'snap_grid',
+    'midi_note',
     
     # stave elements
     'chord_guide',
@@ -34,10 +34,10 @@ EDITOR_LAYERING = [
     # note elements
     'stop_sign',
     'accidental',
+    'stem',
     'notehead_white',
     'notehead_black',
     'left_dot',
-    'stem',
     'chord_connect',
 
     # grace_note
@@ -73,4 +73,17 @@ PIANO_KEY_AMOUNT: int = 88
 # key collections
 BLACK_KEYS: list[int] = key_class_filter('CDFGA')
 BE_KEYS: list[int] = key_class_filter('be')
+
+# Editor colors
+ACCENT_COLOR_HEX: str = '#3399FF'
+NOTATION_COLOR_HEX: str = '#000000'
+CURSOR_COLOR_HEX: str = "#000000"
+# convert hex to rgbal with alpha 0.3
+def hex_to_rgba(hex_color: str, alpha: float = 1) -> tuple[int, int, int, float]:
+    hex_color = hex_color.lstrip('#')
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    return (r, g, b, alpha)
+ACCENT_COLOR_HEX: tuple[int, int, int, float] = hex_to_rgba(ACCENT_COLOR_HEX)
+CURSOR_COLOR: tuple[int, int, int, float] = hex_to_rgba(CURSOR_COLOR_HEX)
+NOTATION_COLOR: tuple[int, int, int, float] = hex_to_rgba(NOTATION_COLOR_HEX)
 

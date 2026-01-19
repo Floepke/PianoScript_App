@@ -22,7 +22,7 @@ class Layout:
     note_head_visible: bool = True
     note_stem_visible: bool = True
     note_stem_length_mm: float = 5.0
-    note_stem_width_mm: float = 0.2 # Thickness of the stem as well the notehead outline
+    note_stem_width_mm: float = 0.5 # Thickness of the stem as well the notehead outline
     note_leftdot_visible: bool = True
 
     # Beam appearance

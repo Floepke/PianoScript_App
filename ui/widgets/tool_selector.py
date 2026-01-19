@@ -69,9 +69,9 @@ class ToolSelectorDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):
         super().__init__("Tools", parent)
         self.setObjectName("ToolSelectorDock")
+        # Lock dock: no moving, no floating, no closing
         self.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable |
-                         QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        self.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         # Wrap the list in a container with small margins to match Snap Size indent
         container = QtWidgets.QWidget(self)
         lay = QtWidgets.QVBoxLayout(container)

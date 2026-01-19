@@ -98,6 +98,8 @@ class Editor(QtCore.QObject,
 
         # colors
         self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.05, 1.0)
+        self.accent_color: Tuple[float, float, float, float] = (0.8, 0.2, 0.2, 1.0)
+        self.selection_color: Tuple[float, float, float, float] = (0.2, 0.6, 1.0, 0.3)
 
         # snap size in time units (default matches SnapSizeSelector: base=8, divide=1 -> 128)
         self.snap_size_units: float = (QUARTER_NOTE_UNIT * 4.0) / 8.0
@@ -111,6 +113,8 @@ class Editor(QtCore.QObject,
         self._dpr: float = 1.0                  # device pixel ratio
         # View offset in mm (top of visible clip)
         self._view_y_mm_offset: float = 0.0
+        # Viewport height (mm) of the visible clip
+        self._viewport_h_mm: float = 0.0
 
         # cursor
         self.time_cursor: Optional[float] = None
@@ -450,6 +454,13 @@ class Editor(QtCore.QObject,
                     pass
         except Exception:
             self._view_y_mm_offset = 0.0
+
+    def set_viewport_height_mm(self, h_mm: float) -> None:
+        """Provide the current viewport height in mm for drawer culling."""
+        try:
+            self._viewport_h_mm = max(0.0, float(h_mm))
+        except Exception:
+            self._viewport_h_mm = 0.0
 
     def snap_time(self, ticks: float) -> float:
         """Snap time ticks to the start of the previous snap band.

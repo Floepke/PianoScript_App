@@ -131,7 +131,12 @@ def get_appdata_manager() -> AppDataManager:
         # Window state (session-managed)
         adm.register("window_maximized", True, "Start maximized; updated on exit")
         adm.register("window_geometry", "", "Base64-encoded Qt window geometry for normal state")
-        adm.register("window_state", "", "Base64-encoded Qt window state (dock/toolbar layout)")
+        # Removed window_state persistence to avoid saving/restoring dock/toolbar layout
         adm.load()
+        # Strip any legacy 'window_state' key from stored values
+        try:
+            adm._values.pop("window_state", None)
+        except Exception:
+            pass
         _appdata_manager = adm
     return _appdata_manager

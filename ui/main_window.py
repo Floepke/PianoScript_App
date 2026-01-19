@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.engraver.engraved.connect(self.print_view.request_render)
         
         # Loading test file on startup if available, else new blank score
-        default_path = "/home/flop/Desktop/moonlight_sample.piano"
+        default_path = "/home/flop/Desktop/moonlight3.piano"
         loaded = self.file_manager.open_path(default_path)
         if loaded is None:
             self.file_manager.new()
@@ -497,11 +497,6 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 geom_b64 = bytes(self.saveGeometry().toBase64()).decode("ascii")
                 adm.set("window_geometry", geom_b64)
-            except Exception:
-                pass
-            try:
-                state_b64 = bytes(self.saveState().toBase64()).decode("ascii")
-                adm.set("window_state", state_b64)
             except Exception:
                 pass
             adm.save()
