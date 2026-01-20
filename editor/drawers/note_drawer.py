@@ -110,16 +110,29 @@ class NoteDrawerMixin:
     def _draw_midinote(self, du: DrawUtil, n, x: float, y1: float, y2: float, draw_mode: str) -> None:
         fill = self._midinote_color(n, draw_mode)
         w = float(self.semitone_dist or 0.5)
-        du.add_rectangle(
-            x - w,
-            y1,
-            x + w,
-            y2,
+        du.add_polygon(
+            [
+                (x, y1),
+                (x - w, y1 + self.semitone_dist),
+                (x - w, y2),
+                (x + w, y2),
+                (x + w, y1 + self.semitone_dist),
+            ],
             stroke_color=None,
             fill_color=fill,
             id=0,
             tags=["midi_note"],
         )
+        # du.add_rectangle(
+        #     x - w,
+        #     y1 + self.semitone_dist,
+        #     x + w,
+        #     y2,
+        #     stroke_color=None,
+        #     fill_color=fill,
+        #     id=0,
+        #     tags=["midi_note"],
+        # )
 
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)
