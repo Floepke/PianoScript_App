@@ -138,6 +138,8 @@ class Editor(QtCore.QObject,
         """
         # Build shared render cache for this draw pass
         self._build_render_cache()
+        
+        # Call drawer mixin methods in order
         methods = [
             getattr(self, 'draw_snap', None),
             getattr(self, 'draw_grid', None),
@@ -156,6 +158,7 @@ class Editor(QtCore.QObject,
         for fn in methods:
             if callable(fn):
                 fn(du)
+
         # Clear cache after draw pass to avoid stale state
         self._draw_cache = None
 
@@ -486,7 +489,6 @@ class Editor(QtCore.QObject,
         
         # Ensure x-positions cache is built
         if self._x_positions is None:
-            # Fallback in case layout wasn't calculated yet
             self._rebuild_x_positions()
         
         # Return cached x position
@@ -545,33 +547,21 @@ class Editor(QtCore.QObject,
 
     def set_view_metrics(self, px_per_mm: float, widget_px_per_mm: float, dpr: float) -> None:
         """Provide current view scale for fast pixel↔mm conversions."""
-        try:
-            self._px_per_mm = float(px_per_mm)
-            self._widget_px_per_mm = float(widget_px_per_mm)
-            self._dpr = float(dpr)
-        except Exception:
-            pass
+        self._px_per_mm = float(px_per_mm)
+        self._widget_px_per_mm = float(widget_px_per_mm)
+        self._dpr = float(dpr)
 
     def set_view_offset_mm(self, y_mm_offset: float) -> None:
         """Set the current viewport origin offset (top of clip) in mm."""
-        try:
-            self._view_y_mm_offset = float(y_mm_offset)
-            # Recompute local mm cursor on scroll so overlays stay aligned
-            if self.time_cursor is not None:
-                try:
-                    abs_mm = self.time_to_mm(float(self.time_cursor))
-                    self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
-                except Exception:
-                    pass
-        except Exception:
-            self._view_y_mm_offset = 0.0
+        self._view_y_mm_offset = float(y_mm_offset)
+        # Recompute local mm cursor on scroll so overlays stay aligned
+        if self.time_cursor is not None:
+            abs_mm = self.time_to_mm(float(self.time_cursor))
+            self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
 
     def set_viewport_height_mm(self, h_mm: float) -> None:
         """Provide the current viewport height in mm for drawer culling."""
-        try:
-            self._viewport_h_mm = max(0.0, float(h_mm))
-        except Exception:
-            self._viewport_h_mm = 0.0
+        self._viewport_h_mm = max(0.0, float(h_mm))
 
     def snap_time(self, ticks: float) -> float:
         """Snap time ticks to the start of the previous snap band.

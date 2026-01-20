@@ -57,13 +57,15 @@ class BeamDrawerMixin:
                         group.append(notes_sorted[k])
                     k += 1
                 # also include any notes that start before t0 but extend into window
-                # backscan from j-1 while end > t0
-                b = max(0, j - 1)
-                while b >= 0 and op.gt(ends[b], float(t0)):
+                # robust backscan from j-1 down to 0 to catch long notes
+                b = j - 1
+                while b >= 0:
                     s = starts[b]
                     e = ends[b]
                     if op.gt(e, float(t0)) and op.lt(s, float(t1)):
                         group.append(notes_sorted[b])
+                    # Optional early break: if e <= t0 and s well before t0, further earlier
+                    # notes are unlikely to overlap unless extremely long; keep simple for correctness.
                     b -= 1
                 # de-duplicate while preserving order by start time
                 if group:
@@ -183,10 +185,15 @@ class BeamDrawerMixin:
             if not starts_in:
                 # Skip drawing beam if no note starts inside this window
                 continue
+            # Skip if all starts are effectively equal (single chord only)
+            s_min, s_max = min(starts_in), max(starts_in)
+            if op.eq(float(s_min), float(s_max)):
+                continue
             t_first = min(starts_in)
             t_last = max(starts_in)
-            # Highest and lowest pitch in the group
+            # Highest pitch in the group (including spanning notes)
             highest = max(grp, key=lambda n: int(getattr(n, 'pitch', 0)))
+            # x1 at the highest pitch notehead (not stem tip) to avoid covering dots
             x1 = float(self.pitch_to_x(int(getattr(highest, 'pitch', 0)))) + float(stem_len)
             # x2 uses same base as x1 plus semitone_dist to preserve diagonal
             x2 = x1 + float(self.semitone_dist or 0.0)
@@ -240,6 +247,10 @@ class BeamDrawerMixin:
             starts_in = [float(n.time) for n in grp if op.ge(float(n.time), float(t0)) and op.lt(float(n.time), float(t1))]
             if not starts_in:
                 # Skip drawing beam if no note starts inside this window
+                continue
+            # Skip if all starts are effectively equal (single chord only)
+            s_min, s_max = min(starts_in), max(starts_in)
+            if op.eq(float(s_min), float(s_max)):
                 continue
             t_first = min(starts_in)
             t_last = max(starts_in)

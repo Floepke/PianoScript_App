@@ -164,6 +164,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
             self.viewportMetricsChanged.emit(h_px_content, vis_h_px, px_per_mm, dpr)
         except Exception:
             print('CairoEditorWidget.paintEvent: Warning: failed to emit viewportMetricsChanged')
+        
         # Provide view metrics to the editor for fast px↔mm/time conversions
         try:
             if self._editor is not None:
