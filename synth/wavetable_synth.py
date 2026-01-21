@@ -148,6 +148,121 @@ class WavetableSynth:
         th.start()
         self._audio_thread = th
 
+    def is_running(self) -> bool:
+        return bool(self._running)
+
+    def _adsr_at_elapsed(self, elapsed_sec: float) -> tuple[float, str]:
+        """Compute envelope value and state after elapsed seconds since note-on.
+
+        Returns (env, state) where state is one of 'attack','decay','sustain'.
+        """
+        atk = max(0.0, float(self.attack_seconds))
+        dcy = max(0.0, float(self.decay_seconds))
+        sus = float(self.sustain_level)
+        t = float(max(0.0, elapsed_sec))
+        if atk > 0.0 and t < atk:
+            env = t / atk
+            return env, 'attack'
+        t -= atk
+        if dcy > 0.0 and t < dcy:
+            # Linear decay from 1.0 to sustain over dcy seconds
+            env = 1.0 - (1.0 - sus) * (t / dcy)
+            return env, 'decay'
+        return sus, 'sustain'
+
+    def _note_on_chased(self, midi_pitch: int, elapsed_sec: float, velocity: int = 100) -> None:
+        """Start a voice as if it began `elapsed_sec` seconds ago.
+
+        Initializes phase and ADSR state/value accordingly, avoiding clicks.
+        """
+        freq = self._pitch_to_freq(int(midi_pitch))
+        amp = max(0.0, min(1.0, velocity / 127.0))
+        env, state = self._adsr_at_elapsed(float(elapsed_sec))
+        # Advance phase according to elapsed time so waveform is consistent
+        phase = (float(elapsed_sec) * float(freq)) % 1.0
+        with self._lock:
+            self._voices[midi_pitch] = {
+                'freq': float(freq),
+                'amp': float(amp),
+                'phase_l': float(phase),
+                'phase_r': float(phase),
+                'state': state,  # 'attack','decay','sustain'
+                'env': float(env),
+                'started': time.time() - float(elapsed_sec),
+                'released': None,
+            }
+
+    def play_from_time(self, score: SCORE, start_units: float, chase: bool = True) -> None:
+        """Play score from a given time (`start_units` in QUARTER_NOTE_UNIT), with note chasing.
+
+        - Immediately starts any notes spanning the start time (if `chase`).
+        - Schedules future note_on/off events from `start_units` onward.
+        """
+        # Extract tempo from first text like "120/4", else 120
+        bpm = 120.0
+        try:
+            for t in score.events.text:
+                s = str(getattr(t, 'text', ''))
+                if s and '/' in s:
+                    b = float(s.split('/')[0])
+                    bpm = b
+                    break
+        except Exception:
+            pass
+        self._bpm = float(bpm)
+
+        # Start audio
+        self.start()
+
+        # Build schedule relative to start_units
+        events: list[tuple[str, float, int, int]] = []
+        chased: list[tuple[int, float, int]] = []  # (pitch, elapsed_sec, vel)
+        su = float(max(0.0, start_units))
+        for n in score.events.note:
+            start = float(n.time)
+            end = float(n.time + n.duration)
+            pitch = int(n.pitch)
+            if end <= su:
+                continue  # note fully before start
+            if start < su < end:
+                # Spanning note at start time: start immediately with chased envelope
+                if chase:
+                    elapsed_units = su - start
+                    elapsed_sec = (elapsed_units / QUARTER_NOTE_UNIT) * (60.0 / self._bpm)
+                    chased.append((pitch, float(elapsed_sec), 100))
+                # Schedule only the note_off at the remaining duration
+                off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / self._bpm)
+                events.append(('off', float(off_t), pitch, 0))
+            elif start >= su:
+                on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / self._bpm)
+                dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / self._bpm)
+                events.append(('on', float(on_t), pitch, 100))
+                events.append(('off', float(on_t + max(0.0, dur_t)), pitch, 0))
+
+        events.sort(key=lambda e: e[1])
+
+        def _runner():
+            # Start chased notes immediately before scheduling
+            for pitch, elapsed_sec, vel in chased:
+                if not self._running:
+                    break
+                self._note_on_chased(int(pitch), float(elapsed_sec), int(vel))
+            t0 = time.time()
+            for kind, t_rel, pitch, vel in events:
+                if not self._running:
+                    break
+                now = time.time()
+                delay = max(0.0, t0 + float(t_rel) - now)
+                if delay > 0:
+                    time.sleep(delay)
+                if kind == 'on':
+                    self.note_on(int(pitch), int(vel))
+                else:
+                    self.note_off(int(pitch))
+        th = threading.Thread(target=_runner, daemon=True)
+        th.start()
+        self._audio_thread = th
+
     # ---- audio callback ----
     def _callback(self, outdata, frames, time_info, status):
         if not self._running:

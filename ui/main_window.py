@@ -221,7 +221,59 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.is_startup = True
 
+        # Initialize player and load saved wavetables from appdata
+        try:
+            from midi.player import Player
+            self.player = Player()
+            try:
+                wt_left = adm.get("wt_left", [])
+                wt_right = adm.get("wt_right", [])
+            except Exception:
+                wt_left, wt_right = [], []
+            # If any saved wavetable exists, apply to synth
+            if isinstance(wt_left, list) or isinstance(wt_right, list):
+                import numpy as np
+                l = np.asarray(wt_left, dtype=np.float32) if isinstance(wt_left, list) and len(wt_left) > 0 else None
+                r = np.asarray(wt_right, dtype=np.float32) if isinstance(wt_right, list) and len(wt_right) > 0 else None
+                if l is not None or r is not None:
+                    if l is None and r is not None:
+                        l = r.copy()
+                    if r is None and l is not None:
+                        r = l.copy()
+                    if l is not None and r is not None and len(l) >= 8 and len(r) >= 8:
+                        try:
+                            self.player.set_wavetables(l, r)
+                        except Exception:
+                            pass
+        except Exception:
+            # Player initialization is optional at startup
+            self.player = None
+
     def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
+        # Space toggles play/stop from the editor's time cursor (with note chasing)
+        try:
+            if ev.key() == QtCore.Qt.Key_Space:
+                if not hasattr(self, 'player') or self.player is None:
+                    from midi.player import Player
+                    self.player = Player()
+                if hasattr(self.player, 'is_playing') and self.player.is_playing():
+                    self.player.stop()
+                else:
+                    # Get start time from editor time cursor; default to 0.0
+                    try:
+                        t_units = float(getattr(self.editor_controller, 'time_cursor', 0.0) or 0.0)
+                    except Exception:
+                        t_units = 0.0
+                    sc = self.file_manager.current()
+                    try:
+                        self.player.play_from_time_cursor(t_units, sc)
+                    except Exception:
+                        # Fallback to full play if partial fails
+                        self._play_midi()
+                ev.accept()
+                return
+        except Exception:
+            pass
         # Hitting Escape should trigger app close (with save prompt)
         try:
             if ev.key() == QtCore.Qt.Key_Escape:
@@ -624,11 +676,34 @@ class MainWindow(QtWidgets.QMainWindow):
             if not hasattr(self, 'player') or self.player is None:
                 from midi.player import Player
                 self.player = Player()
+            # Load current wavetable from appdata into editor canvases
+            try:
+                adm = get_appdata_manager()
+                wt_left = adm.get("wt_left", [])
+                wt_right = adm.get("wt_right", [])
+                if isinstance(wt_left, list) and len(wt_left) > 0:
+                    import numpy as np
+                    self._fx_dialog.left.arr = np.asarray(wt_left, dtype=np.float32)
+                    self._fx_dialog.left.update()
+                if isinstance(wt_right, list) and len(wt_right) > 0:
+                    import numpy as np
+                    self._fx_dialog.right.arr = np.asarray(wt_right, dtype=np.float32)
+                    self._fx_dialog.right.update()
+            except Exception:
+                pass
             # Apply button wiring: set wavetable + ADSR
             def _apply(l, r, attack, decay, sustain, release):
                 try:
                     self.player.set_wavetables(l, r)
                     self.player.set_adsr(float(attack), float(decay), float(sustain), float(release))
+                    # Persist wavetable immediately
+                    try:
+                        adm = get_appdata_manager()
+                        adm.set("wt_left", [float(x) for x in list(l)])
+                        adm.set("wt_right", [float(x) for x in list(r)])
+                        adm.save()
+                    except Exception:
+                        pass
                 except Exception as exc:
                     try:
                         QtWidgets.QMessageBox.critical(self, "FX Apply Error", f"{exc}")
@@ -643,6 +718,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     r = getattr(self._fx_dialog.right, 'arr', None)
                     if l is not None and r is not None:
                         self.player.set_wavetables(l, r)
+                        # Persist on every live change
+                        try:
+                            adm = get_appdata_manager()
+                            adm.set("wt_left", [float(x) for x in list(l)])
+                            adm.set("wt_right", [float(x) for x in list(r)])
+                            adm.save()
+                        except Exception:
+                            pass
                 except Exception:
                     pass
             try:

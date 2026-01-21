@@ -30,6 +30,19 @@ class Player:
             return
         self._wt.play_score(score)
 
+    def play_from_time_cursor(self, start_units: float, score) -> None:
+        if self._wt is None:
+            return
+        self._wt.play_from_time(score, float(start_units), chase=True)
+
     def stop(self) -> None:
         if self._wt is not None:
             self._wt.stop()
+
+    def is_playing(self) -> bool:
+        if self._wt is None:
+            return False
+        try:
+            return bool(self._wt.is_running())
+        except Exception:
+            return False
