@@ -178,6 +178,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.playRequested.connect(self._force_redraw)
         self.splitter.stopRequested.connect(self._stop_midi)
         self.splitter.stopRequested.connect(self._force_redraw)
+        # FX synth editor
+        self.splitter.fxRequested.connect(self._open_fx_window)
         # Contextual tool buttons should also force redraw
         self.splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
         # Restore splitter sizes from last session if available; else fall back to fit
@@ -264,9 +266,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # File actions
         new_act = QtGui.QAction("New", self)
-        open_act = QtGui.QAction("Open…", self)
+        open_act = QtGui.QAction("Load...", self)
         save_act = QtGui.QAction("Save", self)
-        save_as_act = QtGui.QAction("Save As…", self)
+        save_as_act = QtGui.QAction("Save As...", self)
         exit_act = QtGui.QAction("Exit", self)
         exit_act.triggered.connect(self.close)
 
@@ -400,7 +402,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # If there are unsaved changes, confirm save before opening another project
         if not self.file_manager.confirm_save_for_action("opening another project"):
             return
-        sc = self.file_manager.open()
+        sc = self.file_manager.load()
         if sc:
             self._refresh_views_from_score()
             try:
@@ -599,7 +601,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if not hasattr(self, 'player') or self.player is None:
                 from midi.player import Player
                 self.player = Player()
-            self.player.start()
+            # Play current SCORE via selected backend
+            sc = self.file_manager.current()
+            self.player.play_score(sc)
         except Exception:
             pass
 
@@ -609,6 +613,74 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.player.stop()
         except Exception:
             pass
+
+    def _open_fx_window(self) -> None:
+        try:
+            from ui.widgets.wavetable_editor import WavetableEditor
+            # Keep dialog reference to avoid GC closing it
+            if not hasattr(self, '_fx_dialog') or self._fx_dialog is None:
+                self._fx_dialog = WavetableEditor(self)
+            # Ensure player exists (wavetable-only backend)
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            # Apply button wiring: set wavetable + ADSR
+            def _apply(l, r, attack, decay, sustain, release):
+                try:
+                    self.player.set_wavetables(l, r)
+                    self.player.set_adsr(float(attack), float(decay), float(sustain), float(release))
+                except Exception as exc:
+                    try:
+                        QtWidgets.QMessageBox.critical(self, "FX Apply Error", f"{exc}")
+                    except Exception:
+                        print(f"FX Apply Error: {exc}")
+            self._fx_dialog.wavetablesApplied.connect(_apply)
+
+            # Live updates while drawing: whenever either canvas changes, push both arrays
+            def _update_wavetables_live(*_):
+                try:
+                    l = getattr(self._fx_dialog.left, 'arr', None)
+                    r = getattr(self._fx_dialog.right, 'arr', None)
+                    if l is not None and r is not None:
+                        self.player.set_wavetables(l, r)
+                except Exception:
+                    pass
+            try:
+                self._fx_dialog.left.changed.connect(_update_wavetables_live)
+                self._fx_dialog.right.changed.connect(_update_wavetables_live)
+            except Exception:
+                pass
+
+            # Live envelope updates when spinboxes change
+            def _update_envelope_live(*_):
+                try:
+                    attack = float(self._fx_dialog.attack_spin.value())
+                    decay = float(self._fx_dialog.decay_spin.value())
+                    sustain = float(self._fx_dialog.sustain_spin.value())
+                    release = float(self._fx_dialog.release_spin.value())
+                    self.player.set_adsr(attack, decay, sustain, release)
+                except Exception:
+                    pass
+            try:
+                self._fx_dialog.attack_spin.valueChanged.connect(_update_envelope_live)
+                self._fx_dialog.decay_spin.valueChanged.connect(_update_envelope_live)
+                self._fx_dialog.sustain_spin.valueChanged.connect(_update_envelope_live)
+                self._fx_dialog.release_spin.valueChanged.connect(_update_envelope_live)
+            except Exception:
+                pass
+
+            # Show non-modal so the editor remains interactive
+            self._fx_dialog.show()
+            try:
+                self._fx_dialog.raise_()
+                self._fx_dialog.activateWindow()
+            except Exception:
+                pass
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "FX Window Error", f"{exc}")
+            except Exception:
+                print(f"FX Window Error: {exc}")
 
     def _force_redraw(self, *_args) -> None:
         # Rebuild editor caches and hit-rects for immediate tool feedback

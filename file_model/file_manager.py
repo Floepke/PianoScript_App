@@ -23,7 +23,7 @@ class FileManager:
     - Provides new(), open(), save(), and save_as() methods
     """
 
-    FILE_FILTER = "PianoScript Score (*.piano);;All Files (*)"
+    FILE_FILTER = "PianoScript Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         self._parent: Optional[QWidget] = parent
@@ -60,30 +60,51 @@ class FileManager:
         # Consider undo/redo a model change relative to last explicit save
         self._dirty = True
 
-    def open(self) -> Optional[SCORE]:
-        """Open a .piano file via a native file dialog and load into SCORE."""
+    def load(self) -> Optional[SCORE]:
+        """Load a .piano file via a native file dialog and load into SCORE."""
         start_dir = str(self._path.parent if self._path else self._last_dir)
         fname, _ = QFileDialog.getOpenFileName(
             self._parent,
-            "Open Score",
+            "Load Score",
             start_dir,
             self.FILE_FILTER,
         )
         if not fname:
             return None
         try:
-            self._current = SCORE().load(fname)
-            self._path = Path(fname)
-            self._last_dir = self._path.parent
-            self._dirty = False
-            # Track last opened file in appdata
-            try:
-                adm = get_appdata_manager()
-                adm.set("last_opened_file", str(self._path))
-                adm.save()
-            except Exception:
-                pass
-            return self._current
+            suffix = Path(fname).suffix.lower()
+            if suffix in (".mid", ".midi"):
+                # Load MIDI via midi_loader to new SCORE; keep project path unset
+                try:
+                    from midi.midi_loader import midi_load
+                    self._current = midi_load(fname)
+                except Exception as exc:
+                    raise RuntimeError(f"Failed to load MIDI: {exc}")
+                self._path = None
+                self._last_dir = Path(fname).parent
+                # Imported from external format; mark dirty until explicitly saved
+                self._dirty = True
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(fname))
+                    adm.save()
+                except Exception:
+                    pass
+                return self._current
+            else:
+                # Native PianoScript file
+                self._current = SCORE().load(fname)
+                self._path = Path(fname)
+                self._last_dir = self._path.parent
+                self._dirty = False
+                # Track last opened file in appdata
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(self._path))
+                    adm.save()
+                except Exception:
+                    pass
+                return self._current
         except Exception as exc:
             self._show_error("Failed to open score", f"{exc}")
             return None
@@ -94,17 +115,32 @@ class FileManager:
         Returns the SCORE on success, None on failure.
         """
         try:
-            self._current = SCORE().load(path)
-            self._path = Path(path)
-            self._last_dir = self._path.parent
-            self._dirty = False
-            try:
-                adm = get_appdata_manager()
-                adm.set("last_opened_file", str(self._path))
-                adm.save()
-            except Exception:
-                pass
-            return self._current
+            suffix = Path(path).suffix.lower()
+            if suffix in (".mid", ".midi"):
+                from midi.midi_loader import midi_load
+                self._current = midi_load(path)
+                self._path = None
+                self._last_dir = Path(path).parent
+                self._dirty = True
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(path))
+                    adm.save()
+                except Exception:
+                    pass
+                return self._current
+            else:
+                self._current = SCORE().load(path)
+                self._path = Path(path)
+                self._last_dir = self._path.parent
+                self._dirty = False
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(self._path))
+                    adm.save()
+                except Exception:
+                    pass
+                return self._current
         except Exception as exc:
             self._show_error("Failed to open score", f"{exc}")
             return None

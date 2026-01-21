@@ -1,23 +1,36 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Run PianoScript",
-      "type": "shell",
-      "command": "python3",
-      "args": [
-        "${workspaceFolder}/pianoscript.py"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "presentation": {
-        "reveal": "never",
-        "panel": "dedicated",
-        "clear": false
-      },
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run PianoScript",
+			"type": "shell",
+			"command": "python3",
+			"args": [
+				"${workspaceFolder}/pianoscript.py"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"presentation": {
+				"reveal": "never",
+				"panel": "dedicated",
+				"clear": false
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run PianoScript (venv)",
+			"type": "shell",
+			"command": "/home/flop/PianoScript_App_Cairo/.venv/bin/python",
+			"args": [
+				"${workspaceFolder}/pianoscript.py"
+			],
+			"isBackground": false,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
 }
