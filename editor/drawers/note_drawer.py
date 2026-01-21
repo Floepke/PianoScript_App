@@ -120,9 +120,23 @@ class NoteDrawerMixin:
             ],
             stroke_color=None,
             fill_color=fill,
-            id=0,
+            id=n.id,
             tags=["midi_note"],
         )
+        # Register a clickable rectangle covering the main midinote body
+        x_left = x - w
+        x_right = x + w
+        # Use computed w to avoid relying on raw semitone_dist
+        y_top = y1 + w
+        y_bottom = y2
+        if x_left > x_right:
+            x_left, x_right = x_right, x_left
+        if y_top > y_bottom:
+            y_top, y_bottom = y_bottom, y_top
+        rect_id = int(getattr(n, 'id', 0) or 0)
+        register = getattr(self, 'register_note_hit_rect', None)
+        if callable(register) and rect_id is not None:
+            register(rect_id, float(x_left), float(y_top), float(x_right), float(y_bottom))
         # du.add_rectangle(
         #     x - w,
         #     y1 + self.semitone_dist,
@@ -150,7 +164,7 @@ class NoteDrawerMixin:
                 stroke_color=self.notation_color,
                 stroke_width_mm=0.3,
                 fill_color=self.notation_color,
-                id=0,
+                id=n.id,
                 tags=["notehead_black"],
             )
         else:
@@ -162,7 +176,7 @@ class NoteDrawerMixin:
                 stroke_color=self.notation_color,
                 stroke_width_mm=outline_w,
                 fill_color=(1, 1, 1, 1),
-                id=0,
+                id=n.id,
                 tags=["notehead_white"],
             )
 

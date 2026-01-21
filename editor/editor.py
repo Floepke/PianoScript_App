@@ -60,7 +60,7 @@ class Editor(QtCore.QObject,
     Handles click vs drag classification using a 3px threshold.
     """
 
-    DRAG_THRESHOLD: int = 3
+    DRAG_THRESHOLD: int = 1
 
     def __init__(self, tool_manager: ToolManager):
         super().__init__()
@@ -125,6 +125,8 @@ class Editor(QtCore.QObject,
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
+        # Per-frame note hit rectangles in absolute mm coordinates
+        self._note_hit_rects: list[dict] = []
 
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
@@ -138,7 +140,12 @@ class Editor(QtCore.QObject,
 
         We simply call all drawer methods; DrawUtil sorts items by tag layering.
         """
-        # Build shared render cache for this draw pass
+        # Reset hit rectangles for this frame; drawers will register rectangles
+        try:
+            self._note_hit_rects = []
+        except Exception:
+            self._note_hit_rects = []
+        # Build shared render cache for this draw pass (fresh each frame)
         self._build_render_cache()
         
         # Call drawer mixin methods in order
@@ -161,8 +168,99 @@ class Editor(QtCore.QObject,
             if callable(fn):
                 fn(du)
 
-        # Clear cache after draw pass to avoid stale state
-        self._draw_cache = None
+        # Keep render cache available for hit detection until next frame rebuild
+        # (cleared at the start of _build_render_cache)
+
+    def draw_frame(self) -> None:
+        """Build a full frame immediately (cache + drawer registration) without painting.
+
+        Creates a temporary DrawUtil using current layout page size, calls draw_all.
+        Useful for immediate feedback from tools (e.g., updating hit rects/cache) before
+        the widget triggers a repaint.
+        """
+        try:
+            from ui.widgets.draw_util import DrawUtil
+        except Exception:
+            DrawUtil = None  # type: ignore
+        du = DrawUtil() if DrawUtil is not None else None
+        if du is not None:
+            # Derive page size from SCORE layout; fall back to A4
+            w_mm = 210.0
+            h_mm = 297.0
+            sc = self.current_score()
+            if sc is not None:
+                lay = getattr(sc, 'layout', None)
+                if lay is not None:
+                    try:
+                        w_mm = float(getattr(lay, 'page_width_mm', w_mm) or w_mm)
+                        h_mm = float(getattr(lay, 'page_height_mm', h_mm) or h_mm)
+                    except Exception:
+                        pass
+            try:
+                du.set_current_page_size_mm(w_mm, h_mm)
+            except Exception:
+                pass
+        # Run the drawer pipeline to rebuild caches and register hit rectangles
+        try:
+            self.draw_all(du)
+        except Exception:
+            # As a fallback, still attempt to rebuild render cache
+            try:
+                self._build_render_cache()
+            except Exception:
+                pass
+
+    # ---- Hit rectangles (notes) ----
+    def register_note_hit_rect(self, note_id: int, x_left_mm: float, y_top_mm: float, x_right_mm: float, y_bottom_mm: float) -> None:
+        """Register a clickable rectangle for a note in absolute mm coordinates.
+
+        Rectangles may overlap; hit test will select the one closest to the rectangle center.
+        """
+        try:
+            cx = (float(x_left_mm) + float(x_right_mm)) * 0.5
+            cy = (float(y_top_mm) + float(y_bottom_mm)) * 0.5
+            self._note_hit_rects.append({
+                'id': int(note_id),
+                'x1': float(x_left_mm),
+                'y1': float(y_top_mm),
+                'x2': float(x_right_mm),
+                'y2': float(y_bottom_mm),
+                'cx': cx,
+                'cy': cy,
+            })
+        except Exception:
+            pass
+
+    def hit_test_note_id(self, x_px: float, y_px: float) -> int | None:
+        """Return the note id whose registered rectangle contains the mouse point.
+
+        - Coordinates x_px, y_px are logical (Qt) pixels.
+        - Converts to absolute mm using editor metrics and viewport offset.
+        - If multiple rectangles contain the point, returns the one with center closest to the point.
+        - Returns None if no rectangle contains the point.
+        """
+        try:
+            w_px_per_mm = float(getattr(self, '_widget_px_per_mm', 1.0) or 1.0)
+            if w_px_per_mm <= 0:
+                return None
+            # Convert logical px to local mm, then to absolute mm by adding viewport offset
+            x_mm = float(x_px) / w_px_per_mm
+            y_mm_local = float(y_px) / w_px_per_mm
+            y_mm = y_mm_local + float(getattr(self, '_view_y_mm_offset', 0.0) or 0.0)
+            # Find all rectangles containing the point
+            matches = []
+            for r in (self._note_hit_rects or []):
+                if float(r['x1']) <= x_mm <= float(r['x2']) and float(r['y1']) <= y_mm <= float(r['y2']):
+                    dx = x_mm - float(r['cx'])
+                    dy = y_mm - float(r['cy'])
+                    dist2 = dx * dx + dy * dy
+                    matches.append((dist2, int(r['id'])))
+            if not matches:
+                return None
+            matches.sort(key=lambda t: t[0])
+            return matches[0][1]
+        except Exception:
+            return None
 
     def _calculate_layout(self, view_width_mm: float) -> None:
         """Compute editor-specific layout based on the current view width.
@@ -377,6 +475,8 @@ class Editor(QtCore.QObject,
         - notes_view slice and notes grouped by hand
         - beam markers by hand (if available) and grid helpers (for future beam grouping)
         """
+        # Clear previous cache at start so callers don't read stale data
+        self._draw_cache = None
         score: SCORE | None = self.current_score()
         if score is None:
             self._draw_cache = None

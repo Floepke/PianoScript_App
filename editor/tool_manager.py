@@ -40,6 +40,9 @@ class ToolManager(QtCore.QObject):
     def _on_context_button_clicked(self, name: str) -> None:
         if self._tool is not None:
             self._tool.on_toolbar_button(name)
+        # Force immediate visual feedback after any contextual button
+        if self._editor is not None and hasattr(self._editor, 'draw_frame'):
+            self._editor.draw_frame()
 
     def set_editor(self, editor) -> None:
         """Bind the active Editor so tools can access conversion wrappers."""

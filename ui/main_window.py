@@ -108,12 +108,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # 'Fit' button on splitter handle triggers fit action
         splitter.fitRequested.connect(self._fit_print_view_to_page)
+        splitter.fitRequested.connect(self._force_redraw)
         # Default toolbar actions
         splitter.nextRequested.connect(self._next_page)
+        splitter.nextRequested.connect(self._force_redraw)
         splitter.previousRequested.connect(self._previous_page)
+        splitter.previousRequested.connect(self._force_redraw)
         splitter.engraveRequested.connect(self._engrave_now)
+        splitter.engraveRequested.connect(self._force_redraw)
         splitter.playRequested.connect(self._play_midi)
+        splitter.playRequested.connect(self._force_redraw)
         splitter.stopRequested.connect(self._stop_midi)
+        splitter.stopRequested.connect(self._force_redraw)
+        # Contextual tool buttons should also force redraw
+        splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
         # Fit print view to page on startup (schedule multiple passes to catch late geometry)
         QtCore.QTimer.singleShot(200, self._fit_print_view_to_page)
         # Also request an initial render
@@ -492,6 +500,10 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+    def _force_redraw(self, *_args) -> None:
+        if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+            self.editor_controller.draw_frame()
+
     def _adjust_docks_to_fit(self) -> None:
         # Ensure both docks are sized and locked to their fit dimensions
         try:
@@ -548,28 +560,23 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         # Hand cursor shortcuts: ',' -> left ('<'), '.' -> right ('>')
         if key == QtCore.Qt.Key_Comma:
-            try:
+            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
                 self.editor_controller.hand_cursor = '<'
-                # Overlay-only repaint to update guides without full redraw
                 if hasattr(self, 'editor') and self.editor is not None:
-                    try:
+                    if hasattr(self.editor, 'request_overlay_refresh'):
                         self.editor.request_overlay_refresh()
-                    except Exception:
+                    else:
                         self.editor.update()
                 return
-            except Exception:
-                pass
         if key == QtCore.Qt.Key_Period:
-            try:
+            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
                 self.editor_controller.hand_cursor = '>'
                 if hasattr(self, 'editor') and self.editor is not None:
-                    try:
+                    if hasattr(self.editor, 'request_overlay_refresh'):
                         self.editor.request_overlay_refresh()
-                    except Exception:
+                    else:
                         self.editor.update()
                 return
-            except Exception:
-                pass
         super().keyPressEvent(ev)
 
     def prepare_close(self) -> None:

@@ -17,6 +17,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         self._button_size = 35
         # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
+        self.fit_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         # Fit button: no icon, no text, half-height
         try:
             self.fit_btn.setText("")
@@ -30,6 +31,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         layout.addWidget(self.fit_btn)
 
         self.next_btn = QtWidgets.QToolButton(self)
+        self.next_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icn = get_qicon('next', size=(64, 64))
         if icn:
             self.next_btn.setIcon(icn)
@@ -42,6 +44,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             pass
 
         self.prev_btn = QtWidgets.QToolButton(self)
+        self.prev_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icp = get_qicon('previous', size=(64, 64))
         if icp:
             self.prev_btn.setIcon(icp)
@@ -54,6 +57,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             pass
 
         self.engrave_btn = QtWidgets.QToolButton(self)
+        self.engrave_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         ice = get_qicon('engrave', size=(64, 64))
         if ice:
             self.engrave_btn.setIcon(ice)
@@ -66,6 +70,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             pass
 
         self.play_btn = QtWidgets.QToolButton(self)
+        self.play_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icplay = get_qicon('play', size=(64, 64))
         if icplay:
             self.play_btn.setIcon(icplay)
@@ -78,6 +83,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             pass
 
         self.stop_btn = QtWidgets.QToolButton(self)
+        self.stop_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icstop = get_qicon('stop', size=(64, 64))
         if icstop:
             self.stop_btn.setIcon(icstop)
@@ -140,6 +146,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             icon_name = d.get('icon', '')
             tooltip = d.get('tooltip', name)
             btn = QtWidgets.QToolButton(self._toolbar_area)
+            btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
             ic = get_qicon(icon_name, size=(64, 64))
             if ic:
                 btn.setIcon(ic)

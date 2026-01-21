@@ -165,13 +165,9 @@ class BeamDrawerMixin:
         # from the first note time (y1) to the last note time (y2).
         # X positions: start at the highest pitch's stem tip (pitch_x + stem_len),
         # and end at x1 + semitone_dist to give a gentle diagonal.
-        try:
-            layout = self.current_score().layout
-            stem_len = float(layout.note_stem_length_mm or 5.0)
-            beam_w = float(layout.note_stem_width_mm or 0.5)
-        except Exception:
-            stem_len = 5.0
-            beam_w = 0.5
+        layout = self.current_score().layout
+        stem_len = float(layout.note_stem_length_mm or 5.0)
+        beam_w = float(layout.note_stem_width_mm or 0.5)
 
         # Iterate windows in lockstep with groups for right hand
         right_groups = groups_all.get('r') or []

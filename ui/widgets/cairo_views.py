@@ -37,6 +37,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
         # Allow splitter to fully collapse this view
         self.setMinimumWidth(0)
         self.setMouseTracking(True)
+        # Ensure this widget can receive keyboard focus for shortcuts
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         # Apply the dedicated DrawUtil background color to the editor widget, too
         try:
             color = Style.get_named_qcolor('editor')
@@ -340,6 +342,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
         ev.accept()
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
+        # Take focus on any mouse press so shortcuts are active
+        self.setFocus()
         self._last_pos = ev.position()
         self._last_sent_pos = ev.position()
         # On content changes, invalidate cached content
@@ -349,9 +353,13 @@ class CairoEditorWidget(QtWidgets.QWidget):
             if ev.button() == QtCore.Qt.MouseButton.LeftButton:
                 self._left_down = True
                 self._editor.mouse_press(1, ev.position().x(), ev.position().y())
+                # Immediately request repaint for direct press feedback
+                self.update()
             elif ev.button() == QtCore.Qt.MouseButton.RightButton:
                 self._right_down = True
                 self._editor.mouse_press(2, ev.position().x(), ev.position().y())
+                # Immediate repaint for right press as well
+                self.update()
         super().mousePressEvent(ev)
 
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
@@ -395,9 +403,13 @@ class CairoEditorWidget(QtWidgets.QWidget):
             if ev.button() == QtCore.Qt.MouseButton.LeftButton:
                 self._left_down = False
                 self._editor.mouse_release(1, ev.position().x(), ev.position().y())
+                # Ensure a repaint after left click/release actions
+                self.update()
             elif ev.button() == QtCore.Qt.MouseButton.RightButton:
                 self._right_down = False
                 self._editor.mouse_release(2, ev.position().x(), ev.position().y())
+                # Ensure a repaint after right click/release actions
+                self.update()
         super().mouseReleaseEvent(ev)
 
     def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
@@ -407,6 +419,24 @@ class CairoEditorWidget(QtWidgets.QWidget):
             elif ev.button() == QtCore.Qt.MouseButton.RightButton:
                 self._editor.mouse_double_click(2, ev.position().x(), ev.position().y())
         super().mouseDoubleClickEvent(ev)
+
+    def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
+        key = ev.key()
+        if self._editor is not None:
+            if key == QtCore.Qt.Key_Comma:
+                self._editor.hand_cursor = '<'
+                # Overlay-only guide refresh is enough
+                if hasattr(self, 'request_overlay_refresh'):
+                    self.request_overlay_refresh()
+                ev.accept()
+                return
+            if key == QtCore.Qt.Key_Period:
+                self._editor.hand_cursor = '>'
+                if hasattr(self, 'request_overlay_refresh'):
+                    self.request_overlay_refresh()
+                ev.accept()
+                return
+        super().keyPressEvent(ev)
 
     def _dispatch_throttled_move(self) -> None:
         """Deliver at most one coalesced move event per timer tick (~30 Hz)."""
