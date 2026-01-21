@@ -2,11 +2,7 @@ from __future__ import annotations
 from typing import Optional
 
 from utils.CONSTANT import QUARTER_NOTE_UNIT
-
-try:
-    from synth.wavetable_synth import WavetableSynth
-except Exception:
-    WavetableSynth = None
+from synth.wavetable_synth import WavetableSynth
 
 
 class Player:
