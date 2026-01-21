@@ -263,6 +263,90 @@ class SCORE:
 				lst.append(obj)
 		return self
 
+	@classmethod
+	def from_dict(cls, data: dict) -> "SCORE":
+		"""Construct a SCORE from its dict representation (like load, but in-memory)."""
+		self = cls()
+
+		from dataclasses import fields, MISSING
+		from typing import List, get_args, get_origin, get_type_hints
+
+		def _defaults_for(dc_type):
+			defaults = {}
+			for f in fields(dc_type):
+				if f.name.startswith('_'):
+					continue
+				if f.default is not MISSING:
+					defaults[f.name] = f.default
+				elif getattr(f, 'default_factory', MISSING) is not MISSING:  # type: ignore[attr-defined]
+					defaults[f.name] = f.default_factory()
+				else:
+					defaults[f.name] = None
+			return defaults
+
+		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id'}) -> dict:
+			incoming = incoming or {}
+			defaults = _defaults_for(dc_type)
+			filtered = {k: v for k, v in incoming.items() if k in defaults and k not in skip_keys}
+			merged = {**defaults, **filtered}
+			return merged
+
+		# Meta/Header
+		md = (data or {}).get('meta_data', {})
+		self.meta_data = MetaData(**_merge_with_defaults(MetaData, md, 'meta_data'))
+		hd = (data or {}).get('header', {})
+		self.header = Header(**_merge_with_defaults(Header, hd, 'header'))
+
+		# Base grid
+		bg_list = (data or {}).get('base_grid', [])
+		if isinstance(bg_list, list) and bg_list:
+			self.base_grid = [
+				BaseGrid(**_merge_with_defaults(BaseGrid, item if isinstance(item, dict) else {}, f'base_grid[{i}]'))
+				for i, item in enumerate(bg_list)
+			]
+		else:
+			self.base_grid = [BaseGrid(**_merge_with_defaults(BaseGrid, {}, 'base_grid[0]'))]
+
+		# Layout
+		lay = (data or {}).get('layout', {}) or {}
+		self.layout = Layout(**_merge_with_defaults(Layout, lay, 'layout'))
+
+		# Editor settings
+		ed = (data or {}).get('editor', {}) or {}
+		self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
+
+		# Events
+		ev = (data or {}).get('events', {}) or {}
+		self.events = Events()
+		self._next_id = 1
+		# Resolve postponed annotations
+		try:
+			_ev_hints = get_type_hints(Events, globals(), locals())
+		except Exception:
+			_ev_hints = {}
+		for f_ev in fields(Events):
+			ann = _ev_hints.get(f_ev.name, f_ev.type)
+			origin = get_origin(ann)
+			args = get_args(ann)
+			elem_type = args[0] if origin is list or origin is List else None
+			if elem_type is None:
+				continue
+			name = f_ev.name
+			items = ev.get(name, []) or []
+			if not isinstance(items, list):
+				continue
+			lst = getattr(self.events, name)
+			for idx, item in enumerate(items):
+				incoming = item if isinstance(item, dict) else {}
+				obj = elem_type(**_merge_with_defaults(elem_type, incoming, f'events.{name}[{idx}]'))
+				try:
+					setattr(obj, 'id', self._gen_id())
+				except Exception:
+					pass
+				lst.append(obj)
+
+		return self
+
 	# ---- New minimal template ----
 	def new(self) -> "SCORE":
 		self.meta_data = MetaData()

@@ -55,11 +55,29 @@ class MainWindow(QtWidgets.QMainWindow):
         # When engraving completes, re-render the print view
         self.engraver.engraved.connect(self.print_view.request_render)
         
-        # Loading test file on startup if available, else new blank score
-        default_path = "/home/flop/Desktop/music.piano"
-        loaded = None#self.file_manager.open_path(default_path)
+        # Startup restore: open last project if available; else restore session; else new
+        try:
+            adm2 = get_appdata_manager()
+            last_path = str(adm2.get("last_opened_file", "") or "")
+        except Exception:
+            last_path = ""
+        loaded = None
+        if last_path:
+            try:
+                from pathlib import Path as _Path
+                if _Path(last_path).exists():
+                    loaded = self.file_manager.open_path(last_path)
+            except Exception:
+                loaded = None
         if loaded is None:
-            self.file_manager.new()
+            # Try restore session file without setting project path
+            restored = False
+            try:
+                restored = self.file_manager.load_session_if_available()
+            except Exception:
+                restored = False
+            if not restored:
+                self.file_manager.new()
 
         # Provide initial score to engrave and update titlebar
         self._refresh_views_from_score()
@@ -78,6 +96,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
         self.setCentralWidget(self.splitter)
+        # Ensure the editor is the main focus target
+        try:
+            self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+            self.setFocusProxy(self.editor_canvas)
+            self.editor_canvas.setFocus()
+        except Exception:
+            pass
         # Hide dock sizer handles and prevent resize cursor changes (docks are fixed-size)
         self.setStyleSheet(
             "QMainWindow::separator { width: 0px; height: 0px; background: transparent; }\n"
@@ -90,6 +115,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.tool_dock)
         # Stack vertically: snap (top) above tool selector (bottom)
         self.splitDockWidget(self.snap_dock, self.tool_dock, QtCore.Qt.Orientation.Vertical)
+        # Avoid docks stealing focus from the editor
+        try:
+            self.snap_dock.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+            self.tool_dock.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+            self.print_view.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+            self.editor_vscroll.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        except Exception:
+            pass
         # Wiring
         # Editor + ToolManager
         self.tool_manager = ToolManager(self.splitter)
@@ -102,10 +135,35 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         # Provide FileManager to editor (for undo snapshots)
         self.editor_controller.set_file_manager(self.file_manager)
-        # Wire tool selector to Editor controller and set default tool
+        # Wire tool selector to Editor controller
         self.tool_dock.selector.toolSelected.connect(self.editor_controller.set_tool_by_name)
-        self.editor_controller.set_tool_by_name('note')
+        # Also persist tool selection to appdata
+        try:
+            self.tool_dock.selector.toolSelected.connect(self._on_tool_selected)
+        except Exception:
+            pass
+        # Persist snap changes and update editor
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
+        # Restore last tool and snap size from appdata; fallback to defaults
+        try:
+            adm_restore = get_appdata_manager()
+            last_tool = str(adm_restore.get("selected_tool", "note") or "note")
+            try:
+                self.tool_dock.selector.set_selected_tool(last_tool, emit=True)
+            except Exception:
+                self.editor_controller.set_tool_by_name('note')
+            sb = int(adm_restore.get("snap_base", 8) or 8)
+            sd = int(adm_restore.get("snap_divide", 1) or 1)
+            try:
+                self.snap_dock.selector.set_snap(sb, sd, emit=True)
+            except Exception:
+                pass
+        except Exception:
+            # Fallback defaults
+            try:
+                self.editor_controller.set_tool_by_name('note')
+            except Exception:
+                pass
         # 'Fit' button on splitter handle triggers fit action
         self.splitter.fitRequested.connect(self._fit_print_view_to_page)
         self.splitter.fitRequested.connect(self._force_redraw)
@@ -161,6 +219,35 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.is_startup = True
 
+    def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
+        # Hitting Escape should trigger app close (with save prompt)
+        try:
+            if ev.key() == QtCore.Qt.Key_Escape:
+                self.close()
+                ev.accept()
+                return
+        except Exception:
+            pass
+        super().keyPressEvent(ev)
+
+    def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
+        # Ask FileManager for Yes/No/Cancel before quitting
+        try:
+            proceed = self.file_manager.confirm_close()
+        except Exception:
+            proceed = True
+        if proceed:
+            # Persist splitter sizes for next run
+            try:
+                sizes = self.splitter.sizes()
+                adm = get_appdata_manager()
+                adm.set("splitter_sizes", sizes)
+            except Exception:
+                pass
+            ev.accept()
+        else:
+            ev.ignore()
+
     def _create_menus(self) -> None:
         menubar = self.menuBar()
         # Ensure macOS uses an in-window menubar (not the global system menubar)
@@ -200,7 +287,11 @@ class MainWindow(QtWidgets.QMainWindow):
         undo_act = QtGui.QAction("Undo", self)
         undo_act.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redo_act = QtGui.QAction("Redo", self)
-        redo_act.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        # Use platform-aware Redo shortcut to avoid ambiguity; explicit combos handled in editor
+        try:
+            redo_act.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        except Exception:
+            pass
         edit_menu.addAction(undo_act)
         edit_menu.addAction(redo_act)
         prefs_act = QtGui.QAction("Preferences…", self)
@@ -291,21 +382,31 @@ class MainWindow(QtWidgets.QMainWindow):
         open_preferences()
 
     def _file_new(self) -> None:
+        # If there are unsaved changes, confirm save before starting a new project
+        if not self.file_manager.confirm_save_for_action("creating a new project"):
+            return
         self.file_manager.new()
         self._refresh_views_from_score()
         # Provide current score to editor for drawers needing direct access
         try:
             self.editor_controller.set_score(self.file_manager.current())
+            # Reset undo stack for new project
+            self.editor_controller.reset_undo_stack()
         except Exception:
             pass
         self._update_title()
 
     def _file_open(self) -> None:
+        # If there are unsaved changes, confirm save before opening another project
+        if not self.file_manager.confirm_save_for_action("opening another project"):
+            return
         sc = self.file_manager.open()
         if sc:
             self._refresh_views_from_score()
             try:
                 self.editor_controller.set_score(self.file_manager.current())
+                # Reset undo stack after opening existing project
+                self.editor_controller.reset_undo_stack()
             except Exception:
                 pass
             self._update_title()
@@ -548,6 +649,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.editor_controller.set_snap_size_units(size_units)
             if hasattr(self, 'editor_canvas') and self.editor_canvas is not None:
                 self.editor_canvas.update()
+            # Persist to appdata
+            try:
+                adm = get_appdata_manager()
+                adm.set("snap_base", int(base))
+                adm.set("snap_divide", int(divide))
+                adm.save()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _on_tool_selected(self, name: str) -> None:
+        # Persist selected tool to appdata
+        try:
+            adm = get_appdata_manager()
+            adm.set("selected_tool", str(name))
+            adm.save()
         except Exception:
             pass
 
@@ -573,31 +691,7 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
-        key = ev.key()
-        if key == QtCore.Qt.Key_Escape:
-            self.close()
-            return
-        # Hand cursor shortcuts: ',' -> left ('<'), '.' -> right ('>')
-        if key == QtCore.Qt.Key_Comma:
-            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
-                self.editor_controller.hand_cursor = '<'
-                if hasattr(self, 'editor') and self.editor is not None:
-                    if hasattr(self.editor, 'request_overlay_refresh'):
-                        self.editor.request_overlay_refresh()
-                    else:
-                        self.editor.update()
-                return
-        if key == QtCore.Qt.Key_Period:
-            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
-                self.editor_controller.hand_cursor = '>'
-                if hasattr(self, 'editor') and self.editor is not None:
-                    if hasattr(self.editor, 'request_overlay_refresh'):
-                        self.editor.request_overlay_refresh()
-                    else:
-                        self.editor.update()
-                return
-        super().keyPressEvent(ev)
+    # Duplicate keyPressEvent removed; using the earlier implementation for Escape handling
 
     def prepare_close(self) -> None:
         # Ensure worker threads are stopped before application exits
@@ -634,5 +728,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 pass
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
-        self.prepare_close()
-        super().closeEvent(ev)
+        # Unified close handling: confirm save, then prepare and accept
+        try:
+            proceed = self.file_manager.confirm_close()
+        except Exception:
+            proceed = True
+        if proceed:
+            # Persist sizes via prepare_close
+            try:
+                self.prepare_close()
+            except Exception:
+                pass
+            ev.accept()
+        else:
+            ev.ignore()

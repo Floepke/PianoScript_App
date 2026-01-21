@@ -310,6 +310,35 @@ class SnapSizeSelector(QtWidgets.QWidget):
             snap = 8.0  # minimum snap size
         return snap
 
+    def set_snap(self, base: int, divide: int, emit: bool = True) -> None:
+        """Programmatically set snap base and divide, update UI, and optionally emit."""
+        try:
+            base = int(base)
+            divide = int(divide)
+        except Exception:
+            return
+        # Clamp
+        base = base if base in [1, 2, 4, 8, 16, 32, 64, 128] else 8
+        divide = max(1, min(64, divide))
+        self._base = base
+        self._divide = divide
+        # Select the matching base row
+        try:
+            for i in range(self.list.count()):
+                it = self.list.item(i)
+                if int(it.data(QtCore.Qt.ItemDataRole.UserRole)) == base:
+                    # Avoid duplicate selection change emissions; set directly
+                    self.list.setCurrentItem(it)
+                    break
+        except Exception:
+            pass
+        self._update_ui()
+        if emit:
+            try:
+                self.snapChanged.emit(self._base, self._divide)
+            except Exception:
+                pass
+
 
 class SnapSizeDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):

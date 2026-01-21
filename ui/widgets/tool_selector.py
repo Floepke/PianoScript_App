@@ -85,6 +85,20 @@ class ToolSelectorWidget(QtWidgets.QListWidget):
                 self._emit_selected()
                 break
 
+    def set_selected_tool(self, name: str, emit: bool = True) -> None:
+        """Programmatically select a tool by its internal name and optionally emit."""
+        try:
+            name = str(name)
+        except Exception:
+            return
+        for i in range(self.count()):
+            it = self.item(i)
+            if it.data(QtCore.Qt.ItemDataRole.UserRole) == name:
+                self.setCurrentItem(it)
+                if emit:
+                    self._emit_selected()
+                return
+
 
 class ToolSelectorDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):

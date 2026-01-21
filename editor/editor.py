@@ -17,7 +17,7 @@ from editor.tool.slur_tool import SlurTool
 from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
-from editor.undo_manager import UndoManager
+from editor.ctlz import CtlZ
 from file_model.SCORE import SCORE
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
@@ -66,7 +66,7 @@ class Editor(QtCore.QObject,
         super().__init__()
         self._tm = tool_manager
         self._tool: BaseTool = BaseGridTool()  # default tool
-        self._undo = UndoManager()
+        self._ctlz: CtlZ | None = None
         self._file_manager = None
         self._score: SCORE = None
         self._tool_classes: Dict[str, Type[BaseTool]] = {
@@ -319,9 +319,13 @@ class Editor(QtCore.QObject,
     def set_file_manager(self, fm) -> None:
         """Provide FileManager so we can snapshot/restore SCORE for undo/redo."""
         self._file_manager = fm
-        # Initialize undo with the initial model state
+        # Initialize ctlz with the initial model state
         if self._file_manager is not None:
-            self._undo.reset_initial(self._file_manager.current())
+            try:
+                self._ctlz = CtlZ(self._file_manager)
+                self._ctlz.reset_ctlz()
+            except Exception:
+                self._ctlz = None
 
     def current_score(self) -> SCORE:
         """Return the current SCORE: prefer FileManager; fall back to explicit _score."""
@@ -332,28 +336,62 @@ class Editor(QtCore.QObject,
     def _snapshot_if_changed(self, coalesce: bool = False, label: str = "") -> None:
         if self._file_manager is None:
             return
-        score = self._file_manager.current()
-        if coalesce:
-            self._undo.capture_coalesced(score, label)
-        else:
-            self._undo.capture(score, label)
-        # Autosave after every captured snapshot/change of model
-        self._file_manager.autosave_current()
+        # Use dict-based ctlz snapshots
+        try:
+            if self._ctlz is not None:
+                self._ctlz.add_ctlz()
+        except Exception:
+            pass
+        # Notify FileManager so it can handle autosave/session saving/dirty state
+        try:
+            if hasattr(self._file_manager, 'on_model_changed'):
+                self._file_manager.on_model_changed()
+            else:
+                # Fallback to legacy behavior
+                self._file_manager.autosave_current()
+                self._file_manager.mark_dirty()
+        except Exception:
+            pass
 
     # Public undo/redo (optional consumers can bind Ctrl+Z / Ctrl+Shift+Z)
     def undo(self) -> None:
         if self._file_manager is None:
             return
-        snap = self._undo.undo()
+        snap = None
+        try:
+            if self._ctlz is not None:
+                snap = self._ctlz.undo()
+        except Exception:
+            snap = None
         if snap is not None:
             self._file_manager.replace_current(snap)
+            try:
+                self._file_manager.mark_dirty()
+            except Exception:
+                pass
 
     def redo(self) -> None:
         if self._file_manager is None:
             return
-        snap = self._undo.redo()
+        snap = None
+        try:
+            if self._ctlz is not None:
+                snap = self._ctlz.redo()
+        except Exception:
+            snap = None
         if snap is not None:
             self._file_manager.replace_current(snap)
+            try:
+                self._file_manager.mark_dirty()
+            except Exception:
+                pass
+
+    def reset_undo_stack(self) -> None:
+        try:
+            if self._ctlz is not None:
+                self._ctlz.reset_ctlz()
+        except Exception:
+            pass
 
     '''
         ---- Mouse event routing ----
@@ -364,14 +402,11 @@ class Editor(QtCore.QObject,
             self._dragging_left = False
             self._press_pos = (x, y)
             self._tool.on_left_press(x, y)
-            # Begin potential grouped action (e.g., drag)
-            self._undo.begin_group("left")
         elif button == 2:
             self._right_pressed = True
             self._dragging_right = False
             self._press_pos = (x, y)
             self._tool.on_right_press(x, y)
-            self._undo.begin_group("right")
 
     def mouse_move(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._left_pressed:
@@ -408,7 +443,6 @@ class Editor(QtCore.QObject,
                 self._tool.on_left_drag_end(x, y)
                 # Capture a single coalesced snapshot for the whole drag
                 self._snapshot_if_changed(coalesce=True, label="left_drag")
-                self._undo.commit_group()
             else:
                 # Click if moved <= threshold
                 px, py = self._press_pos
@@ -423,7 +457,6 @@ class Editor(QtCore.QObject,
             if self._dragging_right:
                 self._tool.on_right_drag_end(x, y)
                 self._snapshot_if_changed(coalesce=True, label="right_drag")
-                self._undo.commit_group()
             else:
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
@@ -510,15 +543,32 @@ class Editor(QtCore.QObject,
         starts = [float(n.time) for n in notes_sorted]
         ends = [float(n.time + n.duration) for n in notes_sorted]
 
-        # Candidate indices: union of ranges by start and end, plus back expansion over one viewport length
+        # Candidate indices: include
+        # 1) notes with start in [time_begin, time_end]
+        # 2) notes with end in   [time_begin, time_end] (requires ends sorted by value)
+        # 3) notes spanning the viewport entirely: start <= time_begin and end >= time_end
+        # 4) a small back expansion to catch near-viewport starters (previous behavior)
         lo_start = bisect.bisect_left(starts, time_begin)
         hi_start = bisect.bisect_right(starts, time_end)
-        lo_end = bisect.bisect_left(ends, time_begin)
-        hi_end = bisect.bisect_right(ends, time_end)
+
+        # Build ends sorted by value with original indices for correct bisecting
+        end_pairs = sorted(((ends[i], i) for i in range(len(ends))), key=lambda p: p[0])
+        end_values = [p[0] for p in end_pairs]
+        lo_end_val = bisect.bisect_left(end_values, time_begin)
+        hi_end_val = bisect.bisect_right(end_values, time_end)
+        by_end_indices = [end_pairs[j][1] for j in range(lo_end_val, hi_end_val)]
+
         viewport_len = float(max(0.0, time_end - time_begin))
         slack = float(op.threshold)
         back_lo = bisect.bisect_left(starts, float(time_begin - viewport_len - slack))
-        candidate_idx_set = set(range(back_lo, hi_start)) | set(range(lo_end, hi_end))
+
+        # Spanning notes: those that started before the viewport and end after it
+        span_cut = bisect.bisect_right(starts, time_begin)
+        span_indices = [i for i in range(max(0, span_cut)) if ends[i] >= time_end]
+
+        candidate_idx_set = (
+            set(range(back_lo, hi_start)) | set(by_end_indices) | set(span_indices)
+        )
         candidate_indices = sorted(candidate_idx_set)
 
         # Filtered view: will be further intersection-tested by drawers

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 import os
+import sys
 import cairo
 import math
 from typing import Optional
@@ -428,6 +429,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
 
     def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
         key = ev.key()
+        mods = ev.modifiers()
         if self._editor is not None:
             if key == QtCore.Qt.Key_Comma:
                 self._editor.hand_cursor = '<'
@@ -442,6 +444,49 @@ class CairoEditorWidget(QtWidgets.QWidget):
                     self.request_overlay_refresh()
                 ev.accept()
                 return
+            if key == QtCore.Qt.Key_Escape:
+                # Trigger window close; MainWindow.closeEvent will run save prompt
+                try:
+                    w = self.window()
+                    if isinstance(w, QtWidgets.QWidget):
+                        w.close()
+                    ev.accept()
+                    return
+                except Exception:
+                    pass
+            # Explicit per-platform shortcuts
+            try:
+                is_mac = (sys.platform == "darwin")
+                ctrl = bool(mods & QtCore.Qt.KeyboardModifier.ControlModifier)
+                meta = bool(mods & QtCore.Qt.KeyboardModifier.MetaModifier)
+                shift = bool(mods & QtCore.Qt.KeyboardModifier.ShiftModifier)
+                # Undo
+                if (not is_mac and ctrl and (key == QtCore.Qt.Key_Z) and not shift) or \
+                   (is_mac and meta and (key == QtCore.Qt.Key_Z) and not shift):
+                    self._editor.undo()
+                    self.update()
+                    ev.accept()
+                    return
+                # Redo (Shift+Z)
+                if (not is_mac and ctrl and shift and (key == QtCore.Qt.Key_Z)) or \
+                   (is_mac and meta and shift and (key == QtCore.Qt.Key_Z)):
+                    self._editor.redo()
+                    self.update()
+                    ev.accept()
+                    return
+                # Fallback to platform-aware key sequences
+                if ev.matches(QtGui.QKeySequence.StandardKey.Undo):
+                    self._editor.undo()
+                    self.update()
+                    ev.accept()
+                    return
+                if ev.matches(QtGui.QKeySequence.StandardKey.Redo):
+                    self._editor.redo()
+                    self.update()
+                    ev.accept()
+                    return
+            except Exception:
+                pass
         super().keyPressEvent(ev)
 
     def enterEvent(self, ev: QtCore.QEvent) -> None:
@@ -457,6 +502,16 @@ class CairoEditorWidget(QtWidgets.QWidget):
             self._editor.guides_active = False
             self.request_overlay_refresh()
         super().leaveEvent(ev)
+
+    def focusOutEvent(self, ev: QtGui.QFocusEvent) -> None:
+        # Keep the editor as the main focus widget when the window is active
+        try:
+            w = self.window()
+            if isinstance(w, QtWidgets.QWidget) and w.isActiveWindow():
+                QtCore.QTimer.singleShot(0, self.setFocus)
+        except Exception:
+            pass
+        super().focusOutEvent(ev)
 
     def _dispatch_throttled_move(self) -> None:
         """Deliver at most one coalesced move event per timer tick (~30 Hz)."""
