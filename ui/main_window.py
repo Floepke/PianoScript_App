@@ -30,9 +30,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._create_menus()
 
-        splitter = ToolbarSplitter(QtCore.Qt.Orientation.Horizontal)
+        self.splitter = ToolbarSplitter(QtCore.Qt.Orientation.Horizontal)
         # Hide handle indicator/grip but keep dragging functional
-        splitter.setStyleSheet(
+        self.splitter.setStyleSheet(
             "QSplitter::handle { background: transparent; image: none; }\n"
             "QSplitter::handle:hover { background: transparent; }"
         )
@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Loading test file on startup if available, else new blank score
         default_path = "/home/flop/Desktop/music.piano"
-        loaded = self.file_manager.open_path(default_path)
+        loaded = None#self.file_manager.open_path(default_path)
         if loaded is None:
             self.file_manager.new()
 
@@ -73,11 +73,11 @@ class MainWindow(QtWidgets.QMainWindow):
         editor_layout.setSpacing(0)
         editor_layout.addWidget(self.editor_canvas, stretch=1)
         editor_layout.addWidget(self.editor_vscroll, stretch=0)
-        splitter.addWidget(editor_container)
-        splitter.addWidget(self.print_view)
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 2)
-        self.setCentralWidget(splitter)
+        self.splitter.addWidget(editor_container)
+        self.splitter.addWidget(self.print_view)
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self.setCentralWidget(self.splitter)
         # Hide dock sizer handles and prevent resize cursor changes (docks are fixed-size)
         self.setStyleSheet(
             "QMainWindow::separator { width: 0px; height: 0px; background: transparent; }\n"
@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitDockWidget(self.snap_dock, self.tool_dock, QtCore.Qt.Orientation.Vertical)
         # Wiring
         # Editor + ToolManager
-        self.tool_manager = ToolManager(splitter)
+        self.tool_manager = ToolManager(self.splitter)
         self.editor_controller = Editor(self.tool_manager)
         self.editor.set_editor(self.editor_controller)
         # Provide editor to ToolManager so tools can use editor wrappers
@@ -107,23 +107,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editor_controller.set_tool_by_name('note')
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # 'Fit' button on splitter handle triggers fit action
-        splitter.fitRequested.connect(self._fit_print_view_to_page)
-        splitter.fitRequested.connect(self._force_redraw)
+        self.splitter.fitRequested.connect(self._fit_print_view_to_page)
+        self.splitter.fitRequested.connect(self._force_redraw)
         # Default toolbar actions
-        splitter.nextRequested.connect(self._next_page)
-        splitter.nextRequested.connect(self._force_redraw)
-        splitter.previousRequested.connect(self._previous_page)
-        splitter.previousRequested.connect(self._force_redraw)
-        splitter.engraveRequested.connect(self._engrave_now)
-        splitter.engraveRequested.connect(self._force_redraw)
-        splitter.playRequested.connect(self._play_midi)
-        splitter.playRequested.connect(self._force_redraw)
-        splitter.stopRequested.connect(self._stop_midi)
-        splitter.stopRequested.connect(self._force_redraw)
+        self.splitter.nextRequested.connect(self._next_page)
+        self.splitter.nextRequested.connect(self._force_redraw)
+        self.splitter.previousRequested.connect(self._previous_page)
+        self.splitter.previousRequested.connect(self._force_redraw)
+        self.splitter.engraveRequested.connect(self._engrave_now)
+        self.splitter.engraveRequested.connect(self._force_redraw)
+        self.splitter.playRequested.connect(self._play_midi)
+        self.splitter.playRequested.connect(self._force_redraw)
+        self.splitter.stopRequested.connect(self._stop_midi)
+        self.splitter.stopRequested.connect(self._force_redraw)
         # Contextual tool buttons should also force redraw
-        splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
-        # Fit print view to page on startup (schedule multiple passes to catch late geometry)
-        QtCore.QTimer.singleShot(200, self._fit_print_view_to_page)
+        self.splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
+        # Restore splitter sizes from last session if available; else fall back to fit
+        adm = get_appdata_manager()
+        saved_sizes = adm.get("splitter_sizes", None)
+        if isinstance(saved_sizes, list) and len(saved_sizes) == 2 and sum(int(v) for v in saved_sizes) > 0:
+            # Apply after layout has settled
+            QtCore.QTimer.singleShot(0, lambda: self.splitter.setSizes([int(saved_sizes[0]), int(saved_sizes[1])]))
+            # Disable startup fit behavior
+            self.is_startup = False
+        else:
+            # Fit print view to page on startup (schedule to catch late geometry)
+            QtCore.QTimer.singleShot(200, self._fit_print_view_to_page)
         # Also request an initial render
         QtCore.QTimer.singleShot(0, self.print_view.request_render)
         # Strip demo timers
@@ -501,8 +510,19 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def _force_redraw(self, *_args) -> None:
+        # Rebuild editor caches and hit-rects for immediate tool feedback
         if hasattr(self, 'editor_controller') and self.editor_controller is not None:
             self.editor_controller.draw_frame()
+        # Also refresh the canvas overlays so guide stem direction updates instantly
+        try:
+            if hasattr(self, 'editor') and self.editor is not None:
+                if hasattr(self.editor, 'request_overlay_refresh'):
+                    self.editor.request_overlay_refresh()
+                else:
+                    # Fallback: normal repaint
+                    self.editor.update()
+        except Exception:
+            pass
 
     def _adjust_docks_to_fit(self) -> None:
         # Ensure both docks are sized and locked to their fit dimensions
@@ -588,6 +608,14 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 geom_b64 = bytes(self.saveGeometry().toBase64()).decode("ascii")
                 adm.set("window_geometry", geom_b64)
+            except Exception:
+                pass
+            # Save current splitter sizes for next startup
+            try:
+                sp = self.centralWidget()
+                if sp is not None and hasattr(sp, 'sizes'):
+                    sizes = list(sp.sizes())
+                    adm.set("splitter_sizes", [int(sizes[0]) if sizes else 0, int(sizes[1]) if len(sizes) > 1 else 0])
             except Exception:
                 pass
             adm.save()

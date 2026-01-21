@@ -4,6 +4,9 @@ from editor.tool.base_tool import BaseTool
 from file_model.SCORE import SCORE
 from utils.operator import Operator
 from ui.widgets.draw_util import DrawUtil
+from utils.CONSTANT import QUARTER_NOTE_UNIT
+from file_model.events.note import Note
+from utils.CONSTANT import QUARTER_NOTE_UNIT
 
 
 class NoteTool(BaseTool):
@@ -13,22 +16,20 @@ class NoteTool(BaseTool):
         # Currently edited/created note during a press/drag session
         self.edit_note = None
         self._hand: str = '<'
+        self.expanded_score_flag: bool = False
 
     def toolbar_spec(self) -> list[dict]:
         # Two explicit hand selectors for quick switching
         return [
-            {'name': 'hand_left', 'icon': 'note_left', 'tooltip': 'Left hand (<)'},
-            {'name': 'hand_right', 'icon': 'note_right', 'tooltip': 'Right hand (>)'},
+            {'name': 'hand_left', 'icon': 'note_left', 'tooltip': 'Switch To Left Hand'},
+            {'name': 'hand_right', 'icon': 'note_right', 'tooltip': 'Switch To Right Hand'},
         ]
 
     def on_left_press(self, x: float, y: float) -> None:
+        '''Detect existing note under cursor or create a new one, then enter edit mode'''
         super().on_left_press(x, y)
-        # Detect existing note under cursor or create a new one, then enter edit mode
-        if self._editor is None:
-            return
+        
         score: SCORE = self._editor.current_score()
-        if score is None:
-            return
 
         # Compute raw (non-snapped) time for detection and snapped for creation
         t_press_raw = float(self._editor.y_to_time(y))
@@ -56,13 +57,23 @@ class NoteTool(BaseTool):
             units = float(max(1e-6, getattr(self._editor, 'snap_size_units', 8.0)))
             self.edit_note = score.new_note(pitch=pitch_press, time=t_press_snap, duration=units, hand=self._hand)
 
-        # Explicitly build a frame for immediate feedback (cache + hit rects)
+        # switch guides off during note editing
+        self._editor.guides_active = False
+
+        if self.edit_note and self.edit_note.time + self.edit_note.duration > self._editor._calc_score_time():
+            self._editor.current_score().base_grid[-1].measure_amount += 1
+
         self._editor.draw_frame()
 
     def on_left_unpress(self, x: float, y: float) -> None:
         super().on_left_unpress(x, y)
         # Keep last edit and clear the session handle
         self.edit_note = None
+        
+        # switch guides back on after note editing
+        self._editor.guides_active = True
+
+        self._editor.draw_frame()
 
     def on_left_click(self, x: float, y: float) -> None:
         super().on_left_click(x, y)
@@ -80,7 +91,7 @@ class NoteTool(BaseTool):
     def on_left_drag(self, x: float, y: float, dx: float, dy: float) -> None:
         super().on_left_drag(x, y, dx, dy)
         # Update the in-progress note based on current mouse
-        if self.edit_note is None or self._editor is None:
+        if self.edit_note is None:
             return
         
         # Get note being edited and current raw/snap time and pitch
@@ -105,6 +116,9 @@ class NoteTool(BaseTool):
                 delta = max(0.0, float(cur_t_snap - start_t))
                 steps = max(1, int(math.ceil(delta / max(1e-6, units))))
                 note.duration = float(steps) * float(units) + units
+
+        if note.time + note.duration > self._editor._calc_score_time():
+            self._editor.current_score().base_grid[-1].measure_amount += 1
 
     def on_left_drag_end(self, x: float, y: float) -> None:
         super().on_left_drag_end(x, y)
@@ -150,6 +164,45 @@ class NoteTool(BaseTool):
                         score.events.note = new_list
         # Explicitly build a frame for immediate feedback (cache + hit rects)
         self._editor.draw_frame()
+
+    def _latest_measure_has_notes(self, score: SCORE) -> bool:
+        """Return True if there is at least one note in the score's latest measure window.
+
+        The latest measure window is computed from score.base_grid by walking all segments
+        and measures to find the final measure's start/end times in ticks.
+        """
+        # Compute last measure start/end in ticks
+        start_t, end_t = self._last_measure_window_ticks(score)
+        if start_t is None or end_t is None:
+            return False
+        notes = list(getattr(score.events, 'note', []) or [])
+        for n in notes:
+            t = float(getattr(n, 'time', 0.0) or 0.0)
+            if start_t <= t < end_t:
+                return True
+        return False
+
+    def _last_measure_window_ticks(self, score: SCORE) -> tuple[Optional[float], Optional[float]]:
+        """Compute the start and end times (ticks) of the latest measure in the score.
+
+        Returns (start_t, end_t) or (None, None) if base_grid is missing.
+        """
+        base_grid = list(getattr(score, 'base_grid', []) or [])
+        if not base_grid:
+            return (None, None)
+        cur_t = 0.0
+        last_start = 0.0
+        last_end = 0.0
+        for bg in base_grid:
+            num = float(getattr(bg, 'numerator', 4) or 4)
+            den = float(getattr(bg, 'denominator', 4) or 4)
+            m_count = int(getattr(bg, 'measure_amount', 1) or 1)
+            measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+            for _ in range(max(0, m_count)):
+                last_start = cur_t
+                last_end = cur_t + measure_len
+                cur_t = last_end
+        return (last_start, last_end)
 
     def on_right_double_click(self, x: float, y: float) -> None:
         super().on_right_double_click(x, y)

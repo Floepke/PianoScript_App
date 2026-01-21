@@ -6,5 +6,8 @@ from typing import List
 class LineBreak:
     time: float = 0.0
     margin_mm: List[float] = field(default_factory=lambda: [0.0, 0.0]) # [left, right]
-    stave_range: List[int] = field(default_factory=lambda: [0, 0]) # [lowest_key, highest_key] (zero means automatic mode)
+    # [lowest_key, highest_key] (None means the engraver uses automatic detection)
+    stave_range: List[int] | None = field(default_factory=lambda: [0, 0]) 
+    # Whether this line break indicates a page break or a line break
+    page_break: bool = False
     id: int = 0

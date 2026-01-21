@@ -2,17 +2,30 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from icons.icons import get_qicon
 
-TOOL_ITEMS = [
-    ('note', 'note'),
-    ('grace_note', 'grace_note'),
-    ('count_line', 'count_line'),
-    ('line_break', 'line_break'),
-    ('beam', 'beam'),
-    #('pedal', 'pedal'),
-    ('slur', 'slur'),
-    ('start_repeat', 'start_repeat'),
-    ('end_repeat', 'end_repeat'),
-    ('text', 'text'),
+# Fixed row height to fit 36px icons comfortably
+ITEM_ROW_HEIGHT_PX: int = 42
+# Configurable tool items.
+# - 'name': internal tool identifier used in code/events
+# - 'displayed_name': human-readable label shown in the listbox
+# - 'icon': icon key from icons, defaults to 'name' when omitted
+# - 'tooltip': hover text description (optional)
+TOOL_ITEMS: list[dict] = [
+    # basic notation elements
+    { 'name': 'note',           'displayed_name': 'Note',           'icon': 'note',           'tooltip': 'Note: enter and edit notes; the basic element of the notation' },
+    { 'name': 'grace_note',     'displayed_name': 'Grace Note',     'icon': 'grace_note',     'tooltip': 'Grace Note: a smaller note without stem;\nuse it for decoration notes.\nfor example: to engrave trills.' },
+    { 'name': 'count_line',     'displayed_name': 'Count Line',     'icon': 'count_line',     'tooltip': 'Count Line: draw guide lines;\nfor highlighting subdivisions' },
+    { 'name': 'beam',           'displayed_name': 'Beam Grouping',           'icon': 'beam',           'tooltip': 'Beam: group notes with beams' },
+    # layout elements
+    { 'name': 'line_break',     'displayed_name': 'Line Break/Page Break',     'icon': 'line_break',     'tooltip': 'Line Break: insert line breaks;\nclick on a line break to edit its properties' },
+    { 'name': 'time_signature', 'displayed_name': 'Base-Grid/Time-Signature', 'icon': 'time_signature', 'tooltip': 'Base-Grid/Time-Signature: Configure\ntime signature & grid pattern' },
+    { 'name': 'pedal',          'displayed_name': 'Pedal',          'icon': 'pedal',          'tooltip': 'Pedal: add pedal markings' },
+    { 'name': 'slur',           'displayed_name': 'Slur',           'icon': 'slur',           'tooltip': 'Slur: place phrasing slurs' },
+    { 'name': 'start_repeat',   'displayed_name': 'Start Repeat',   'icon': 'start_repeat',   'tooltip': 'Start Repeat: repeat begin mark' },
+    { 'name': 'end_repeat',     'displayed_name': 'End Repeat',     'icon': 'end_repeat',     'tooltip': 'End Repeat: repeat end mark' },
+    { 'name': 'text',           'displayed_name': 'Text',           'icon': 'text',           'tooltip': 'Text: place text annotations' },
+    { 'name': 'dynamic',        'displayed_name': 'Dynamics',        'icon': 'dynamic',        'tooltip': 'Dynamic: place dynamic markings' },
+    { 'name': 'crescendo',      'displayed_name': 'Crescendo',      'icon': 'crescendo',      'tooltip': 'Crescendo: place hairpin volume up' },
+    { 'name': 'decrescendo',    'displayed_name': 'Decrescendo',    'icon': 'decrescendo',    'tooltip': 'Decrescendo: place hairpin volume down' },
 ]
 
 
@@ -23,13 +36,15 @@ class ToolSelectorWidget(QtWidgets.QListWidget):
         super().__init__(parent)
         # Icon size reduced by a quarter from 48 -> 36
         self.setIconSize(QtCore.QSize(36, 36))
-        self.setUniformItemSizes(True)
+        # Allow per-item size hints; do not enforce uniform sizes
+        self.setUniformItemSizes(False)
         self.setSpacing(4)
-        # Fill available dock width and avoid extra inner borders/scrollbars
+        # Fill available dock width
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                            QtWidgets.QSizePolicy.Policy.Preferred)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Allow vertical scrolling when more tools are added
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         # Remove any inner margins to match Snap Size listbox appearance
         self.setContentsMargins(0, 0, 0, 0)
@@ -47,13 +62,19 @@ class ToolSelectorWidget(QtWidgets.QListWidget):
 
     def _populate(self) -> None:
         self.clear()
-        for tool_name, icon_name in TOOL_ITEMS:
+        for conf in TOOL_ITEMS:
+            name = str(conf.get('name', ''))
+            icon_name = str(conf.get('icon', name))
+            label = str(conf.get('displayed_name', name.replace('_', ' ').capitalize()))
+            tooltip = str(conf.get('tooltip', label))
             # Request high-DPI crisp icon at 36x36 CSS pixels
             icon = get_qicon(icon_name, size=(36, 36)) or QtGui.QIcon()
-            it = QtWidgets.QListWidgetItem(icon, tool_name.replace('_', ' ').capitalize())
-            it.setData(QtCore.Qt.ItemDataRole.UserRole, tool_name)
+            it = QtWidgets.QListWidgetItem(icon, label)
+            # 'name' remains the internal identifier used by code; store in UserRole
+            it.setData(QtCore.Qt.ItemDataRole.UserRole, name)
+            it.setToolTip(tooltip)
             # Make row height comfortably fit the 36px icon + padding
-            it.setSizeHint(QtCore.QSize(it.sizeHint().width(), 42))
+            it.setSizeHint(QtCore.QSize(it.sizeHint().width(), ITEM_ROW_HEIGHT_PX))
             self.addItem(it)
         # Select 'note' tool initially (visually and functionally)
         for i in range(self.count()):
@@ -94,27 +115,16 @@ class ToolSelectorDock(QtWidgets.QDockWidget):
             pass
 
     def adjust_to_fit(self) -> None:
-        """Lock only the dock width (match Snap Size dock) and
-        ensure the list spans the full dock width. Height is left
-        unmanaged per UI preference.
+        """Ensure the list expands to the available width; do not lock dock size.
+        Height remains unmanaged and the list scrolls vertically as needed.
         """
         try:
             lst = self.selector
-            # Ensure the list uses the full available dock width
             lst.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                               QtWidgets.QSizePolicy.Policy.Preferred)
-
-            # Lock width to match the Snap Size dock width, if available
-            snap_w = self.width()
-            mw = self.parent()
-            try:
-                if hasattr(mw, 'snap_dock') and isinstance(mw.snap_dock, QtWidgets.QDockWidget):
-                    snap_w = int(mw.snap_dock.width())
-            except Exception:
-                pass
-            if snap_w > 0:
-                self.setMinimumWidth(snap_w)
-                self.setMaximumWidth(snap_w)
+            # Do not enforce a fixed width; allow the dock to be resized.
+            self.setMinimumWidth(0)
+            self.setMaximumWidth(16777215)  # Qt default for "no max"
         except Exception:
             pass
 

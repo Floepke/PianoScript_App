@@ -360,6 +360,9 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 self._editor.mouse_press(2, ev.position().x(), ev.position().y())
                 # Immediate repaint for right press as well
                 self.update()
+        # Ensure we receive the matching release even if the pointer leaves the widget
+        if self._left_down or self._right_down:
+            self.grabMouse()
         super().mousePressEvent(ev)
 
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
@@ -410,6 +413,9 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 self._editor.mouse_release(2, ev.position().x(), ev.position().y())
                 # Ensure a repaint after right click/release actions
                 self.update()
+        # Release mouse capture when no buttons remain pressed
+        if not (self._left_down or self._right_down):
+            self.releaseMouse()
         super().mouseReleaseEvent(ev)
 
     def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
@@ -437,6 +443,20 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 ev.accept()
                 return
         super().keyPressEvent(ev)
+
+    def enterEvent(self, ev: QtCore.QEvent) -> None:
+        # Show guides when the mouse enters the editor
+        if self._editor is not None:
+            self._editor.guides_active = True
+            self.request_overlay_refresh()
+        super().enterEvent(ev)
+
+    def leaveEvent(self, ev: QtCore.QEvent) -> None:
+        # Hide guides when the mouse leaves the editor
+        if self._editor is not None:
+            self._editor.guides_active = False
+            self.request_overlay_refresh()
+        super().leaveEvent(ev)
 
     def _dispatch_throttled_move(self) -> None:
         """Deliver at most one coalesced move event per timer tick (~30 Hz)."""

@@ -132,7 +132,9 @@ class SnapSizeSelector(QtWidgets.QWidget):
         row.addWidget(self._plus_wrap)
         layout.addLayout(row)
 
-        # Enable scroll over divide area and click-to-reset on label via event filters
+        # Enable scroll-over behavior and click-to-reset via event filters
+        # - Scrolling over the base list changes selection (no scrolling)
+        self.list.installEventFilter(self)
         self.minus_btn.installEventFilter(self)
         self.plus_btn.installEventFilter(self)
         self.label.installEventFilter(self)
@@ -241,6 +243,20 @@ class SnapSizeSelector(QtWidgets.QWidget):
     # --- Interaction filters ---
     def eventFilter(self, obj: QtCore.QObject, ev: QtCore.QEvent) -> bool:
         try:
+            if ev.type() == QtCore.QEvent.Type.Wheel and obj is self.list:
+                # Wheel over the list changes selection up/down instead of scrolling
+                if isinstance(ev, QtGui.QWheelEvent):
+                    delta = ev.angleDelta().y()
+                    if delta == 0:
+                        return True
+                    step = -1 if delta > 0 else 1
+                    row = int(self.list.currentRow())
+                    if row < 0:
+                        row = 0
+                    new_row = max(0, min(self.list.count() - 1, row + step))
+                    if new_row != row:
+                        self.list.setCurrentRow(new_row)
+                return True  # consume to prevent scroll
             if ev.type() == QtCore.QEvent.Type.Wheel and obj in (self.minus_btn, self.plus_btn, self.label):
                 # Positive delta -> increase; negative -> decrease
                 delta = 0

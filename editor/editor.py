@@ -68,7 +68,7 @@ class Editor(QtCore.QObject,
         self._tool: BaseTool = BaseGridTool()  # default tool
         self._undo = UndoManager()
         self._file_manager = None
-        self._score = None
+        self._score: SCORE = None
         self._tool_classes: Dict[str, Type[BaseTool]] = {
             'beam': BeamTool,
             'count_line': CountLineTool,
@@ -122,6 +122,8 @@ class Editor(QtCore.QObject,
         self.mm_cursor: Optional[float] = None
         self.pitch_cursor: Optional[int] = None
         self.hand_cursor: Literal['<', '>'] = '<'  # default hand for cursor overlays
+        # show/hide guides depending on mouse over editor
+        self.guides_active: bool = True
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
@@ -209,6 +211,9 @@ class Editor(QtCore.QObject,
                 self._build_render_cache()
             except Exception:
                 pass
+        
+        # refresh overlay guides if applicable
+        self.draw_guides(du)
 
     # ---- Hit rectangles (notes) ----
     def register_note_hit_rect(self, note_id: int, x_left_mm: float, y_top_mm: float, x_right_mm: float, y_bottom_mm: float) -> None:
@@ -318,7 +323,7 @@ class Editor(QtCore.QObject,
         if self._file_manager is not None:
             self._undo.reset_initial(self._file_manager.current())
 
-    def current_score(self):
+    def current_score(self) -> SCORE:
         """Return the current SCORE: prefer FileManager; fall back to explicit _score."""
         if self._file_manager is not None:
             return self._file_manager.current()
@@ -459,7 +464,7 @@ class Editor(QtCore.QObject,
         score: SCORE | None = self.current_score()
         zpq: float = score.editor.zoom_mm_per_quarter
         stave_length_mm = (total_time_ticks / float(QUARTER_NOTE_UNIT)) * zpq
-        top_bottom_mm = float(self.margin or 0.0) * 2.0
+        top_bottom_mm = float(self.margin or 0.0) * 6.0
         height_mm = max(10.0, stave_length_mm + top_bottom_mm)
         return height_mm
 
@@ -682,6 +687,9 @@ class Editor(QtCore.QObject,
 
         This runs independently of the active tool so overrides don't suppress it.
         """
+        # Skip drawing guides when the mouse is not over the editor
+        if not self.guides_active:
+            return
         # get cursor mm position: convert local (viewport) mm -> absolute mm
         if self.mm_cursor is None:
             return
@@ -722,8 +730,11 @@ class Editor(QtCore.QObject,
             h = w * 2
             if self.pitch_cursor in BLACK_KEYS:
                 w *= .8
+            l = self.current_score().layout.note_stem_length_mm
             # Draw a translucent preview notehead at cursor
             fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
+            
+            # draw the notehead and stem
             du.add_oval(
                 x_mm - w,
                 y_mm,
@@ -738,10 +749,27 @@ class Editor(QtCore.QObject,
             du.add_line(
                 x_mm,
                 y_mm,
-                x_mm + self.semitone_dist * 8 if self.hand_cursor == '>' else x_mm - self.semitone_dist * 8,
+                x_mm + l if self.hand_cursor == '>' else x_mm - l,
                 y_mm,
                 color=self.accent_color,
                 width_mm=0.75,
                 id=0,
                 tags=['cursor'],
             )
+            # draw the left hand dot indicator
+            if self.hand_cursor == '<' and self.current_score().layout.note_leftdot_visible:
+                w = float(self.semitone_dist or 0.5) * 2.0
+                dot_d = w * 0.35
+                cy = y_mm + (w / 2.0)
+                fill = (1, 1, 1, 1) if (self.pitch_cursor in BLACK_KEYS) else (0, 0, 0, 1)
+                du.add_oval(
+                    x_mm - dot_d / 3.0,
+                    cy - dot_d / 3.0,
+                    x_mm + dot_d / 3.0,
+                    cy + dot_d / 3.0,
+                    stroke_color=None,
+                    fill_color=fill,
+                    id=0,
+                    tags=["cursor"],
+                )
+

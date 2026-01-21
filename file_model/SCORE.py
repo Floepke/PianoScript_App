@@ -109,8 +109,6 @@ class SCORE:
 		self.events.text.append(obj)
 		return obj
 
-	# image removed
-
 	def new_slur(self, **kwargs) -> Slur:
 		# Default slur: straight line at c4 (0 semitone offset) over a short time window
 		base = {
@@ -277,3 +275,5 @@ class SCORE:
 		self.editor = EditorSettings()
 		self._next_id = 1
 		return self
+	
+	# ---- Convenience methods ----

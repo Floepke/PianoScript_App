@@ -82,16 +82,14 @@ class BaseTool:
         # Rendering is handled centrally by Editor.draw_guides().
         if self._editor is None:
             return
-        try:
-            # Convert pointer Y (logical px) → time ticks (includes scroll offset)
-            t = self._editor.y_to_time(y)
-            # Snap to the current snap size units
-            t_snapped = self._editor.snap_time(t)
-            self._editor.time_cursor = t_snapped
-            # Convert snapped time → local (viewport) millimeters for direct drawing
-            abs_mm = self._editor.time_to_mm(t_snapped)
-            self._editor.mm_cursor = abs_mm - float(getattr(self._editor, '_view_y_mm_offset', 0.0) or 0.0)
-        except Exception:
-            pass
+        # Convert pointer Y (logical px) → time ticks (includes scroll offset)
+        t = self._editor.y_to_time(y)
+        # Snap to the current snap size units
+        t_snapped = self._editor.snap_time(t)
+        self._editor.time_cursor = t_snapped
+        # Convert snapped time → local (viewport) millimeters for direct drawing
+        abs_mm = self._editor.time_to_mm(t_snapped)
+        offset = float(getattr(self._editor, '_view_y_mm_offset', 0.0) or 0.0)
+        self._editor.mm_cursor = abs_mm - offset
 
 
