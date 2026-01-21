@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Dict, Type, TYPE_CHECKING
+from typing import Literal, Optional, Tuple, Dict, Type, TYPE_CHECKING
 import math, bisect
 from PySide6 import QtCore
 
@@ -33,7 +33,7 @@ from editor.drawers.start_repeat_drawer import StartRepeatDrawerMixin
 from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
 from editor.drawers.count_line_drawer import CountLineDrawerMixin
 from editor.drawers.line_break_drawer import LineBreakDrawerMixin
-from utils.CONSTANT import PIANO_KEY_AMOUNT
+from utils.CONSTANT import PIANO_KEY_AMOUNT, BLACK_KEYS
 from utils.operator import Operator
 
 if TYPE_CHECKING:
@@ -98,8 +98,8 @@ class Editor(QtCore.QObject,
         self.semitone_dist: float = None
 
         # colors
-        self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.05, 1.0)
-        self.accent_color: Tuple[float, float, float, float] = (0.8, 0.2, 0.2, 1.0)
+        self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.2, 1.0)
+        self.accent_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.7, 1.0)
         self.selection_color: Tuple[float, float, float, float] = (0.2, 0.6, 1.0, 0.3)
 
         # snap size in time units (default matches SnapSizeSelector: base=8, divide=1 -> 128)
@@ -120,6 +120,8 @@ class Editor(QtCore.QObject,
         # cursor
         self.time_cursor: Optional[float] = None
         self.mm_cursor: Optional[float] = None
+        self.pitch_cursor: Optional[int] = None
+        self.hand_cursor: Literal['<', '>'] = '<'  # default hand for cursor overlays
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
@@ -285,15 +287,16 @@ class Editor(QtCore.QObject,
                 # Skip intermediate drag snapshots
         else:
             # Update shared cursor state for guide rendering (time + mm), with snapping
-            try:
-                t = self.y_to_time(y)
-                t = self.snap_time(t)
-                self.time_cursor = t
-                # Store cursor mm relative to viewport (local mm)
-                abs_mm = self.time_to_mm(float(t))
-                self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
-            except Exception:
-                pass
+            t = self.y_to_time(y)
+            t = self.snap_time(t)
+            self.time_cursor = t
+            
+            # Store cursor mm relative to viewport (local mm)
+            abs_mm = self.time_to_mm(float(t))
+            self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
+            
+            # Also track pitch under cursor (logical px → key number)
+            self.pitch_cursor = self.x_to_pitch(x)
             self._tool.on_mouse_move(x, y)
 
     def mouse_release(self, button: int, x: float, y: float) -> None:
@@ -587,9 +590,6 @@ class Editor(QtCore.QObject,
         margin = float(self.margin or 0.0)
         stave_width = float(self.stave_width or 0.0)
 
-        # Remove previous cursor guides by tag
-        du.delete_with_tag("cursor")
-
         # Left side of stave
         du.add_line(
             2.0,
@@ -600,7 +600,7 @@ class Editor(QtCore.QObject,
             width_mm=.75,
             dash_pattern=[0, 2],
             id=0,
-            tags=["cursor"],
+            tags=['cursor'],
         )
 
         # Right side of stave
@@ -613,5 +613,35 @@ class Editor(QtCore.QObject,
             width_mm=.75,
             dash_pattern=[0, 2],
             id=0,
-            tags=["cursor"],
+            tags=['cursor'],
         )
+
+        if (isinstance(self._tool, NoteTool)) and (self.time_cursor is not None) and (self.pitch_cursor is not None):
+            x_mm = float(self.pitch_to_x(int(self.pitch_cursor)))
+            w = float(self.semitone_dist or 0.5)
+            h = w * 2
+            if self.pitch_cursor in BLACK_KEYS:
+                w *= .8
+            # Draw a translucent preview notehead at cursor
+            fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
+            du.add_oval(
+                x_mm - w,
+                y_mm,
+                x_mm + w,
+                y_mm + h,
+                fill_color=fill_color,
+                stroke_color=self.accent_color,
+                stroke_width_mm=0.5,
+                id=0,
+                tags=['cursor'],
+            )
+            du.add_line(
+                x_mm,
+                y_mm,
+                x_mm + self.semitone_dist * 8 if self.hand_cursor == '>' else x_mm - self.semitone_dist * 8,
+                y_mm,
+                color=self.accent_color,
+                width_mm=0.75,
+                id=0,
+                tags=['cursor'],
+            )

@@ -704,16 +704,19 @@ class DrawUtil:
             ctx.new_path()
 
     def _draw_text(self, ctx: cairo.Context, t: Text):
-        # Cairo toy text: good for simple Latin text; for complex scripts use PangoCairo later.
+        # Cairo toy text: render via text_path + fill to avoid any implicit stroke
+        # and ensure a single-color raster without edge bleed.
         slant = cairo.FONT_SLANT_ITALIC if t.italic else cairo.FONT_SLANT_NORMAL
         weight = cairo.FONT_WEIGHT_BOLD if t.bold else cairo.FONT_WEIGHT_NORMAL
         ctx.select_font_face(t.family, slant, weight)
         # We are in mm user units; convert pt size to mm
         ctx.set_font_size(t.size_pt / PT_PER_MM)
-        ctx.set_source_rgba(*t.color)
         # Baseline positioning: anchor is pre-applied in add_text()
         ctx.move_to(t.x_mm, t.y_mm)
-        ctx.show_text(t.text)
+        # Build path and fill with the desired color
+        ctx.text_path(t.text)
+        ctx.set_source_rgba(*t.color)
+        ctx.fill()
         # Optional debug: draw text bounds and anchor point
         if os.getenv('PIANOSCRIPT_DEBUG_TEXT_BOUNDS', '0') in ('1', 'true', 'True'):
             rect = getattr(t, 'hit_rect_mm', None)

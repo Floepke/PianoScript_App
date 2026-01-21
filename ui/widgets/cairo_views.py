@@ -88,6 +88,17 @@ class CairoEditorWidget(QtWidgets.QWidget):
     def set_editor(self, editor: Editor) -> None:
         self._editor = editor
 
+    def request_overlay_refresh(self) -> None:
+        """Trigger an overlay-only repaint for guide updates (e.g., cursor changes).
+
+        Sets a hint to reuse cached content and redraw only guides on next paint.
+        """
+        try:
+            self._overlay_only_repaint = True
+        except Exception:
+            pass
+        self.update()
+
     def set_tool(self, tool_name: str | None) -> None:
         self._current_tool = tool_name
         self.update()

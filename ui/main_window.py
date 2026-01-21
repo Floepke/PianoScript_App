@@ -1,5 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 import sys
+from datetime import datetime
 from file_model.SCORE import SCORE
 from file_model.file_manager import FileManager
 from ui.widgets.toolbar_splitter import ToolbarSplitter
@@ -55,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.engraver.engraved.connect(self.print_view.request_render)
         
         # Loading test file on startup if available, else new blank score
-        default_path = "/home/flop/Desktop/moonlight3.piano"
+        default_path = "/home/flop/Desktop/music.piano"
         loaded = self.file_manager.open_path(default_path)
         if loaded is None:
             self.file_manager.new()
@@ -126,6 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Page navigation state
         self._page_counter = 0
+
         self._total_pages_placeholder = 2  # TODO: replace with real page count
 
         # Connect external scrollbar to the editor canvas
@@ -151,10 +153,12 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+        # Create menus in normal left-to-right order (File, Edit, View)
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
         view_menu = menubar.addMenu("&View")
 
+        # File actions
         new_act = QtGui.QAction("New", self)
         open_act = QtGui.QAction("Open…", self)
         save_act = QtGui.QAction("Save", self)
@@ -175,6 +179,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
 
+        # Edit actions
         undo_act = QtGui.QAction("Undo", self)
         undo_act.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redo_act = QtGui.QAction("Redo", self)
@@ -185,17 +190,71 @@ class MainWindow(QtWidgets.QMainWindow):
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
 
+        # View actions
         view_menu.addAction(QtGui.QAction("Zoom In", self))
         view_menu.addAction(QtGui.QAction("Zoom Out", self))
 
-        # Wire up file actions
+        # Wire up triggers
         new_act.triggered.connect(self._file_new)
         open_act.triggered.connect(self._file_open)
         save_act.triggered.connect(self._file_save)
         save_as_act.triggered.connect(self._file_save_as)
-        # Wire up edit actions
         undo_act.triggered.connect(self._edit_undo)
         redo_act.triggered.connect(self._edit_redo)
+
+        # ---- Clock label manually positioned at menubar's right edge ----
+        try:
+            self._clock_label = QtWidgets.QLabel(menubar)
+            self._clock_label.setObjectName("menuClock")
+            # Match menubar font/palette for native look
+            try:
+                self._clock_label.setFont(menubar.font())
+                self._clock_label.setPalette(menubar.palette())
+            except Exception:
+                pass
+            # Vertically center text within the menubar height
+            self._clock_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
+            # Non-interactive
+            self._clock_label.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self._clock_label.setContentsMargins(0, 0, 0, 0)
+            self._clock_label.setStyleSheet("")
+            self._update_clock()
+            # Update every second
+            self._clock_timer = QtCore.QTimer(self)
+            self._clock_timer.setInterval(1000)
+            self._clock_timer.timeout.connect(self._update_clock)
+            self._clock_timer.start()
+            # Keep position updated on menubar resize
+            menubar.installEventFilter(self)
+            QtCore.QTimer.singleShot(0, self._position_clock)
+        except Exception:
+            pass
+
+    def _update_clock(self) -> None:
+        try:
+            now = datetime.now()
+            timestr = now.strftime("%H:%M:%S")
+            if hasattr(self, "_clock_label") and self._clock_label is not None:
+                self._clock_label.setText(timestr)
+                # Re-position in case width changed
+                self._position_clock()
+        except Exception:
+            pass
+
+    def _position_clock(self) -> None:
+        try:
+            menubar = self.menuBar()
+            if not hasattr(self, "_clock_label") or self._clock_label is None:
+                return
+            rect = menubar.rect()
+            sh = self._clock_label.sizeHint()
+            # Height equals menubar height to align vertically; width to hint
+            self._clock_label.resize(sh.width(), rect.height())
+            x = max(0, rect.width() - self._clock_label.width() - 8)
+            self._clock_label.move(x, 0)
+            self._clock_label.show()
+        except Exception:
+            pass
 
     def _export_pdf(self) -> None:
         dlg = QtWidgets.QFileDialog(self)
@@ -483,10 +542,35 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
-        if ev.key() == QtCore.Qt.Key_Escape:
+        key = ev.key()
+        if key == QtCore.Qt.Key_Escape:
             self.close()
-        else:
-            super().keyPressEvent(ev)
+            return
+        # Hand cursor shortcuts: ',' -> left ('<'), '.' -> right ('>')
+        if key == QtCore.Qt.Key_Comma:
+            try:
+                self.editor_controller.hand_cursor = '<'
+                # Overlay-only repaint to update guides without full redraw
+                if hasattr(self, 'editor') and self.editor is not None:
+                    try:
+                        self.editor.request_overlay_refresh()
+                    except Exception:
+                        self.editor.update()
+                return
+            except Exception:
+                pass
+        if key == QtCore.Qt.Key_Period:
+            try:
+                self.editor_controller.hand_cursor = '>'
+                if hasattr(self, 'editor') and self.editor is not None:
+                    try:
+                        self.editor.request_overlay_refresh()
+                    except Exception:
+                        self.editor.update()
+                return
+            except Exception:
+                pass
+        super().keyPressEvent(ev)
 
     def prepare_close(self) -> None:
         # Ensure worker threads are stopped before application exits
@@ -500,6 +584,12 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
             adm.save()
+        except Exception:
+            pass
+        # Stop clock timer gracefully
+        try:
+            if hasattr(self, "_clock_timer") and self._clock_timer is not None:
+                self._clock_timer.stop()
         except Exception:
             pass
         if hasattr(self, "print_view") and self.print_view is not None:

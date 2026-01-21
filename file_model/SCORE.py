@@ -3,7 +3,7 @@
 # my json structure design for *.piano files.
 from __future__ import annotations
 from dataclasses import dataclass, field, fields, MISSING
-from typing import List
+from typing import List, get_args, get_origin, get_type_hints
 import json
 from datetime import datetime
 
@@ -205,7 +205,9 @@ class SCORE:
 		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id'}) -> dict:
 			incoming = incoming or {}
 			defaults = _defaults_for(dc_type)
-			merged = {**defaults, **{k: v for k, v in incoming.items() if k in defaults}}
+			# Only keep keys that exist on the dataclass and are not skipped
+			filtered = {k: v for k, v in incoming.items() if k in defaults and k not in skip_keys}
+			merged = {**defaults, **filtered}
 			return merged
 		# Meta/Header
 		md = data.get('meta_data', {})
@@ -221,137 +223,46 @@ class SCORE:
 			]
 		else:
 			self.base_grid = [BaseGrid(**_merge_with_defaults(BaseGrid, {}, 'base_grid[0]'))]
-		# Layout (optional)
+		# Layout: simple dataclass-merge with defaults, no legacy migration
 		lay = data.get('layout', {}) or {}
-		def _flatten_layout(ld: dict) -> dict:
-				flat = dict(ld)
-				# Note
-				n = ld.get('note')
-				if isinstance(n, dict):
-					flat['note_enabled'] = n.get('enabled', flat.get('note_enabled', True))
-					flat['note_stem_length_mm'] = n.get('stem_lenghth_mm', flat.get('note_stem_length_mm', 5.0))
-					if 'stroke_width_mm' in n:
-						flat['note_stroke_width_mm'] = n.get('stroke_width_mm')
-				# Grace Note
-				g = ld.get('grace_note')
-				if isinstance(g, dict):
-					flat['grace_note_enabled'] = g.get('enabled', flat.get('grace_note_enabled', True))
-					if 'stroke_width_mm' in g:
-						flat['grace_note_stroke_width_mm'] = g.get('stroke_width_mm')
-					if 'stem_length_mm' in g:
-						flat['grace_note_stem_length_mm'] = g.get('stem_length_mm')
-				# Pedals
-				pd = ld.get('pedal_down')
-				if isinstance(pd, dict):
-					flat['pedal_down_enabled'] = pd.get('enabled', True)
-					flat['pedal_down_stroke_width_mm'] = pd.get('stroke_width_mm', 0.2)
-					flat['pedal_down_offset_mm'] = pd.get('offset_mm', 1.0)
-				pu = ld.get('pedal_up')
-				if isinstance(pu, dict):
-					flat['pedal_up_enabled'] = pu.get('enabled', True)
-					flat['pedal_up_stroke_width_mm'] = pu.get('stroke_width_mm', 0.2)
-					flat['pedal_up_offset_mm'] = pu.get('offset_mm', 1.0)
-				# Text
-				tx = ld.get('text')
-				if isinstance(tx, dict):
-					flat['text_enabled'] = tx.get('enabled', True)
-					flat['text_font_family'] = tx.get('font_family', 'Sans')
-					flat['text_font_size_pt'] = tx.get('font_size_pt', 10.0)
-					flat['text_rotated_default'] = tx.get('rotated_default', True)
-				# Slur
-				sl = ld.get('slur')
-				if isinstance(sl, dict):
-					flat['slur_enabled'] = sl.get('enabled', True)
-					flat['slur_stroke_width_mm'] = sl.get('stroke_width_mm', 0.3)
-					flat['slur_curvature_factor'] = sl.get('curvature_factor', 1.0)
-				# Beam
-				bm = ld.get('beam')
-				if isinstance(bm, dict):
-					flat['beam_enabled'] = bm.get('enabled', True)
-					flat['beam_thickness_mm'] = bm.get('thickness_mm', 0.5)
-					flat['beam_gap_mm'] = bm.get('gap_mm', 0.8)
-				# Repeat markers
-				sr = ld.get('start_repeat')
-				if isinstance(sr, dict):
-					flat['repeat_start_enabled'] = sr.get('enabled', True)
-					flat['repeat_start_thickness_mm'] = sr.get('thickness_mm', 0.4)
-				er = ld.get('end_repeat')
-				if isinstance(er, dict):
-					flat['repeat_end_enabled'] = er.get('enabled', True)
-					flat['repeat_end_thickness_mm'] = er.get('thickness_mm', 0.4)
-				# Countline
-				cl = ld.get('count_line')
-				if isinstance(cl, dict):
-					flat['countline_enabled'] = cl.get('enabled', True)
-					flat['countline_thickness_mm'] = cl.get('thickness_mm', 0.4)
-				# Page
-				pg = ld.get('page')
-				if isinstance(pg, dict):
-					flat['page_width_mm'] = pg.get('width_mm', 210.0)
-					flat['page_height_mm'] = pg.get('height_mm', 297.0)
-					flat['page_top_margin_mm'] = pg.get('top_margin_mm', 10.0)
-					flat['page_bottom_margin_mm'] = pg.get('bottom_margin_mm', 10.0)
-					flat['page_left_margin_mm'] = pg.get('left_margin_mm', 10.0)
-					flat['page_right_margin_mm'] = pg.get('right_margin_mm', 10.0)
-				# Remove nested keys
-				for k in ('note','grace_note','pedal_down','pedal_up','text','slur','beam','start_repeat','end_repeat','count_line','page'):
-					flat.pop(k, None)
-				return flat
-
-		flat_lay = _flatten_layout(lay)
-		allowed = Layout().__dataclass_fields__.keys()
-		kwargs = {k: flat_lay[k] for k in flat_lay.keys() if k in allowed}
-		self.layout = Layout(**_merge_with_defaults(Layout, kwargs, 'layout'))
+		self.layout = Layout(**_merge_with_defaults(Layout, lay, 'layout'))
 
 		# Editor settings (optional)
 		ed = data.get('editor', {}) or {}
 		self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
 
-		# Events lists: reset id counter and assign sequential ids starting from 1
+		# Events lists: generic loader based on Events dataclass field types
 		ev = data.get('events', {}) or {}
 		self.events = Events()
 		self._next_id = 1
-		for idx, item in enumerate(ev.get('note', []) or []):
-			obj = Note(**_merge_with_defaults(Note, item, f'events.note[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.note.append(obj)
-		for idx, item in enumerate(ev.get('grace_note', []) or []):
-			obj = GraceNote(**_merge_with_defaults(GraceNote, item, f'events.grace_note[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.grace_note.append(obj)
-		# Pedal events
-		for idx, item in enumerate(ev.get('pedal', []) or []):
-			obj = Pedal(**_merge_with_defaults(Pedal, item, f'events.pedal[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.pedal.append(obj)
-		for idx, item in enumerate(ev.get('text', []) or []):
-			obj = Text(**_merge_with_defaults(Text, item, f'events.text[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.text.append(obj)
-		for idx, item in enumerate(ev.get('slur', []) or []):
-			obj = Slur(**_merge_with_defaults(Slur, item, f'events.slur[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.slur.append(obj)
-		for idx, item in enumerate(ev.get('beam', []) or []):
-			obj = Beam(**_merge_with_defaults(Beam, item, f'events.beam[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.beam.append(obj)
-		for idx, item in enumerate(ev.get('start_repeat', []) or []):
-			obj = StartRepeat(**_merge_with_defaults(StartRepeat, item, f'events.start_repeat[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.start_repeat.append(obj)
-		for idx, item in enumerate(ev.get('end_repeat', []) or []):
-			obj = EndRepeat(**_merge_with_defaults(EndRepeat, item, f'events.end_repeat[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.end_repeat.append(obj)
-		for idx, item in enumerate(ev.get('count_line', []) or []):
-			obj = CountLine(**_merge_with_defaults(CountLine, item, f'events.count_line[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.count_line.append(obj)
-		for idx, item in enumerate(ev.get('line_break', []) or []):
-			obj = LineBreak(**_merge_with_defaults(LineBreak, item, f'events.line_break[{idx}]'))
-			obj.id = self._gen_id()
-			self.events.line_break.append(obj)
+		# Resolve postponed annotations (from __future__ import annotations)
+		_ev_hints = {}
+		try:
+			_ev_hints = get_type_hints(Events, globals(), locals())
+		except Exception:
+			_ev_hints = {}
+		for f_ev in fields(Events):
+			# Expect typing like List[Note]; resolve element type from hints
+			ann = _ev_hints.get(f_ev.name, f_ev.type)
+			origin = get_origin(ann)
+			args = get_args(ann)
+			elem_type = args[0] if origin is list or origin is List else None
+			if elem_type is None:
+				continue
+			name = f_ev.name
+			items = ev.get(name, []) or []
+			if not isinstance(items, list):
+				continue
+			lst = getattr(self.events, name)
+			for idx, item in enumerate(items):
+				incoming = item if isinstance(item, dict) else {}
+				obj = elem_type(**_merge_with_defaults(elem_type, incoming, f'events.{name}[{idx}]'))
+				# Assign sequential id regardless of incoming value
+				try:
+					setattr(obj, 'id', self._gen_id())
+				except Exception:
+					pass
+				lst.append(obj)
 		return self
 
 	# ---- New minimal template ----
