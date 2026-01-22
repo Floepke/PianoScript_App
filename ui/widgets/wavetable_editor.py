@@ -167,12 +167,9 @@ class WavetableEditor(QtWidgets.QDialog):
         # apply/close
         row = QtWidgets.QHBoxLayout()
         row.addStretch(1)
-        apply_btn = QtWidgets.QPushButton('Apply')
         close_btn = QtWidgets.QPushButton('Close')
-        row.addWidget(apply_btn)
         row.addWidget(close_btn)
         lay.addLayout(row)
-        apply_btn.clicked.connect(self._emit_apply)
         close_btn.clicked.connect(self.accept)
 
     def _emit_apply(self) -> None:
