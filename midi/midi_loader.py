@@ -73,7 +73,9 @@ def midi_load(path: str) -> SCORE:
             app_pitch = int(n.pitch) - 20
             # Simple left/right hand heuristic around app middle C (~40)
             hand = '<' if int(app_pitch) < 40 else '>'
-            score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), hand=hand)
+            vel = int(getattr(n, 'velocity', 64) or 64)
+            vel = max(0, min(127, vel))
+            score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(vel), hand=hand)
 
     return score
 
@@ -123,6 +125,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
     # For each track, track note stacks by (channel, pitch)
     for track in mid.tracks:
         abs_ticks = 0
+        # Stack entries: (velocity, start_seconds)
         note_stack: Dict[Tuple[int, int], List[Tuple[int, float]]] = {}
         abs_seconds = 0.0
         for msg in track:
@@ -134,7 +137,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
                 abs_ticks += dt_ticks
             if msg.type == 'note_on' and msg.velocity > 0:
                 key = (getattr(msg, 'channel', 0), msg.note)
-                note_stack.setdefault(key, []).append((msg.note, abs_seconds))
+                note_stack.setdefault(key, []).append((int(msg.velocity), abs_seconds))
             elif msg.type in ('note_off', 'note_on'):
                 # Treat note_on with velocity 0 as off
                 if msg.type == 'note_on' and msg.velocity > 0:
@@ -142,14 +145,14 @@ def _midi_load_with_mido(path: str) -> SCORE:
                 key = (getattr(msg, 'channel', 0), msg.note)
                 lst = note_stack.get(key)
                 if lst:
-                    _, start_sec = lst.pop()  # last started
+                    vel, start_sec = lst.pop()  # last started
                     end_sec = abs_seconds
                     start_units = (start_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
                     end_units = (end_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
                     duration_units = max(0.0, end_units - start_units)
                     app_pitch = int(msg.note) - 20
                     hand = '<' if int(app_pitch) < 40 else '>'
-                    score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), hand=hand)
+                    score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(max(0, min(127, vel))), hand=hand)
         # For any unmatched note_on left, close them with short duration
         for (ch, pitch), lst in note_stack.items():
             for _, start_sec in lst:
@@ -159,6 +162,8 @@ def _midi_load_with_mido(path: str) -> SCORE:
                 duration_units = max(0.0, end_units - start_units)
                 app_pitch2 = int(pitch) - 20
                 hand = '<' if int(app_pitch2) < 40 else '>'
-                score.new_note(pitch=int(app_pitch2), time=float(start_units), duration=float(duration_units), hand=hand)
+            # If velocity not retained (should be), default to 64
+            default_vel = 64
+            score.new_note(pitch=int(app_pitch2), time=float(start_units), duration=float(duration_units), velocity=default_vel, hand=hand)
 
     return score

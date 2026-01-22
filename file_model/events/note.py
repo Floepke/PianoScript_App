@@ -7,6 +7,7 @@ class Note:
     pitch: int = 40
     time: float = 0.0
     duration: float = 100.0
+    velocity: int = 64
     hand: str = '<'
     '''
         Notehead types:

@@ -178,8 +178,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.playRequested.connect(self._force_redraw)
         self.splitter.stopRequested.connect(self._stop_midi)
         self.splitter.stopRequested.connect(self._force_redraw)
-        # FX synth editor
-        self.splitter.fxRequested.connect(self._open_fx_window)
+        # FX synth editor (removed)
         # Contextual tool buttons should also force redraw
         self.splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
         # Restore splitter sizes from last session if available; else fall back to fit
@@ -221,30 +220,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.is_startup = True
 
-        # Initialize player and load saved wavetables from appdata
+        # Initialize player (external MIDI only)
         try:
             from midi.player import Player
             self.player = Player()
-            try:
-                wt_left = adm.get("wt_left", [])
-                wt_right = adm.get("wt_right", [])
-            except Exception:
-                wt_left, wt_right = [], []
-            # If any saved wavetable exists, apply to synth
-            if isinstance(wt_left, list) or isinstance(wt_right, list):
-                import numpy as np
-                l = np.asarray(wt_left, dtype=np.float32) if isinstance(wt_left, list) and len(wt_left) > 0 else None
-                r = np.asarray(wt_right, dtype=np.float32) if isinstance(wt_right, list) and len(wt_right) > 0 else None
-                if l is not None or r is not None:
-                    if l is None and r is not None:
-                        l = r.copy()
-                    if r is None and l is not None:
-                        r = l.copy()
-                    if l is not None and r is not None and len(l) >= 8 and len(r) >= 8:
-                        try:
-                            self.player.set_wavetables(l, r)
-                        except Exception:
-                            pass
+            # No synth configuration; external MIDI only
         except Exception:
             # Player initialization is optional at startup
             self.player = None
@@ -334,6 +314,11 @@ class MainWindow(QtWidgets.QMainWindow):
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
 
+        # MIDI Output port chooser
+        midi_port_act = QtGui.QAction("MIDI Output…", self)
+        midi_port_act.triggered.connect(self._choose_midi_port)
+        file_menu.addAction(midi_port_act)
+
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
 
@@ -389,6 +374,37 @@ class MainWindow(QtWidgets.QMainWindow):
             # Keep position updated on menubar resize
             menubar.installEventFilter(self)
             QtCore.QTimer.singleShot(0, self._position_clock)
+        except Exception:
+            pass
+
+    def _choose_midi_port(self) -> None:
+        try:
+            # Ensure player exists
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            # Query ports
+            try:
+                names = self.player.list_output_ports()
+            except Exception:
+                names = []
+            if not names:
+                try:
+                    QtWidgets.QMessageBox.warning(self, "MIDI Output", "No MIDI output ports found.")
+                except Exception:
+                    print("No MIDI output ports found.")
+                return
+            # Simple chooser dialog
+            item, ok = QtWidgets.QInputDialog.getItem(self, "Select MIDI Output", "Port:", names, 0, False)
+            if not ok:
+                return
+            try:
+                self.player.set_output_port(str(item))
+            except Exception as exc:
+                try:
+                    QtWidgets.QMessageBox.critical(self, "MIDI Output", f"Failed to open port: {exc}")
+                except Exception:
+                    print(f"Failed to open port: {exc}")
         except Exception:
             pass
 
@@ -666,104 +682,7 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _open_fx_window(self) -> None:
-        try:
-            from ui.widgets.wavetable_editor import WavetableEditor
-            # Keep dialog reference to avoid GC closing it
-            if not hasattr(self, '_fx_dialog') or self._fx_dialog is None:
-                self._fx_dialog = WavetableEditor(self)
-            # Ensure player exists (wavetable-only backend)
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
-            # Load current wavetable from appdata into editor canvases
-            try:
-                adm = get_appdata_manager()
-                wt_left = adm.get("wt_left", [])
-                wt_right = adm.get("wt_right", [])
-                if isinstance(wt_left, list) and len(wt_left) > 0:
-                    import numpy as np
-                    self._fx_dialog.left.arr = np.asarray(wt_left, dtype=np.float32)
-                    self._fx_dialog.left.update()
-                if isinstance(wt_right, list) and len(wt_right) > 0:
-                    import numpy as np
-                    self._fx_dialog.right.arr = np.asarray(wt_right, dtype=np.float32)
-                    self._fx_dialog.right.update()
-            except Exception:
-                pass
-            # Apply button wiring: set wavetable + ADSR
-            def _apply(l, r, attack, decay, sustain, release):
-                try:
-                    self.player.set_wavetables(l, r)
-                    self.player.set_adsr(float(attack), float(decay), float(sustain), float(release))
-                    # Persist wavetable immediately
-                    try:
-                        adm = get_appdata_manager()
-                        adm.set("wt_left", [float(x) for x in list(l)])
-                        adm.set("wt_right", [float(x) for x in list(r)])
-                        adm.save()
-                    except Exception:
-                        pass
-                except Exception as exc:
-                    try:
-                        QtWidgets.QMessageBox.critical(self, "FX Apply Error", f"{exc}")
-                    except Exception:
-                        print(f"FX Apply Error: {exc}")
-            self._fx_dialog.wavetablesApplied.connect(_apply)
-
-            # Live updates while drawing: whenever either canvas changes, push both arrays
-            def _update_wavetables_live(*_):
-                try:
-                    l = getattr(self._fx_dialog.left, 'arr', None)
-                    r = getattr(self._fx_dialog.right, 'arr', None)
-                    if l is not None and r is not None:
-                        self.player.set_wavetables(l, r)
-                        # Persist on every live change
-                        try:
-                            adm = get_appdata_manager()
-                            adm.set("wt_left", [float(x) for x in list(l)])
-                            adm.set("wt_right", [float(x) for x in list(r)])
-                            adm.save()
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-            try:
-                self._fx_dialog.left.changed.connect(_update_wavetables_live)
-                self._fx_dialog.right.changed.connect(_update_wavetables_live)
-            except Exception:
-                pass
-
-            # Live envelope updates when spinboxes change
-            def _update_envelope_live(*_):
-                try:
-                    attack = float(self._fx_dialog.attack_spin.value())
-                    decay = float(self._fx_dialog.decay_spin.value())
-                    sustain = float(self._fx_dialog.sustain_spin.value())
-                    release = float(self._fx_dialog.release_spin.value())
-                    self.player.set_adsr(attack, decay, sustain, release)
-                except Exception:
-                    pass
-            try:
-                self._fx_dialog.attack_spin.valueChanged.connect(_update_envelope_live)
-                self._fx_dialog.decay_spin.valueChanged.connect(_update_envelope_live)
-                self._fx_dialog.sustain_spin.valueChanged.connect(_update_envelope_live)
-                self._fx_dialog.release_spin.valueChanged.connect(_update_envelope_live)
-            except Exception:
-                pass
-
-            # Show non-modal so the editor remains interactive
-            self._fx_dialog.show()
-            try:
-                self._fx_dialog.raise_()
-                self._fx_dialog.activateWindow()
-            except Exception:
-                pass
-        except Exception as exc:
-            try:
-                QtWidgets.QMessageBox.critical(self, "FX Window Error", f"{exc}")
-            except Exception:
-                print(f"FX Window Error: {exc}")
+    # FX window removed
 
     def _force_redraw(self, *_args) -> None:
         # Rebuild editor caches and hit-rects for immediate tool feedback
@@ -874,6 +793,12 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if hasattr(self, "_clock_timer") and self._clock_timer is not None:
                 self._clock_timer.stop()
+        except Exception:
+            pass
+        # Stop audio playback gracefully
+        try:
+            if hasattr(self, 'player') and self.player is not None:
+                self.player.stop()
         except Exception:
             pass
         if hasattr(self, "print_view") and self.print_view is not None:

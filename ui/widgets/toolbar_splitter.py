@@ -15,7 +15,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         layout.setSpacing(8)
         # Square button size to match ToolSelector list row height
         self._button_size = 35
-        # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop, fx
+        # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
         self.fit_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         # Fit button: no icon, no text, half-height
@@ -95,21 +95,6 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
-        # FX button opens the custom synth editor
-        self.fx_btn = QtWidgets.QToolButton(self)
-        self.fx_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        icfx = get_qicon('fx', size=(64, 64))
-        if icfx:
-            self.fx_btn.setIcon(icfx)
-        else:
-            self.fx_btn.setText('FX')
-        self.fx_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
-        self.fx_btn.setFixedSize(self._button_size, self._button_size)
-        layout.addWidget(self.fx_btn)
-        try:
-            self.fx_btn.clicked.connect(parent.fxRequested.emit)
-        except Exception:
-            pass
 
         # Visual separator between default toolbar and contextual toolbar
         sep = QtWidgets.QFrame(self)
@@ -189,7 +174,6 @@ class ToolbarSplitter(QtWidgets.QSplitter):
     engraveRequested = QtCore.Signal()
     playRequested = QtCore.Signal()
     stopRequested = QtCore.Signal()
-    fxRequested = QtCore.Signal()
 
     def __init__(self, orientation: QtCore.Qt.Orientation, parent=None):
         super().__init__(orientation, parent)

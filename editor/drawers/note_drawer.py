@@ -134,19 +134,7 @@ class NoteDrawerMixin:
         if y_top > y_bottom:
             y_top, y_bottom = y_bottom, y_top
         rect_id = int(getattr(n, 'id', 0) or 0)
-        register = getattr(self, 'register_note_hit_rect', None)
-        if callable(register) and rect_id is not None:
-            register(rect_id, float(x_left), float(y_top), float(x_right), float(y_bottom))
-        # du.add_rectangle(
-        #     x - w,
-        #     y1 + self.semitone_dist,
-        #     x + w,
-        #     y2,
-        #     stroke_color=None,
-        #     fill_color=fill,
-        #     id=0,
-        #     tags=["midi_note"],
-        # )
+        self.register_note_hit_rect(rect_id, float(x_left), float(y_top), float(x_right), float(y_bottom))
 
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)

@@ -2,5 +2,5 @@ PySide6
 pycairo
 pretty_midi
 numpy
-sounddevice
 mido
+python-rtmidi
