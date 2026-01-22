@@ -143,6 +143,7 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("synth_decay", 0.05, "Synth decay time (seconds)")
         adm.register("synth_sustain", 0.6, "Synth sustain level (0..1)")
         adm.register("synth_release", 0.1, "Synth release time (seconds)")
+        adm.register("synth_gain", 0.35, "Synth master gain (0..1.5)")
         # Audio output device name for internal synth (sounddevice)
         adm.register("audio_output_device", "", "Preferred audio output device name for internal synth")
         # Session restore preferences

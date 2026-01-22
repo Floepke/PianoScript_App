@@ -291,6 +291,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                      float(adm_init.get("synth_decay", 0.05) or 0.05),
                                      float(adm_init.get("synth_sustain", 0.6) or 0.6),
                                      float(adm_init.get("synth_release", 0.1) or 0.1))
+                try:
+                    # Apply persisted master gain
+                    if hasattr(self.player, 'set_gain'):
+                        self.player.set_gain(float(adm_init.get("synth_gain", 0.35) or 0.35))
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -857,27 +863,40 @@ class MainWindow(QtWidgets.QMainWindow):
             # Show simple wavetable/ADSR editor and apply settings
             from ui.widgets.wavetable_editor import WavetableEditor
             dlg = WavetableEditor(self)
+            try:
+                dlg.setModal(False)
+                dlg.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+            except Exception:
+                pass
             # Initialize from appdata
             adm = get_appdata_manager()
-            def on_apply(left, right, a, d, s, r):
+            def on_apply(left, right, a, d, s, r, g):
                 try:
                     if not hasattr(self, 'player') or self.player is None:
                         from midi.player import Player
                         self.player = Player()
                     self.player.set_wavetables(left, right)
                     self.player.set_adsr(a, d, s, r)
+                    if hasattr(self.player, 'set_gain'):
+                        self.player.set_gain(float(g))
                     adm.set("synth_left_wavetable", [float(x) for x in list(left)])
                     adm.set("synth_right_wavetable", [float(x) for x in list(right)])
                     adm.set("synth_attack", float(a))
                     adm.set("synth_decay", float(d))
                     adm.set("synth_sustain", float(s))
                     adm.set("synth_release", float(r))
+                    adm.set("synth_gain", float(g))
                     adm.save()
-                    self._status("Applied synth settings", 2000)
+                    self._status("Synth updated", 1500)
                 except Exception:
                     pass
             dlg.wavetablesApplied.connect(on_apply)
-            dlg.exec()
+            # Keep dialog reference to avoid GC while modeless
+            try:
+                self._fx_dialog = dlg
+            except Exception:
+                pass
+            dlg.show()
         except Exception:
             pass
 
@@ -1124,6 +1143,13 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if hasattr(self, 'player') and self.player is not None:
                 self.player.stop()
+        except Exception:
+            pass
+        # Close FX dialog if open
+        try:
+            if hasattr(self, '_fx_dialog') and self._fx_dialog is not None:
+                self._fx_dialog.close()
+                self._fx_dialog = None
         except Exception:
             pass
         if hasattr(self, "print_view") and self.print_view is not None:

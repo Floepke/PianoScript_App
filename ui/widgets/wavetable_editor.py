@@ -124,7 +124,7 @@ def gen_wave(shape: str, n: int) -> np.ndarray:
 
 
 class WavetableEditor(QtWidgets.QDialog):
-    wavetablesApplied = QtCore.Signal(object, object, float, float, float, float)
+    wavetablesApplied = QtCore.Signal(object, object, float, float, float, float, float)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -138,15 +138,16 @@ class WavetableEditor(QtWidgets.QDialog):
         self.left_canvas = WaveCanvas(SAMPLE_COUNT, self)
         self.right_canvas = WaveCanvas(SAMPLE_COUNT, self)
 
-        layout.addLayout(self._make_canvas_row("Left", self.left_canvas))
-        layout.addLayout(self._make_canvas_row("Right", self.right_canvas))
+        layout.addLayout(self._make_canvas_row("L", self.left_canvas))
+        layout.addLayout(self._make_canvas_row("R", self.right_canvas))
 
-        # ADSR controls
+        # ADSR + Gain controls
         grid = QtWidgets.QGridLayout()
         self.attack = self._make_spin(0.0, 2.0, 0.005, "s")
         self.decay = self._make_spin(0.0, 2.0, 0.05, "s")
         self.sustain = self._make_spin(0.0, 1.0, 0.6, "", 0.01)
         self.release = self._make_spin(0.0, 2.0, 0.1, "s")
+        self.gain = self._make_spin(0.0, 1.5, 0.35, "", 0.01)
         grid.addWidget(QtWidgets.QLabel("Attack"), 0, 0)
         grid.addWidget(self.attack, 0, 1)
         grid.addWidget(QtWidgets.QLabel("Decay"), 1, 0)
@@ -155,16 +156,21 @@ class WavetableEditor(QtWidgets.QDialog):
         grid.addWidget(self.sustain, 2, 1)
         grid.addWidget(QtWidgets.QLabel("Release"), 3, 0)
         grid.addWidget(self.release, 3, 1)
+        grid.addWidget(QtWidgets.QLabel("Gain"), 4, 0)
+        grid.addWidget(self.gain, 4, 1)
         layout.addLayout(grid)
 
-        # Dialog buttons
+        # Close-only button box
         btns = QtWidgets.QDialogButtonBox()
-        apply_btn = btns.addButton("Apply", QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole)
         close_btn = btns.addButton("Close", QtWidgets.QDialogButtonBox.ButtonRole.RejectRole)
         layout.addWidget(btns)
-
-        apply_btn.clicked.connect(self._emit_applied)
         close_btn.clicked.connect(self.reject)
+
+        # Debounced auto-apply timer
+        self._emit_timer = QtCore.QTimer(self)
+        self._emit_timer.setSingleShot(True)
+        self._emit_timer.setInterval(30)  # ms
+        self._emit_timer.timeout.connect(self._emit_current)
 
         # Initialize from appdata if available
         try:
@@ -179,8 +185,18 @@ class WavetableEditor(QtWidgets.QDialog):
             self.decay.setValue(float(adm.get("synth_decay", 0.05) or 0.05))
             self.sustain.setValue(float(adm.get("synth_sustain", 0.6) or 0.6))
             self.release.setValue(float(adm.get("synth_release", 0.1) or 0.1))
+            self.gain.setValue(float(adm.get("synth_gain", 0.35) or 0.35))
         except Exception:
             pass
+
+        # Auto-apply on any change
+        self.left_canvas.samplesChanged.connect(lambda *_: self._schedule_emit())
+        self.right_canvas.samplesChanged.connect(lambda *_: self._schedule_emit())
+        self.attack.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.decay.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.sustain.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.release.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.gain.valueChanged.connect(lambda *_: self._schedule_emit())
 
     def _make_canvas_row(self, label: str, canvas: WaveCanvas) -> QtWidgets.QHBoxLayout:
         row = QtWidgets.QHBoxLayout()
@@ -206,9 +222,20 @@ class WavetableEditor(QtWidgets.QDialog):
             s.setSuffix(f" {suffix}")
         return s
 
-    def _emit_applied(self) -> None:
+    def _schedule_emit(self) -> None:
+        # Restart debounce timer to group rapid changes during drawing
+        try:
+            if self._emit_timer.isActive():
+                self._emit_timer.stop()
+            self._emit_timer.start()
+        except Exception:
+            # Fallback: emit immediately
+            self._emit_current()
+
+    def _emit_current(self) -> None:
         left = self.left_canvas.get_samples()
         right = self.right_canvas.get_samples()
         self.wavetablesApplied.emit(left, right,
-                                    float(self.attack.value()), float(self.decay.value()),
-                                    float(self.sustain.value()), float(self.release.value()))
+                        float(self.attack.value()), float(self.decay.value()),
+                        float(self.sustain.value()), float(self.release.value()),
+                        float(self.gain.value()))

@@ -70,6 +70,15 @@ class Player:
         except Exception:
             pass
 
+    def set_gain(self, gain: float) -> None:
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None:
+                self._synth.gain = float(max(0.0, gain))
+        except Exception:
+            pass
+
     def set_playback_type(self, playback_type: str) -> None:
         self._playback_type = str(playback_type)
         try:
@@ -354,9 +363,14 @@ class Player:
         self._thread = None
         if self._playback_type == 'internal_synth' and self._synth is not None:
             try:
-                self._synth.all_notes_off()
+                # Fade out to avoid clicks, then stop
+                self._synth.fade_out_and_stop(200)
             except Exception:
-                pass
+                # Fallback to immediate stop
+                try:
+                    self._synth.stop()
+                except Exception:
+                    pass
         else:
             try:
                 self._all_notes_off()

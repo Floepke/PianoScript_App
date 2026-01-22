@@ -8,7 +8,7 @@ import sounddevice as sd
 
 
 class WavetableSynth:
-    def __init__(self, sample_rate: int = 48000, blocksize: int = 256) -> None:
+    def __init__(self, sample_rate: int = 48000, blocksize: int = 256, device: Optional[str] = None) -> None:
         self.sample_rate = int(sample_rate)
         self.blocksize = int(blocksize)
         self._stream: Optional[sd.OutputStream] = None
@@ -27,6 +27,8 @@ class WavetableSynth:
         self.gain = 0.35
         # Pitch reference (A4 = MIDI 69)
         self._a4_midi = 69
+        # Fade-out state
+        self._fading: bool = False
 
     def _make_sine_table(self, n: int) -> np.ndarray:
         t = np.arange(n, dtype=np.float32)
@@ -196,3 +198,44 @@ class WavetableSynth:
                 except Exception:
                     pass
                 self._stream = None
+
+    def fade_out_and_stop(self, duration_ms: int = 150) -> None:
+        # Gracefully ramp down gain and stop the stream to avoid clicks
+        if self._stream is None:
+            # Nothing to fade
+            self.stop()
+            return
+        try:
+            if self._fading:
+                return
+            self._fading = True
+        except Exception:
+            pass
+
+        def _do_fade():
+            try:
+                steps = max(1, int(duration_ms / 10))
+                step_s = max(0.001, float(duration_ms) / float(steps) / 1000.0)
+                with self._lock:
+                    start_gain = float(self.gain)
+                for i in range(steps):
+                    g = max(0.0, start_gain * (1.0 - float(i + 1) / float(steps)))
+                    with self._lock:
+                        self.gain = float(g)
+                    time.sleep(step_s)
+                try:
+                    self.all_notes_off()
+                except Exception:
+                    pass
+                self.stop()
+                # Restore gain to the previous value for subsequent playback
+                with self._lock:
+                    self.gain = float(start_gain)
+            finally:
+                try:
+                    self._fading = False
+                except Exception:
+                    pass
+
+        th = threading.Thread(target=_do_fade, daemon=True)
+        th.start()
