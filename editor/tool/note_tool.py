@@ -17,6 +17,11 @@ class NoteTool(BaseTool):
         self.edit_note = None
         self._hand: str = '<'
         self.expanded_score_flag: bool = False
+        # Drag-session context
+        self._editing_existing: bool = False
+        self._orig_duration: float = 0.0
+        self._press_start_time: float = 0.0
+        self._duration_edit_armed: bool = False
 
     def toolbar_spec(self) -> list[dict]:
         # Two explicit hand selectors for quick switching
@@ -52,10 +57,22 @@ class NoteTool(BaseTool):
         if found:
             # Edit existing note
             self.edit_note = found
+            self._editing_existing = True
+            try:
+                self._orig_duration = float(getattr(found, 'duration', 0.0) or 0.0)
+                self._press_start_time = float(getattr(found, 'time', 0.0) or 0.0)
+            except Exception:
+                self._orig_duration = 0.0
+                self._press_start_time = float(t_press_snap)
+            self._duration_edit_armed = False
         else:
             # Create a new note at the snapped press time with minimum duration = snap size
             units = float(max(1e-6, getattr(self._editor, 'snap_size_units', 8.0)))
             self.edit_note = score.new_note(pitch=pitch_press, time=t_press_snap, duration=units, hand=self._hand)
+            self._editing_existing = False
+            self._orig_duration = float(units)
+            self._press_start_time = float(t_press_snap)
+            self._duration_edit_armed = False
 
         # switch guides off during note editing
         self._editor.guides_active = False
@@ -69,6 +86,8 @@ class NoteTool(BaseTool):
         super().on_left_unpress(x, y)
         # Keep last edit and clear the session handle
         self.edit_note = None
+        self._editing_existing = False
+        self._duration_edit_armed = False
         
         # switch guides back on after note editing
         self._editor.guides_active = True
@@ -101,21 +120,48 @@ class NoteTool(BaseTool):
         cur_pitch = int(self._editor.x_to_pitch(x))
 
         # Update rules:
-        # - If cursor is before or at note start + snap size: update only pitch
-        # - If cursor is after start: update only duration (min snap size)
+        # - New note: keep current behavior (pitch-only before start; else duration adjust with min snap)
+        # - Existing note: do NOT shorten to snap while within one snap from start; allow pitch-only there.
         start_t = float(getattr(note, 'time', 0.0) or 0.0)
         units = float(max(1e-6, getattr(self._editor, 'snap_size_units', 8.0)))
-        if cur_t_raw <= start_t:
-            # Pitch-only edit
-            note.pitch = cur_pitch
-        else:
-            # Duration-only edit; snap using ceiling to next snap band from start
-            if cur_t_raw < start_t + units:
-                note.duration = units
+        # Thresholded comparator to avoid floating-point jitter around band boundaries
+        op = Operator(7)
+
+        if not self._editing_existing:
+            # Creating a new note: original behavior
+            if op.le(cur_t_raw, start_t):
+                note.pitch = cur_pitch
             else:
-                delta = max(0.0, float(cur_t_snap - start_t))
-                steps = max(1, int(math.ceil(delta / max(1e-6, units))))
-                note.duration = float(steps) * float(units) + units
+                if op.lt(cur_t_raw, start_t + units):
+                    note.duration = units
+                else:
+                    # Compute bands beyond the first using raw time to reduce snapping jitter
+                    ratio = max(0.0, (float(cur_t_raw) - float(start_t)) / max(1e-6, units))
+                    bands_beyond_first = int(math.floor(ratio + 1e-9))
+                    note.duration = float(bands_beyond_first + 1) * float(units)
+        else:
+            # Editing existing note:
+            # - Before start: pitch-only
+            # - Until we cross one snap unit past start, do pitch-only and do not alter duration
+            # - Once we cross into the second snap band, arm duration editing. From then on:
+            #   * If back inside first band: set duration to exactly one snap unit
+            #   * Else: adjust duration snapped as usual
+            if op.le(cur_t_raw, start_t):
+                note.pitch = cur_pitch
+            else:
+                if not self._duration_edit_armed:
+                    if op.ge(cur_t_raw, start_t + units):
+                        self._duration_edit_armed = True
+                    # While not armed, pitch-only
+                    note.pitch = cur_pitch
+                else:
+                    # Armed: allow duration edits, including 1 snap when back inside first band
+                    if op.lt(cur_t_raw, start_t + units):
+                        note.duration = units
+                    else:
+                        ratio = max(0.0, (float(cur_t_raw) - float(start_t)) / max(1e-6, units))
+                        bands_beyond_first = int(math.floor(ratio + 1e-9))
+                        note.duration = float(bands_beyond_first + 1) * float(units)
 
         if note.time + note.duration > self._editor._calc_score_time():
             self._editor.current_score().base_grid[-1].measure_amount += 1
@@ -124,6 +170,8 @@ class NoteTool(BaseTool):
         super().on_left_drag_end(x, y)
         # Finalize edit session
         self.edit_note = None
+        self._editing_existing = False
+        self._duration_edit_armed = False
 
     def on_right_press(self, x: float, y: float) -> None:
         super().on_right_press(x, y)

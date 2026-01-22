@@ -6,6 +6,7 @@ from utils.CONSTANT import BLACK_KEYS, QUARTER_NOTE_UNIT, BE_KEYS
 from ui.widgets.draw_util import DrawUtil
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
+from typing import Tuple
 
 if TYPE_CHECKING:
     from editor.editor import Editor
@@ -156,6 +157,8 @@ class NoteDrawerMixin:
                 tags=["notehead_black"],
             )
         else:
+            # Use editor background color for white notehead fill
+            bg_fill = self._editor_background_rgba()
             du.add_oval(
                 x - w,
                 y1,
@@ -163,7 +166,7 @@ class NoteDrawerMixin:
                 y1 + w * 2.0,
                 stroke_color=self.notation_color,
                 stroke_width_mm=outline_w,
-                fill_color=(1, 1, 1, 1),
+                fill_color=bg_fill,
                 id=n.id,
                 tags=["notehead_white"],
             )
@@ -283,7 +286,7 @@ class NoteDrawerMixin:
         w = float(self.semitone_dist or 0.5) * 2.0
         dot_d = w * 0.35
         cy = y1 + (w / 2.0)
-        fill = (1, 1, 1, 1) if (n.pitch in BLACK_KEYS) else (0, 0, 0, 1)
+        fill = self._editor_background_rgba() if (n.pitch in BLACK_KEYS) else self.notation_color
         du.add_oval(
             x - dot_d / 3.0,
             cy - dot_d / 3.0,
@@ -294,6 +297,18 @@ class NoteDrawerMixin:
             id=0,
             tags=["left_dot"],
         )
+
+    def _editor_background_rgba(self) -> Tuple[float, float, float, float]:
+        """Return the editor background as RGBA floats (0..1), alpha=1.0.
+
+        Reads from Style.get_editor_background_color() without instantiating Style
+        to avoid side effects.
+        """
+        from ui.style import Style
+        # Call the unbound method with a dummy since it doesn't use self
+        rgb = Style.get_editor_background_color(None)
+        r, g, b = tuple(int(c) for c in rgb)
+        return (r / 255.0, g / 255.0, b / 255.0, 1.0)
 
     # ---- Helpers ----
     def _get_barline_positions(self) -> list[float]:

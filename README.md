@@ -1,4 +1,4 @@
-# PianoScript (Cairo + PySide6) — Starter
+# keyTAB (Cairo + PySide6) — Starter
 
 A minimal starter for an alternative music notation app using PySide6 with Cairo for rendering:
 - Editor: Cairo-drawn in the GUI thread
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ```bash
 cd /home/flop/PianoScript_App_Cairo
 source .venv/bin/activate
-python pianoscript.py
+python keyTAB.py
 ```
 
 ## Debugging Viewport & Scroll
@@ -33,7 +33,7 @@ python pianoscript.py
 Example:
 
 ```bash
-PIANOSCRIPT_DEBUG_VIEWPORT=1 PIANOSCRIPT_DEBUG_SCROLL=1 python3 pianoscript.py
+PIANOSCRIPT_DEBUG_VIEWPORT=1 PIANOSCRIPT_DEBUG_SCROLL=1 python3 keyTAB.py
 ```
 
 Notes:
@@ -46,7 +46,7 @@ Notes:
 - Format:
 
 ```
-# PianoScript settings
+# keyTAB settings
 settings = {
 		# Global UI scale factor (0.5 .. 3.0). Applied via QT_SCALE_FACTOR.
 		'ui_scale': 0.75,
@@ -69,7 +69,7 @@ settings = {
 
 ## Structure
 
-- `/pianoscript.py` — app entrypoint
+- `/keyTAB.py` — app entrypoint
 - `/editor/` — app UI modules (e.g., `main_window.py`)
 - `/widgets/` — reusable UI widgets and Cairo views (`draw_util.py`, `draw_view.py`, `cairo_views.py`, `toolbar_splitter.py`)
 - `/file_model/` — document/data model (placeholder)

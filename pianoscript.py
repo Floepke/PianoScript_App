@@ -6,6 +6,7 @@ from ui.style import Style
 from settings_manager import get_preferences
 from appdata_manager import get_appdata_manager
 from icons.icons import get_qicon
+from fonts import install_default_ui_font
 
 
 def main():
@@ -13,7 +14,7 @@ def main():
     preferences = get_preferences()
     ui_scale = float(preferences.get("ui_scale", 1.0))
     
-    # Initialize appdata to ensure ~/.pianoscript/appdata.py exists
+    # Initialize appdata to ensure ~/.keyTAB/appdata.py exists
     get_appdata_manager()
 
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
@@ -40,9 +41,16 @@ def main():
     # Enforce arrow cursor globally: app never changes the mouse pointer
     QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
     
+    # Install and apply embedded UI font (FiraCode-SemiBold) globally
+    try:
+        install_default_ui_font(app, name='FiraCode-SemiBold', point_size=int(10))
+    except Exception:
+        # Proceed with default font if installation fails
+        pass
+
     # Set application window icon from icons package
     # Scale window icon slightly smaller for the title bar
-    icon = get_qicon('pianoscript', size=(64, 64))
+    icon = get_qicon('keyTAB', size=(64, 64))
     if icon:
         app.setWindowIcon(icon)
     

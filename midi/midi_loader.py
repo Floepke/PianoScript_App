@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
+import math
 
 import pretty_midi
 try:
@@ -10,6 +11,7 @@ except Exception:
 
 from file_model.SCORE import SCORE
 from utils.CONSTANT import QUARTER_NOTE_UNIT
+from file_model.base_grid import BaseGrid
 
 
 def _seconds_to_units(pm: pretty_midi.PrettyMIDI, t_seconds: float) -> float:
@@ -77,6 +79,50 @@ def midi_load(path: str) -> SCORE:
             vel = max(0, min(127, vel))
             score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(vel), hand=hand)
 
+    # Build base_grid from time signature changes
+    try:
+        ts_changes = list(getattr(pm, 'time_signature_changes', []) or [])
+    except Exception:
+        ts_changes = []
+
+    def _grid_positions_for(numer: int, denom: int) -> List[int]:
+        if denom in (8,16) and numer in (6, 7):
+            return [1, 4]
+        if denom in (8,16) and numer == 9:
+            return [1, 4, 8]
+        return list(range(1, max(1, int(numer)) + 1))
+
+    end_units_total = _seconds_to_units(pm, float(getattr(pm, 'get_end_time', lambda: 0.0)()))
+    segments: List[Tuple[float, int, int]] = []  # (start_units, numer, denom)
+    for ts in ts_changes:
+        try:
+            start_u = _seconds_to_units(pm, float(getattr(ts, 'time', 0.0) or 0.0))
+            numer = int(getattr(ts, 'numerator', 4) or 4)
+            denom = int(getattr(ts, 'denominator', 4) or 4)
+            segments.append((start_u, numer, denom))
+        except Exception:
+            continue
+    # If no time signatures present, infer a single segment from defaults
+    if not segments:
+        segments = [(0.0, 4, 4)]
+
+    # Sort segments by start_units
+    segments.sort(key=lambda x: x[0])
+    # Construct BaseGrid entries with measure_amount per segment
+    base_grid_list: List[BaseGrid] = []
+    for idx, (start_u, numer, denom) in enumerate(segments):
+        next_start = segments[idx + 1][0] if idx + 1 < len(segments) else end_units_total
+        dur_u = max(0.0, float(next_start) - float(start_u))
+        # Measure length in app units: quarters_per_measure * QUARTER_NOTE_UNIT
+        quarters_per_measure = (float(numer) * (4.0 / float(max(1, denom))))
+        measure_units = quarters_per_measure * float(QUARTER_NOTE_UNIT)
+        measures = int(max(1, math.ceil(dur_u / measure_units))) if measure_units > 0 else 1
+        gp = _grid_positions_for(numer, denom)
+        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, grid_positions=gp, measure_amount=measures))
+
+    # Apply
+    score.base_grid = base_grid_list
+
     return score
 
 
@@ -89,18 +135,41 @@ def _midi_load_with_mido(path: str) -> SCORE:
 
     # Collect tempo changes from track 0 or meta across all tracks
     tempo_events: List[Tuple[int, int]] = []  # (abs_ticks, tempo)
+    ts_events: List[Tuple[int, int, int]] = []  # (abs_ticks, numer, denom)
     for i, track in enumerate(mid.tracks):
         abs_ticks = 0
         for msg in track:
             abs_ticks += int(getattr(msg, 'time', 0) or 0)
             if msg.type == 'set_tempo':
                 tempo_events.append((abs_ticks, int(msg.tempo)))
+            elif msg.type == 'time_signature':
+                try:
+                    numer = int(getattr(msg, 'numerator', 4) or 4)
+                    denom = int(getattr(msg, 'denominator', 4) or 4)
+                    ts_events.append((abs_ticks, numer, denom))
+                except Exception:
+                    pass
     tempo_events.sort(key=lambda x: x[0])
+    ts_events.sort(key=lambda x: x[0])
 
     # Build function to convert delta ticks at a given segment tempo to seconds
     def ticks_to_seconds(delta_ticks: int, tempo_us: int) -> float:
         # seconds = delta_ticks * (tempo_us / 1e6) / tpq
         return (float(delta_ticks) * (float(tempo_us) / 1_000_000.0)) / float(tpq)
+
+    # Helper: cumulative ticks->seconds at an absolute tick
+    def ticks_to_seconds_at(abs_ticks_query: int) -> float:
+        seconds = 0.0
+        prev_ticks = 0
+        cur_tempo = default_tempo
+        for t, tempo in tempo_events:
+            if t > abs_ticks_query:
+                break
+            seconds += ticks_to_seconds(t - prev_ticks, cur_tempo)
+            prev_ticks = t
+            cur_tempo = tempo
+        seconds += ticks_to_seconds(abs_ticks_query - prev_ticks, cur_tempo)
+        return seconds
 
     # Iterate messages to build absolute seconds timeline per track and pair notes
     score = SCORE().new()
@@ -122,6 +191,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
                 break
         return cur
 
+    total_end_seconds = 0.0
     # For each track, track note stacks by (channel, pitch)
     for track in mid.tracks:
         abs_ticks = 0
@@ -153,6 +223,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
                     app_pitch = int(msg.note) - 20
                     hand = '<' if int(app_pitch) < 40 else '>'
                     score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(max(0, min(127, vel))), hand=hand)
+                    total_end_seconds = max(total_end_seconds, end_sec)
         # For any unmatched note_on left, close them with short duration
         for (ch, pitch), lst in note_stack.items():
             for _, start_sec in lst:
@@ -165,5 +236,38 @@ def _midi_load_with_mido(path: str) -> SCORE:
             # If velocity not retained (should be), default to 64
             default_vel = 64
             score.new_note(pitch=int(app_pitch2), time=float(start_units), duration=float(duration_units), velocity=default_vel, hand=hand)
+            total_end_seconds = max(total_end_seconds, end_sec)
+
+    # Build base_grid from mido time signatures
+    def _grid_positions_for(numer: int, denom: int) -> List[int]:
+        if denom == 8 and numer in (6, 7):
+            return [1, 4]
+        if denom == 8 and numer == 9:
+            return [1, 4, 8]
+        return list(range(1, max(1, int(numer)) + 1))
+
+    end_units_total = (total_end_seconds / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
+    segments: List[Tuple[float, int, int]] = []
+    for abs_t, numer, denom in ts_events:
+        try:
+            t_sec = ticks_to_seconds_at(abs_t)
+            t_units = (t_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
+            segments.append((t_units, int(numer), int(denom)))
+        except Exception:
+            continue
+    if not segments:
+        segments = [(0.0, 4, 4)]
+    segments.sort(key=lambda x: x[0])
+    base_grid_list: List[BaseGrid] = []
+    for idx, (start_u, numer, denom) in enumerate(segments):
+        next_start = segments[idx + 1][0] if idx + 1 < len(segments) else end_units_total
+        dur_u = max(0.0, float(next_start) - float(start_u))
+        quarters_per_measure = (float(numer) * (4.0 / float(max(1, denom))))
+        measure_units = quarters_per_measure * float(QUARTER_NOTE_UNIT)
+        measures = int(max(1, math.ceil(dur_u / measure_units))) if measure_units > 0 else 1
+        gp = _grid_positions_for(numer, denom)
+        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, grid_positions=gp, measure_amount=measures))
+
+    score.base_grid = base_grid_list
 
     return score

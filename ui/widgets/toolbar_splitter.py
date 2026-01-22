@@ -69,6 +69,20 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
+        # FX button (synth editor)
+        self.fx_btn = QtWidgets.QToolButton(self)
+        self.fx_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        icfx = get_qicon('tempo', size=(64, 64))
+        if icfx:
+            self.fx_btn.setIcon(icfx)
+        self.fx_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
+        self.fx_btn.setFixedSize(self._button_size, self._button_size)
+        layout.addWidget(self.fx_btn)
+        try:
+            self.fx_btn.clicked.connect(parent.fxRequested.emit)
+        except Exception:
+            pass
+
         self.play_btn = QtWidgets.QToolButton(self)
         self.play_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icplay = get_qicon('play', size=(64, 64))
@@ -174,6 +188,7 @@ class ToolbarSplitter(QtWidgets.QSplitter):
     engraveRequested = QtCore.Signal()
     playRequested = QtCore.Signal()
     stopRequested = QtCore.Signal()
+    fxRequested = QtCore.Signal()
 
     def __init__(self, orientation: QtCore.Qt.Orientation, parent=None):
         super().__init__(orientation, parent)

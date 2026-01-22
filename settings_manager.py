@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from utils.CONSTANT import UTILS_SAVE_DIR
 
 
-# Paths under the user's home folder (~/ .pianoscript)
+# Paths under the user's home folder (~/ .keyTAB)
 PREFERENCES_PATH: Path = Path(UTILS_SAVE_DIR) / "preferences.py"
 
 
@@ -23,7 +23,7 @@ class _PrefDef:
 
 
 class PreferencesManager:
-    """Register and persist application preferences in ~/ .pianoscript/preferences.py.
+    """Register and persist application preferences in ~/ .keyTAB/preferences.py.
 
     Users can edit this file; changes take effect after restarting the app.
     """
@@ -126,7 +126,7 @@ class PreferencesManager:
 
     def _emit_py_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# PianoScript preferences\n\n# You can edit this file to change the application preferences.\n# Changes take effect after restarting the app.\n")
+        lines.append("# keyTAB preferences\n\n# You can edit this file to change the application preferences.\n# Changes take effect after restarting the app.\n")
         lines.append("preferences = {")
         indent = "    "
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]

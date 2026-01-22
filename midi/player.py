@@ -1,15 +1,22 @@
 from __future__ import annotations
 import threading
 import time
-from typing import Optional, Set
+from typing import Optional, Set, List, Tuple
 
 import mido
+import numpy as np
 
 from utils.CONSTANT import QUARTER_NOTE_UNIT
+from appdata_manager import get_appdata_manager
+
+try:
+    from synth.wavetable_synth import WavetableSynth
+except Exception:
+    WavetableSynth = None  # type: ignore
 
 
 class Player:
-    """Playback of `SCORE` via external MIDI output port (no internal synth)."""
+    """Playback of `SCORE` via either external MIDI port or internal synth."""
 
     def __init__(self) -> None:
         self._out: Optional[mido.ports.BaseOutput] = None
@@ -19,15 +26,58 @@ class Player:
         self._active_notes: Set[int] = set()
         # App pitch mapping: app 49 == MIDI 69 (A4). MIDI = app + 20
         self._pitch_offset: int = 20
-        # Default channel
+        # Default channel (for MIDI backend)
         self._channel: int = 0
+        # Backend selection: 'midi_port' or 'internal_synth'
+        self._playback_type: str = 'midi_port'
+        # Internal synth instance
+        self._synth = None  # internal synth instance when using 'internal_synth'
+        # Load preferences from appdata
+        try:
+            adm = get_appdata_manager()
+            self._playback_type = str(adm.get("playback_type", "midi_port") or "midi_port")
+            pn = str(adm.get("midi_out_port", "") or "")
+            if pn:
+                self._port_name = pn
+        except Exception:
+            pass
 
-    # Legacy no-ops for previous synth API
+    # Synth API passthroughs
     def set_wavetables(self, left, right) -> None:
-        pass
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None:
+                self._synth.set_wavetables(np.asarray(left, dtype=np.float32), np.asarray(right, dtype=np.float32))
+        except Exception:
+            pass
 
     def set_adsr(self, attack_seconds: float, decay_seconds: float, sustain_level: float, release_seconds: float) -> None:
-        pass
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None:
+                self._synth.set_adsr(float(attack_seconds), float(decay_seconds), float(sustain_level), float(release_seconds))
+        except Exception:
+            pass
+
+    def set_audio_output_device(self, device_name: str) -> None:
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None:
+                self._synth.set_output_device(str(device_name) if device_name else None)
+        except Exception:
+            pass
+
+    def set_playback_type(self, playback_type: str) -> None:
+        self._playback_type = str(playback_type)
+        try:
+            adm = get_appdata_manager()
+            adm.set("playback_type", self._playback_type)
+            adm.save()
+        except Exception:
+            pass
 
     def list_output_ports(self) -> list[str]:
         try:
@@ -52,6 +102,13 @@ class Player:
         except Exception:
             pass
         self._port_name = str(name) if name else None
+        # Persist selection
+        try:
+            adm = get_appdata_manager()
+            adm.set("midi_out_port", self._port_name or "")
+            adm.save()
+        except Exception:
+            pass
         # Attempt to open immediately
         if self._port_name:
             try:
@@ -76,18 +133,13 @@ class Player:
                     print(f"[MIDI] Failed to open '{self._port_name}': {exc}")
             else:
                 print(f"[MIDI] Preferred port not found: {self._port_name}")
+                raise RuntimeError(f"Preferred MIDI port not found: {self._port_name}")
         # Prefer first non-"Through" port
-        name = None
-        for n in names:
-            if 'through' in str(n).lower():
-                continue
-            name = n
-            break
-        # Fallback to first available, if any
-        if name is None and names:
-            name = names[0]
-        if name is None:
-            raise RuntimeError("No MIDI output ports available")
+        non_through = [n for n in names if 'through' not in str(n).lower()]
+        if not non_through:
+            # Only "Through" ports available — treat as no usable ports
+            raise RuntimeError("No usable MIDI output ports (only 'Through' found)")
+        name = non_through[0]
         try:
             self._out = mido.open_output(name)
             print(f"[MIDI] Using output port: {name}")
@@ -131,12 +183,8 @@ class Player:
         except Exception:
             pass
 
-    def play_score(self, score) -> None:
-        self._ensure_port()
-        if self._out is None:
-            return
-        # Build event list
-        events = []
+    def _build_events_full(self, score) -> List[Tuple[str, float, int, int]]:
+        events: List[Tuple[str, float, int, int]] = []
         bpm = 120.0
         try:
             for t in score.events.text:
@@ -155,28 +203,30 @@ class Player:
             events.append(('on', start_sec, midi_pitch, vel))
             events.append(('off', start_sec + max(0.0, dur_sec), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
+        return events
 
-        self._running = True
-        def _runner():
-            t0 = time.time()
-            for kind, t_rel, midi_note, vel in events:
-                if not self._running:
-                    break
-                now = time.time()
-                delay = max(0.0, t0 + t_rel - now)
-                if delay > 0:
-                    time.sleep(delay)
-                if not self._running:
-                    break
-                if kind == 'on':
-                    self._note_on(int(midi_note), int(vel))
-                else:
-                    self._note_off(int(midi_note))
-        th = threading.Thread(target=_runner, daemon=True)
-        th.start()
-        self._thread = th
+    def play_score(self, score) -> None:
+        if self._playback_type == 'internal_synth' and WavetableSynth is not None:
+            if self._synth is None:
+                self._synth = WavetableSynth()
+            events = self._build_events_full(score)
+            self._run_events_with_synth(events)
+            return
+        # MIDI port backend
+        self._ensure_port()
+        if self._out is None:
+            return
+        events = self._build_events_full(score)
+        self._run_events_with_midi(events)
 
     def play_from_time_cursor(self, start_units: float, score) -> None:
+        if self._playback_type == 'internal_synth' and WavetableSynth is not None:
+            events = self._build_events_from_time(start_units, score)
+            if self._synth is None:
+                self._synth = WavetableSynth()
+            self._run_events_with_synth(events)
+            return
+        # MIDI backend
         self._ensure_port()
         if self._out is None:
             return
@@ -212,6 +262,42 @@ class Player:
                 events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
 
+        self._run_events_with_midi(events)
+
+    def _build_events_from_time(self, start_units: float, score) -> List[Tuple[str, float, int, int]]:
+        bpm = 120.0
+        try:
+            for t in score.events.text:
+                s = str(getattr(t, 'text', ''))
+                if s and '/' in s:
+                    bpm = float(s.split('/')[0])
+                    break
+        except Exception:
+            pass
+        su = float(max(0.0, start_units))
+        events: List[Tuple[str, float, int, int]] = []
+        for n in score.events.note:
+            start = float(n.time)
+            end = float(n.time + n.duration)
+            app_pitch = int(n.pitch)
+            midi_pitch = app_pitch + self._pitch_offset
+            vel = int(getattr(n, 'velocity', 64) or 64)
+            if end <= su:
+                continue
+            if start < su < end:
+                # Start now; schedule off at remaining duration
+                events.append(('on', 0.0, midi_pitch, vel))
+                off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                events.append(('off', float(off_t), midi_pitch, 0))
+            elif start >= su:
+                on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                events.append(('on', float(on_t), midi_pitch, vel))
+                events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
+        events.sort(key=lambda e: e[1])
+        return events
+
+    def _run_events_with_midi(self, events: List[Tuple[str, float, int, int]]) -> None:
         self._running = True
         def _runner():
             t0 = time.time()
@@ -232,6 +318,32 @@ class Player:
         th.start()
         self._thread = th
 
+    def _run_events_with_synth(self, events: List[Tuple[str, float, int, int]]) -> None:
+        if self._synth is None:
+            return
+        self._running = True
+        def _runner():
+            t0 = time.time()
+            for kind, t_rel, midi_note, vel in events:
+                if not self._running:
+                    break
+                now = time.time()
+                delay = max(0.0, t0 + float(t_rel) - now)
+                if delay > 0:
+                    time.sleep(delay)
+                if not self._running:
+                    break
+                try:
+                    if kind == 'on':
+                        self._synth.note_on(int(midi_note), int(vel))
+                    else:
+                        self._synth.note_off(int(midi_note))
+                except Exception:
+                    pass
+        th = threading.Thread(target=_runner, daemon=True)
+        th.start()
+        self._thread = th
+
     def stop(self) -> None:
         self._running = False
         try:
@@ -240,10 +352,16 @@ class Player:
         except Exception:
             pass
         self._thread = None
-        try:
-            self._all_notes_off()
-        except Exception:
-            pass
+        if self._playback_type == 'internal_synth' and self._synth is not None:
+            try:
+                self._synth.all_notes_off()
+            except Exception:
+                pass
+        else:
+            try:
+                self._all_notes_off()
+            except Exception:
+                pass
 
     def is_playing(self) -> bool:
         return bool(self._running)

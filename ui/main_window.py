@@ -1,4 +1,5 @@
 from PySide6 import QtCore, QtGui, QtWidgets
+from typing import Optional
 import sys
 from datetime import datetime
 from file_model.SCORE import SCORE
@@ -19,7 +20,7 @@ from editor.editor import Editor
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Pianoscript - new project (unsaved)")
+        self.setWindowTitle("keyTAB - new project (unsaved)")
         self.resize(1200, 800)
 
         # File management
@@ -55,32 +56,65 @@ class MainWindow(QtWidgets.QMainWindow):
         # When engraving completes, re-render the print view
         self.engraver.engraved.connect(self.print_view.request_render)
         
-        # Startup restore: open last project if available; else restore session; else new
+        # Startup restore: prefer opening the last saved project; else restore unsaved session; else new
         try:
             adm2 = get_appdata_manager()
-            last_path = str(adm2.get("last_opened_file", "") or "")
+            was_saved = bool(adm2.get("last_session_saved", False))
+            saved_path = str(adm2.get("last_session_path", "") or "")
         except Exception:
-            last_path = ""
-        loaded = None
-        if last_path:
+            was_saved = False
+            saved_path = ""
+        opened = False
+        status_msg = ""
+        if was_saved and saved_path:
             try:
                 from pathlib import Path as _Path
-                if _Path(last_path).exists():
-                    loaded = self.file_manager.open_path(last_path)
+                if _Path(saved_path).exists():
+                    self.file_manager.open_path(saved_path)
+                    opened = True
+                    status_msg = f"Opened last saved project: {saved_path}"
             except Exception:
-                loaded = None
-        if loaded is None:
-            # Try restore session file without setting project path
+                opened = False
+        if not opened:
+            # If the last session wasn't saved, try restoring the session snapshot
             restored = False
             try:
                 restored = self.file_manager.load_session_if_available()
             except Exception:
                 restored = False
             if not restored:
-                self.file_manager.new()
+                # Fallback to last explicitly opened/saved project if available
+                try:
+                    last_path = str(adm2.get("last_opened_file", "") or "")
+                except Exception:
+                    last_path = ""
+                if last_path:
+                    try:
+                        from pathlib import Path as _Path
+                        if _Path(last_path).exists():
+                            self.file_manager.open_path(last_path)
+                            status_msg = f"Opened last project: {last_path}"
+                        else:
+                            self.file_manager.new()
+                            status_msg = "Started new project"
+                    except Exception:
+                        self.file_manager.new()
+                        status_msg = "Started new project"
+                else:
+                    # Nothing to restore; start fresh
+                    self.file_manager.new()
+                    status_msg = "Started new project"
+            else:
+                status_msg = "Restored unsaved session"
 
         # Provide initial score to engrave and update titlebar
         self._refresh_views_from_score()
+        # Show startup status on the status bar
+        try:
+            if status_msg:
+                self._status(status_msg, 5000)
+        except Exception:
+            pass
 
         self._update_title()
 
@@ -96,6 +130,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
         self.setCentralWidget(self.splitter)
+        # Status bar for lightweight app messages
+        try:
+            self._statusbar = QtWidgets.QStatusBar(self)
+            self.setStatusBar(self._statusbar)
+        except Exception:
+            self._statusbar = None
         # Ensure the editor is the main focus target
         try:
             self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
@@ -178,7 +218,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.playRequested.connect(self._force_redraw)
         self.splitter.stopRequested.connect(self._stop_midi)
         self.splitter.stopRequested.connect(self._force_redraw)
-        # FX synth editor (removed)
+        # FX synth editor
+        self.splitter.fxRequested.connect(self._open_fx_editor)
         # Contextual tool buttons should also force redraw
         self.splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
         # Restore splitter sizes from last session if available; else fall back to fit
@@ -220,14 +261,38 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.is_startup = True
 
-        # Initialize player (external MIDI only)
+        # Initialize player (MIDI or Synth)
         try:
             from midi.player import Player
             self.player = Player()
-            # No synth configuration; external MIDI only
         except Exception:
             # Player initialization is optional at startup
             self.player = None
+        # Apply stored synth settings if any
+        try:
+            adm_init = get_appdata_manager()
+            if str(adm_init.get("playback_type", "midi_port")) == "internal_synth":
+                if not hasattr(self, 'player') or self.player is None:
+                    from midi.player import Player
+                    self.player = Player()
+                lw = adm_init.get("synth_left_wavetable", []) or []
+                rw = adm_init.get("synth_right_wavetable", []) or []
+                # Apply preferred audio device first
+                dev = str(adm_init.get("audio_output_device", "") or "")
+                if dev and hasattr(self.player, 'set_audio_output_device'):
+                    try:
+                        self.player.set_audio_output_device(dev)
+                    except Exception:
+                        pass
+                if lw and rw:
+                    import numpy as _np
+                    self.player.set_wavetables(_np.asarray(lw, dtype=_np.float32), _np.asarray(rw, dtype=_np.float32))
+                self.player.set_adsr(float(adm_init.get("synth_attack", 0.005) or 0.005),
+                                     float(adm_init.get("synth_decay", 0.05) or 0.05),
+                                     float(adm_init.get("synth_sustain", 0.6) or 0.6),
+                                     float(adm_init.get("synth_release", 0.1) or 0.1))
+        except Exception:
+            pass
 
     def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
         # Space toggles play/stop from the editor's time cursor (with note chasing)
@@ -244,12 +309,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         t_units = float(getattr(self.editor_controller, 'time_cursor', 0.0) or 0.0)
                     except Exception:
                         t_units = 0.0
-                    sc = self.file_manager.current()
-                    try:
-                        self.player.play_from_time_cursor(t_units, sc)
-                    except Exception:
-                        # Fallback to full play if partial fails
-                        self._play_midi()
+                    # Use unified helper to handle port selection prompt and retry
+                    self._play_midi_with_prompt(start_units=t_units)
                 ev.accept()
                 return
         except Exception:
@@ -310,14 +371,47 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addAction(save_as_act)
         file_menu.addSeparator()
 
-        export_pdf_act = QtGui.QAction("Export PDF…", self)
+        export_pdf_act = QtGui.QAction("Export PDF...", self)
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
 
-        # MIDI Output port chooser
-        midi_port_act = QtGui.QAction("MIDI Output…", self)
+        # MIDI Output port chooser (placed under Edit menu)
+        midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
         midi_port_act.triggered.connect(self._choose_midi_port)
-        file_menu.addAction(midi_port_act)
+        edit_menu.addAction(midi_port_act)
+
+        # Playback Mode submenu
+        playback_menu = edit_menu.addMenu("Playback Mode")
+        grp = QtGui.QActionGroup(self)
+        act_midi = QtGui.QAction("External MIDI Port", self, checkable=True)
+        act_synth = QtGui.QAction("Internal Synth", self, checkable=True)
+        grp.addAction(act_midi)
+        grp.addAction(act_synth)
+        playback_menu.addAction(act_midi)
+        playback_menu.addAction(act_synth)
+        # Initialize from appdata
+        try:
+            adm = get_appdata_manager()
+            mode = str(adm.get("playback_type", "midi_port") or "midi_port")
+            if mode == "internal_synth":
+                act_synth.setChecked(True)
+            else:
+                act_midi.setChecked(True)
+        except Exception:
+            act_midi.setChecked(True)
+        # Handlers
+        act_midi.triggered.connect(lambda: self._set_playback_mode("midi_port"))
+        act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
+
+        # Audio output device chooser for internal synth
+        audio_dev_act = QtGui.QAction("Set Audio Output Device...", self)
+        audio_dev_act.triggered.connect(self._choose_audio_device)
+        edit_menu.addAction(audio_dev_act)
+
+        # System audio test tone
+        sys_tone_act = QtGui.QAction("Play System Audio Test Tone", self)
+        sys_tone_act.triggered.connect(self._play_system_test_tone)
+        edit_menu.addAction(sys_tone_act)
 
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
@@ -336,6 +430,10 @@ class MainWindow(QtWidgets.QMainWindow):
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
+        # Quick synth test tone for troubleshooting
+        test_tone_act = QtGui.QAction("Play Synth Test Tone", self)
+        test_tone_act.triggered.connect(self._play_test_tone)
+        edit_menu.addAction(test_tone_act)
 
         # View actions
         view_menu.addAction(QtGui.QAction("Zoom In", self))
@@ -383,6 +481,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if not hasattr(self, 'player') or self.player is None:
                 from midi.player import Player
                 self.player = Player()
+            # If not in MIDI mode, inform user
+            try:
+                adm = get_appdata_manager()
+                if str(adm.get("playback_type", "midi_port")) != "midi_port":
+                    QtWidgets.QMessageBox.information(self, "Playback Mode", "Switch to 'External MIDI Port' mode to choose a port.")
+                    return
+            except Exception:
+                pass
             # Query ports
             try:
                 names = self.player.list_output_ports()
@@ -446,6 +552,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.du.save_pdf(out_path, layering=ENGRAVER_LAYERING)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Export PDF failed", str(e))
+
+    def _status(self, message: str, timeout_ms: int = 3000) -> None:
+        """Show a transient message on the status bar."""
+        try:
+            sb = self.statusBar() if hasattr(self, 'statusBar') else None
+            if sb is not None:
+                sb.showMessage(str(message), int(max(0, timeout_ms)))
+        except Exception:
+            pass
 
     def _open_preferences(self) -> None:
         # Ensure preferences file exists and open in system editor
@@ -545,9 +660,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _update_title(self) -> None:
         p = self.file_manager.path()
         if p:
-            self.setWindowTitle(f"Pianoscript - existing project ({str(p)})")
+            self.setWindowTitle(f"keyTAB - existing project ({str(p)})")
         else:
-            self.setWindowTitle("Pianoscript - new project (unsaved)")
+            self.setWindowTitle("keyTAB - new project (unsaved)")
 
     def _page_dimensions_mm(self) -> tuple[float, float]:
         try:
@@ -665,15 +780,8 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def _play_midi(self) -> None:
-        try:
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
-            # Play current SCORE via selected backend
-            sc = self.file_manager.current()
-            self.player.play_score(sc)
-        except Exception:
-            pass
+        # Delegate to unified helper without a time cursor start
+        self._play_midi_with_prompt(start_units=None)
 
     def _stop_midi(self) -> None:
         try:
@@ -682,7 +790,212 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+    def _play_midi_with_prompt(self, start_units: Optional[float]) -> None:
+        """Play SCORE, prompting for MIDI port if unavailable, then retry once.
+
+        If start_units is provided, starts from the editor's time cursor; otherwise
+        plays the full score.
+        """
+        try:
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            sc = self.file_manager.current()
+            # If internal synth mode, no port prompt
+            try:
+                adm = get_appdata_manager()
+                if str(adm.get("playback_type", "midi_port")) == "internal_synth":
+                    if start_units is None:
+                        self.player.play_score(sc)
+                    else:
+                        self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                    return
+            except Exception:
+                pass
+            # First attempt
+            try:
+                if start_units is None:
+                    self.player.play_score(sc)
+                else:
+                    self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                return
+            except Exception:
+                # Likely missing or failed MIDI port; prompt user to select one
+                try:
+                    self._choose_midi_port()
+                except Exception:
+                    pass
+                # Retry once after selection
+                try:
+                    if start_units is None:
+                        self.player.play_score(sc)
+                    else:
+                        self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                    return
+                except Exception as exc2:
+                    # Fallback to internal synth automatically
+                    try:
+                        self._status("No usable MIDI port. Switching to Internal Synth.", 3000)
+                        self._set_playback_mode("internal_synth")
+                        if start_units is None:
+                            self.player.play_score(sc)
+                        else:
+                            self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                        return
+                    except Exception:
+                        # Notify user if still failing
+                        try:
+                            QtWidgets.QMessageBox.critical(self, "Playback", f"Playback failed: {exc2}")
+                        except Exception:
+                            print(f"Playback failed: {exc2}")
+        except Exception:
+            pass
+
     # FX window removed
+    def _open_fx_editor(self) -> None:
+        try:
+            # Show simple wavetable/ADSR editor and apply settings
+            from ui.widgets.wavetable_editor import WavetableEditor
+            dlg = WavetableEditor(self)
+            # Initialize from appdata
+            adm = get_appdata_manager()
+            def on_apply(left, right, a, d, s, r):
+                try:
+                    if not hasattr(self, 'player') or self.player is None:
+                        from midi.player import Player
+                        self.player = Player()
+                    self.player.set_wavetables(left, right)
+                    self.player.set_adsr(a, d, s, r)
+                    adm.set("synth_left_wavetable", [float(x) for x in list(left)])
+                    adm.set("synth_right_wavetable", [float(x) for x in list(right)])
+                    adm.set("synth_attack", float(a))
+                    adm.set("synth_decay", float(d))
+                    adm.set("synth_sustain", float(s))
+                    adm.set("synth_release", float(r))
+                    adm.save()
+                    self._status("Applied synth settings", 2000)
+                except Exception:
+                    pass
+            dlg.wavetablesApplied.connect(on_apply)
+            dlg.exec()
+        except Exception:
+            pass
+
+    def _set_playback_mode(self, mode: str) -> None:
+        try:
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            try:
+                self.player.stop()
+            except Exception:
+                pass
+            try:
+                # Persist and update player
+                adm = get_appdata_manager()
+                adm.set("playback_type", str(mode))
+                adm.save()
+                if hasattr(self.player, 'set_playback_type'):
+                    self.player.set_playback_type(str(mode))
+            except Exception:
+                pass
+            self._status(f"Playback mode: {'Internal Synth' if mode=='internal_synth' else 'External MIDI Port'}", 2500)
+        except Exception:
+            pass
+
+    def _play_test_tone(self) -> None:
+        try:
+            # Ensure player and synth exist
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            # Switch to synth temporarily if needed
+            try:
+                if hasattr(self.player, 'set_playback_type'):
+                    self.player.set_playback_type('internal_synth')
+            except Exception:
+                pass
+            # Use synth directly if available
+            try:
+                from synth.wavetable_synth import WavetableSynth
+            except Exception:
+                WavetableSynth = None  # type: ignore
+            if WavetableSynth is None:
+                self._status("Synth backend unavailable", 2500)
+                return
+            # Trigger A4 (MIDI 69) for ~1 second
+            if hasattr(self.player, '_synth') and self.player._synth is None:
+                try:
+                    self.player._synth = WavetableSynth()
+                except Exception:
+                    pass
+            if hasattr(self.player, '_synth') and self.player._synth is not None:
+                try:
+                    self.player._synth.note_on(69, 110)
+                    QtCore.QTimer.singleShot(1000, lambda: self.player._synth.note_off(69))
+                    self._status("Playing synth test tone", 1500)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _choose_audio_device(self) -> None:
+        try:
+            import sounddevice as sd
+        except Exception:
+            QtWidgets.QMessageBox.critical(self, "Audio", "sounddevice not available")
+            return
+        try:
+            devices = sd.query_devices()
+            outputs = [d for d in devices if int(d.get('max_output_channels', 0)) > 0]
+            if not outputs:
+                QtWidgets.QMessageBox.warning(self, "Audio", "No audio output devices found.")
+                return
+            names = [str(d.get('name', '')) for d in outputs]
+            item, ok = QtWidgets.QInputDialog.getItem(self, "Select Audio Output", "Device:", names, 0, False)
+            if not ok:
+                return
+            name = str(item)
+            adm = get_appdata_manager()
+            adm.set("audio_output_device", name)
+            adm.save()
+            # Apply to synth if present
+            try:
+                if not hasattr(self, 'player') or self.player is None:
+                    from midi.player import Player
+                    self.player = Player()
+                if hasattr(self.player, 'set_audio_output_device'):
+                    self.player.set_audio_output_device(name)
+            except Exception:
+                pass
+            self._status(f"Audio device set: {name}", 2500)
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "Audio", f"Failed to list devices: {exc}")
+            except Exception:
+                pass
+
+    def _play_system_test_tone(self) -> None:
+        try:
+            import numpy as _np
+            import sounddevice as sd
+            sr = 48000
+            dur = 1.5
+            t = _np.arange(int(sr * dur), dtype=_np.float32) / sr
+            wave = _np.sin(2 * _np.pi * 440.0 * t).astype(_np.float32)
+            stereo = _np.column_stack([wave, wave])
+            # Try preferred device from appdata
+            name = str(get_appdata_manager().get("audio_output_device", "") or "")
+            try:
+                sd.play(stereo, samplerate=sr, blocking=False, device=name if name else None)
+            except Exception:
+                sd.play(stereo, samplerate=sr, blocking=False)
+            self._status("Playing system test tone", 1500)
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "Audio", f"Test tone failed: {exc}")
+            except Exception:
+                pass
 
     def _force_redraw(self, *_args) -> None:
         # Rebuild editor caches and hit-rects for immediate tool feedback
@@ -721,6 +1034,8 @@ class MainWindow(QtWidgets.QMainWindow):
             size_units = self.snap_dock.selector.get_snap_size()
             if hasattr(self, 'editor_controller') and self.editor_controller is not None:
                 self.editor_controller.set_snap_size_units(size_units)
+                self.editor_controller.draw_frame()
+                
             if hasattr(self, 'editor_canvas') and self.editor_canvas is not None:
                 self.editor_canvas.update()
             # Persist to appdata
@@ -784,6 +1099,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 if sp is not None and hasattr(sp, 'sizes'):
                     sizes = list(sp.sizes())
                     adm.set("splitter_sizes", [int(sizes[0]) if sizes else 0, int(sizes[1]) if len(sizes) > 1 else 0])
+            except Exception:
+                pass
+            # Persist whether the session is currently saved to a project file
+            try:
+                fm = getattr(self, 'file_manager', None)
+                if fm is not None:
+                    # Session considered saved if we have a project path and it's not dirty
+                    was_saved = bool(fm.path() is not None and not fm.is_dirty())
+                    adm.set("last_session_saved", was_saved)
+                    adm.set("last_session_path", str(fm.path() or ""))
             except Exception:
                 pass
             adm.save()

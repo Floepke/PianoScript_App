@@ -23,7 +23,7 @@ class FileManager:
     - Provides new(), open(), save(), and save_as() methods
     """
 
-    FILE_FILTER = "PianoScript Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
+    FILE_FILTER = "keyTAB Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         self._parent: Optional[QWidget] = parent
@@ -92,7 +92,7 @@ class FileManager:
                     pass
                 return self._current
             else:
-                # Native PianoScript file
+                # Native keyTAB file
                 self._current = SCORE().load(fname)
                 self._path = Path(fname)
                 self._last_dir = self._path.parent

@@ -40,8 +40,8 @@ class Style:
         "alternate_base": (53, 53, 63),
         "tooltip_base": (0, 0, 0),
         "tooltip_text": (245, 245, 255),
-        "text": (245, 245, 255),
-        "button": (53, 53, 63),
+        "text": (200, 200, 210),
+        "button": (100, 100, 110),
         "button_text": (245, 245, 255),
         "bright_text": (255, 255, 255),
         "link": (42, 130, 218),
@@ -49,20 +49,25 @@ class Style:
         "highlighted_text": (0, 0, 0),
     }
 
+    # Palette role → dict key mapping. To set all app text colors from a single
+    # dictionary entry, most text-related roles are unified to the key "text".
+    # You can override per-role colors by changing the mapping below to point to
+    # distinct keys (e.g., "window_text", "button_text") and adding those keys
+    # to the _LIGHT/_DARK dictionaries.
     _ROLE_MAP = {
         QPalette.Window: "window",
-        QPalette.WindowText: "window_text",
+        QPalette.WindowText: "text",          # unify to global text color
         QPalette.Base: "base",
         QPalette.AlternateBase: "alternate_base",
         QPalette.ToolTipBase: "tooltip_base",
-        QPalette.ToolTipText: "tooltip_text",
+        QPalette.ToolTipText: "text",         # unify to global text color
         QPalette.Text: "text",
         QPalette.Button: "button",
-        QPalette.ButtonText: "button_text",
-        QPalette.BrightText: "bright_text",
+        QPalette.ButtonText: "text",          # unify to global text color
+        QPalette.BrightText: "text",          # unify to global text color
         QPalette.Link: "link",
         QPalette.Highlight: "highlight",
-        QPalette.HighlightedText: "highlighted_text",
+        QPalette.HighlightedText: "text",     # unify to global text color
     }
 
     def __init__(self):
@@ -148,6 +153,6 @@ class Style:
         """Get the appropriate editor background color based on current theme."""
         theme = get_preferences().get('theme')
         if theme == 'dark':
-            return (153, 153, 163)
+            return (200, 200, 200)
         else:
             return (240, 240, 240)

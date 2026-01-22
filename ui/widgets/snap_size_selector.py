@@ -370,5 +370,5 @@ class SnapSizeDock(QtWidgets.QDockWidget):
         frac = self.selector.get_snap_fraction()
         size = self.selector.get_snap_size()
         # Display as numerator/denominator and time units
-        text = f"Snap Size: {frac.numerator}/{frac.denominator} | {size}"
+        text = f"Snap Size: {frac.numerator}/{frac.denominator} | {size:.1f}"
         self.setWindowTitle(text)

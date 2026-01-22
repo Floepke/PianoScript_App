@@ -19,7 +19,7 @@ class _DataDef:
 
 
 class AppDataManager:
-    """Register and persist application data (non-preferences) in ~/ .pianoscript/appdata.py.
+    """Register and persist application data (non-preferences) in ~/ .keyTAB/appdata.py.
 
     This is for runtime-managed data such as recent files, last session info, etc.
     """
@@ -77,7 +77,7 @@ class AppDataManager:
 
     def _emit_py_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# PianoScript app data\n\n# Application-managed data. Editing is possible but it's not meant for that.")
+        lines.append("# keyTAB app data\n\n# Application-managed data. Editing is possible but it's not meant for that.")
         lines.append("appdata = {")
         indent = "    "
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]
@@ -132,6 +132,22 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("snap_base", 8, "Last selected snap base (1,2,4,8,...) for editor snapping")
         adm.register("snap_divide", 1, "Last selected snap divide (tuplets factor) for editor snapping")
         adm.register("selected_tool", "note", "Last selected tool name in the tool selector")
+        # MIDI output port preference
+        adm.register("midi_out_port", "", "Last selected external MIDI output port name")
+        # Playback backend selection
+        adm.register("playback_type", "midi_port", "Playback backend: 'midi_port' or 'internal_synth'")
+        # Internal synth settings (stored as lists of floats)
+        adm.register("synth_left_wavetable", [], "Left wavetable samples for internal synth (float list)")
+        adm.register("synth_right_wavetable", [], "Right wavetable samples for internal synth (float list)")
+        adm.register("synth_attack", 0.005, "Synth attack time (seconds)")
+        adm.register("synth_decay", 0.05, "Synth decay time (seconds)")
+        adm.register("synth_sustain", 0.6, "Synth sustain level (0..1)")
+        adm.register("synth_release", 0.1, "Synth release time (seconds)")
+        # Audio output device name for internal synth (sounddevice)
+        adm.register("audio_output_device", "", "Preferred audio output device name for internal synth")
+        # Session restore preferences
+        adm.register("last_session_saved", False, "Whether the last session at exit was saved to a project file")
+        adm.register("last_session_path", "", "Project file path associated with the last session if it was saved")
         # Synth-related appdata removed: wavetable and ADSR are no longer used
         # Window state (session-managed)
         adm.register("window_maximized", True, "Start maximized; updated on exit")
