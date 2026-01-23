@@ -1,7 +1,7 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from fractions import Fraction
-from utils.CONSTANT import QUARTER_NOTE_UNIT
+from utils.CONSTANT import QUARTER_NOTE_UNIT, SHORTEST_DURATION
 
 BASE_ITEMS: list[tuple[int, str]] = [
     (1, "Whole"),
@@ -306,8 +306,8 @@ class SnapSizeSelector(QtWidgets.QWidget):
         base_units = (QUARTER_NOTE_UNIT * 4.0) / float(base_den)
         divide = max(1, int(self._divide))
         snap = base_units / float(divide)
-        if snap < 8.0:
-            snap = 8.0  # minimum snap size
+        if snap < float(SHORTEST_DURATION):
+            snap = float(SHORTEST_DURATION)  # minimum snap size
         return snap
 
     def set_snap(self, base: int, divide: int, emit: bool = True) -> None:

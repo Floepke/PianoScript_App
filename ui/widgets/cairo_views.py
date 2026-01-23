@@ -610,15 +610,10 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 measure_idx = int(self._editor.get_measure_index_for_time(time_val))
             except Exception:
                 measure_idx = 0
-            try:
-                # Call drawer mixin helper to detect rest after this note
-                rest_after = bool(self._editor._is_followed_by_rest(n))
-            except Exception:
-                rest_after = False
             msg = (
                 f"Note: time: {time_val:.0f}, pitch: {pitch_val}, duration: {dur_val:.0f}, "
                 f"velocity: {vel_val}, hand: {hand_val}, id: {int(note_id)}, "
-                f"measure: {measure_idx}, rest_after: {'yes' if rest_after else 'no'}"
+                f"measure: {measure_idx}"
             )
             w = self.window()
             # Call MainWindow._status if available

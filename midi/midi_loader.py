@@ -10,7 +10,7 @@ except Exception:
     mido = None
 
 from file_model.SCORE import SCORE
-from utils.CONSTANT import QUARTER_NOTE_UNIT
+from utils.CONSTANT import QUARTER_NOTE_UNIT, GRACENOTE_THRESHOLD
 from file_model.base_grid import BaseGrid
 
 
@@ -70,14 +70,17 @@ def midi_load(path: str) -> SCORE:
         for n in inst.notes:
             start_units = _seconds_to_units(pm, float(n.start))
             end_units = _seconds_to_units(pm, float(n.end))
-            duration_units = max(0.0, end_units - start_units)
+            duration_units = max(0.0, float(end_units) - float(start_units))
             # MIDI A4 (69) -> app A4 (49): subtract 20
             app_pitch = int(n.pitch) - 20
             # Simple left/right hand heuristic around app middle C (~40)
             hand = '<' if int(app_pitch) < 40 else '>'
             vel = int(getattr(n, 'velocity', 64) or 64)
             vel = max(0, min(127, vel))
-            score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(vel), hand=hand)
+            if duration_units < float(GRACENOTE_THRESHOLD):
+                score.new_grace_note(pitch=int(app_pitch), time=float(start_units))
+            else:
+                score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(vel), hand=hand)
 
     # Build base_grid from time signature changes
     try:
@@ -219,10 +222,13 @@ def _midi_load_with_mido(path: str) -> SCORE:
                     end_sec = abs_seconds
                     start_units = (start_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
                     end_units = (end_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
-                    duration_units = max(0.0, end_units - start_units)
+                    duration_units = max(0.0, float(end_units) - float(start_units))
                     app_pitch = int(msg.note) - 20
                     hand = '<' if int(app_pitch) < 40 else '>'
-                    score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(max(0, min(127, vel))), hand=hand)
+                    if duration_units < float(GRACENOTE_THRESHOLD):
+                        score.new_grace_note(pitch=int(app_pitch), time=float(start_units))
+                    else:
+                        score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(max(0, min(127, vel))), hand=hand)
                     total_end_seconds = max(total_end_seconds, end_sec)
         # For any unmatched note_on left, close them with short duration
         for (ch, pitch), lst in note_stack.items():
@@ -230,12 +236,15 @@ def _midi_load_with_mido(path: str) -> SCORE:
                 end_sec = start_sec + 0.05
                 start_units = (start_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
                 end_units = (end_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
-                duration_units = max(0.0, end_units - start_units)
+                duration_units = max(0.0, float(end_units) - float(start_units))
                 app_pitch2 = int(pitch) - 20
                 hand = '<' if int(app_pitch2) < 40 else '>'
             # If velocity not retained (should be), default to 64
             default_vel = 64
-            score.new_note(pitch=int(app_pitch2), time=float(start_units), duration=float(duration_units), velocity=default_vel, hand=hand)
+            if duration_units < float(GRACENOTE_THRESHOLD):
+                score.new_grace_note(pitch=int(app_pitch2), time=float(start_units))
+            else:
+                score.new_note(pitch=int(app_pitch2), time=float(start_units), duration=float(duration_units), velocity=default_vel, hand=hand)
             total_end_seconds = max(total_end_seconds, end_sec)
 
     # Build base_grid from mido time signatures

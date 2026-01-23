@@ -15,6 +15,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         layout.setSpacing(8)
         # Square button size to match ToolSelector list row height
         self._button_size = 35
+        
+        '''this button fits the print view to fit the window.'''
         # Default toolbar (top to bottom): fit, next, previous, engrave, play, stop
         self.fit_btn = QtWidgets.QToolButton(self)
         self.fit_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
@@ -30,6 +32,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         self.fit_btn.setFixedHeight(max(1, self._button_size // 2))
         layout.addWidget(self.fit_btn)
 
+        '''this button goes to the next page in the print view.'''
         self.next_btn = QtWidgets.QToolButton(self)
         self.next_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icn = get_qicon('next', size=(64, 64))
@@ -42,7 +45,8 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
             self.next_btn.clicked.connect(parent.nextRequested.emit)
         except Exception:
             pass
-
+        
+        '''this button goes to the previous page in the print view.'''
         self.prev_btn = QtWidgets.QToolButton(self)
         self.prev_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icp = get_qicon('previous', size=(64, 64))
@@ -56,6 +60,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
+        '''this button triggers the engrave action in the print view.'''
         self.engrave_btn = QtWidgets.QToolButton(self)
         self.engrave_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         ice = get_qicon('engrave', size=(64, 64))
@@ -69,20 +74,21 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
-        # FX button (synth editor)
-        self.fx_btn = QtWidgets.QToolButton(self)
-        self.fx_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        icfx = get_qicon('tempo', size=(64, 64))
-        if icfx:
-            self.fx_btn.setIcon(icfx)
-        self.fx_btn.setIconSize(QtCore.QSize(self._button_size - 6, self._button_size - 6))
-        self.fx_btn.setFixedSize(self._button_size, self._button_size)
-        layout.addWidget(self.fx_btn)
-        try:
-            self.fx_btn.clicked.connect(parent.fxRequested.emit)
-        except Exception:
-            pass
+        # Visual separator between default toolbar and contextual toolbar
+        sep = QtWidgets.QFrame(self)
+        # Use a 1px separator that adapts to the current palette
+        sep.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        sep.setFixedHeight(1)
+        pal = self.palette()
+        btn = pal.color(QtGui.QPalette.Button)
+        # Slightly darken the button color to get a subtle separator line
+        line_r = max(0, min(255, int(btn.red() * 0.75)))
+        line_g = max(0, min(255, int(btn.green() * 0.75)))
+        line_b = max(0, min(255, int(btn.blue() * 0.75)))
+        sep.setStyleSheet(f"background-color: rgb({line_r}, {line_g}, {line_b});")
+        layout.addWidget(sep)
 
+        '''this button plays the music.'''
         self.play_btn = QtWidgets.QToolButton(self)
         self.play_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icplay = get_qicon('play', size=(64, 64))
@@ -96,6 +102,7 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
+        '''this button stops the music.'''
         self.stop_btn = QtWidgets.QToolButton(self)
         self.stop_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         icstop = get_qicon('stop', size=(64, 64))
@@ -109,6 +116,27 @@ class ToolbarHandle(QtWidgets.QSplitterHandle):
         except Exception:
             pass
 
+        # FX button (synth editor)
+        self.fx_btn = QtWidgets.QToolButton(self)
+        self.fx_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        # Use text label 'FX' instead of an icon
+        try:
+            self.fx_btn.setIcon(QtGui.QIcon())
+        except Exception:
+            pass
+        self.fx_btn.setText('FX')
+        font = self.fx_btn.font()
+        try:
+            font.setBold(True)
+            self.fx_btn.setFont(font)
+        except Exception:
+            pass
+        self.fx_btn.setFixedSize(self._button_size, self._button_size)
+        layout.addWidget(self.fx_btn)
+        try:
+            self.fx_btn.clicked.connect(parent.fxRequested.emit)
+        except Exception:
+            pass
 
         # Visual separator between default toolbar and contextual toolbar
         sep = QtWidgets.QFrame(self)

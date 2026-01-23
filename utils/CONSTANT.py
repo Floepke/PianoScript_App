@@ -88,3 +88,7 @@ ACCENT_COLOR_HEX: tuple[int, int, int, float] = hex_to_rgba(ACCENT_COLOR_HEX)
 CURSOR_COLOR: tuple[int, int, int, float] = hex_to_rgba(CURSOR_COLOR_HEX)
 NOTATION_COLOR: tuple[int, int, int, float] = hex_to_rgba(NOTATION_COLOR_HEX)
 
+SHORTEST_DURATION: float = 8.0  # shortest note duration in time units (128th) (for playback and rendering)
+# Threshold for interpreting very short notes as grace notes on load/import.
+# Defaults to SHORTEST_DURATION so one edit can adjust both behaviors.
+GRACENOTE_THRESHOLD: float = SHORTEST_DURATION

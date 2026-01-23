@@ -18,6 +18,7 @@ from file_model.events.end_repeat import EndRepeat
 from file_model.events.count_line import CountLine
 from file_model.events.line_break import LineBreak
 from file_model.layout import Layout
+from utils.CONSTANT import GRACENOTE_THRESHOLD
 from file_model.base_grid import BaseGrid
 
 
@@ -264,6 +265,9 @@ class SCORE:
 
 		# Normalize hand values across events to '<' or '>' (repair legacy 'l'/'r')
 		try:
+			# Convert very short notes to grace notes and normalize hand values
+			converted_grace: List[GraceNote] = []
+			remaining_notes: List[Note] = []
 			for n in getattr(self.events, 'note', []) or []:
 				h = str(getattr(n, 'hand', '<') or '<').strip()
 				if h.lower() == 'l':
@@ -272,6 +276,19 @@ class SCORE:
 					setattr(n, 'hand', '>')
 				elif h not in ('<', '>'):
 					setattr(n, 'hand', '<')
+				# Convert to grace note if shorter than threshold
+				try:
+					du = float(getattr(n, 'duration', 0.0) or 0.0)
+					if du < float(GRACENOTE_THRESHOLD):
+						converted_grace.append(GraceNote(pitch=int(getattr(n, 'pitch', 40) or 40), time=float(getattr(n, 'time', 0.0) or 0.0)))
+					else:
+						remaining_notes.append(n)
+				except Exception:
+					remaining_notes.append(n)
+			# Replace lists: keep remaining notes, append converted grace notes via builder to assign ids
+			self.events.note = remaining_notes
+			for g in converted_grace:
+				self.new_grace_note(pitch=int(g.pitch), time=float(g.time))
 			for b in getattr(self.events, 'beam', []) or []:
 				h = str(getattr(b, 'hand', '<') or '<').strip()
 				if h.lower() == 'l':
@@ -369,6 +386,9 @@ class SCORE:
 
 		# Normalize hand values across events to '<' or '>' (repair legacy 'l'/'r')
 		try:
+			# Convert very short notes to grace notes and normalize hand values
+			converted_grace: List[GraceNote] = []
+			remaining_notes: List[Note] = []
 			for n in getattr(self.events, 'note', []) or []:
 				h = str(getattr(n, 'hand', '<') or '<').strip()
 				if h.lower() == 'l':
@@ -377,6 +397,18 @@ class SCORE:
 					setattr(n, 'hand', '>')
 				elif h not in ('<', '>'):
 					setattr(n, 'hand', '<')
+				# Convert to grace note if shorter than threshold
+				try:
+					du = float(getattr(n, 'duration', 0.0) or 0.0)
+					if du < float(GRACENOTE_THRESHOLD):
+						converted_grace.append(GraceNote(pitch=int(getattr(n, 'pitch', 40) or 40), time=float(getattr(n, 'time', 0.0) or 0.0)))
+					else:
+						remaining_notes.append(n)
+				except Exception:
+					remaining_notes.append(n)
+			self.events.note = remaining_notes
+			for g in converted_grace:
+				self.new_grace_note(pitch=int(g.pitch), time=float(g.time))
 			for b in getattr(self.events, 'beam', []) or []:
 				h = str(getattr(b, 'hand', '<') or '<').strip()
 				if h.lower() == 'l':

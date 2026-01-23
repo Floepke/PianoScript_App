@@ -141,13 +141,19 @@ class WavetableEditor(QtWidgets.QDialog):
         layout.addLayout(self._make_canvas_row("L", self.left_canvas))
         layout.addLayout(self._make_canvas_row("R", self.right_canvas))
 
-        # ADSR + Gain controls
+        # ADSR + Gain controls (sliders)
         grid = QtWidgets.QGridLayout()
-        self.attack = self._make_spin(0.0, 2.0, 0.005, "s")
-        self.decay = self._make_spin(0.0, 2.0, 0.05, "s")
-        self.sustain = self._make_spin(0.0, 1.0, 0.6, "", 0.01)
-        self.release = self._make_spin(0.0, 2.0, 0.1, "s")
-        self.gain = self._make_spin(0.0, 1.5, 0.35, "", 0.01)
+
+        # Time sliders (0..10s) and sustain slider (0..1)
+        # Use curve_power>1.0 to get finer control at lower values
+        curve = 3.0
+        self.attack = self._make_float_slider(0.0, 10.0, 0.005, suffix=" s", decimals=3, scale=1000, curve_power=curve)
+        self.decay = self._make_float_slider(0.0, 10.0, 0.05, suffix=" s", decimals=3, scale=1000, curve_power=curve)
+        self.sustain = self._make_float_slider(0.0, 1.0, 0.6, suffix="", decimals=3, scale=1000, curve_power=curve)
+        self.release = self._make_float_slider(0.0, 10.0, 0.1, suffix=" s", decimals=3, scale=1000, curve_power=curve)
+        # Keep gain as a slider too for convenience (0..1.5) with milder curve
+        self.gain = self._make_float_slider(0.0, 1.5, 0.35, suffix="", decimals=2, scale=100, curve_power=2.0)
+
         grid.addWidget(QtWidgets.QLabel("Attack"), 0, 0)
         grid.addWidget(self.attack, 0, 1)
         grid.addWidget(QtWidgets.QLabel("Decay"), 1, 0)
@@ -212,15 +218,84 @@ class WavetableEditor(QtWidgets.QDialog):
         row.addLayout(btns)
         return row
 
-    def _make_spin(self, mn: float, mx: float, val: float, suffix: str = "", step: float = 0.005) -> QtWidgets.QDoubleSpinBox:
-        s = QtWidgets.QDoubleSpinBox()
-        s.setRange(mn, mx)
-        s.setDecimals(3)
-        s.setSingleStep(step)
-        s.setValue(val)
-        if suffix:
-            s.setSuffix(f" {suffix}")
-        return s
+    class _FloatSlider(QtWidgets.QWidget):
+        valueChanged = QtCore.Signal(float)
+
+        def __init__(self, mn: float, mx: float, val: float, decimals: int = 3, scale: int = 1000, suffix: str = "", curve_power: float = 1.0, parent=None) -> None:
+            super().__init__(parent)
+            self._mn = float(mn)
+            self._mx = float(mx)
+            self._dec = int(max(0, decimals))
+            self._scale = int(max(1, scale))
+            self._pow = float(max(0.1, curve_power))
+            lay = QtWidgets.QHBoxLayout(self)
+            lay.setContentsMargins(0, 0, 0, 0)
+            self._slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal, self)
+            self._slider.setRange(0, int(round((self._mx - self._mn) * self._scale)))
+            self._spin = QtWidgets.QDoubleSpinBox(self)
+            self._spin.setRange(self._mn, self._mx)
+            self._spin.setDecimals(self._dec)
+            self._spin.setSingleStep(1.0 / float(self._scale))
+            if suffix:
+                self._spin.setSuffix(suffix)
+            lay.addWidget(self._slider, 1)
+            lay.addWidget(self._spin)
+            self.setValue(float(val))
+            # wire
+            self._slider.valueChanged.connect(self._on_slider)
+            self._spin.valueChanged.connect(self._on_spin)
+
+        def _on_slider(self, iv: int) -> None:
+            # Map slider integer to value using power curve for finer control near 0
+            frac = float(iv) / float(self._slider.maximum() if self._slider.maximum() > 0 else 1)
+            v = self._mn + (self._mx - self._mn) * (frac ** self._pow)
+            try:
+                self._spin.blockSignals(True)
+                self._spin.setValue(v)
+            finally:
+                self._spin.blockSignals(False)
+            self.valueChanged.emit(float(self.value()))
+
+        def _on_spin(self, v: float) -> None:
+            # Map spin value back to slider position using inverse power curve
+            if self._mx <= self._mn:
+                iv = 0
+            else:
+                frac = float(max(0.0, min(1.0, (float(v) - self._mn) / (self._mx - self._mn))))
+                # Inverse mapping of x^p -> x = frac^(1/p)
+                sfrac = frac ** (1.0 / self._pow)
+                iv = int(round(sfrac * float(self._slider.maximum())))
+                iv = max(0, min(self._slider.maximum(), iv))
+            try:
+                self._slider.blockSignals(True)
+                self._slider.setValue(iv)
+            finally:
+                self._slider.blockSignals(False)
+            self.valueChanged.emit(float(self.value()))
+
+        def value(self) -> float:
+            return float(self._spin.value())
+
+        def setValue(self, v: float) -> None:
+            v = float(max(self._mn, min(self._mx, v)))
+            # Apply inverse power mapping to set slider
+            if self._mx <= self._mn:
+                iv = 0
+            else:
+                frac = (v - self._mn) / (self._mx - self._mn)
+                sfrac = float(frac) ** (1.0 / self._pow)
+                iv = int(round(sfrac * float(self._slider.maximum())))
+            try:
+                self._slider.blockSignals(True)
+                self._spin.blockSignals(True)
+                self._slider.setValue(iv)
+                self._spin.setValue(v)
+            finally:
+                self._slider.blockSignals(False)
+                self._spin.blockSignals(False)
+
+    def _make_float_slider(self, mn: float, mx: float, val: float, suffix: str = "", decimals: int = 3, scale: int = 1000, curve_power: float = 1.0) -> QtWidgets.QWidget:
+        return self._FloatSlider(mn, mx, val, decimals=decimals, scale=scale, suffix=suffix, curve_power=curve_power)
 
     def _schedule_emit(self) -> None:
         # Restart debounce timer to group rapid changes during drawing

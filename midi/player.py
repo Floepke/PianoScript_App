@@ -48,6 +48,9 @@ class Player:
         self._last_event_count: int = 0
         # Small safety gap for note-off times to avoid exact on/off coincidence clicks and missed retriggers
         self._off_epsilon_sec: float = 0.003  # ~3 ms, inaudible timing shift
+        # Ignore very short notes (in app units) to avoid hanging/stuck behavior
+        # App duration units: QUARTER_NOTE_UNIT == 100.0, so 4 units ≈ 0.04 quarter notes
+        self._min_duration_units: float = 4.0
 
     # Synth API passthroughs
     def set_wavetables(self, left, right) -> None:
@@ -218,7 +221,11 @@ class Player:
             pass
         for n in score.events.note:
             start_sec = (float(n.time) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
-            dur_sec = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+            # Skip notes shorter than threshold in time units
+            dur_units = float(getattr(n, 'duration', 0.0) or 0.0)
+            if dur_units < float(self._min_duration_units):
+                continue
+            dur_sec = (dur_units / QUARTER_NOTE_UNIT) * (60.0 / bpm)
             vel = int(getattr(n, 'velocity', 64) or 64)
             app_pitch = int(n.pitch)
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
@@ -273,6 +280,9 @@ class Player:
         for n in score.events.note:
             start = float(n.time)
             end = float(n.time + n.duration)
+            # Skip notes shorter than threshold in time units
+            if float(getattr(n, 'duration', 0.0) or 0.0) < float(self._min_duration_units):
+                continue
             app_pitch = int(n.pitch)
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             vel = int(getattr(n, 'velocity', 64) or 64)
@@ -322,6 +332,9 @@ class Player:
         for n in score.events.note:
             start = float(n.time)
             end = float(n.time + n.duration)
+            # Skip notes shorter than threshold in time units
+            if float(getattr(n, 'duration', 0.0) or 0.0) < float(self._min_duration_units):
+                continue
             app_pitch = int(n.pitch)
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             vel = int(getattr(n, 'velocity', 64) or 64)
