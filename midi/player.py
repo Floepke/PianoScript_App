@@ -46,6 +46,8 @@ class Player:
         self._t0: float = 0.0
         self._start_units: float = 0.0
         self._last_event_count: int = 0
+        # Small safety gap for note-off times to avoid exact on/off coincidence clicks and missed retriggers
+        self._off_epsilon_sec: float = 0.003  # ~3 ms, inaudible timing shift
 
     # Synth API passthroughs
     def set_wavetables(self, left, right) -> None:
@@ -219,10 +221,12 @@ class Player:
             dur_sec = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
             vel = int(getattr(n, 'velocity', 64) or 64)
             app_pitch = int(n.pitch)
-            midi_pitch = app_pitch + self._pitch_offset
+            midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             events.append(('on', start_sec, midi_pitch, vel))
-            events.append(('off', start_sec + max(0.0, dur_sec), midi_pitch, 0))
-        events.sort(key=lambda e: e[1])
+            off_t = max(0.0, start_sec + max(0.0, dur_sec) - float(self._off_epsilon_sec))
+            events.append(('off', off_t, midi_pitch, 0))
+        # Sort by time, then ensure 'off' precedes 'on' at the same timestamp to reduce clicks
+        events.sort(key=lambda e: (e[1], 0 if e[0] == 'off' else 1))
         try:
             self._last_event_count = int(len([1 for e in events if e[0] == 'on']))
         except Exception:
@@ -270,7 +274,7 @@ class Player:
             start = float(n.time)
             end = float(n.time + n.duration)
             app_pitch = int(n.pitch)
-            midi_pitch = app_pitch + self._pitch_offset
+            midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             vel = int(getattr(n, 'velocity', 64) or 64)
             if end <= su:
                 continue
@@ -278,13 +282,16 @@ class Player:
                 # Start now; schedule off at remaining duration
                 self._note_on(int(midi_pitch), int(vel))
                 off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                off_t = max(0.0, float(off_t) - float(self._off_epsilon_sec))
                 events.append(('off', float(off_t), midi_pitch, 0))
             elif start >= su:
                 on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
                 dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
                 events.append(('on', float(on_t), midi_pitch, vel))
-                events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
-        events.sort(key=lambda e: e[1])
+                off_t = float(on_t + max(0.0, dur_t) - float(self._off_epsilon_sec))
+                events.append(('off', max(0.0, off_t), midi_pitch, 0))
+        # Sort by time, with 'off' before 'on' at equal times
+        events.sort(key=lambda e: (e[1], 0 if e[0] == 'off' else 1))
 
         # Record BPM and relative start units for playhead mapping
         try:
@@ -316,7 +323,7 @@ class Player:
             start = float(n.time)
             end = float(n.time + n.duration)
             app_pitch = int(n.pitch)
-            midi_pitch = app_pitch + self._pitch_offset
+            midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             vel = int(getattr(n, 'velocity', 64) or 64)
             if end <= su:
                 continue
@@ -324,12 +331,14 @@ class Player:
                 # Start now; schedule off at remaining duration
                 events.append(('on', 0.0, midi_pitch, vel))
                 off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                off_t = max(0.0, float(off_t) - float(self._off_epsilon_sec))
                 events.append(('off', float(off_t), midi_pitch, 0))
             elif start >= su:
                 on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
                 dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
                 events.append(('on', float(on_t), midi_pitch, vel))
-                events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
+                off_t = float(on_t + max(0.0, dur_t) - float(self._off_epsilon_sec))
+                events.append(('off', max(0.0, off_t), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
         try:
             self._last_event_count = int(len([1 for e in events if e[0] == 'on']))

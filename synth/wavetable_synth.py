@@ -29,6 +29,12 @@ class WavetableSynth:
         self._a4_midi = 69
         # Fade-out state
         self._fading: bool = False
+        # Optional per-pitch gain map (MIDI note -> gain multiplier)
+        self._pitch_gain: Dict[int, float] = {}
+        # Velocity companding curve (exponent < 1.0 raises low velocities)
+        self._vel_curve_pow: float = 0.6
+        # Minimum effective velocity gain floor (after companding)
+        self._min_vel_gain: float = 0.06
 
     def _make_sine_table(self, n: int) -> np.ndarray:
         t = np.arange(n, dtype=np.float32)
@@ -48,6 +54,20 @@ class WavetableSynth:
             self.decay = max(0.0, float(decay_seconds))
             self.sustain = float(min(1.0, max(0.0, sustain_level)))
             self.release = max(0.0, float(release_seconds))
+
+    def set_velocity_curve(self, exponent: float, min_gain: float = 0.06) -> None:
+        """Configure velocity companding: output_gain = max(min_gain, (vel/127)**exponent).
+
+        Use exponent < 1.0 to boost low velocities; exponent=1.0 is linear.
+        """
+        with self._lock:
+            self._vel_curve_pow = float(max(0.1, min(4.0, exponent)))
+            self._min_vel_gain = float(max(0.0, min(1.0, min_gain)))
+
+    def set_pitch_gain(self, midi_note: int, gain: float) -> None:
+        """Set an optional per-pitch gain multiplier (1.0 = neutral)."""
+        with self._lock:
+            self._pitch_gain[int(midi_note)] = float(max(0.0, gain))
 
     def _midi_to_freq(self, midi_note: int) -> float:
         return 440.0 * (2.0 ** ((float(midi_note) - float(self._a4_midi)) / 12.0))
@@ -127,8 +147,10 @@ class WavetableSynth:
                     env[i] = env_level
 
                 # Apply voice to output
-                out[:, 0] += (wt_l[l_idx] * env * vel)
-                out[:, 1] += (wt_r[r_idx] * env * vel)
+                # Per-pitch gain multiplier (default 1.0)
+                pitch_gain = float(self._pitch_gain.get(int(k), 1.0))
+                out[:, 0] += (wt_l[l_idx] * env * vel * pitch_gain)
+                out[:, 1] += (wt_r[r_idx] * env * vel * pitch_gain)
                 # Update voice state
                 v['phase'] = phase
                 v['env_level'] = float(env_level)
@@ -143,20 +165,42 @@ class WavetableSynth:
         outdata[:] = out
 
     def note_on(self, midi_note: int, velocity: int) -> None:
+        """Start or retrigger a voice for the given MIDI note.
+
+        If a voice for this note already exists (e.g., previous note ending
+        exactly when the next starts), retrigger its envelope from the current
+        level without resetting phase to avoid clicks.
+        """
         self._ensure_stream()
         freq = self._midi_to_freq(int(midi_note))
         inc = (float(self._wt_left.shape[0]) * freq) / float(self.sample_rate)
+        # Velocity companding with floor to ensure audibility of quiet notes
+        vel_norm = float(np.clip(velocity, 0, 127)) / 127.0
+        vel_f = max(self._min_vel_gain, vel_norm ** float(self._vel_curve_pow))
         with self._lock:
-            self._voices[int(midi_note)] = {
-                'phase': 0.0,
-                'inc': float(inc),
-                'wt_l': self._wt_left,
-                'wt_r': self._wt_right,
-                'env_state': 'attack',
-                'env_level': 0.0,
-                'held': True,
-                'vel': float(np.clip(velocity, 0, 127)) / 127.0,
-            }
+            existing = self._voices.get(int(midi_note))
+            if existing is not None and existing.get('env_state') != 'off':
+                # Smooth retrigger: continue phase, re-enter attack from current level
+                existing['held'] = True
+                existing['env_state'] = 'attack'
+                # Keep current env_level to avoid discontinuity
+                existing['vel'] = vel_f
+                # Update increment in case sample rate or table length changed
+                existing['inc'] = float(inc)
+                existing['wt_l'] = self._wt_left
+                existing['wt_r'] = self._wt_right
+            else:
+                # New voice
+                self._voices[int(midi_note)] = {
+                    'phase': 0.0,
+                    'inc': float(inc),
+                    'wt_l': self._wt_left,
+                    'wt_r': self._wt_right,
+                    'env_state': 'attack',
+                    'env_level': 0.0,
+                    'held': True,
+                    'vel': vel_f,
+                }
 
     def note_off(self, midi_note: int) -> None:
         with self._lock:
