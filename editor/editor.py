@@ -132,6 +132,17 @@ class Editor(QtCore.QObject,
         # Per-frame note hit rectangles in absolute mm coordinates
         self._note_hit_rects: list[dict] = []
 
+        # Selection window state (time-based, tool-agnostic)
+        self._selection_active: bool = False
+        self._sel_start_units: float = 0.0
+        self._sel_end_units: float = 0.0
+        # Anchor time for selection (absolute ticks, unaffected by scroll)
+        self._sel_anchor_units: float = 0.0
+        # Clipboard for cut/copy/paste of detected events
+        self._selection_clipboard: dict | None = None
+        # Modifier state
+        self._shift_down: bool = False
+
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
         """Fill the current page with print-view grey (#7a7a7a)."""
@@ -451,20 +462,52 @@ class Editor(QtCore.QObject,
             self._left_pressed = True
             self._dragging_left = False
             self._press_pos = (x, y)
-            self._tool.on_left_press(x, y)
+            if not self._shift_down:
+                self._tool.on_left_press(x, y)
+            # If Shift is held, initialize selection anchor on left press
+            if self._shift_down:
+                try:
+                    anchor_t = self.snap_time(self.y_to_time(y))
+                    self._sel_anchor_units = float(anchor_t)
+                    self._sel_start_units = float(anchor_t)
+                    self._sel_end_units = float(anchor_t)
+                    self._selection_active = True
+                except Exception:
+                    pass
         elif button == 2:
             self._right_pressed = True
             self._dragging_right = False
             self._press_pos = (x, y)
             self._tool.on_right_press(x, y)
+            # Initialize selection anchor at press to be robust against scrolling
+            try:
+                anchor_t = self.snap_time(self.y_to_time(y))
+                self._sel_anchor_units = float(anchor_t)
+                self._sel_start_units = float(anchor_t)
+                self._sel_end_units = float(anchor_t)
+                self._selection_active = True
+            except Exception:
+                pass
 
     def mouse_move(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._left_pressed:
             if not self._dragging_left and (abs(dx) > self.DRAG_THRESHOLD or abs(dy) > self.DRAG_THRESHOLD):
                 self._dragging_left = True
-                self._tool.on_left_drag_start(x, y)
+                if not self._shift_down:
+                    self._tool.on_left_drag_start(x, y)
             if self._dragging_left:
-                self._tool.on_left_drag(x, y, dx, dy)
+                if not self._shift_down:
+                    self._tool.on_left_drag(x, y, dx, dy)
+                # Update selection window when Shift+Left-dragging
+                if self._shift_down:
+                    try:
+                        cur_t = self.snap_time(self.y_to_time(y))
+                        anchor_t = float(self._sel_anchor_units)
+                        self._sel_start_units = float(min(anchor_t, cur_t))
+                        self._sel_end_units = float(max(anchor_t, cur_t))
+                        self._selection_active = True
+                    except Exception:
+                        pass
                 # Do not capture multiple intermediate drag snapshots
         elif self._right_pressed:
             if not self._dragging_right and (abs(dx) > self.DRAG_THRESHOLD or abs(dy) > self.DRAG_THRESHOLD):
@@ -472,6 +515,15 @@ class Editor(QtCore.QObject,
                 self._tool.on_right_drag_start(x, y)
             if self._dragging_right:
                 self._tool.on_right_drag(x, y, dx, dy)
+                # Update selection window while right-dragging (tool-agnostic)
+                try:
+                    cur_t = self.snap_time(self.y_to_time(y))
+                    anchor_t = float(self._sel_anchor_units)
+                    self._sel_start_units = float(min(anchor_t, cur_t))
+                    self._sel_end_units = float(max(anchor_t, cur_t))
+                    self._selection_active = True
+                except Exception:
+                    pass
                 # Skip intermediate drag snapshots
         else:
             # Update shared cursor state for guide rendering (time + mm), with snapping
@@ -490,35 +542,51 @@ class Editor(QtCore.QObject,
     def mouse_release(self, button: int, x: float, y: float) -> None:
         if button == 1:
             if self._dragging_left:
-                self._tool.on_left_drag_end(x, y)
-                # Capture a single coalesced snapshot for the whole drag
-                self._snapshot_if_changed(coalesce=True, label="left_drag")
+                if not self._shift_down:
+                    self._tool.on_left_drag_end(x, y)
+                    # Capture a single coalesced snapshot for the whole drag
+                    self._snapshot_if_changed(coalesce=True, label="left_drag")
             else:
                 # Click if moved <= threshold
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
-                    self._tool.on_left_click(x, y)
-                # Capture click changes (non-coalesced)
-                self._snapshot_if_changed(coalesce=False, label="left_click")
-            self._tool.on_left_unpress(x, y)
+                    if not self._shift_down:
+                        self._tool.on_left_click(x, y)
+                        # Capture click changes (non-coalesced)
+                        self._snapshot_if_changed(coalesce=False, label="left_click")
+            # Stop drawing selection on any click
+            if not self._dragging_left and not self._shift_down:
+                self._selection_active = False
+            if not self._shift_down:
+                self._tool.on_left_unpress(x, y)
             self._left_pressed = False
             self._dragging_left = False
         elif button == 2:
             if self._dragging_right:
                 self._tool.on_right_drag_end(x, y)
                 self._snapshot_if_changed(coalesce=True, label="right_drag")
+                # On right-drag end, detect selection into clipboard
+                try:
+                    sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
+                    self._selection_clipboard = sel
+                except Exception:
+                    self._selection_clipboard = None
             else:
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
                     self._tool.on_right_click(x, y)
                 self._snapshot_if_changed(coalesce=False, label="right_click")
+            # Stop drawing selection on any click
+            if not self._dragging_right:
+                self._selection_active = False
             self._tool.on_right_unpress(x, y)
             self._right_pressed = False
             self._dragging_right = False
 
     def mouse_double_click(self, button: int, x: float, y: float) -> None:
         if button == 1:
-            self._tool.on_left_double_click(x, y)
+            if not self._shift_down:
+                self._tool.on_left_double_click(x, y)
         elif button == 2:
             self._tool.on_right_double_click(x, y)
 
@@ -886,4 +954,262 @@ class Editor(QtCore.QObject,
                     id=0,
                     tags=["cursor"],
                 )
+
+        # --- Selection window overlay (if active) ---
+        try:
+            if self._selection_active:
+                # Compute absolute selection bounds in mm
+                y1_mm = float(self.time_to_mm(float(self._sel_start_units)))
+                y2_mm = float(self.time_to_mm(float(self._sel_end_units)))
+                sel_top_mm = min(y1_mm, y2_mm)
+                sel_bottom_mm = max(y1_mm, y2_mm)
+                # Clamp to current viewport to allow selection beyond the visible area
+                vp_top = float(self._view_y_mm_offset or 0.0)
+                vp_bottom = vp_top + float(self._viewport_h_mm or 0.0)
+                draw_top = max(sel_top_mm, vp_top)
+                draw_bottom = min(sel_bottom_mm, vp_bottom)
+                if draw_bottom > draw_top:
+                    # Horizontal extent: span between leftmost/rightmost stave lines
+                    x_left = float(self.pitch_to_x(2))
+                    x_right = float(self.pitch_to_x(86))
+                    x2 = min(x_left, x_right)
+                    x1 = max(x_left, x_right)
+                    du.add_rectangle(
+                        x2,
+                        draw_top,
+                        x1,
+                        draw_bottom,
+                        stroke_color=None,
+                        fill_color=self.selection_color,
+                        id=0,
+                        tags=['selection_rect'],
+                    )
+        except Exception:
+            pass
+
+    # ---- Selection detection & clipboard ----
+    def set_selection_window(self, start_units: float, end_units: float, active: bool = True) -> None:
+        """Programmatically set the selection window in ticks and toggle its visibility."""
+        try:
+            self._sel_start_units = float(start_units)
+            self._sel_end_units = float(end_units)
+            self._selection_active = bool(active)
+        except Exception:
+            pass
+
+    def clear_selection(self) -> None:
+        """Clear selection window and clipboard."""
+        self._selection_active = False
+        self._sel_start_units = 0.0
+        self._sel_end_units = 0.0
+        self._sel_anchor_units = 0.0
+        self._selection_clipboard = None
+
+    # ---- Modifier updates ----
+    def set_shift_down(self, down: bool) -> None:
+        self._shift_down = bool(down)
+
+    # Convenience properties for external access
+    @property
+    def selection_window_start(self) -> float:
+        return float(self._sel_start_units)
+
+    @selection_window_start.setter
+    def selection_window_start(self, v: float) -> None:
+        self._sel_start_units = float(v)
+        self._sel_anchor_units = float(v)
+    @property
+    def selection_window_end(self) -> float:
+        return float(self._sel_end_units)
+
+    @selection_window_end.setter
+    def selection_window_end(self, v: float) -> None:
+        self._sel_end_units = float(v)
+
+    def detect_events_from_time_window(self, start_units: float, end_units: float) -> dict:
+        """Scan the SCORE and return a dict of events whose start time falls within [start_units, end_units].
+
+        Keys: 'note', 'grace_note', 'pedal', 'text', 'slur', 'beam', 'start_repeat', 'end_repeat', 'count_line', 'line_break'
+        """
+        score: SCORE | None = self.current_score()
+        if score is None:
+            return {}
+        a = float(min(start_units, end_units))
+        b = float(max(start_units, end_units))
+        out: dict[str, list] = {
+            'note': [],
+            'grace_note': [],
+            'pedal': [],
+            'text': [],
+            'slur': [],
+            'beam': [],
+            'start_repeat': [],
+            'end_repeat': [],
+            'count_line': [],
+            'line_break': [],
+        }
+        # Simple time-based events
+        for ev in getattr(score.events, 'note', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['note'].append(ev)
+        for ev in getattr(score.events, 'grace_note', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['grace_note'].append(ev)
+        for ev in getattr(score.events, 'pedal', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['pedal'].append(ev)
+        for ev in getattr(score.events, 'text', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['text'].append(ev)
+        for ev in getattr(score.events, 'beam', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['beam'].append(ev)
+        for ev in getattr(score.events, 'start_repeat', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['start_repeat'].append(ev)
+        for ev in getattr(score.events, 'end_repeat', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['end_repeat'].append(ev)
+        for ev in getattr(score.events, 'count_line', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['count_line'].append(ev)
+        for ev in getattr(score.events, 'line_break', []) or []:
+            t = float(getattr(ev, 'time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['line_break'].append(ev)
+        # Slur start uses y1_time
+        for ev in getattr(score.events, 'slur', []) or []:
+            t = float(getattr(ev, 'y1_time', 0.0) or 0.0)
+            if a <= t <= b:
+                out['slur'].append(ev)
+        return out
+
+    def copy_selection(self) -> dict | None:
+        """Copy current selection window events into the editor clipboard and return it."""
+        if not self._selection_active:
+            return None
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
+        self._selection_clipboard = sel
+        return sel
+
+    def cut_selection(self) -> dict | None:
+        """Cut current selection window events: copy to clipboard, then remove from SCORE."""
+        score: SCORE | None = self.current_score()
+        if score is None:
+            return None
+        sel = self.copy_selection()
+        if not sel:
+            return None
+        # Remove selected instances from each list
+        for key in sel:
+            lst = getattr(score.events, key, None)
+            if isinstance(lst, list):
+                remain = [ev for ev in lst if ev not in sel[key]]
+                setattr(score.events, key, remain)
+        # Snapshot change
+        self._snapshot_if_changed(coalesce=True, label='cut_selection')
+        return sel
+
+    def paste_selection_at_cursor(self) -> None:
+        """Paste events from clipboard so that the earliest selection start aligns to `self.time_cursor`."""
+        score: SCORE | None = self.current_score()
+        if score is None or self._selection_clipboard is None:
+            return
+        if self.time_cursor is None:
+            return
+        import dataclasses
+        
+        # Determine alignment offset: selection start -> cursor
+        a = float(min(self._sel_start_units, self._sel_end_units))
+        target = float(self.time_cursor)
+        delta = float(target - a)
+        
+        # Track furthest end time to extend timeline if needed
+        furthest_end = float(self._calc_score_time())
+
+        def ctor_for(name: str):
+            return getattr(score, f"new_{name}", None)
+
+        handlers = {
+            'note': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)) + float(d.get('duration', 0.0) or 0.0),
+            },
+            'grace_note': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'pedal': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'text': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'beam': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)) + float(d.get('duration', 0.0) or 0.0),
+            },
+            'start_repeat': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'end_repeat': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'count_line': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'line_break': {
+                'time_fields': ['time'],
+                'end_time': lambda d: float(d.get('time', 0.0)),
+            },
+            'slur': {
+                'time_fields': ['y1_time', 'y2_time', 'y3_time', 'y4_time'],
+                'end_time': lambda d: float(d.get('y4_time', d.get('y1_time', 0.0)) or 0.0),
+            },
+        }
+
+        for ev_type, cfg in handlers.items():
+            ctor = ctor_for(ev_type)
+            if ctor is None:
+                continue
+            items = self._selection_clipboard.get(ev_type, []) or []
+            for ev in items:
+                d = dataclasses.asdict(ev)
+                d.pop('id', None)
+                for key in cfg['time_fields']:
+                    if key in d:
+                        d[key] = float(d.get(key, 0.0)) + delta
+                ctor(**d)
+                try:
+                    furthest_end = max(furthest_end, float(cfg['end_time'](d)))
+                except Exception:
+                    pass
+        # Extend timeline if pasted content exceeds current end barline
+        cur_end = float(self._calc_score_time())
+        if furthest_end > cur_end:
+            bg_list = list(getattr(score, 'base_grid', []) or [])
+            if bg_list:
+                last_bg = bg_list[-1]
+                num = float(getattr(last_bg, 'numerator', 4) or 4)
+                den = float(getattr(last_bg, 'denominator', 4) or 4)
+                measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+                extra_measures = int(max(1, math.ceil((furthest_end - cur_end) / max(1e-6, measure_len))))
+                last_bg.measure_amount = int(getattr(last_bg, 'measure_amount', 1) or 1) + extra_measures
+        # Snapshot change
+        self._snapshot_if_changed(coalesce=True, label='paste_selection')
+        # Stop drawing selection overlay after paste (clipboard stays)
+        self._selection_active = False
 

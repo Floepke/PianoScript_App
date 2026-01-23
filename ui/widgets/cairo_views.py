@@ -349,6 +349,14 @@ class CairoEditorWidget(QtWidgets.QWidget):
         self.setFocus()
         self._last_pos = ev.position()
         self._last_sent_pos = ev.position()
+        # Update modifier state on editor (Shift tracking)
+        try:
+            mods = ev.modifiers()
+            shift_down = bool(mods & QtCore.Qt.KeyboardModifier.ShiftModifier)
+            if self._editor is not None:
+                self._editor.set_shift_down(shift_down)
+        except Exception:
+            pass
         # On content changes, invalidate cached content
         self._content_cache_image = None
         self._content_cache_key = None
@@ -371,6 +379,14 @@ class CairoEditorWidget(QtWidgets.QWidget):
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
         # Always record last raw position
         self._last_pos = ev.position()
+        # Update modifier state continuously during drag/move
+        try:
+            mods = ev.modifiers()
+            shift_down = bool(mods & QtCore.Qt.KeyboardModifier.ShiftModifier)
+            if self._editor is not None:
+                self._editor.set_shift_down(shift_down)
+        except Exception:
+            pass
         # Coalesce moves and dispatch at most 30 times/sec
         self._pending_move = ev.position()
         try:

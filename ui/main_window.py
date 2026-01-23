@@ -447,6 +447,17 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         edit_menu.addAction(undo_act)
         edit_menu.addAction(redo_act)
+        # Cut/Copy/Paste actions (platform-aware shortcuts)
+        cut_act = QtGui.QAction("Cut", self)
+        cut_act.setShortcut(QtGui.QKeySequence.StandardKey.Cut)
+        copy_act = QtGui.QAction("Copy", self)
+        copy_act.setShortcut(QtGui.QKeySequence.StandardKey.Copy)
+        paste_act = QtGui.QAction("Paste", self)
+        paste_act.setShortcut(QtGui.QKeySequence.StandardKey.Paste)
+        edit_menu.addSeparator()
+        edit_menu.addAction(cut_act)
+        edit_menu.addAction(copy_act)
+        edit_menu.addAction(paste_act)
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
@@ -466,6 +477,9 @@ class MainWindow(QtWidgets.QMainWindow):
         save_as_act.triggered.connect(self._file_save_as)
         undo_act.triggered.connect(self._edit_undo)
         redo_act.triggered.connect(self._edit_redo)
+        cut_act.triggered.connect(self._edit_cut)
+        copy_act.triggered.connect(self._edit_copy)
+        paste_act.triggered.connect(self._edit_paste)
 
         # ---- Clock label manually positioned at menubar's right edge ----
         try:
@@ -674,6 +688,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_views_from_score()
         try:
             self.editor_controller.set_score(self.file_manager.current())
+        except Exception:
+            pass
+
+    def _edit_copy(self) -> None:
+        try:
+            self.editor_controller.copy_selection()
+            self._status("Copied selection", 1200)
+        except Exception:
+            pass
+
+    def _edit_cut(self) -> None:
+        try:
+            self.editor_controller.cut_selection()
+            self._refresh_views_from_score()
+            try:
+                self.editor_controller.set_score(self.file_manager.current())
+            except Exception:
+                pass
+            self._status("Cut selection", 1200)
+        except Exception:
+            pass
+
+    def _edit_paste(self) -> None:
+        try:
+            self.editor_controller.paste_selection_at_cursor()
+            self._refresh_views_from_score()
+            try:
+                self.editor_controller.set_score(self.file_manager.current())
+            except Exception:
+                pass
+            self._status("Pasted selection", 1200)
         except Exception:
             pass
 
