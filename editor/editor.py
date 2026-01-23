@@ -124,6 +124,8 @@ class Editor(QtCore.QObject,
         self.hand_cursor: Literal['<', '>'] = '<'  # default hand for cursor overlays
         # show/hide guides depending on mouse over editor
         self.guides_active: bool = True
+        # Playhead position (app time units). When set, draws a red line overlay.
+        self.playhead_units: Optional[float] = None
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
@@ -287,6 +289,54 @@ class Editor(QtCore.QObject,
 
         # Rebuild cached x positions
         self._rebuild_x_positions()
+
+    # ---- Note lookup ----
+    def get_note_by_id(self, note_id: int):
+        """Return the note event for id, preferring current viewport cache.
+
+        Falls back to scanning all notes if cache is unavailable.
+        """
+        try:
+            nid = int(note_id)
+        except Exception:
+            return None
+        # Prefer notes in the current viewport draw cache
+        try:
+            cache = getattr(self, '_draw_cache', None) or {}
+            notes_view = cache.get('notes_view') or []
+            if notes_view:
+                for n in notes_view:
+                    if int(getattr(n, 'id', -1) or -1) == nid:
+                        return n
+        except Exception:
+            pass
+        # Fallback: global scan
+        try:
+            score: SCORE | None = self.current_score()
+            if score is None:
+                return None
+            for n in getattr(score.events, 'note', []) or []:
+                if int(getattr(n, 'id', -1) or -1) == nid:
+                    return n
+        except Exception:
+            pass
+        return None
+
+    def get_measure_index_for_time(self, ticks: float) -> int:
+        """Return 1-based measure index for a given time in ticks.
+
+        Uses barline start positions across the score and finds the last
+        barline at or before `ticks`. If no barline is at or before, returns 1.
+        """
+        try:
+            bars = self._get_barline_positions()
+            if not bars:
+                return 1
+            # bisect_right gives insertion point after any equal entries
+            i = bisect.bisect_right(bars, float(ticks)) - 1
+            return max(1, int(i + 1))
+        except Exception:
+            return 1
 
     def _rebuild_x_positions(self) -> None:
         """Precompute x positions for keys 1..PIANO_KEY_AMOUNT with BE gap after B/E."""
@@ -733,20 +783,34 @@ class Editor(QtCore.QObject,
 
     # ---- Editor guides (tool-agnostic overlays) ----
     def draw_guides(self, du: DrawUtil) -> None:
-        """Draw shared editor guides such as the horizontal time cursor.
+        """Draw overlays: playhead and mouse cursor guidance.
 
-        This runs independently of the active tool so overrides don't suppress it.
+        Playhead renders regardless of mouse-over; cursor renders only when active.
         """
-        # Skip drawing guides when the mouse is not over the editor
+        margin = float(self.margin or 0.0)
+        stave_width = float(self.stave_width or 0.0)
+
+        # --- Playhead overlay (always, if available) ---
+        if self.playhead_units is not None:
+            y_mm_ph = float(self.time_to_mm(float(self.playhead_units)))
+            du.add_line(
+                margin,
+                y_mm_ph,
+                margin + stave_width,
+                y_mm_ph,
+                color=(.25, 0.0, .6, 0.75),
+                width_mm=1.5,
+                id=0,
+                tags=['playhead'],
+            )
+
+        # --- Mouse cursor guides (only when active) ---
         if not self.guides_active:
             return
         # get cursor mm position: convert local (viewport) mm -> absolute mm
         if self.mm_cursor is None:
             return
         y_mm = float(self.mm_cursor) + float(self._view_y_mm_offset or 0.0)
-        
-        margin = float(self.margin or 0.0)
-        stave_width = float(self.stave_width or 0.0)
 
         # Left side of stave
         du.add_line(

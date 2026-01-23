@@ -268,6 +268,14 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             # Player initialization is optional at startup
             self.player = None
+        # Playhead overlay timer (30 Hz)
+        try:
+            self._playhead_timer = QtCore.QTimer(self)
+            self._playhead_timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
+            self._playhead_timer.setInterval(33)
+            self._playhead_timer.timeout.connect(self._update_playhead_overlay)
+        except Exception:
+            self._playhead_timer = None
         # Apply stored synth settings if any
         try:
             adm_init = get_appdata_manager()
@@ -309,6 +317,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.player = Player()
                 if hasattr(self.player, 'is_playing') and self.player.is_playing():
                     self.player.stop()
+                    # Clear playhead overlay immediately on stop
+                    try:
+                        self._clear_playhead_overlay()
+                    except Exception:
+                        pass
                 else:
                     # Get start time from editor time cursor; default to 0.0
                     try:
@@ -358,10 +371,11 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-        # Create menus in normal left-to-right order (File, Edit, View)
+        # Create menus in normal left-to-right order (File, Edit, View, Playback)
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
         view_menu = menubar.addMenu("&View")
+        playback_menu = menubar.addMenu("&Playback")
 
         # File actions
         new_act = QtGui.QAction("New", self)
@@ -381,20 +395,20 @@ class MainWindow(QtWidgets.QMainWindow):
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
 
-        # MIDI Output port chooser (placed under Edit menu)
+        # MIDI Output port chooser (under Playback menu)
         midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
         midi_port_act.triggered.connect(self._choose_midi_port)
-        edit_menu.addAction(midi_port_act)
+        playback_menu.addAction(midi_port_act)
 
-        # Playback Mode submenu
-        playback_menu = edit_menu.addMenu("Playback Mode")
+        # Playback Mode submenu (under Playback menu)
+        pm_submenu = playback_menu.addMenu("Playback Mode")
         grp = QtGui.QActionGroup(self)
         act_midi = QtGui.QAction("External MIDI Port", self, checkable=True)
         act_synth = QtGui.QAction("Internal Synth", self, checkable=True)
         grp.addAction(act_midi)
         grp.addAction(act_synth)
-        playback_menu.addAction(act_midi)
-        playback_menu.addAction(act_synth)
+        pm_submenu.addAction(act_midi)
+        pm_submenu.addAction(act_synth)
         # Initialize from appdata
         try:
             adm = get_appdata_manager()
@@ -409,15 +423,15 @@ class MainWindow(QtWidgets.QMainWindow):
         act_midi.triggered.connect(lambda: self._set_playback_mode("midi_port"))
         act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
 
-        # Audio output device chooser for internal synth
+        # Audio output device chooser for internal synth (under Playback menu)
         audio_dev_act = QtGui.QAction("Set Audio Output Device...", self)
         audio_dev_act.triggered.connect(self._choose_audio_device)
-        edit_menu.addAction(audio_dev_act)
+        playback_menu.addAction(audio_dev_act)
 
-        # System audio test tone
+        # System audio test tone (under Playback menu)
         sys_tone_act = QtGui.QAction("Play System Audio Test Tone", self)
         sys_tone_act.triggered.connect(self._play_system_test_tone)
-        edit_menu.addAction(sys_tone_act)
+        playback_menu.addAction(sys_tone_act)
 
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
@@ -436,10 +450,10 @@ class MainWindow(QtWidgets.QMainWindow):
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
-        # Quick synth test tone for troubleshooting
+        # Quick synth test tone for troubleshooting (under Playback menu)
         test_tone_act = QtGui.QAction("Play Synth Test Tone", self)
         test_tone_act.triggered.connect(self._play_test_tone)
-        edit_menu.addAction(test_tone_act)
+        playback_menu.addAction(test_tone_act)
 
         # View actions
         view_menu.addAction(QtGui.QAction("Zoom In", self))
@@ -793,6 +807,8 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if hasattr(self, 'player') and self.player is not None:
                 self.player.stop()
+            # Clear playhead overlay when stopping
+            self._clear_playhead_overlay()
         except Exception:
             pass
 
@@ -815,6 +831,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.player.play_score(sc)
                     else:
                         self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                    # Start playhead timer
+                    self._start_playhead_timer()
+                    # Show playback debug status
+                    self._show_play_debug_status()
                     return
             except Exception:
                 pass
@@ -824,6 +844,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.player.play_score(sc)
                 else:
                     self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                # Start playhead timer
+                self._start_playhead_timer()
+                self._show_play_debug_status()
                 return
             except Exception:
                 # Likely missing or failed MIDI port; prompt user to select one
@@ -837,6 +860,9 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.player.play_score(sc)
                     else:
                         self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                    # Start playhead timer
+                    self._start_playhead_timer()
+                    self._show_play_debug_status()
                     return
                 except Exception as exc2:
                     # Fallback to internal synth automatically
@@ -847,6 +873,9 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.player.play_score(sc)
                         else:
                             self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+                        # Start playhead timer
+                        self._start_playhead_timer()
+                        self._show_play_debug_status()
                         return
                     except Exception:
                         # Notify user if still failing
@@ -854,6 +883,74 @@ class MainWindow(QtWidgets.QMainWindow):
                             QtWidgets.QMessageBox.critical(self, "Playback", f"Playback failed: {exc2}")
                         except Exception:
                             print(f"Playback failed: {exc2}")
+        except Exception:
+            pass
+
+    def _start_playhead_timer(self) -> None:
+        try:
+            if hasattr(self, '_playhead_timer') and self._playhead_timer is not None:
+                if not self._playhead_timer.isActive():
+                    self._playhead_timer.start()
+            # Immediate update for responsiveness
+            self._update_playhead_overlay()
+        except Exception:
+            pass
+
+    def _show_play_debug_status(self) -> None:
+        try:
+            if hasattr(self, 'player') and self.player is not None and hasattr(self.player, 'get_debug_status'):
+                info = self.player.get_debug_status()
+                mode = info.get('playback_type', '')
+                bpm = info.get('bpm', 0)
+                ev = info.get('events', 0)
+                if mode == 'internal_synth':
+                    dev = info.get('device', '') or 'default'
+                    gain = info.get('gain', 0.0)
+                    self._status(f"Playing (Synth) • {ev} notes • {bpm:.0f} BPM • Device: {dev} • Gain: {gain:.2f}", 3000)
+                else:
+                    port = info.get('midi_port', '') or '(auto)'
+                    self._status(f"Playing (MIDI) • {ev} notes • {bpm:.0f} BPM • Port: {port}", 3000)
+        except Exception:
+            pass
+
+    def _update_playhead_overlay(self) -> None:
+        try:
+            if hasattr(self, 'player') and self.player is not None and hasattr(self.player, 'is_playing') and self.player.is_playing():
+                units = None
+                try:
+                    units = self.player.get_playhead_units() if hasattr(self.player, 'get_playhead_units') else None
+                except Exception:
+                    units = None
+                # Update editor playhead and trigger overlay refresh
+                try:
+                    self.editor_controller.playhead_units = units
+                except Exception:
+                    pass
+                try:
+                    if hasattr(self.editor, 'request_overlay_refresh'):
+                        self.editor.request_overlay_refresh()
+                    else:
+                        self.editor.update()
+                except Exception:
+                    pass
+            else:
+                # Not playing: clear and stop timer
+                self._clear_playhead_overlay()
+        except Exception:
+            pass
+
+    def _clear_playhead_overlay(self) -> None:
+        try:
+            if hasattr(self, '_playhead_timer') and self._playhead_timer is not None and self._playhead_timer.isActive():
+                self._playhead_timer.stop()
+        except Exception:
+            pass
+        try:
+            self.editor_controller.playhead_units = None
+            if hasattr(self.editor, 'request_overlay_refresh'):
+                self.editor.request_overlay_refresh()
+            else:
+                self.editor.update()
         except Exception:
             pass
 
@@ -950,9 +1047,22 @@ class MainWindow(QtWidgets.QMainWindow):
                     pass
             if hasattr(self.player, '_synth') and self.player._synth is not None:
                 try:
+                    # Apply preferred audio device if set
+                    try:
+                        dev = str(get_appdata_manager().get("audio_output_device", "") or "")
+                        if dev and hasattr(self.player, 'set_audio_output_device'):
+                            self.player.set_audio_output_device(dev)
+                    except Exception:
+                        pass
+                    # Ensure any previous playback is stopped
+                    try:
+                        self.player._synth.all_notes_off()
+                    except Exception:
+                        pass
                     self.player._synth.note_on(69, 110)
                     QtCore.QTimer.singleShot(1000, lambda: self.player._synth.note_off(69))
-                    self._status("Playing synth test tone", 1500)
+                    dev = getattr(self.player._synth, '_device_name', '') or 'default'
+                    self._status(f"Synth test tone → {dev}", 2000)
                 except Exception:
                     pass
         except Exception:
@@ -998,18 +1108,38 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             import numpy as _np
             import sounddevice as sd
+            import threading as _th
             sr = 48000
             dur = 1.5
             t = _np.arange(int(sr * dur), dtype=_np.float32) / sr
             wave = _np.sin(2 * _np.pi * 440.0 * t).astype(_np.float32)
             stereo = _np.column_stack([wave, wave])
-            # Try preferred device from appdata
+            # Preferred device
             name = str(get_appdata_manager().get("audio_output_device", "") or "")
+            dev = name if name else 'default'
+            # Stop any previous playback
             try:
-                sd.play(stereo, samplerate=sr, blocking=False, device=name if name else None)
+                sd.stop()
             except Exception:
-                sd.play(stereo, samplerate=sr, blocking=False)
-            self._status("Playing system test tone", 1500)
+                pass
+            # Play in a short background thread using OutputStream to avoid finished_callback errors
+            def _play_stream():
+                stream = None
+                try:
+                    stream = sd.OutputStream(samplerate=sr, channels=2, dtype='float32', device=name if name else None)
+                    stream.start()
+                    stream.write(stereo)
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        if stream is not None:
+                            stream.stop()
+                            stream.close()
+                    except Exception:
+                        pass
+            _th.Thread(target=_play_stream, daemon=True).start()
+            self._status(f"System test tone → {dev}", 2000)
         except Exception as exc:
             try:
                 QtWidgets.QMessageBox.critical(self, "Audio", f"Test tone failed: {exc}")
@@ -1143,6 +1273,11 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if hasattr(self, 'player') and self.player is not None:
                 self.player.stop()
+        except Exception:
+            pass
+        # Stop playhead timer and clear overlay
+        try:
+            self._clear_playhead_overlay()
         except Exception:
             pass
         # Close FX dialog if open

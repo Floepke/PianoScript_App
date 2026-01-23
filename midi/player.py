@@ -41,6 +41,11 @@ class Player:
                 self._port_name = pn
         except Exception:
             pass
+        # Playback timing state for UI playhead
+        self._bpm: float = 120.0
+        self._t0: float = 0.0
+        self._start_units: float = 0.0
+        self._last_event_count: int = 0
 
     # Synth API passthroughs
     def set_wavetables(self, left, right) -> None:
@@ -203,6 +208,12 @@ class Player:
                     break
         except Exception:
             pass
+        # Record BPM and start at zero units for full-play runs
+        try:
+            self._bpm = float(bpm)
+            self._start_units = 0.0
+        except Exception:
+            pass
         for n in score.events.note:
             start_sec = (float(n.time) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
             dur_sec = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
@@ -212,6 +223,10 @@ class Player:
             events.append(('on', start_sec, midi_pitch, vel))
             events.append(('off', start_sec + max(0.0, dur_sec), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
+        try:
+            self._last_event_count = int(len([1 for e in events if e[0] == 'on']))
+        except Exception:
+            pass
         return events
 
     def play_score(self, score) -> None:
@@ -271,6 +286,12 @@ class Player:
                 events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
 
+        # Record BPM and relative start units for playhead mapping
+        try:
+            self._start_units = float(su)
+            self._bpm = float(bpm)
+        except Exception:
+            pass
         self._run_events_with_midi(events)
 
     def _build_events_from_time(self, start_units: float, score) -> List[Tuple[str, float, int, int]]:
@@ -284,6 +305,12 @@ class Player:
         except Exception:
             pass
         su = float(max(0.0, start_units))
+        # Record BPM and start units so UI can compute playhead
+        try:
+            self._bpm = float(bpm)
+            self._start_units = float(su)
+        except Exception:
+            pass
         events: List[Tuple[str, float, int, int]] = []
         for n in score.events.note:
             start = float(n.time)
@@ -304,12 +331,20 @@ class Player:
                 events.append(('on', float(on_t), midi_pitch, vel))
                 events.append(('off', float(on_t + max(0.0, dur_t)), midi_pitch, 0))
         events.sort(key=lambda e: e[1])
+        try:
+            self._last_event_count = int(len([1 for e in events if e[0] == 'on']))
+        except Exception:
+            pass
         return events
 
     def _run_events_with_midi(self, events: List[Tuple[str, float, int, int]]) -> None:
         self._running = True
         def _runner():
             t0 = time.time()
+            try:
+                self._t0 = float(t0)
+            except Exception:
+                pass
             for kind, t_rel, midi_note, vel in events:
                 if not self._running:
                     break
@@ -323,6 +358,8 @@ class Player:
                     self._note_on(int(midi_note), int(vel))
                 else:
                     self._note_off(int(midi_note))
+            # Playback finished naturally
+            self._running = False
         th = threading.Thread(target=_runner, daemon=True)
         th.start()
         self._thread = th
@@ -333,6 +370,10 @@ class Player:
         self._running = True
         def _runner():
             t0 = time.time()
+            try:
+                self._t0 = float(t0)
+            except Exception:
+                pass
             for kind, t_rel, midi_note, vel in events:
                 if not self._running:
                     break
@@ -349,6 +390,8 @@ class Player:
                         self._synth.note_off(int(midi_note))
                 except Exception:
                     pass
+            # Playback finished naturally
+            self._running = False
         th = threading.Thread(target=_runner, daemon=True)
         th.start()
         self._thread = th
@@ -379,3 +422,39 @@ class Player:
 
     def is_playing(self) -> bool:
         return bool(self._running)
+
+    def get_playhead_units(self) -> Optional[float]:
+        """Return current playhead position in app time units (ticks), or None if idle.
+
+        Mapping: units = start_units + elapsed_sec * QUARTER_NOTE_UNIT * bpm / 60.
+        """
+        if not bool(self._running):
+            return None
+        try:
+            elapsed = max(0.0, time.time() - float(self._t0))
+            units = float(self._start_units) + float(elapsed) * float(QUARTER_NOTE_UNIT) * float(self._bpm) / 60.0
+            return units
+        except Exception:
+            return None
+
+    def get_debug_status(self) -> dict:
+        """Return current playback debug info for UI/status messages."""
+        status = {
+            'playback_type': self._playback_type,
+            'bpm': float(self._bpm),
+            'events': int(self._last_event_count),
+        }
+        try:
+            if self._playback_type == 'internal_synth' and self._synth is not None:
+                status['gain'] = float(getattr(self._synth, 'gain', 0.0))
+                status['device'] = str(getattr(self._synth, '_device_name', '') or '')
+        except Exception:
+            pass
+        try:
+            if self._playback_type == 'midi_port':
+                status['midi_port'] = str(self._port_name or '')
+            else:
+                status['midi_port'] = ''
+        except Exception:
+            pass
+        return status

@@ -261,6 +261,28 @@ class SCORE:
 				except Exception:
 					pass
 				lst.append(obj)
+
+		# Normalize hand values across events to '<' or '>' (repair legacy 'l'/'r')
+		try:
+			for n in getattr(self.events, 'note', []) or []:
+				h = str(getattr(n, 'hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					setattr(n, 'hand', '<')
+				elif h.lower() == 'r':
+					setattr(n, 'hand', '>')
+				elif h not in ('<', '>'):
+					setattr(n, 'hand', '<')
+			for b in getattr(self.events, 'beam', []) or []:
+				h = str(getattr(b, 'hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					setattr(b, 'hand', '<')
+				elif h.lower() == 'r':
+					setattr(b, 'hand', '>')
+				elif h not in ('<', '>'):
+					setattr(b, 'hand', '<')
+		except Exception:
+			pass
+
 		return self
 
 	@classmethod
@@ -344,6 +366,27 @@ class SCORE:
 				except Exception:
 					pass
 				lst.append(obj)
+
+		# Normalize hand values across events to '<' or '>' (repair legacy 'l'/'r')
+		try:
+			for n in getattr(self.events, 'note', []) or []:
+				h = str(getattr(n, 'hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					setattr(n, 'hand', '<')
+				elif h.lower() == 'r':
+					setattr(n, 'hand', '>')
+				elif h not in ('<', '>'):
+					setattr(n, 'hand', '<')
+			for b in getattr(self.events, 'beam', []) or []:
+				h = str(getattr(b, 'hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					setattr(b, 'hand', '<')
+				elif h.lower() == 'r':
+					setattr(b, 'hand', '>')
+				elif h not in ('<', '>'):
+					setattr(b, 'hand', '<')
+		except Exception:
+			pass
 
 		return self
 

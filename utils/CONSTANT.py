@@ -59,7 +59,8 @@ EDITOR_LAYERING = [
     'selection_rect',  # Selection rectangle
     'keyboard_overlay_bg',     # Piano keyboard overlay background
     'keyboard_overlay_keys',   # Piano keyboard overlay keys
-    'cursor',            # Always on top
+    'cursor',
+    'playhead',
 ]
 
 ENGRAVER_LAYERING = [
