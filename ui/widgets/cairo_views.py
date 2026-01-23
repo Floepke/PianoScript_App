@@ -449,6 +449,15 @@ class CairoEditorWidget(QtWidgets.QWidget):
         key = ev.key()
         mods = ev.modifiers()
         if self._editor is not None:
+            # Delete selection on Backspace/Delete
+            if key in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
+                try:
+                    if self._editor.delete_selection():
+                        self.update()
+                        ev.accept()
+                        return
+                except Exception:
+                    pass
             if key == QtCore.Qt.Key_Comma:
                 self._editor.hand_cursor = '<'
                 # Overlay-only guide refresh is enough

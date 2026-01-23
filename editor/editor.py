@@ -1118,6 +1118,32 @@ class Editor(QtCore.QObject,
         self._snapshot_if_changed(coalesce=True, label='cut_selection')
         return sel
 
+    def delete_selection(self) -> bool:
+        """Delete current selection window events without copying to clipboard.
+
+        Returns True if deletion occurred, False otherwise. Clears selection overlay.
+        """
+        score: SCORE | None = self.current_score()
+        if score is None or not self._selection_active:
+            return False
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
+        deleted_any = False
+        try:
+            for key in sel:
+                lst = getattr(score.events, key, None)
+                if isinstance(lst, list) and sel[key]:
+                    remain = [ev for ev in lst if ev not in sel[key]]
+                    if len(remain) != len(lst):
+                        deleted_any = True
+                    setattr(score.events, key, remain)
+            if deleted_any:
+                self._snapshot_if_changed(coalesce=True, label='delete_selection')
+        except Exception:
+            pass
+        # Clear selection window and clipboard after delete
+        self.clear_selection()
+        return deleted_any
+
     def paste_selection_at_cursor(self) -> None:
         """Paste events from clipboard so that the earliest selection start aligns to `self.time_cursor`."""
         score: SCORE | None = self.current_score()

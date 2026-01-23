@@ -29,7 +29,13 @@ class FileManager:
         self._parent: Optional[QWidget] = parent
         self._current: SCORE = SCORE().new()
         self._path: Optional[Path] = None
-        self._last_dir: Path = Path.home()
+        # Initialize last_dir from appdata if available, else home
+        try:
+            adm = get_appdata_manager()
+            last_dir_str = str(adm.get("last_file_dialog_dir", "") or "")
+            self._last_dir: Path = Path(last_dir_str) if last_dir_str else Path.home()
+        except Exception:
+            self._last_dir: Path = Path.home()
         self._dirty: bool = False
         # Ensure the autosave directory exists on initialization
         os.makedirs(UTILS_SAVE_DIR, exist_ok=True)
@@ -82,6 +88,12 @@ class FileManager:
                     raise RuntimeError(f"Failed to load MIDI: {exc}")
                 self._path = None
                 self._last_dir = Path(fname).parent
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_file_dialog_dir", str(self._last_dir))
+                    adm.save()
+                except Exception:
+                    pass
                 # Imported from external format; mark dirty until explicitly saved
                 self._dirty = True
                 try:
@@ -96,6 +108,12 @@ class FileManager:
                 self._current = SCORE().load(fname)
                 self._path = Path(fname)
                 self._last_dir = self._path.parent
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_file_dialog_dir", str(self._last_dir))
+                    adm.save()
+                except Exception:
+                    pass
                 self._dirty = False
                 # Track last opened file in appdata
                 try:
@@ -179,6 +197,12 @@ class FileManager:
             self._current.save(str(target))
             self._path = target
             self._last_dir = target.parent
+            try:
+                adm = get_appdata_manager()
+                adm.set("last_file_dialog_dir", str(self._last_dir))
+                adm.save()
+            except Exception:
+                pass
             self._dirty = False
             try:
                 adm = get_appdata_manager()

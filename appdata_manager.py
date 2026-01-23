@@ -129,6 +129,7 @@ def get_appdata_manager() -> AppDataManager:
         # Register known app data here (not user preferences)
         adm.register("recent_files", [], "List of recently opened files (most recent first)")
         adm.register("last_opened_file", "", "Absolute path to the last opened/saved project file")
+        adm.register("last_file_dialog_dir", "", "Last directory used in file open/save dialogs")
         adm.register("snap_base", 8, "Last selected snap base (1,2,4,8,...) for editor snapping")
         adm.register("snap_divide", 1, "Last selected snap divide (tuplets factor) for editor snapping")
         adm.register("selected_tool", "note", "Last selected tool name in the tool selector")
