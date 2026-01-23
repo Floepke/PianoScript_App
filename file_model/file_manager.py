@@ -23,7 +23,10 @@ class FileManager:
     - Provides new(), open(), save(), and save_as() methods
     """
 
-    FILE_FILTER = "keyTAB Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
+    # Open dialog: show both .piano and .mid/.midi by default
+    OPEN_FILE_FILTER = "Supported Files (*.piano *.mid *.midi);;keyTAB Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
+    # Save dialog: prefer only .piano
+    SAVE_FILE_FILTER = "keyTAB Score (*.piano);;All Files (*)"
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         self._parent: Optional[QWidget] = parent
@@ -73,7 +76,7 @@ class FileManager:
             self._parent,
             "Load Score",
             start_dir,
-            self.FILE_FILTER,
+            self.OPEN_FILE_FILTER,
         )
         if not fname:
             return None
@@ -188,7 +191,7 @@ class FileManager:
             self._parent,
             "Save Score As",
             start_dir,
-            self.FILE_FILTER,
+            self.SAVE_FILE_FILTER,
         )
         if not fname:
             return False

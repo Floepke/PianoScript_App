@@ -531,10 +531,15 @@ class CairoEditorWidget(QtWidgets.QWidget):
         super().leaveEvent(ev)
 
     def focusOutEvent(self, ev: QtGui.QFocusEvent) -> None:
-        # Keep the editor as the main focus widget when the window is active
+        # Do not steal focus back when a modal dialog is active (e.g., time signature dialog)
         try:
+            active_modal = None
+            try:
+                active_modal = QtWidgets.QApplication.activeModalWidget()
+            except Exception:
+                active_modal = None
             w = self.window()
-            if isinstance(w, QtWidgets.QWidget) and w.isActiveWindow():
+            if isinstance(w, QtWidgets.QWidget) and w.isActiveWindow() and active_modal is None:
                 QtCore.QTimer.singleShot(0, self.setFocus)
         except Exception:
             pass

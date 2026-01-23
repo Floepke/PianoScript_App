@@ -17,6 +17,10 @@ from editor.tool.slur_tool import SlurTool
 from editor.tool.start_repeat_tool import StartRepeatTool
 from editor.tool.text_tool import TextTool
 from editor.tool.base_grid_tool import BaseGridTool
+from editor.tool.time_signature_tool import TimeSignatureTool
+from editor.tool.dynamic_tool import DynamicTool
+from editor.tool.crescendo_tool import CrescendoTool
+from editor.tool.decrescendo_tool import DecrescendoTool
 from editor.ctlz import CtlZ
 from file_model.SCORE import SCORE
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
@@ -33,6 +37,10 @@ from editor.drawers.start_repeat_drawer import StartRepeatDrawerMixin
 from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
 from editor.drawers.count_line_drawer import CountLineDrawerMixin
 from editor.drawers.line_break_drawer import LineBreakDrawerMixin
+from editor.drawers.dynamic_drawer import DynamicDrawerMixin
+from editor.drawers.crescendo_drawer import CrescendoDrawerMixin
+from editor.drawers.decrescendo_drawer import DecrescendoDrawerMixin
+from editor.drawers.time_signature_drawer import TimeSignatureDrawerMixin
 from utils.CONSTANT import PIANO_KEY_AMOUNT, BLACK_KEYS
 from utils.operator import Operator
 
@@ -45,12 +53,16 @@ class Editor(QtCore.QObject,
              StaveDrawerMixin,
              SnapDrawerMixin,
              GridDrawerMixin,
+             TimeSignatureDrawerMixin,
              NoteDrawerMixin,
              GraceNoteDrawerMixin,
              BeamDrawerMixin,
              SlurDrawerMixin,
              TextDrawerMixin,
              PedalDrawerMixin,
+             DynamicDrawerMixin,
+             CrescendoDrawerMixin,
+             DecrescendoDrawerMixin,
              StartRepeatDrawerMixin,
              EndRepeatDrawerMixin,
              CountLineDrawerMixin,
@@ -81,6 +93,10 @@ class Editor(QtCore.QObject,
             'start_repeat': StartRepeatTool,
             'text': TextTool,
             'base_grid': BaseGridTool,
+            'time_signature': TimeSignatureTool,
+            'dynamic': DynamicTool,
+            'crescendo': CrescendoTool,
+            'decrescendo': DecrescendoTool,
         }
         self._tm.set_tool(self._tool)
 
@@ -167,11 +183,15 @@ class Editor(QtCore.QObject,
         methods = [
             getattr(self, 'draw_snap', None),
             getattr(self, 'draw_grid', None),
+            getattr(self, 'draw_time_signature', None),
             getattr(self, 'draw_stave', None),
             getattr(self, 'draw_note', None),
             getattr(self, 'draw_grace_note', None),
             getattr(self, 'draw_beam', None),
             getattr(self, 'draw_pedal', None),
+            getattr(self, 'draw_dynamic', None),
+            getattr(self, 'draw_crescendo', None),
+            getattr(self, 'draw_decrescendo', None),
             getattr(self, 'draw_text', None),
             getattr(self, 'draw_slur', None),
             getattr(self, 'draw_start_repeat', None),
@@ -619,6 +639,89 @@ class Editor(QtCore.QObject,
         height_mm = max(10.0, stave_length_mm + top_bottom_mm)
         return height_mm
 
+    def update_score_length(self) -> None:
+        """Ensure measures cover all music exactly, adding or trimming as needed.
+
+        - Finds the furthest note end (time + duration).
+        - If the total measure length is shorter, extend the last segment.
+        - If longer, trim trailing measures/segments so total just covers the music.
+
+        Never creates zero-measure segments; always keeps at least one measure.
+        """
+        score: SCORE | None = self.current_score()
+        if score is None:
+            return
+        notes = list(getattr(score.events, 'note', []) or [])
+        if not notes:
+            # No notes: do not auto-trim/extend; leave base_grid as-is
+            return
+        # Furthest musical time
+        furthest_end = 0.0
+        for n in notes:
+            t = float(getattr(n, 'time', 0.0) or 0.0)
+            du = float(getattr(n, 'duration', 0.0) or 0.0)
+            furthest_end = max(furthest_end, t + du)
+        # Current score end (sum of segment lengths)
+        cur_end = float(self._calc_score_time())
+        bg_list = list(getattr(score, 'base_grid', []) or [])
+        if not bg_list:
+            return
+        # Extend if needed
+        if furthest_end > cur_end:
+            last_bg = bg_list[-1]
+            num = float(getattr(last_bg, 'numerator', 4) or 4)
+            den = float(getattr(last_bg, 'denominator', 4) or 4)
+            measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+            extra_measures = int(max(1, math.ceil((furthest_end - cur_end) / max(1e-6, measure_len))))
+            last_bg.measure_amount = int(getattr(last_bg, 'measure_amount', 1) or 1) + extra_measures
+            self._snapshot_if_changed(coalesce=True, label='update_score_length')
+            self.draw_frame()
+            return
+
+        # Trim trailing measures/segments to minimally cover furthest_end
+        if furthest_end <= 0.0:
+            # Keep at least one measure in the first segment
+            try:
+                bg_list[0].measure_amount = max(1, int(getattr(bg_list[0], 'measure_amount', 1) or 1))
+                score.base_grid = [bg_list[0]]
+            except Exception:
+                pass
+            self._snapshot_if_changed(coalesce=True, label='update_score_length')
+            self.draw_frame()
+            return
+
+        cumulative = 0.0
+        trim_index = None
+        for i, bg in enumerate(bg_list):
+            num = float(getattr(bg, 'numerator', 4) or 4)
+            den = float(getattr(bg, 'denominator', 4) or 4)
+            mcount = int(getattr(bg, 'measure_amount', 1) or 1)
+            measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+            seg_len = measure_len * float(mcount)
+            if cumulative + seg_len >= furthest_end:
+                # Music ends within this segment: adjust its measure_amount
+                required_len = float(max(0.0, furthest_end - cumulative))
+                required_measures = int(max(1, math.ceil(required_len / max(1e-6, measure_len))))
+                try:
+                    bg.measure_amount = required_measures
+                except Exception:
+                    pass
+                trim_index = i
+                break
+            cumulative += seg_len
+
+        if trim_index is None:
+            # Shouldn't happen due to earlier extend check; bail out
+            return
+        # Trim any segments after the adjusted one
+        try:
+            score.base_grid = bg_list[:trim_index + 1]
+        except Exception:
+            pass
+        # Snapshot and redraw after trimming
+        self._snapshot_if_changed(coalesce=True, label='update_score_length')
+        self.draw_frame()
+
     # ---- Shared render cache ----
     def _build_render_cache(self) -> None:
         """Build per-frame cached, time-sorted viewport data for drawers.
@@ -862,11 +965,11 @@ class Editor(QtCore.QObject,
         if self.playhead_units is not None:
             y_mm_ph = float(self.time_to_mm(float(self.playhead_units)))
             du.add_line(
-                margin,
+                self.pitch_to_x(2),
                 y_mm_ph,
-                margin + stave_width,
+                self.pitch_to_x(86),
                 y_mm_ph,
-                color=(.25, 0.0, .6, 0.75),
+                color=(0.0, 0.0, 0.0, 0.75),
                 width_mm=1.5,
                 id=0,
                 tags=['playhead'],
@@ -1096,7 +1199,7 @@ class Editor(QtCore.QObject,
         """Copy current selection window events into the editor clipboard and return it."""
         if not self._selection_active:
             return None
-        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1) # slight epsilon to not detect next event at end
         self._selection_clipboard = sel
         return sel
 
@@ -1126,7 +1229,7 @@ class Editor(QtCore.QObject,
         score: SCORE | None = self.current_score()
         if score is None or not self._selection_active:
             return False
-        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1) # slight epsilon to not detect next event at end
         deleted_any = False
         try:
             for key in sel:

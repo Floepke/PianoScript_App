@@ -89,6 +89,24 @@ class Player:
         except Exception:
             pass
 
+    def set_humanize_detune_cents(self, cents: float) -> None:
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None and hasattr(self._synth, 'set_humanize_detune_cents'):
+                self._synth.set_humanize_detune_cents(float(max(0.0, cents)))
+        except Exception:
+            pass
+
+    def set_humanize_interval_s(self, seconds: float) -> None:
+        if self._synth is None and WavetableSynth is not None:
+            self._synth = WavetableSynth()
+        try:
+            if self._synth is not None and hasattr(self._synth, 'set_humanize_interval_s'):
+                self._synth.set_humanize_interval_s(float(max(0.0, seconds)))
+        except Exception:
+            pass
+
     def set_playback_type(self, playback_type: str) -> None:
         self._playback_type = str(playback_type)
         try:

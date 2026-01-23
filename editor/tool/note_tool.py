@@ -77,8 +77,12 @@ class NoteTool(BaseTool):
         # switch guides off during note editing
         self._editor.guides_active = False
 
-        if self.edit_note and self.edit_note.time + self.edit_note.duration > self._editor._calc_score_time():
-            self._editor.current_score().base_grid[-1].measure_amount += 1
+        # Ensure score length covers latest note end
+        try:
+            if hasattr(self._editor, 'update_score_length'):
+                self._editor.update_score_length()
+        except Exception:
+            pass
 
         self._editor.draw_frame()
 
@@ -163,21 +167,24 @@ class NoteTool(BaseTool):
                         bands_beyond_first = int(math.floor(ratio + 1e-9))
                         note.duration = float(bands_beyond_first + 1) * float(units)
 
-        if note.time + note.duration > self._editor._calc_score_time():
-            self._editor.current_score().base_grid[-1].measure_amount += 1
-
     def on_left_drag_end(self, x: float, y: float) -> None:
         super().on_left_drag_end(x, y)
         # Finalize edit session
         self.edit_note = None
         self._editing_existing = False
         self._duration_edit_armed = False
+        
+        # Ensure the music/base_grid covers latest note end
+        self._editor.update_score_length()
 
     def on_right_press(self, x: float, y: float) -> None:
         super().on_right_press(x, y)
 
     def on_right_unpress(self, x: float, y: float) -> None:
         super().on_right_unpress(x, y)
+
+        # Ensure the music/base_grid covers latest note end
+        self._editor.update_score_length()
 
     def on_right_click(self, x: float, y: float) -> None:
         super().on_right_click(x, y)

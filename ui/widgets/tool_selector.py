@@ -17,7 +17,7 @@ TOOL_ITEMS: list[dict] = [
     { 'name': 'beam',           'displayed_name': 'Beam Grouping',           'icon': 'beam',           'tooltip': 'Beam: group notes with beams' },
     # layout elements
     { 'name': 'line_break',     'displayed_name': 'Line Break/Page Break',     'icon': 'line_break',     'tooltip': 'Line Break: insert line breaks;\nclick on a line break to edit its properties' },
-    { 'name': 'time_signature', 'displayed_name': 'Base-Grid/Time-Signature', 'icon': 'time_signature', 'tooltip': 'Base-Grid/Time-Signature: Configure\ntime signature & grid pattern' },
+    { 'name': 'time_signature', 'displayed_name': 'Time Signature & Grid Pattern', 'icon': 'time_signature', 'tooltip': 'Base-Grid/Time-Signature: Configure\ntime signature & grid pattern' },
     { 'name': 'pedal',          'displayed_name': 'Pedal',          'icon': 'pedal',          'tooltip': 'Pedal: add pedal markings' },
     { 'name': 'slur',           'displayed_name': 'Slur',           'icon': 'slur',           'tooltip': 'Slur: place phrasing slurs' },
     { 'name': 'start_repeat',   'displayed_name': 'Start Repeat',   'icon': 'start_repeat',   'tooltip': 'Start Repeat: repeat begin mark' },

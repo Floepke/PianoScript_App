@@ -35,6 +35,10 @@ class WavetableSynth:
         self._vel_curve_pow: float = 0.6
         # Minimum effective velocity gain floor (after companding)
         self._min_vel_gain: float = 0.06
+        # Humanize detune range (± cents)
+        self.detune_cents: float = 3.0
+        # Humanize interval (seconds between new detune goals)
+        self.detune_interval_s: float = 1.0
 
     def _make_sine_table(self, n: int) -> np.ndarray:
         t = np.arange(n, dtype=np.float32)
@@ -69,6 +73,15 @@ class WavetableSynth:
         with self._lock:
             self._pitch_gain[int(midi_note)] = float(max(0.0, gain))
 
+    def set_humanize_detune_cents(self, cents: float) -> None:
+        """Set per-note random detune range in cents (0 disables detune)."""
+        with self._lock:
+            self.detune_cents = float(max(0.0, min(50.0, cents)))
+
+    def set_humanize_interval_s(self, seconds: float) -> None:
+        with self._lock:
+            self.detune_interval_s = float(max(0.0, seconds))
+
     def _midi_to_freq(self, midi_note: int) -> float:
         return 440.0 * (2.0 ** ((float(midi_note) - float(self._a4_midi)) / 12.0))
 
@@ -94,8 +107,9 @@ class WavetableSynth:
                 return
             # Render each active voice
             for k, v in list(self._voices.items()):
-                phase = float(v['phase'])
-                inc = float(v['inc'])
+                phase_l = float(v['phase_l'])
+                phase_r = float(v['phase_r'])
+                inc_base = float(v['inc_base'])
                 wt_l = v['wt_l']
                 wt_r = v['wt_r']
                 wt_len = float(wt_l.shape[0])
@@ -104,6 +118,12 @@ class WavetableSynth:
                 env_level = float(v['env_level'])
                 held = bool(v['held'])
                 vel = float(v['vel'])
+                # Humanize detune state (in cents)
+                det_cur = float(v.get('detune_current_c', 0.0))
+                det_goal = float(v.get('detune_goal_c', 0.0))
+                det_steps_left = int(v.get('detune_steps_left', 0))
+                # Precompute interval in samples
+                interval_samples = max(1, int(round(float(self.detune_interval_s) * float(self.sample_rate))))
                 # ADSR in samples
                 a_s = max(1, int(round(self.attack * self.sample_rate)))
                 d_s = max(1, int(round(self.decay * self.sample_rate)))
@@ -115,12 +135,33 @@ class WavetableSynth:
                 env = np.empty(frames, dtype=np.float32)
                 for i in range(frames):
                     # Table lookup
-                    idx = int(phase) % wt_l.shape[0]
-                    l_idx[i] = idx
-                    r_idx[i] = idx
-                    phase += inc
-                    if phase >= wt_len:
-                        phase -= wt_len
+                    l_idx[i] = int(phase_l) % wt_l.shape[0]
+                    r_idx[i] = int(phase_r) % wt_r.shape[0]
+                    # Humanize: update detune goal if needed
+                    if det_steps_left <= 0:
+                        # Choose a new random target within ±detune_cents
+                        dc = float(self.detune_cents)
+                        if dc > 0.0:
+                            try:
+                                det_goal = float(np.random.uniform(-dc, dc))
+                            except Exception:
+                                det_goal = 0.0
+                        else:
+                            det_goal = 0.0
+                        det_steps_left = int(interval_samples)
+                    # Slew current detune toward goal linearly
+                    step_c = (det_goal - det_cur) / float(max(1, det_steps_left))
+                    det_cur += step_c
+                    det_steps_left -= 1
+                    # Effective increment with current detune
+                    det_ratio = 2.0 ** (float(det_cur) / 1200.0)
+                    inc_eff = inc_base * float(det_ratio)
+                    phase_l += inc_eff
+                    phase_r += inc_eff
+                    if phase_l >= wt_len:
+                        phase_l -= wt_len
+                    if phase_r >= wt_len:
+                        phase_r -= wt_len
 
                     # Envelope step
                     if env_state == 'attack':
@@ -140,7 +181,8 @@ class WavetableSynth:
                         if not held:
                             env_state = 'release'
                     elif env_state == 'release':
-                        env_level -= max(0.0, sus / r_s)
+                        # Linear release to zero over release time regardless of sustain level.
+                        env_level -= (1.0 / r_s)
                         if env_level <= 0.0:
                             env_level = 0.0
                             env_state = 'off'
@@ -152,9 +194,13 @@ class WavetableSynth:
                 out[:, 0] += (wt_l[l_idx] * env * vel * pitch_gain)
                 out[:, 1] += (wt_r[r_idx] * env * vel * pitch_gain)
                 # Update voice state
-                v['phase'] = phase
+                v['phase_l'] = float(phase_l)
+                v['phase_r'] = float(phase_r)
                 v['env_level'] = float(env_level)
                 v['env_state'] = env_state
+                v['detune_current_c'] = float(det_cur)
+                v['detune_goal_c'] = float(det_goal)
+                v['detune_steps_left'] = int(det_steps_left)
                 if env_state == 'off':
                     # Remove finished voice
                     self._voices.pop(k, None)
@@ -172,8 +218,20 @@ class WavetableSynth:
         level without resetting phase to avoid clicks.
         """
         self._ensure_stream()
+        # Base frequency
         freq = self._midi_to_freq(int(midi_note))
-        inc = (float(self._wt_left.shape[0]) * freq) / float(self.sample_rate)
+        # Apply a small random pitch detune per note (±3 cents)
+        dc = float(self.detune_cents)
+        if dc > 0.0:
+            try:
+                detune_cents = float(np.random.uniform(-dc, dc))
+            except Exception:
+                detune_cents = 0.0
+        else:
+            detune_cents = 0.0
+        detune_ratio = 2.0 ** (float(detune_cents) / 1200.0)
+        freq *= float(detune_ratio)
+        inc_base = (float(self._wt_left.shape[0]) * freq) / float(self.sample_rate)
         # Velocity companding with floor to ensure audibility of quiet notes
         vel_norm = float(np.clip(velocity, 0, 127)) / 127.0
         vel_f = max(self._min_vel_gain, vel_norm ** float(self._vel_curve_pow))
@@ -185,21 +243,42 @@ class WavetableSynth:
                 existing['env_state'] = 'attack'
                 # Keep current env_level to avoid discontinuity
                 existing['vel'] = vel_f
-                # Update increment in case sample rate or table length changed
-                existing['inc'] = float(inc)
+                # Update base increment in case sample rate or table length changed
+                existing['inc_base'] = float(inc_base)
                 existing['wt_l'] = self._wt_left
                 existing['wt_r'] = self._wt_right
             else:
                 # New voice
+                # Start at independent random phases for stereo width
+                try:
+                    start_phase_l = float(np.random.uniform(0.0, float(self._wt_left.shape[0])))
+                except Exception:
+                    start_phase_l = 0.0
+                try:
+                    start_phase_r = float(np.random.uniform(0.0, float(self._wt_right.shape[0])))
+                except Exception:
+                    start_phase_r = 0.0
+                # Initialize detune state
+                dc = float(self.detune_cents)
+                try:
+                    det_cur = float(np.random.uniform(-dc, dc)) if dc > 0.0 else 0.0
+                    det_goal = float(np.random.uniform(-dc, dc)) if dc > 0.0 else 0.0
+                except Exception:
+                    det_cur, det_goal = 0.0, 0.0
+                steps_left = max(1, int(round(float(self.detune_interval_s) * float(self.sample_rate))))
                 self._voices[int(midi_note)] = {
-                    'phase': 0.0,
-                    'inc': float(inc),
+                    'phase_l': float(start_phase_l),
+                    'phase_r': float(start_phase_r),
+                    'inc_base': float(inc_base),
                     'wt_l': self._wt_left,
                     'wt_r': self._wt_right,
                     'env_state': 'attack',
                     'env_level': 0.0,
                     'held': True,
                     'vel': vel_f,
+                    'detune_current_c': float(det_cur),
+                    'detune_goal_c': float(det_goal),
+                    'detune_steps_left': int(steps_left),
                 }
 
     def note_off(self, midi_note: int) -> None:

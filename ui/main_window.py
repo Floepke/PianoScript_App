@@ -268,11 +268,11 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             # Player initialization is optional at startup
             self.player = None
-        # Playhead overlay timer (30 Hz)
+        # Playhead overlay timer (60 Hz)
         try:
             self._playhead_timer = QtCore.QTimer(self)
             self._playhead_timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
-            self._playhead_timer.setInterval(33)
+            self._playhead_timer.setInterval(20)
             self._playhead_timer.timeout.connect(self._update_playhead_overlay)
         except Exception:
             self._playhead_timer = None
@@ -303,6 +303,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     # Apply persisted master gain
                     if hasattr(self.player, 'set_gain'):
                         self.player.set_gain(float(adm_init.get("synth_gain", 0.35) or 0.35))
+                    # Apply persisted humanize (detune cents)
+                    if hasattr(self.player, 'set_humanize_detune_cents'):
+                        self.player.set_humanize_detune_cents(float(adm_init.get("synth_humanize_cents", 3.0) or 3.0))
+                    # Apply persisted humanize interval (seconds)
+                    if hasattr(self.player, 'set_humanize_interval_s'):
+                        self.player.set_humanize_interval_s(float(adm_init.get("synth_humanize_interval_s", 1.0) or 1.0))
                 except Exception:
                     pass
         except Exception:
@@ -458,6 +464,20 @@ class MainWindow(QtWidgets.QMainWindow):
         edit_menu.addAction(cut_act)
         edit_menu.addAction(copy_act)
         edit_menu.addAction(paste_act)
+        # Delete selection action with visible shortcuts (Delete, Backspace)
+        delete_act = QtGui.QAction("Delete", self)
+        try:
+            delete_act.setShortcuts([
+                QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.Delete),
+                QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.Backspace)
+            ])
+        except Exception:
+            # Fallback: set single Delete shortcut
+            try:
+                delete_act.setShortcut(QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.Delete))
+            except Exception:
+                pass
+        edit_menu.addAction(delete_act)
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
@@ -480,6 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cut_act.triggered.connect(self._edit_cut)
         copy_act.triggered.connect(self._edit_copy)
         paste_act.triggered.connect(self._edit_paste)
+        delete_act.triggered.connect(self._edit_delete)
 
         # ---- Clock label manually positioned at menubar's right edge ----
         try:
@@ -719,6 +740,24 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
             self._status("Pasted selection", 1200)
+        except Exception:
+            pass
+
+    def _edit_delete(self) -> None:
+        try:
+            deleted = False
+            if hasattr(self.editor_controller, 'delete_selection'):
+                res = self.editor_controller.delete_selection()
+                deleted = bool(res)
+            if deleted:
+                self._refresh_views_from_score()
+                try:
+                    self.editor_controller.set_score(self.file_manager.current())
+                except Exception:
+                    pass
+                self._status("Deleted selection", 1200)
+            else:
+                self._status("No selection to delete", 1200)
         except Exception:
             pass
 
@@ -1012,7 +1051,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 pass
             # Initialize from appdata
             adm = get_appdata_manager()
-            def on_apply(left, right, a, d, s, r, g):
+            def on_apply(left, right, a, d, s, r, g, h, hi):
                 try:
                     if not hasattr(self, 'player') or self.player is None:
                         from midi.player import Player
@@ -1021,6 +1060,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.player.set_adsr(a, d, s, r)
                     if hasattr(self.player, 'set_gain'):
                         self.player.set_gain(float(g))
+                    if hasattr(self.player, 'set_humanize_detune_cents'):
+                        self.player.set_humanize_detune_cents(float(h))
+                    if hasattr(self.player, 'set_humanize_interval_s'):
+                        self.player.set_humanize_interval_s(float(hi))
                     adm.set("synth_left_wavetable", [float(x) for x in list(left)])
                     adm.set("synth_right_wavetable", [float(x) for x in list(right)])
                     adm.set("synth_attack", float(a))
@@ -1028,6 +1071,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     adm.set("synth_sustain", float(s))
                     adm.set("synth_release", float(r))
                     adm.set("synth_gain", float(g))
+                    adm.set("synth_humanize_cents", float(h))
+                    adm.set("synth_humanize_interval_s", float(hi))
                     adm.save()
                     self._status("Synth updated", 1500)
                 except Exception:

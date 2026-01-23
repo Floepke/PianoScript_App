@@ -124,7 +124,7 @@ def gen_wave(shape: str, n: int) -> np.ndarray:
 
 
 class WavetableEditor(QtWidgets.QDialog):
-    wavetablesApplied = QtCore.Signal(object, object, float, float, float, float, float)
+    wavetablesApplied = QtCore.Signal(object, object, float, float, float, float, float, float, float)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -141,7 +141,7 @@ class WavetableEditor(QtWidgets.QDialog):
         layout.addLayout(self._make_canvas_row("L", self.left_canvas))
         layout.addLayout(self._make_canvas_row("R", self.right_canvas))
 
-        # ADSR + Gain controls (sliders)
+        # ADSR + Gain + Humanize controls (sliders)
         grid = QtWidgets.QGridLayout()
 
         # Time sliders (0..10s) and sustain slider (0..1)
@@ -153,6 +153,10 @@ class WavetableEditor(QtWidgets.QDialog):
         self.release = self._make_float_slider(0.0, 10.0, 0.1, suffix=" s", decimals=3, scale=1000, curve_power=curve)
         # Keep gain as a slider too for convenience (0..1.5) with milder curve
         self.gain = self._make_float_slider(0.0, 1.5, 0.35, suffix="", decimals=2, scale=100, curve_power=2.0)
+        # Humanize detune range in cents (0..10)
+        self.humanize = self._make_float_slider(0.0, 10.0, 3.0, suffix=" cents", decimals=1, scale=10, curve_power=1.0)
+        # Humanize interval in seconds (0.05..2.0)
+        self.humanize_interval = self._make_float_slider(0.05, 2.0, 1.0, suffix=" s", decimals=2, scale=100, curve_power=1.0)
 
         grid.addWidget(QtWidgets.QLabel("Attack"), 0, 0)
         grid.addWidget(self.attack, 0, 1)
@@ -164,6 +168,10 @@ class WavetableEditor(QtWidgets.QDialog):
         grid.addWidget(self.release, 3, 1)
         grid.addWidget(QtWidgets.QLabel("Gain"), 4, 0)
         grid.addWidget(self.gain, 4, 1)
+        grid.addWidget(QtWidgets.QLabel("Humanize range"), 5, 0)
+        grid.addWidget(self.humanize, 5, 1)
+        grid.addWidget(QtWidgets.QLabel("Humanize interval"), 6, 0)
+        grid.addWidget(self.humanize_interval, 6, 1)
         layout.addLayout(grid)
 
         # Close-only button box
@@ -192,6 +200,8 @@ class WavetableEditor(QtWidgets.QDialog):
             self.sustain.setValue(float(adm.get("synth_sustain", 0.6) or 0.6))
             self.release.setValue(float(adm.get("synth_release", 0.1) or 0.1))
             self.gain.setValue(float(adm.get("synth_gain", 0.35) or 0.35))
+            self.humanize.setValue(float(adm.get("synth_humanize_cents", 3.0) or 3.0))
+            self.humanize_interval.setValue(float(adm.get("synth_humanize_interval_s", 1.0) or 1.0))
         except Exception:
             pass
 
@@ -203,6 +213,8 @@ class WavetableEditor(QtWidgets.QDialog):
         self.sustain.valueChanged.connect(lambda *_: self._schedule_emit())
         self.release.valueChanged.connect(lambda *_: self._schedule_emit())
         self.gain.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.humanize.valueChanged.connect(lambda *_: self._schedule_emit())
+        self.humanize_interval.valueChanged.connect(lambda *_: self._schedule_emit())
 
     def _make_canvas_row(self, label: str, canvas: WaveCanvas) -> QtWidgets.QHBoxLayout:
         row = QtWidgets.QHBoxLayout()
@@ -311,6 +323,6 @@ class WavetableEditor(QtWidgets.QDialog):
         left = self.left_canvas.get_samples()
         right = self.right_canvas.get_samples()
         self.wavetablesApplied.emit(left, right,
-                        float(self.attack.value()), float(self.decay.value()),
-                        float(self.sustain.value()), float(self.release.value()),
-                        float(self.gain.value()))
+                float(self.attack.value()), float(self.decay.value()),
+                float(self.sustain.value()), float(self.release.value()),
+                float(self.gain.value()), float(self.humanize.value()), float(self.humanize_interval.value()))
