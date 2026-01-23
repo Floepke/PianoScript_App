@@ -2,35 +2,76 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Run PianoScript",
+			"label": "Run PianoScript (venv)",
 			"type": "shell",
-			"command": "python3",
+			"command": "/Users/philipbergwerf/Documents/PianoScript_App/.venv/bin/python",
 			"args": [
 				"${workspaceFolder}/pianoscript.py"
 			],
+			"options": {
+				"cwd": "${workspaceFolder}",
+				"env": {
+					"QT_QPA_PLATFORM": "cocoa"
+				}
+			},
 			"group": {
 				"kind": "build",
-				"isDefault": false
+				"isDefault": true
 			},
 			"presentation": {
-				"reveal": "never",
+				"reveal": "always",
 				"panel": "dedicated",
 				"clear": false
 			},
 			"problemMatcher": []
 		},
 		{
-			"label": "Run PianoScript (venv)",
+			"label": "Run PianoScript (system python)",
 			"type": "shell",
-			"command": "/home/flop/PianoScript_App_Cairo/.venv/bin/python",
+			"command": "python3",
 			"args": [
 				"${workspaceFolder}/pianoscript.py"
 			],
-			"isBackground": false,
+			"options": {
+				"cwd": "${workspaceFolder}",
+				"env": {
+					"QT_QPA_PLATFORM": "cocoa"
+				}
+			},
 			"group": {
 				"kind": "build",
-				"isDefault": true
-			}
+				"isDefault": false
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": false
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run PianoScript (External Terminal)",
+			"type": "shell",
+			"command": "/usr/bin/osascript",
+			"args": [
+				"-e",
+				"tell application \"Terminal\" to do script \"cd \\\"${workspaceFolder}\\\"; QT_QPA_PLATFORM=cocoa \\\"${workspaceFolder}/.venv/bin/python\\\" \\\"${workspaceFolder}/pianoscript.py\\\"\"",
+				"-e",
+				"tell application \"Terminal\" to activate"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"clear": false
+			},
+			"problemMatcher": []
 		}
 	]
 }

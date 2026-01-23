@@ -17,15 +17,17 @@ def main():
     # Initialize appdata to ensure ~/.keyTAB/appdata.py exists
     get_appdata_manager()
 
-    os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
-    os.environ["QT_SCALE_FACTOR"] = str(ui_scale)
+    # Platform-specific DPI handling:
+    # - On Linux, use Qt env vars to scale UI.
+    # - On macOS, explicitly clear Qt scaling and plugin env to avoid Cocoa issues.
+    if sys.platform.startswith("linux"):
+        os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
+        os.environ["QT_SCALE_FACTOR"] = str(ui_scale)
+    elif sys.platform == "darwin":
+        ...
     
-    # In Qt 6, AA_EnableHighDpiScaling is deprecated; high DPI is enabled by default.
-    # Ensure Qt uses high-DPI pixmaps for crisp icons
-    try:
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
-    except Exception:
-        pass
+    # In Qt 6, high DPI handling is enabled by default; avoid deprecated attributes
+    # to prevent warnings and potential initialization issues.
     
     # On macOS, force menus to render inside the window instead of the global menu bar
     if sys.platform == "darwin":
@@ -36,7 +38,8 @@ def main():
         except Exception:
             # Fallback will be applied per-window in MainWindow if this attribute is unavailable
             pass
-    app = QtWidgets.QApplication([])
+    # Create QApplication with argv to ensure proper initialization paths on macOS
+    app = QtWidgets.QApplication(sys.argv)
     
     # Enforce arrow cursor globally: app never changes the mouse pointer
     QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
