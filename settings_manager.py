@@ -64,6 +64,7 @@ class PreferencesManager:
     def load(self) -> None:
         _ensure_dir()
         parsed: Dict[str, object] = {}
+        changed: bool = False
         if self.path.exists():
             # Load raw text once
             try:
@@ -116,9 +117,14 @@ class PreferencesManager:
                 self._values[k] = self._coerce(parsed[k], d.default)
             else:
                 self._values.setdefault(k, d.default)
+                changed = True
         for k, v in parsed.items():
             if k not in self._values:
                 self._values[k] = v
+
+        # If any schema key was missing from the file, persist the restored defaults
+        if changed:
+            self.save()
 
     def save(self) -> None:
         _ensure_dir()
@@ -281,6 +287,11 @@ def get_preferences_manager() -> PreferencesManager:
         pm.register("theme", "light", "UI theme: ('light' | 'dark')")
         pm.register("editor_fps_limit", 30, "Max mouse-move dispatch rate (FPS). Set 0 to disable throttling.")
         pm.register("auto_save", True, "Auto save project on every edit; also save a session copy in appdata.")
+        pm.register(
+            "note_tool_mouse_gesture_hand_switching",
+            True,
+            "Note tool: automatically switch hand at keyboard edges (pitch 1 → '<', pitch 88 → '>').",
+        )
         pm.load()
         _prefs_manager = pm
     return _prefs_manager

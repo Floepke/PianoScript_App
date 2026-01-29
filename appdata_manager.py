@@ -59,6 +59,7 @@ class AppDataManager:
     def load(self) -> None:
         _ensure_dir()
         parsed: Dict[str, object] = {}
+        changed: bool = False
         if self.path.exists():
             # Load raw text and dict
             try:
@@ -109,9 +110,14 @@ class AppDataManager:
                 self._values[k] = parsed[k]
             else:
                 self._values.setdefault(k, d.default)
+                changed = True
         for k, v in parsed.items():
             if k not in self._values:
                 self._values[k] = v
+
+        # Persist restored defaults if any schema keys were missing
+        if changed:
+            self.save()
 
     def save(self) -> None:
         _ensure_dir()

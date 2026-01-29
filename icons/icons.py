@@ -121,12 +121,30 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
             h_px = max(1, int(round(h_css * dpr)))
             # Use FastTransformation to avoid blur in small UI icons
             img = img.scaled(w_px, h_px, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation)
+
+        # Optional dark-mode tint: render icon as white using its alpha
+        theme = None
+        # Lazy import to avoid hard dependency during build tools
+        from settings_manager import get_preferences_manager as _get_pm  # type: ignore
+        pm = _get_pm()
+        theme = str(pm.get("theme", "light") or "light").lower()
+        if (theme == "dark"):
+            try:
+                # Create a white image and apply the original alpha via composition
+                white = QtGui.QImage(img.size(), QtGui.QImage.Format_ARGB32_Premultiplied)
+                white.fill(QtGui.QColor(255, 255, 255, 255))
+                alpha = img.convertToFormat(QtGui.QImage.Format_Alpha8)
+                painter = QtGui.QPainter(white)
+                painter.setCompositionMode(QtGui.QPainter.CompositionMode_DestinationIn)
+                painter.drawImage(0, 0, alpha)
+                painter.end()
+                img = white
+            except Exception:
+                # Fallback: simple invert to improve contrast
+                img.invertPixels()
         pm = QtGui.QPixmap.fromImage(img)
         # Inform Qt of the device pixel ratio so it renders sharply at CSS size
-        try:
-            pm.setDevicePixelRatio(dpr)
-        except Exception:
-            pass
+        pm.setDevicePixelRatio(dpr)
         icon = QtGui.QIcon()
         icon.addPixmap(pm, QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         return icon

@@ -23,14 +23,8 @@ def main():
     if sys.platform.startswith("linux"):
         os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
         os.environ["QT_SCALE_FACTOR"] = str(ui_scale)
-    elif sys.platform == "darwin":
-        ...
-    
-    # In Qt 6, high DPI handling is enabled by default; avoid deprecated attributes
-    # to prevent warnings and potential initialization issues.
-    
     # On macOS, force menus to render inside the window instead of the global menu bar
-    if sys.platform == "darwin":
+    elif sys.platform == "darwin":
         try:
             QtCore.QCoreApplication.setAttribute(
                 QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, True

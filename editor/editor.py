@@ -22,6 +22,7 @@ from editor.tool.dynamic_tool import DynamicTool
 from editor.tool.crescendo_tool import CrescendoTool
 from editor.tool.decrescendo_tool import DecrescendoTool
 from editor.ctlz import CtlZ
+from settings_manager import get_preferences_manager
 from file_model.SCORE import SCORE
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
@@ -596,13 +597,20 @@ class Editor(QtCore.QObject,
             t = self.y_to_time(y)
             t = self.snap_time(t)
             self.time_cursor = t
-            
             # Store cursor mm relative to viewport (local mm)
             abs_mm = self.time_to_mm(float(t))
             self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
-            
             # Also track pitch under cursor (logical px → key number)
             self.pitch_cursor = self.x_to_pitch(x)
+            # Automatic hand switching for NoteTool at keyboard edges if enabled
+            if isinstance(self._tool, NoteTool):
+                pm = get_preferences_manager()
+                auto = bool(pm.get("note_tool_automatic_hand_switching", True))
+                if auto and self.pitch_cursor is not None:
+                    if int(self.pitch_cursor) == 1:
+                        self.hand_cursor = '<'
+                    elif int(self.pitch_cursor) == 88:
+                        self.hand_cursor = '>'
             self._tool.on_mouse_move(x, y)
 
     def mouse_release(self, button: int, x: float, y: float) -> None:
