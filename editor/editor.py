@@ -494,7 +494,9 @@ class Editor(QtCore.QObject,
                     anchor_t = self.snap_time(self.y_to_time(y))
                     self._sel_anchor_units = float(anchor_t)
                     self._sel_start_units = float(anchor_t)
-                    self._sel_end_units = float(anchor_t)
+                    # Initialize end to one snap band ahead to avoid zero-length selection
+                    ss = max(1e-6, float(self.snap_size_units))
+                    self._sel_end_units = float(anchor_t + ss)
                     # Initialize pitch anchors and range on Shift+Left press
                     anchor_p = int(self.x_to_pitch(x))
                     anchor_p = max(1, min(88, anchor_p))
@@ -514,7 +516,9 @@ class Editor(QtCore.QObject,
                 anchor_t = self.snap_time(self.y_to_time(y))
                 self._sel_anchor_units = float(anchor_t)
                 self._sel_start_units = float(anchor_t)
-                self._sel_end_units = float(anchor_t)
+                # Initialize end to one snap band ahead to avoid zero-length selection
+                ss = max(1e-6, float(self.snap_size_units))
+                self._sel_end_units = float(anchor_t + ss)
                 # Initialize pitch anchors and range on Right press (selection)
                 anchor_p = int(self.x_to_pitch(x))
                 anchor_p = max(1, min(88, anchor_p))
@@ -539,8 +543,15 @@ class Editor(QtCore.QObject,
                     try:
                         cur_t = self.snap_time(self.y_to_time(y))
                         anchor_t = float(self._sel_anchor_units)
-                        self._sel_start_units = float(min(anchor_t, cur_t))
-                        self._sel_end_units = float(max(anchor_t, cur_t))
+                        ss = max(1e-6, float(self.snap_size_units))
+                        if cur_t >= anchor_t:
+                            # Downwards selection: start at anchor, end at current band end
+                            self._sel_start_units = float(anchor_t)
+                            self._sel_end_units = float(cur_t + ss)
+                        else:
+                            # Upwards selection: start at current band start, end at anchor
+                            self._sel_start_units = float(cur_t)
+                            self._sel_end_units = float(anchor_t)
                         # Update pitch range based on drag X
                         cur_p = int(self.x_to_pitch(x))
                         cur_p = max(1, min(88, cur_p))
@@ -561,8 +572,15 @@ class Editor(QtCore.QObject,
                 try:
                     cur_t = self.snap_time(self.y_to_time(y))
                     anchor_t = float(self._sel_anchor_units)
-                    self._sel_start_units = float(min(anchor_t, cur_t))
-                    self._sel_end_units = float(max(anchor_t, cur_t))
+                    ss = max(1e-6, float(self.snap_size_units))
+                    if cur_t >= anchor_t:
+                        # Downwards selection: start at anchor, end at current band end
+                        self._sel_start_units = float(anchor_t)
+                        self._sel_end_units = float(cur_t + ss)
+                    else:
+                        # Upwards selection: start at current band start, end at anchor
+                        self._sel_start_units = float(cur_t)
+                        self._sel_end_units = float(anchor_t)
                     # Update pitch range for right-drag selection
                     cur_p = int(self.x_to_pitch(x))
                     cur_p = max(1, min(88, cur_p))
@@ -896,6 +914,18 @@ class Editor(QtCore.QObject,
         # Return cached x position
         return self._x_positions[key_number]
 
+    def relative_c4pitch_to_x(self, c4_semitone_offset: int) -> float:
+        """Convert a semitone offset relative to C4 (key 40) into an X position in mm.
+
+        - Uses the editor's Klavarskribo spacing (`self.semitone_dist`).
+        - Positive offsets move to the right; negative to the left.
+        - Used for slur handles and text element positions.
+        """
+        base_x = float(self.pitch_to_x(40))
+        dist = float(self.semitone_dist or 0.0)
+        offset = int(c4_semitone_offset)
+        return base_x + dist * offset
+
     # ---- Mouse-friendly wrappers (pixels) ----
     def time_to_y(self, ticks: float) -> float:
         """Convert time in ticks to Y position in logical (Qt) pixels."""
@@ -998,90 +1028,87 @@ class Editor(QtCore.QObject,
                 tags=['playhead'],
             )
 
-        # --- Mouse cursor guides (only when active) ---
-        if not self.guides_active:
-            return
-        # get cursor mm position: convert local (viewport) mm -> absolute mm
-        if self.mm_cursor is None:
-            return
-        y_mm = float(self.mm_cursor) + float(self._view_y_mm_offset or 0.0)
+        # --- Mouse cursor guides (hide when mouse leaves) ---
+        if self.guides_active and (self.mm_cursor is not None):
+            # get cursor mm position: convert local (viewport) mm -> absolute mm
+            y_mm = float(self.mm_cursor) + float(self._view_y_mm_offset or 0.0)
 
-        # Left side of stave
-        du.add_line(
-            2.0,
-            y_mm,
-            margin,
-            y_mm,
-            color=(0, 0, 0, 1),
-            width_mm=.75,
-            dash_pattern=[0, 2],
-            id=0,
-            tags=['cursor'],
-        )
-
-        # Right side of stave
-        du.add_line(
-            margin + stave_width,
-            y_mm,
-            margin * 2.0 + stave_width - 2,
-            y_mm,
-            color=(0, 0, 0, 1),
-            width_mm=.75,
-            dash_pattern=[0, 2],
-            id=0,
-            tags=['cursor'],
-        )
-
-        if (isinstance(self._tool, NoteTool)) and (self.time_cursor is not None) and (self.pitch_cursor is not None):
-            x_mm = float(self.pitch_to_x(int(self.pitch_cursor)))
-            w = float(self.semitone_dist or 0.5)
-            h = w * 2
-            if self.pitch_cursor in BLACK_KEYS:
-                w *= .8
-            l = self.current_score().layout.note_stem_length_mm
-            # Draw a translucent preview notehead at cursor
-            fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
-            
-            # draw the notehead and stem
-            du.add_oval(
-                x_mm - w,
-                y_mm,
-                x_mm + w,
-                y_mm + h,
-                fill_color=fill_color,
-                stroke_color=self.accent_color,
-                stroke_width_mm=0.5,
-                id=0,
-                tags=['cursor'],
-            )
+            # Left side of stave
             du.add_line(
-                x_mm,
+                2.0,
                 y_mm,
-                x_mm + l if self.hand_cursor == '>' else x_mm - l,
+                margin,
                 y_mm,
-                color=self.accent_color,
-                width_mm=0.75,
+                color=(0, 0, 0, 1),
+                width_mm=.75,
+                dash_pattern=[0, 2],
                 id=0,
                 tags=['cursor'],
             )
-            # draw the left hand dot indicator
-            if self.hand_cursor == '<' and self.current_score().layout.note_leftdot_visible:
-                w = float(self.semitone_dist or 0.5) * 2.0
-                dot_d = w * 0.35
-                cy = y_mm + (w / 2.0)
-                fill = (1, 1, 1, 1) if (self.pitch_cursor in BLACK_KEYS) else (0, 0, 0, 1)
-                du.add_oval(
-                    x_mm - dot_d / 3.0,
-                    cy - dot_d / 3.0,
-                    x_mm + dot_d / 3.0,
-                    cy + dot_d / 3.0,
-                    stroke_color=None,
-                    fill_color=fill,
-                    id=0,
-                    tags=["cursor"],
-                )
 
-        # --- Selection window overlay (if active) ---
+            # Right side of stave
+            du.add_line(
+                margin + stave_width,
+                y_mm,
+                margin * 2.0 + stave_width - 2,
+                y_mm,
+                color=(0, 0, 0, 1),
+                width_mm=.75,
+                dash_pattern=[0, 2],
+                id=0,
+                tags=['cursor'],
+            )
+
+            if (isinstance(self._tool, NoteTool)) and (self.time_cursor is not None) and (self.pitch_cursor is not None):
+                x_mm = float(self.pitch_to_x(int(self.pitch_cursor)))
+                w = float(self.semitone_dist or 0.5)
+                h = w * 2
+                if self.pitch_cursor in BLACK_KEYS:
+                    w *= .8
+                l = self.current_score().layout.note_stem_length_mm
+                # Draw a translucent preview notehead at cursor
+                fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
+                
+                # draw the notehead and stem
+                du.add_oval(
+                    x_mm - w,
+                    y_mm,
+                    x_mm + w,
+                    y_mm + h,
+                    fill_color=fill_color,
+                    stroke_color=self.accent_color,
+                    stroke_width_mm=0.5,
+                    id=0,
+                    tags=['cursor'],
+                )
+                du.add_line(
+                    x_mm,
+                    y_mm,
+                    x_mm + l if self.hand_cursor == '>' else x_mm - l,
+                    y_mm,
+                    color=self.accent_color,
+                    width_mm=0.75,
+                    id=0,
+                    tags=['cursor'],
+                )
+                # draw the left hand dot indicator
+                if self.hand_cursor == '<' and self.current_score().layout.note_leftdot_visible:
+                    w = float(self.semitone_dist or 0.5) * 2.0
+                    dot_d = w * 0.35
+                    cy = y_mm + (w / 2.0)
+                    fill = (1, 1, 1, 1) if (self.pitch_cursor in BLACK_KEYS) else (0, 0, 0, 1)
+                    du.add_oval(
+                        x_mm - dot_d / 3.0,
+                        cy - dot_d / 3.0,
+                        x_mm + dot_d / 3.0,
+                        cy + dot_d / 3.0,
+                        stroke_color=None,
+                        fill_color=fill,
+                        id=0,
+                        tags=["cursor"],
+                    )
+
+        # --- Selection window overlay (always visible when active) ---
         try:
             if self._selection_active:
                 # Compute absolute selection bounds in mm
@@ -1214,10 +1241,42 @@ class Editor(QtCore.QObject,
         # Generic filtering across all event lists
         for name in event_fields:
             lst = getattr(score.events, name, []) or []
-            for ev in lst:
-                t0 = start_time(ev)
-                if a <= t0 <= b and pitch_ok(ev):
-                    out[name].append(ev)
+            if name == 'slur':
+                # Special-case: slur uses 4 handles with relative pitch from C4 (key 40)
+                for ev in lst:
+                    try:
+                        rpitches = [
+                            int(getattr(ev, 'x1_rpitch', 0) or 0),
+                            int(getattr(ev, 'x2_rpitch', 0) or 0),
+                            int(getattr(ev, 'x3_rpitch', 0) or 0),
+                            int(getattr(ev, 'x4_rpitch', 0) or 0),
+                        ]
+                    except Exception:
+                        rpitches = [0, 0, 0, 0]
+                    try:
+                        times_h = [
+                            float(getattr(ev, 'y1_time', 0.0) or 0.0),
+                            float(getattr(ev, 'y2_time', 0.0) or 0.0),
+                            float(getattr(ev, 'y3_time', 0.0) or 0.0),
+                            float(getattr(ev, 'y4_time', 0.0) or 0.0),
+                        ]
+                    except Exception:
+                        times_h = [0.0, 0.0, 0.0, 0.0]
+                    # Convert relative pitch to absolute key number around C4 (key 40)
+                    keys = [max(1, min(88, 40 + rp)) for rp in rpitches]
+                    # If any handle lies within both the time and pitch selection window, include the slur
+                    include = False
+                    for k, th in zip(keys, times_h):
+                        if (min_p <= k <= max_p) and (a <= th <= b):
+                            include = True
+                            break
+                    if include:
+                        out[name].append(ev)
+            else:
+                for ev in lst:
+                    t0 = start_time(ev)
+                    if a <= t0 <= b and pitch_ok(ev):
+                        out[name].append(ev)
         return out
 
     def copy_selection(self) -> dict | None:
@@ -1256,7 +1315,7 @@ class Editor(QtCore.QObject,
         score: SCORE | None = self.current_score()
         if score is None or not self._selection_active:
             return False
-        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1) # slight epsilon to not detect next event at end
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1) # slight epsilon to not detect next event.
         deleted_any = False
         try:
             for key in sel:
