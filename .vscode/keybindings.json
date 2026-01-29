@@ -2,7 +2,7 @@
   {
     "key": "f1",
     "command": "workbench.action.tasks.runTask",
-    "args": "Run PianoScript",
+    "args": "Run PianoScript (venv)",
     "when": "editorTextFocus || terminalFocus || filesExplorerFocus"
   }
 ]

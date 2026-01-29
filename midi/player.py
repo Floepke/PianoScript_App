@@ -52,6 +52,34 @@ class Player:
         # App duration units: QUARTER_NOTE_UNIT == 100.0, so 4 units ≈ 0.04 quarter notes
         self._min_duration_units: float = 4.0
 
+    def _stop_for_restart(self) -> None:
+        # Fast, immediate stop used before restarting playback to avoid overlap/clicks.
+        self._running = False
+        try:
+            if self._thread is not None and self._thread.is_alive():
+                self._thread.join(timeout=0.2)
+        except Exception:
+            pass
+        self._thread = None
+        if self._playback_type == 'internal_synth' and self._synth is not None:
+            try:
+                self._synth.stop()
+            except Exception:
+                pass
+        else:
+            try:
+                self._all_notes_off()
+            except Exception:
+                pass
+        try:
+            self._active_notes.clear()
+        except Exception:
+            pass
+        try:
+            time.sleep(0.02)
+        except Exception:
+            pass
+
     # Synth API passthroughs
     def set_wavetables(self, left, right) -> None:
         if self._synth is None and WavetableSynth is not None:
@@ -259,6 +287,13 @@ class Player:
         return events
 
     def play_score(self, score) -> None:
+        # Always restart playback from the beginning on Play.
+        # If already playing, fast-stop to prevent double-play and clicks.
+        if self.is_playing():
+            try:
+                self._stop_for_restart()
+            except Exception:
+                pass
         if self._playback_type == 'internal_synth' and WavetableSynth is not None:
             if self._synth is None:
                 self._synth = WavetableSynth()
@@ -273,6 +308,12 @@ class Player:
         self._run_events_with_midi(events)
 
     def play_from_time_cursor(self, start_units: float, score) -> None:
+        # If playing, restart from the requested cursor rather than layering playback.
+        if self.is_playing():
+            try:
+                self._stop_for_restart()
+            except Exception:
+                pass
         if self._playback_type == 'internal_synth' and WavetableSynth is not None:
             events = self._build_events_from_time(start_units, score)
             if self._synth is None:
@@ -447,7 +488,7 @@ class Player:
         if self._playback_type == 'internal_synth' and self._synth is not None:
             try:
                 # Fade out to avoid clicks, then stop
-                self._synth.fade_out_and_stop(200)
+                self._synth.fade_out_and_stop(50)
             except Exception:
                 # Fallback to immediate stop
                 try:

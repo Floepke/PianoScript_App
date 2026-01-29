@@ -115,8 +115,8 @@ def gen_wave(shape: str, n: int) -> np.ndarray:
     if shape == 'triangle':
         return (2.0 * np.abs(2.0 * (t - np.floor(t + 0.5))) - 1.0).astype(np.float32)
     if shape == 'hsin':
-        # Half-sine over one period (0..pi), mapped to -1..1 around center
-        return (np.sin(np.pi * t) * 2.0 - 1.0).astype(np.float32)
+        # Absolute-sine in first half (t < 0.5), zero in second half
+        return np.where(t < 0.5, np.abs(np.sin(2 * np.pi * t)), 0.0).astype(np.float32)
     if shape == 'asin':
         # Absolute sine (0..1)
         return np.abs(np.sin(2 * np.pi * t)).astype(np.float32)
@@ -129,7 +129,7 @@ class WavetableEditor(QtWidgets.QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Synth FX")
-        self.resize(720, 520)
+        self.resize(1024, 520)
         self.setModal(True)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -153,8 +153,8 @@ class WavetableEditor(QtWidgets.QDialog):
         self.release = self._make_float_slider(0.0, 10.0, 0.1, suffix=" s", decimals=3, scale=1000, curve_power=curve)
         # Keep gain as a slider too for convenience (0..1.5) with milder curve
         self.gain = self._make_float_slider(0.0, 1.5, 0.35, suffix="", decimals=2, scale=100, curve_power=2.0)
-        # Humanize detune range in cents (0..10)
-        self.humanize = self._make_float_slider(0.0, 10.0, 3.0, suffix=" cents", decimals=1, scale=10, curve_power=1.0)
+        # Humanize detune range in cents (0..50)
+        self.humanize = self._make_float_slider(0.0, 50.0, 3.0, suffix=" cents", decimals=1, scale=10, curve_power=1.0)
         # Humanize interval in seconds (0.05..2.0)
         self.humanize_interval = self._make_float_slider(0.05, 2.0, 1.0, suffix=" s", decimals=2, scale=100, curve_power=1.0)
 
@@ -168,9 +168,9 @@ class WavetableEditor(QtWidgets.QDialog):
         grid.addWidget(self.release, 3, 1)
         grid.addWidget(QtWidgets.QLabel("Gain"), 4, 0)
         grid.addWidget(self.gain, 4, 1)
-        grid.addWidget(QtWidgets.QLabel("Humanize range"), 5, 0)
+        grid.addWidget(QtWidgets.QLabel("Humanize pitch; range"), 5, 0)
         grid.addWidget(self.humanize, 5, 1)
-        grid.addWidget(QtWidgets.QLabel("Humanize interval"), 6, 0)
+        grid.addWidget(QtWidgets.QLabel("Humanize pitch; new-random interval"), 6, 0)
         grid.addWidget(self.humanize_interval, 6, 1)
         layout.addLayout(grid)
 
