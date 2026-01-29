@@ -154,8 +154,12 @@ class Editor(QtCore.QObject,
         self._sel_end_units: float = 0.0
         # Anchor time for selection (absolute ticks, unaffected by scroll)
         self._sel_anchor_units: float = 0.0
+        # Pitch-constrained selection (1..88)
+        self._sel_min_pitch: int = 1
+        self._sel_max_pitch: int = 88
+        self._sel_anchor_pitch: int = 1
         # Clipboard for cut/copy/paste of detected events
-        self._selection_clipboard: dict | None = None
+        self.clipboard: dict | None = None
         # Modifier state
         self._shift_down: bool = False
 
@@ -491,6 +495,12 @@ class Editor(QtCore.QObject,
                     self._sel_anchor_units = float(anchor_t)
                     self._sel_start_units = float(anchor_t)
                     self._sel_end_units = float(anchor_t)
+                    # Initialize pitch anchors and range on Shift+Left press
+                    anchor_p = int(self.x_to_pitch(x))
+                    anchor_p = max(1, min(88, anchor_p))
+                    self._sel_anchor_pitch = anchor_p
+                    self._sel_min_pitch = anchor_p
+                    self._sel_max_pitch = anchor_p
                     self._selection_active = True
                 except Exception:
                     pass
@@ -505,6 +515,12 @@ class Editor(QtCore.QObject,
                 self._sel_anchor_units = float(anchor_t)
                 self._sel_start_units = float(anchor_t)
                 self._sel_end_units = float(anchor_t)
+                # Initialize pitch anchors and range on Right press (selection)
+                anchor_p = int(self.x_to_pitch(x))
+                anchor_p = max(1, min(88, anchor_p))
+                self._sel_anchor_pitch = anchor_p
+                self._sel_min_pitch = anchor_p
+                self._sel_max_pitch = anchor_p
                 self._selection_active = True
             except Exception:
                 pass
@@ -525,6 +541,12 @@ class Editor(QtCore.QObject,
                         anchor_t = float(self._sel_anchor_units)
                         self._sel_start_units = float(min(anchor_t, cur_t))
                         self._sel_end_units = float(max(anchor_t, cur_t))
+                        # Update pitch range based on drag X
+                        cur_p = int(self.x_to_pitch(x))
+                        cur_p = max(1, min(88, cur_p))
+                        anchor_p = int(self._sel_anchor_pitch)
+                        self._sel_min_pitch = int(min(anchor_p, cur_p))
+                        self._sel_max_pitch = int(max(anchor_p, cur_p))
                         self._selection_active = True
                     except Exception:
                         pass
@@ -541,6 +563,12 @@ class Editor(QtCore.QObject,
                     anchor_t = float(self._sel_anchor_units)
                     self._sel_start_units = float(min(anchor_t, cur_t))
                     self._sel_end_units = float(max(anchor_t, cur_t))
+                    # Update pitch range for right-drag selection
+                    cur_p = int(self.x_to_pitch(x))
+                    cur_p = max(1, min(88, cur_p))
+                    anchor_p = int(self._sel_anchor_pitch)
+                    self._sel_min_pitch = int(min(anchor_p, cur_p))
+                    self._sel_max_pitch = int(max(anchor_p, cur_p))
                     self._selection_active = True
                 except Exception:
                     pass
@@ -585,12 +613,7 @@ class Editor(QtCore.QObject,
             if self._dragging_right:
                 self._tool.on_right_drag_end(x, y)
                 self._snapshot_if_changed(coalesce=True, label="right_drag")
-                # On right-drag end, detect selection into clipboard
-                try:
-                    sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units)
-                    self._selection_clipboard = sel
-                except Exception:
-                    self._selection_clipboard = None
+                # Do not modify clipboard on selection changes
             else:
                 px, py = self._press_pos
                 if (abs(x - px) <= self.DRAG_THRESHOLD and abs(y - py) <= self.DRAG_THRESHOLD):
@@ -1072,9 +1095,11 @@ class Editor(QtCore.QObject,
                 draw_top = max(sel_top_mm, vp_top)
                 draw_bottom = min(sel_bottom_mm, vp_bottom)
                 if draw_bottom > draw_top:
-                    # Horizontal extent: span between leftmost/rightmost stave lines
-                    x_left = float(self.pitch_to_x(2))
-                    x_right = float(self.pitch_to_x(86))
+                    # Horizontal extent: span between selected pitch range
+                    min_p = max(1, min(88, int(self._sel_min_pitch)))
+                    max_p = max(1, min(88, int(self._sel_max_pitch)))
+                    x_left = float(self.pitch_to_x(min_p))
+                    x_right = float(self.pitch_to_x(max_p))
                     x2 = min(x_left, x_right)
                     x1 = max(x_left, x_right)
                     du.add_rectangle(
@@ -1106,7 +1131,10 @@ class Editor(QtCore.QObject,
         self._sel_start_units = 0.0
         self._sel_end_units = 0.0
         self._sel_anchor_units = 0.0
-        self._selection_clipboard = None
+        self._sel_min_pitch = 1
+        self._sel_max_pitch = 88
+        self._sel_anchor_pitch = 1
+        # Persistent clipboard is not cleared here
 
     # ---- Modifier updates ----
     def set_shift_down(self, down: bool) -> None:
@@ -1132,67 +1160,64 @@ class Editor(QtCore.QObject,
     def detect_events_from_time_window(self, start_units: float, end_units: float) -> dict:
         """Scan the SCORE and return a dict of events whose start time falls within [start_units, end_units].
 
-        Keys: 'note', 'grace_note', 'pedal', 'text', 'slur', 'beam', 'start_repeat', 'end_repeat', 'count_line', 'line_break'
+        The returned dict keys are derived dynamically from `score.events` fields,
+        so newly added event types in the SCORE model are handled automatically.
         """
         score: SCORE | None = self.current_score()
         if score is None:
             return {}
         a = float(min(start_units, end_units))
         b = float(max(start_units, end_units))
-        out: dict[str, list] = {
-            'note': [],
-            'grace_note': [],
-            'pedal': [],
-            'text': [],
-            'slur': [],
-            'beam': [],
-            'start_repeat': [],
-            'end_repeat': [],
-            'count_line': [],
-            'line_break': [],
-        }
-        # Simple time-based events
-        for ev in getattr(score.events, 'note', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['note'].append(ev)
-        for ev in getattr(score.events, 'grace_note', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['grace_note'].append(ev)
-        for ev in getattr(score.events, 'pedal', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['pedal'].append(ev)
-        for ev in getattr(score.events, 'text', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['text'].append(ev)
-        for ev in getattr(score.events, 'beam', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['beam'].append(ev)
-        for ev in getattr(score.events, 'start_repeat', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['start_repeat'].append(ev)
-        for ev in getattr(score.events, 'end_repeat', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['end_repeat'].append(ev)
-        for ev in getattr(score.events, 'count_line', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['count_line'].append(ev)
-        for ev in getattr(score.events, 'line_break', []) or []:
-            t = float(getattr(ev, 'time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['line_break'].append(ev)
-        # Slur start uses y1_time
-        for ev in getattr(score.events, 'slur', []) or []:
-            t = float(getattr(ev, 'y1_time', 0.0) or 0.0)
-            if a <= t <= b:
-                out['slur'].append(ev)
+        # Pitch range constraints (inclusive)
+        min_p = max(1, min(88, int(getattr(self, '_sel_min_pitch', 1))))
+        max_p = max(1, min(88, int(getattr(self, '_sel_max_pitch', 88))))
+
+        import dataclasses
+
+        # Determine event type names from the dataclass fields of score.events
+        try:
+            event_fields = [f.name for f in dataclasses.fields(type(score.events))]
+        except Exception:
+            # Fallback: introspect attributes that are lists
+            event_fields = [name for name in dir(score.events)
+                            if isinstance(getattr(score.events, name, None), list)
+                            and not name.startswith('_')]
+
+        out: dict[str, list] = {name: [] for name in event_fields}
+
+        def start_time(ev) -> float:
+            # Prefer 'time' if present; else use the minimum of any '*_time' fields
+            try:
+                if hasattr(ev, 'time'):
+                    return float(getattr(ev, 'time', 0.0) or 0.0)
+            except Exception:
+                pass
+            try:
+                d = dataclasses.asdict(ev)
+            except Exception:
+                d = getattr(ev, '__dict__', {})
+            times = [float(v or 0.0) for k, v in d.items() if k.endswith('_time')]
+            if times:
+                return float(min(times))
+            return 0.0
+
+        def pitch_ok(ev) -> bool:
+            # Apply pitch range only for events that have a 'pitch' attribute
+            try:
+                if hasattr(ev, 'pitch'):
+                    p = int(getattr(ev, 'pitch', 0) or 0)
+                    return (p and (min_p <= p <= max_p))
+            except Exception:
+                return False
+            return True
+
+        # Generic filtering across all event lists
+        for name in event_fields:
+            lst = getattr(score.events, name, []) or []
+            for ev in lst:
+                t0 = start_time(ev)
+                if a <= t0 <= b and pitch_ok(ev):
+                    out[name].append(ev)
         return out
 
     def copy_selection(self) -> dict | None:
@@ -1200,7 +1225,7 @@ class Editor(QtCore.QObject,
         if not self._selection_active:
             return None
         sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1) # slight epsilon to not detect next event at end
-        self._selection_clipboard = sel
+        self.clipboard = sel
         return sel
 
     def cut_selection(self) -> dict | None:
@@ -1211,6 +1236,8 @@ class Editor(QtCore.QObject,
         sel = self.copy_selection()
         if not sel:
             return None
+        # Ensure clipboard holds the cut selection
+        self.clipboard = sel
         # Remove selected instances from each list
         for key in sel:
             lst = getattr(score.events, key, None)
@@ -1250,80 +1277,51 @@ class Editor(QtCore.QObject,
     def paste_selection_at_cursor(self) -> None:
         """Paste events from clipboard so that the earliest selection start aligns to `self.time_cursor`."""
         score: SCORE | None = self.current_score()
-        if score is None or self._selection_clipboard is None:
+        if score is None or self.clipboard is None:
             return
         if self.time_cursor is None:
             return
         import dataclasses
-        
+
         # Determine alignment offset: selection start -> cursor
         a = float(min(self._sel_start_units, self._sel_end_units))
         target = float(self.time_cursor)
         delta = float(target - a)
-        
+
         # Track furthest end time to extend timeline if needed
         furthest_end = float(self._calc_score_time())
 
-        def ctor_for(name: str):
-            return getattr(score, f"new_{name}", None)
-
-        handlers = {
-            'note': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)) + float(d.get('duration', 0.0) or 0.0),
-            },
-            'grace_note': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'pedal': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'text': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'beam': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)) + float(d.get('duration', 0.0) or 0.0),
-            },
-            'start_repeat': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'end_repeat': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'count_line': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'line_break': {
-                'time_fields': ['time'],
-                'end_time': lambda d: float(d.get('time', 0.0)),
-            },
-            'slur': {
-                'time_fields': ['y1_time', 'y2_time', 'y3_time', 'y4_time'],
-                'end_time': lambda d: float(d.get('y4_time', d.get('y1_time', 0.0)) or 0.0),
-            },
-        }
-
-        for ev_type, cfg in handlers.items():
-            ctor = ctor_for(ev_type)
+        # Iterate types from clipboard dynamically
+        for ev_type, items in (self.clipboard.items() if isinstance(self.clipboard, dict) else []):
+            if not items:
+                continue
+            ctor = getattr(score, f"new_{ev_type}", None)
             if ctor is None:
                 continue
-            items = self._selection_clipboard.get(ev_type, []) or []
             for ev in items:
-                d = dataclasses.asdict(ev)
-                d.pop('id', None)
-                for key in cfg['time_fields']:
-                    if key in d:
-                        d[key] = float(d.get(key, 0.0)) + delta
-                ctor(**d)
                 try:
-                    furthest_end = max(furthest_end, float(cfg['end_time'](d)))
+                    d = dataclasses.asdict(ev)
+                except Exception:
+                    d = getattr(ev, '__dict__', {}).copy()
+                # Remove id; it will be assigned by the constructor
+                d.pop('id', None)
+                # Shift all time-related fields
+                for k in list(d.keys()):
+                    if k == 'time' or k.endswith('_time'):
+                        try:
+                            d[k] = float(d.get(k, 0.0)) + delta
+                        except Exception:
+                            pass
+                # Create the new event
+                ctor(**d)
+                # Compute end time generically: max of all time fields, plus duration if applicable
+                try:
+                    time_fields = [float(v or 0.0) for kk, v in d.items() if kk == 'time' or kk.endswith('_time')]
+                    t_end = max(time_fields) if time_fields else float(d.get('time', 0.0) or 0.0)
+                    dur = float(d.get('duration', 0.0) or 0.0)
+                    if dur > 0.0 and 'time' in d:
+                        t_end = float(d.get('time', 0.0) or 0.0) + dur
+                    furthest_end = max(furthest_end, float(t_end))
                 except Exception:
                     pass
         # Extend timeline if pasted content exceeds current end barline
