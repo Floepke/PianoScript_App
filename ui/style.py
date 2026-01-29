@@ -1,3 +1,4 @@
+import sys
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 from settings_manager import get_preferences
@@ -19,7 +20,7 @@ class Style:
     _LIGHT = {
         "window": (240, 240, 240),
         "window_text": (0, 0, 0),
-        "base": (255, 255, 255),
+        "base": (245, 255, 255),
         "alternate_base": (245, 245, 245),
         "tooltip_base": (255, 255, 220),
         "tooltip_text": (0, 0, 0),
@@ -126,12 +127,47 @@ class Style:
         app = QApplication.instance()
         if app is None:
             return
+        # Clear any previous global stylesheet; we may set a Windows-specific one below
         app.setStyleSheet("")
 
         pal = QPalette()
         for role, key in self._ROLE_MAP.items():
             pal.setColor(role, colors_by_key[key])
         app.setPalette(pal)
+
+        # Windows-specific fix: ensure QMenu background matches the window color
+        # Some Windows themes/hardware drivers render menus with mismatched dark backgrounds.
+        if sys.platform == 'win32':
+            try:
+                window_hex = colors_by_key["window"].name()
+                text_hex = colors_by_key["text"].name()
+                highlight_hex = colors_by_key["highlight"].name()
+                # Prefer explicit highlighted_text color if provided, else fall back to text
+                highlighted_text_hex = (colors_by_key.get("highlighted_text", colors_by_key["text"]).name())
+
+                win_menu_css = f"""
+                QMenu {{
+                    background-color: {window_hex};
+                    color: {text_hex};
+                }}
+                QMenu::item {{
+                    background-color: transparent;
+                    color: {text_hex};
+                }}
+                QMenu::item:selected {{
+                    background-color: {highlight_hex};
+                    color: {highlighted_text_hex};
+                }}
+                QMenu::separator {{
+                    background-color: {highlight_hex};
+                    height: 1px;
+                    margin: 4px 6px;
+                }}
+                """
+                app.setStyleSheet(win_menu_css)
+            except Exception:
+                # Silently ignore stylesheet issues; palette is still applied
+                pass
 
     def set_dynamic_theme(self, tint: float = 0.75):
         """Blend between dark (0.0) and light (1.0)."""
