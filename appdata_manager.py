@@ -5,7 +5,20 @@ from pathlib import Path
 from typing import Dict, Optional
 from utils.CONSTANT import UTILS_SAVE_DIR
 
-APPDATA_PATH: Path = Path(UTILS_SAVE_DIR) / "appdata.py"
+try:
+    import tomllib as _tomlreader  # Python 3.11+
+except Exception:  # pragma: no cover
+    _tomlreader = None  # type: ignore
+
+try:
+    import tomlkit as _tomlkit  # type: ignore
+except Exception:  # pragma: no cover
+    _tomlkit = None  # type: ignore
+
+# New TOML-based appdata file
+APPDATA_PATH: Path = Path(UTILS_SAVE_DIR) / "appdata.toml"
+# Legacy Python-based appdata file for migration
+LEGACY_APPDATA_PATH: Path = Path(UTILS_SAVE_DIR) / "appdata.py"
 
 
 def _ensure_dir() -> None:
@@ -19,15 +32,18 @@ class _DataDef:
 
 
 class AppDataManager:
-    """Register and persist application data (non-preferences) in ~/ .keyTAB/appdata.py.
+    """Register and persist application data (non-preferences) in ~/ .keyTAB/appdata.toml.
 
     This is for runtime-managed data such as recent files, last session info, etc.
+    TOML supports comments and is end-user friendly for occasional edits.
     """
 
     def __init__(self, path: Path = APPDATA_PATH) -> None:
         self.path = path
         self._schema: Dict[str, _DataDef] = {}
         self._values: Dict[str, object] = {}
+        # Parsed TOML document (when tomlkit is available) for round-trip preservation
+        self._doc = None
 
     def register(self, key: str, default: object, description: str) -> None:
         self._schema[key] = _DataDef(default=default, description=description)
@@ -42,11 +58,52 @@ class AppDataManager:
 
     def load(self) -> None:
         _ensure_dir()
-        if not self.path.exists():
+        parsed: Dict[str, object] = {}
+        if self.path.exists():
+            # Load raw text and dict
+            try:
+                text = self.path.read_text(encoding="utf-8")
+            except Exception:
+                text = ""
+            parsed = self._parse_toml_dict(self.path)
+            # Keep tomlkit doc if available
+            try:
+                if _tomlkit is not None and text:
+                    self._doc = _tomlkit.parse(text)
+            except Exception:
+                self._doc = None
+        elif LEGACY_APPDATA_PATH.exists():
+            # Migrate from legacy Python appdata file
+            legacy_text = LEGACY_APPDATA_PATH.read_text(encoding="utf-8")
+            parsed = self._parse_py_dict(legacy_text)
+            # Seed values from parsed and schema defaults, then save to TOML
+            try:
+                self._values = {}
+                for k, d in self._schema.items():
+                    if k in parsed:
+                        self._values[k] = parsed[k]
+                    else:
+                        self._values.setdefault(k, d.default)
+                for k, v in parsed.items():
+                    if k not in self._values:
+                        self._values[k] = v
+                if _tomlkit is not None:
+                    try:
+                        doc = _tomlkit.document()
+                        for k in self._values:
+                            doc.add(k, _tomlkit.item(self._values[k]))
+                        self._doc = doc
+                    except Exception:
+                        self._doc = None
+                self.save()
+            except Exception:
+                pass
+        else:
+            # Initialize defaults and write TOML file
             self.save()
-            return
-        text = self.path.read_text(encoding="utf-8")
-        parsed = self._parse_py_dict(text)
+            parsed = {}
+
+        # Merge loaded values into schema defaults
         for k, d in self._schema.items():
             if k in parsed:
                 self._values[k] = parsed[k]
@@ -58,10 +115,42 @@ class AppDataManager:
 
     def save(self) -> None:
         _ensure_dir()
-        content = self._emit_py_file(self._values)
+        # Prefer round-trip preservation when tomlkit is available and we have a document
+        if _tomlkit is not None and self._doc is not None:
+            try:
+                for k, v in self._values.items():
+                    try:
+                        self._doc[k] = _tomlkit.item(v)
+                    except Exception:
+                        if k not in self._doc:
+                            try:
+                                self._doc.add(k, _tomlkit.item(v))
+                            except Exception:
+                                pass
+                content = _tomlkit.dumps(self._doc)
+                self.path.write_text(content, encoding="utf-8")
+                return
+            except Exception:
+                pass
+        # Fallback to minimal emitter
+        content = self._emit_toml_file(self._values)
         self.path.write_text(content, encoding="utf-8")
 
     # Internals
+    def _parse_toml_dict(self, path: Path) -> Dict:
+        try:
+            if _tomlreader is None:
+                try:
+                    import tomli as _tomli  # type: ignore
+                except Exception:
+                    return {}
+                with open(path, "rb") as f:
+                    return dict(_tomli.load(f) or {})
+            with open(path, "rb") as f:
+                data = _tomlreader.load(f)  # type: ignore
+            return dict(data or {})
+        except Exception:
+            return {}
     def _parse_py_dict(self, text: str) -> Dict:
         import ast
         tree = ast.parse(text, filename=str(self.path), mode='exec')
@@ -75,11 +164,10 @@ class AppDataManager:
                         return {}
         return {}
 
-    def _emit_py_file(self, values: Dict[str, object]) -> str:
+    def _emit_toml_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# keyTAB app data\n\n# Application-managed data. Editing is possible but it's not meant for that.")
-        lines.append("appdata = {")
-        indent = "    "
+        lines.append("# PianoScript app data (TOML)\n")
+        lines.append("# Application-managed data. Editing is possible but not generally required.\n")
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]
         seen: set[str] = set()
         for k in order:
@@ -89,33 +177,33 @@ class AppDataManager:
             desc = self._schema.get(k).description if k in self._schema else ""
             if desc:
                 for dline in desc.splitlines():
-                    lines.append(f"{indent}# {dline}")
+                    lines.append(f"# {dline}")
             v = values.get(k)
-            lines.append(f"{indent}{repr(k)}: {self._format_value(v)},")
-            lines.append("")
-        if lines and not lines[-1].strip():
-            lines.pop()
-        lines.append("}")
+            lines.append(f"{k} = {self._format_toml_value(v)}\n")
         return "\n".join(lines)
 
-    def _format_value(self, v: object) -> str:
+    def _format_toml_value(self, v: object) -> str:
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        if isinstance(v, (int, float)):
+            return str(v)
+        if isinstance(v, str):
+            s = v.replace("\\", "\\\\").replace("\"", "\\\"")
+            return f'"{s}"'
         if isinstance(v, list):
             if not v:
                 return "[]"
-            inner = ", ".join(repr(x) for x in v)
-            return f"[{inner}]"
+            if len(v) <= 6 and all(isinstance(x, (int, float, bool, str)) for x in v):
+                return "[" + ", ".join(self._format_toml_value(x) for x in v) + "]"
+            inner = ",\n".join("    " + self._format_toml_value(x) for x in v)
+            return "[\n" + inner + "\n]"
         if isinstance(v, dict):
             if not v:
                 return "{}"
-            items = []
-            for kk in v:
-                items.append(f"        {repr(kk)}: {self._format_value(v[kk])}")
-            return "{\n" + ",\n".join(items) + "\n    }"
-        if isinstance(v, str):
-            return repr(v)
-        if isinstance(v, (int, float, bool)):
-            return str(v)
-        return repr(v)
+            items = ", ".join(f"{kk} = {self._format_toml_value(v[kk])}" for kk in v)
+            return "{ " + items + " }"
+        s = repr(v).replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{s}"'
 
 
 # ---- Registration hub (add app data keys here) ----

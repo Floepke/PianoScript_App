@@ -7,9 +7,23 @@ from pathlib import Path
 from typing import Dict, Optional
 from utils.CONSTANT import UTILS_SAVE_DIR
 
+try:
+    import tomllib as _tomlreader  # Python 3.11+
+except Exception:  # pragma: no cover
+    _tomlreader = None  # type: ignore
+
+# Optional round-trip preservation library
+try:
+    import tomlkit as _tomlkit  # type: ignore
+except Exception:  # pragma: no cover
+    _tomlkit = None  # type: ignore
+
 
 # Paths under the user's home folder (~/ .keyTAB)
-PREFERENCES_PATH: Path = Path(UTILS_SAVE_DIR) / "preferences.py"
+# New TOML-based preferences file (supports comments with '#').
+PREFERENCES_PATH: Path = Path(UTILS_SAVE_DIR) / "preferences.toml"
+# Legacy Python-based preferences file retained for one-time migration.
+LEGACY_PREFERENCES_PATH: Path = Path(UTILS_SAVE_DIR) / "preferences.py"
 
 
 def _ensure_dir() -> None:
@@ -23,15 +37,18 @@ class _PrefDef:
 
 
 class PreferencesManager:
-    """Register and persist application preferences in ~/ .keyTAB/preferences.py.
+    """Register and persist application preferences in ~/ .keyTAB/preferences.toml.
 
     Users can edit this file; changes take effect after restarting the app.
+    The TOML format allows comments (lines starting with '#') and is human-friendly.
     """
 
     def __init__(self, path: Path = PREFERENCES_PATH) -> None:
         self.path = path
         self._schema: Dict[str, _PrefDef] = {}
         self._values: Dict[str, object] = {}
+        # Keep parsed TOML document for round-trip preservation when tomlkit is available
+        self._doc = None
 
     def register(self, key: str, default: object, description: str) -> None:
         self._schema[key] = _PrefDef(default=default, description=description)
@@ -46,13 +63,54 @@ class PreferencesManager:
 
     def load(self) -> None:
         _ensure_dir()
-        if not self.path.exists():
+        parsed: Dict[str, object] = {}
+        if self.path.exists():
+            # Load raw text once
+            try:
+                text = self.path.read_text(encoding="utf-8")
+            except Exception:
+                text = ""
+            # Parse dict using stdlib/fallback
+            parsed = self._parse_toml_dict(self.path)
+            # Parse document using tomlkit if available to preserve comments/formatting
+            try:
+                if _tomlkit is not None and text:
+                    self._doc = _tomlkit.parse(text)
+            except Exception:
+                self._doc = None
+        elif LEGACY_PREFERENCES_PATH.exists():
+            # One-time migration from legacy Python file
+            legacy_text = LEGACY_PREFERENCES_PATH.read_text(encoding="utf-8")
+            parsed = self._parse_py_dict(legacy_text)
+            # Immediately save to TOML for future runs
+            try:
+                self._values = {}
+                for k, d in self._schema.items():
+                    if k in parsed:
+                        self._values[k] = self._coerce(parsed[k], d.default)
+                    else:
+                        self._values.setdefault(k, d.default)
+                for k, v in parsed.items():
+                    if k not in self._values:
+                        self._values[k] = v
+                # Build initial tomlkit document if available
+                if _tomlkit is not None:
+                    try:
+                        doc = _tomlkit.document()
+                        for k in self._values:
+                            doc.add(k, _tomlkit.item(self._values[k]))
+                        self._doc = doc
+                    except Exception:
+                        self._doc = None
+                self.save()
+            except Exception:
+                pass
+        else:
             # Initialize defaults and write file
             self.save()
-            return
-        text = self.path.read_text(encoding="utf-8")
-        parsed = self._parse_py_dict(text)
-        # Merge
+            parsed = {}
+
+        # Merge loaded values into schema defaults
         for k, d in self._schema.items():
             if k in parsed:
                 self._values[k] = self._coerce(parsed[k], d.default)
@@ -64,7 +122,29 @@ class PreferencesManager:
 
     def save(self) -> None:
         _ensure_dir()
-        content = self._emit_py_file(self._values)
+        # Prefer round-trip preservation when tomlkit is available and we have a document
+        if _tomlkit is not None and self._doc is not None:
+            try:
+                # Update only keys present in _values; preserve unknown keys and comments
+                for k, v in self._values.items():
+                    try:
+                        # Use tomlkit.item to wrap Python value into TOML types
+                        self._doc[k] = _tomlkit.item(v)
+                    except Exception:
+                        # Fallback: add key if missing
+                        if k not in self._doc:
+                            try:
+                                self._doc.add(k, _tomlkit.item(v))
+                            except Exception:
+                                pass
+                content = _tomlkit.dumps(self._doc)
+                self.path.write_text(content, encoding="utf-8")
+                return
+            except Exception:
+                # Fall through to emitter if tomlkit fails
+                pass
+        # Minimal emitter fallback
+        content = self._emit_toml_file(self._values)
         self.path.write_text(content, encoding="utf-8")
 
     def open_in_editor(self) -> None:
@@ -94,6 +174,21 @@ class PreferencesManager:
                 pass
 
     # Internals
+    def _parse_toml_dict(self, path: Path) -> Dict:
+        try:
+            if _tomlreader is None:
+                # Attempt optional fallback to tomli if available
+                try:
+                    import tomli as _tomli  # type: ignore
+                except Exception:
+                    return {}
+                with open(path, "rb") as f:
+                    return dict(_tomli.load(f) or {})
+            with open(path, "rb") as f:
+                data = _tomlreader.load(f)  # type: ignore
+            return dict(data or {})
+        except Exception:
+            return {}
     def _parse_py_dict(self, text: str) -> Dict:
         import ast
         tree = ast.parse(text, filename=str(self.path), mode='exec')
@@ -124,11 +219,11 @@ class PreferencesManager:
             return str(value)
         return value
 
-    def _emit_py_file(self, values: Dict[str, object]) -> str:
+    def _emit_toml_file(self, values: Dict[str, object]) -> str:
         lines: list[str] = []
-        lines.append("# keyTAB preferences\n\n# You can edit this file to change the application preferences.\n# Changes take effect after restarting the app.\n")
-        lines.append("preferences = {")
-        indent = "    "
+        lines.append("# PianoScript preferences (TOML)\n")
+        lines.append("# You can edit this file to change the application preferences.")
+        lines.append("# Lines starting with '#' are comments. Changes take effect after restarting the app.\n")
         order = list(self._schema.keys()) + [k for k in values.keys() if k not in self._schema]
         seen: set[str] = set()
         for k in order:
@@ -138,35 +233,39 @@ class PreferencesManager:
             desc = self._schema.get(k).description if k in self._schema else ""
             if desc:
                 for dline in desc.splitlines():
-                    lines.append(f"{indent}# {dline}")
+                    lines.append(f"# {dline}")
             v = values.get(k)
-            lines.append(f"{indent}{repr(k)}: {self._format_value(v)},")
-            lines.append("")
-        if lines and not lines[-1].strip():
-            lines.pop()
-        lines.append("}")
+            # Bare keys are fine (alnum + underscore). Values are TOML literals.
+            lines.append(f"{k} = {self._format_toml_value(v)}\n")
         return "\n".join(lines)
 
-    def _format_value(self, v: object) -> str:
+    def _format_toml_value(self, v: object) -> str:
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        if isinstance(v, (int, float)):
+            return str(v)
+        if isinstance(v, str):
+            # Escape backslashes and quotes minimally
+            s = v.replace("\\", "\\\\").replace("\"", "\\\"")
+            return f'"{s}"'
         if isinstance(v, list):
             if not v:
                 return "[]"
-            if len(v) <= 3 and all(isinstance(x, (int, float, str)) for x in v):
-                return f"[{', '.join(self._format_value(x) for x in v)}]"
-            inner = ",\n".join("        " + self._format_value(x) for x in v)
-            return "[\n" + inner + "\n    ]"
+            # Single-line small arrays
+            if len(v) <= 4 and all(isinstance(x, (int, float, bool, str)) for x in v):
+                return "[" + ", ".join(self._format_toml_value(x) for x in v) + "]"
+            # Multi-line arrays
+            inner = ",\n".join("    " + self._format_toml_value(x) for x in v)
+            return "[\n" + inner + "\n]"
         if isinstance(v, dict):
             if not v:
-                return "{}"
-            items = []
-            for kk in v:
-                items.append(f"        {repr(kk)}: {self._format_value(v[kk])}")
-            return "{\n" + ",\n".join(items) + "\n    }"
-        if isinstance(v, str):
-            return repr(v)
-        if isinstance(v, (int, float, bool)):
-            return str(v)
-        return repr(v)
+                return "{}"  # represent empty inline table
+            # Inline table for small dicts; multi-line inline for larger
+            items = ", ".join(f"{kk} = {self._format_toml_value(v[kk])}" for kk in v)
+            return "{ " + items + " }"
+        # Fallback to repr inside a string to keep TOML valid
+        s = repr(v).replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{s}"'
 
 
 # ---- Registration hub (add new app preferences here) ----
