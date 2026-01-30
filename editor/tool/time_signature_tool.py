@@ -112,7 +112,13 @@ class TimeSignatureTool(BaseTool):
                 initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', True))
         except Exception:
             pass
-            dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled)
+        # Provide indicator_type from Layout to inform dialog defaults
+        indicator_type = 'classical'
+        try:
+            indicator_type = str(getattr(score.layout, 'indicator_type', 'classical'))
+        except Exception:
+            indicator_type = 'classical'
+        dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled, indicator_type=indicator_type)
         try:
             dlg.setWindowModality(QtCore.Qt.WindowModal)
         except Exception:
@@ -269,8 +275,7 @@ class TimeSignatureTool(BaseTool):
                         int(getattr(prev, 'numerator', 0)) == int(getattr(bg, 'numerator', 0)) and
                         int(getattr(prev, 'denominator', 0)) == int(getattr(bg, 'denominator', 0)) and
                         list(getattr(prev, 'grid_positions', []) or []) == list(getattr(bg, 'grid_positions', []) or []) and
-                        bool(getattr(prev, 'indicator_enabled', True)) == bool(getattr(bg, 'indicator_enabled', True)) and
-                        str(getattr(prev, 'indicator_type', 'classical')) == str(getattr(bg, 'indicator_type', 'classical'))
+                        bool(getattr(prev, 'indicator_enabled', True)) == bool(getattr(bg, 'indicator_enabled', True))
                     )
                     if same:
                         try:

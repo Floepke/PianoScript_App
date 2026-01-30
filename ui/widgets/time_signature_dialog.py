@@ -9,7 +9,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
                  initial_numer: int = 4,
                  initial_denom: int = 4,
                  initial_grid_positions: Optional[list[int]] = None,
-                 initial_indicator_enabled: Optional[bool] = True):
+                 initial_indicator_enabled: Optional[bool] = True,
+                 indicator_type: Optional[str] = None):
         super().__init__(parent)
         self.setWindowTitle("Set Time Signature")
         self.setModal(True)
@@ -82,16 +83,21 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         # State
         self._numer = int(initial_numer)
         self._denom = int(initial_denom) if int(initial_denom) in VALID_DENOMS else 4
-        # Initialize grid positions. If provided, clamp to [1..numer]; otherwise default to all enabled.
+        # Indicator type (affects initial checkbox states)
+        self._indicator_type: str = str(indicator_type or 'classical')
+        if self._indicator_type not in ('classical', 'klavarskribo', 'both'):
+            self._indicator_type = 'classical'
+        # Initialize grid positions. If provided, clamp to [1..numer]; otherwise default based on indicator type.
         init_gp = list(initial_grid_positions or [])
         if init_gp:
             self._grid_positions = [p for p in init_gp if isinstance(p, int) and 1 <= int(p) <= int(self._numer)]
             # Keep unique + sorted
             self._grid_positions = sorted(list(dict.fromkeys(self._grid_positions)))
             if not self._grid_positions:
-                self._grid_positions = list(range(1, int(self._numer) + 1))
+                # Default: classical → all beats; klavarskribo/both → barline only
+                self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
         else:
-            self._grid_positions = list(range(1, int(self._numer) + 1))
+            self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
         # Initialize indicator state
         self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
         try:
@@ -123,8 +129,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             # Rebuild checkboxes if numerator changed
             if numer != self._numer:
                 self._numer = numer
-                # Reset grid positions to all enabled by default
-                self._grid_positions = list(range(1, numer + 1))
+                # Reset grid positions: classical → all beats; klavarskribo/both → barline only
+                self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, numer + 1))
                 self._build_checkboxes()
             self._denom = denom
 
@@ -180,8 +186,9 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self._checkboxes: list[QtWidgets.QCheckBox] = []
         for i in range(1, int(self._numer) + 1):
             cb = QtWidgets.QCheckBox(str(i), self.checkbox_container)
-            cb.setChecked(i in self._grid_positions)
-            # Ensure barline (1) can be disabled per request
+            # Initial state reflects current grid_positions for all indicator types
+            init_checked = (i in self._grid_positions)
+            cb.setChecked(init_checked)
             cb.toggled.connect(lambda checked, idx=i: self._on_cb_toggled(idx, checked))
             self.checkbox_layout.addWidget(cb)
             self._checkboxes.append(cb)
