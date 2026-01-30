@@ -49,22 +49,27 @@ class TempoDrawerMixin:
             # Text and rectangle sizing
             text = str(tempo_val)
             # Estimate extents in mm for unrotated text (width_mm, height_mm)
-            try:
-                _xb, _yb, w_mm, h_mm = du._get_text_extents_mm(text, font_family, 24.0, False, True)
-            except Exception:
-                w_mm, h_mm = 10.0, 6.0
+            _xb, _yb, w_mm, h_mm = du._get_text_extents_mm(text, font_family, 24.0, False, True)
             # Rotated 90°: horizontal width should accommodate original height
             rect_w = max(h_mm + 6.0, 10.0)
             # Place rectangle near the outer right page edge
             x_left = float(page_w_mm) - rect_w - max(4.0, margin * 0.25)
             # Underlay rectangle (grey) with height equal to rotated text height
-            du.add_rectangle(x_left + (rect_w/5), y0, x_left + (rect_w/5*4), y3,
+            du.add_rectangle(x_left, y0, x_left + rect_w, y0 + w_mm + 3.0,
                              stroke_color=None, fill_color=(0.7, 0.7, 0.7, 1), id=0,
                              tags=["tempo_under"], dash_pattern=None)
             # Background rectangle (black)
             du.add_rectangle(x_left, y0, x_left + rect_w, y1,
                              stroke_color=None, fill_color=(0, 0, 0, 1), id=0,
                              tags=["tempo_bg"], dash_pattern=None)
+            # add guide start line (black)
+            du.add_line(page_w_mm - margin - self.semitone_dist * 2, y0, x_left, y0,
+                        color=(0, 0, 0, 1), width_mm=0.25, id=0,
+                        tags=["tempo_guide_line"], dash_pattern=[0,1])
+            # add guide line end (black)
+            du.add_line(page_w_mm - margin - self.semitone_dist * 2, y1, x_left, y1,
+                        color=(0, 0, 0, 1), width_mm=0.25, id=0,
+                        tags=["tempo_guide_line"], dash_pattern=[0,1])
             # Rotated white text: center horizontally inside rectangle; start at top side
             # After 90° rotation, visual width along x ≈ unrotated height
             x_text = x_left + (rect_w - h_mm) / 2.0 + .41
