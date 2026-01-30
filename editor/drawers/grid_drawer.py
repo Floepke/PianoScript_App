@@ -58,48 +58,7 @@ class GridDrawerMixin:
             denominator = bg.denominator
             measure_amount = bg.measure_amount
 
-            # numerator/denominator indicator color: grey if disabled
-            indicator_color = self.notation_color if getattr(bg, 'indicator_enabled', True) else (0.6, 0.6, 0.6, 1.0)
-
-            # numerator text
-            tsig_indicator_x = stave_left_position - ((margin / 4) * 2)
-            du.add_text(
-                tsig_indicator_x,
-                time_cursor - 3,
-                f"{numerator}",
-                size_pt=32.0,
-                color=indicator_color,
-                id=0,
-                tags=["time_signature"],
-                anchor='s',
-                family="Courier New",
-            )
-
-            # indicator line between numerator and denominator
-            du.add_line(
-                tsig_indicator_x - 5,
-                time_cursor,
-                tsig_indicator_x + 5,
-                time_cursor,
-                color=indicator_color,
-                width_mm=1.5,
-                id=0,
-                tags=["time_signature_line"],
-                dash_pattern=None,
-            )
-
-            # denominator text
-            du.add_text(
-                tsig_indicator_x,
-                time_cursor + 3,
-                f"{denominator}",
-                size_pt=32.0,
-                color=indicator_color,
-                id=0,
-                tags=["time_signature"],
-                anchor='n',
-                family="Courier New",
-            )
+            # Time signature indicator drawing moved to TimeSignatureDrawerMixin
 
             # General formula: quarters per measure = numerator * (4/denominator)
             quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))

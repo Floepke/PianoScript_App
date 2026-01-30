@@ -9,8 +9,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
                  initial_numer: int = 4,
                  initial_denom: int = 4,
                  initial_grid_positions: Optional[list[int]] = None,
-                 initial_indicator_enabled: Optional[bool] = True,
-                 initial_indicator_type: Optional[str] = "classical"):
+                 initial_indicator_enabled: Optional[bool] = True):
         super().__init__(parent)
         self.setWindowTitle("Set Time Signature")
         self.setModal(True)
@@ -59,16 +58,12 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self.checkbox_layout.setSpacing(6)
         lay.addWidget(self.checkbox_container)
 
-        # Indicator controls
+        # Indicator enabled toggle (global type comes from Layout; dialog no longer edits it)
         indicator_row = QtWidgets.QHBoxLayout()
         indicator_row.setContentsMargins(0, 0, 0, 0)
         indicator_row.setSpacing(6)
         self.indicator_enabled_cb = QtWidgets.QCheckBox("Indicator enabled", self)
-        self.indicator_type_combo = QtWidgets.QComboBox(self)
-        self.indicator_type_combo.addItems(["classical", "klavarskribo", "both"])
         indicator_row.addWidget(self.indicator_enabled_cb)
-        indicator_row.addWidget(QtWidgets.QLabel("Type:", self))
-        indicator_row.addWidget(self.indicator_type_combo, 1)
         lay.addLayout(indicator_row)
 
         # Buttons
@@ -99,13 +94,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             self._grid_positions = list(range(1, int(self._numer) + 1))
         # Initialize indicator state
         self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
-        init_type = str(initial_indicator_type or "classical")
-        if init_type not in ("classical", "klavarskribo", "both"):
-            init_type = "classical"
-        self._indicator_type: str = init_type
         try:
             self.indicator_enabled_cb.setChecked(self._indicator_enabled)
-            self.indicator_type_combo.setCurrentText(self._indicator_type)
         except Exception:
             pass
 
@@ -138,10 +128,9 @@ class TimeSignatureDialog(QtWidgets.QDialog):
                 self._build_checkboxes()
             self._denom = denom
 
-        # Keep indicator values in sync with widgets
+        # Keep indicator enabled in sync with widget
         try:
             self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
-            self._indicator_type = str(self.indicator_type_combo.currentText())
         except Exception:
             pass
 
@@ -155,7 +144,6 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         # Sync indicator values before accept
         try:
             self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
-            self._indicator_type = str(self.indicator_type_combo.currentText())
         except Exception:
             pass
         self.accept()
@@ -210,8 +198,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             except ValueError:
                 pass
 
-    def get_values(self) -> tuple[int, int, list[int], bool, str]:
-        return int(self._numer), int(self._denom), list(self._grid_positions), bool(self._indicator_enabled), str(self._indicator_type)
+    def get_values(self) -> tuple[int, int, list[int], bool]:
+        return int(self._numer), int(self._denom), list(self._grid_positions), bool(self._indicator_enabled)
 
 
 if __name__ == '__main__':
@@ -237,7 +225,7 @@ if __name__ == '__main__':
     lbl = QtWidgets.QLabel("Result: (none)", central)
 
     def open_dialog():
-        dlg = TimeSignatureDialog(parent=win, initial_numer=4, initial_denom=4, initial_grid_positions=[1, 2, 3, 4], initial_indicator_enabled=True, initial_indicator_type="classical")
+        dlg = TimeSignatureDialog(parent=win, initial_numer=4, initial_denom=4, initial_grid_positions=[1, 2, 3, 4], initial_indicator_enabled=True)
         try:
             dlg.setWindowModality(QtCore.Qt.WindowModal)
         except Exception:
@@ -251,9 +239,9 @@ if __name__ == '__main__':
             pass
         res = dlg.exec()
         if res == QtWidgets.QDialog.Accepted:
-            numer, denom, grid_positions, ind_enabled, ind_type = dlg.get_values()
-            print(f"[accepted] numer={numer}, denom={denom}, grid_positions={grid_positions}, indicator_enabled={ind_enabled}, indicator_type={ind_type}")
-            lbl.setText(f"Result: {numer}/{denom} beats={grid_positions} indicator={ind_type if ind_enabled else 'disabled'}")
+            numer, denom, grid_positions, ind_enabled = dlg.get_values()
+            print(f"[accepted] numer={numer}, denom={denom}, grid_positions={grid_positions}, indicator_enabled={ind_enabled}")
+            lbl.setText(f"Result: {numer}/{denom} beats={grid_positions} indicator={'enabled' if ind_enabled else 'disabled'}")
         else:
             print("[rejected]")
             lbl.setText("Result: (cancel)")

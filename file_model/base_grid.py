@@ -26,4 +26,3 @@ class BaseGrid:
     grid_positions: List[int] = field(default_factory=lambda: [1, 2, 3, 4])
     measure_amount: int = 1
     indicator_enabled: bool = True
-    indicator_type: Literal["classical", "klavarskribo", "both"] = "classical"

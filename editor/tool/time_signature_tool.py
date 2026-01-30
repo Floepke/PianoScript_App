@@ -84,7 +84,6 @@ class TimeSignatureTool(BaseTool):
         initial_denom = 4
         initial_grid_positions: list[int] = [1, 2, 3, 4]
         initial_indicator_enabled: bool = True
-        initial_indicator_type: str = 'classical'
         try:
             score: SCORE = self._editor.current_score()
             base_grid = list(getattr(score, 'base_grid', []) or [])
@@ -111,11 +110,9 @@ class TimeSignatureTool(BaseTool):
                 else:
                     initial_grid_positions = list(range(1, int(initial_numer) + 1))
                 initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', True))
-                it = str(getattr(cur_bg, 'indicator_type', 'classical'))
-                initial_indicator_type = it if it in ('classical', 'klavarskribo', 'both') else 'classical'
         except Exception:
             pass
-        dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled, initial_indicator_type=initial_indicator_type)
+            dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled)
         try:
             dlg.setWindowModality(QtCore.Qt.WindowModal)
         except Exception:
@@ -162,13 +159,13 @@ class TimeSignatureTool(BaseTool):
             self._pending_bar_idx = None
             return
         try:
-            numer, denom, grid_positions, indicator_enabled, indicator_type = dlg.get_values()  # type: ignore[attr-defined]
+            numer, denom, grid_positions, indicator_enabled = dlg.get_values()  # type: ignore[attr-defined]
         except Exception:
-            numer, denom, grid_positions, indicator_enabled, indicator_type = 4, 4, [1, 2, 3, 4], True, 'classical'
+            numer, denom, grid_positions, indicator_enabled = 4, 4, [1, 2, 3, 4], True
         try:
             score: SCORE = self._editor.current_score()
             bar_idx = int(self._pending_bar_idx or 0)
-            self._apply_time_signature_at_barline(score, bar_idx, int(numer), int(denom), list(grid_positions), bool(indicator_enabled), str(indicator_type))
+            self._apply_time_signature_at_barline(score, bar_idx, int(numer), int(denom), list(grid_positions), bool(indicator_enabled))
             try:
                 self._editor.update_score_length()
             except Exception:
@@ -187,11 +184,11 @@ class TimeSignatureTool(BaseTool):
         self._pending_dialog = None
         self._pending_bar_idx = None
 
-    def _apply_time_signature_at_barline(self, score: SCORE, bar_idx: int, numer: int, denom: int, grid_positions: list[int], indicator_enabled: bool, indicator_type: str) -> None:
+    def _apply_time_signature_at_barline(self, score: SCORE, bar_idx: int, numer: int, denom: int, grid_positions: list[int], indicator_enabled: bool) -> None:
         base_grid = list(getattr(score, 'base_grid', []) or [])
         if not base_grid:
             # Initialize with a single segment
-            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, grid_positions=list(grid_positions or range(1, numer+1)), measure_amount=1, indicator_enabled=bool(indicator_enabled), indicator_type=str(indicator_type))]
+            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, grid_positions=list(grid_positions or range(1, numer+1)), measure_amount=1, indicator_enabled=bool(indicator_enabled))]
             return
         # Map bar_idx to segment index and offset
         cum = 0
@@ -226,10 +223,6 @@ class TimeSignatureTool(BaseTool):
                 cur_bg.indicator_enabled = bool(indicator_enabled)
             except Exception:
                 pass
-            try:
-                cur_bg.indicator_type = str(indicator_type)
-            except Exception:
-                pass
             # Keep measure_amount unchanged; no zero-measure segments created.
             self._merge_adjacent_base_grids(score)
             return
@@ -243,7 +236,7 @@ class TimeSignatureTool(BaseTool):
             pass
         # Build new segment for the tail
         try:
-            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), grid_positions=list(grid_positions or list(range(1, int(numer)+1))), measure_amount=max(1, int(tail_count)), indicator_enabled=bool(indicator_enabled), indicator_type=str(indicator_type))
+            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), grid_positions=list(grid_positions or list(range(1, int(numer)+1))), measure_amount=max(1, int(tail_count)), indicator_enabled=bool(indicator_enabled))
         except Exception:
             new_bg = BaseGrid()
             new_bg.numerator = int(numer)
@@ -252,10 +245,6 @@ class TimeSignatureTool(BaseTool):
             new_bg.measure_amount = max(1, int(tail_count))
             try:
                 new_bg.indicator_enabled = bool(indicator_enabled)
-            except Exception:
-                pass
-            try:
-                new_bg.indicator_type = str(indicator_type)
             except Exception:
                 pass
         # Insert new segment after the adjusted current segment
