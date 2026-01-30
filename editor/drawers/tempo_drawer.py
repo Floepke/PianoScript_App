@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from ui.widgets.draw_util import DrawUtil
+from utils.CONSTANT import QUARTER_NOTE_UNIT
 
 if TYPE_CHECKING:
     from editor.editor import Editor
@@ -42,9 +43,9 @@ class TempoDrawerMixin:
             # Positions in mm
             y0 = float(self.time_to_mm(t0))
             y1 = float(self.time_to_mm(t0 + du_ticks))
+            y3 = float(y0 + 50.0)
             if y1 < y0:
                 y0, y1 = y1, y0
-            rect_h = max(0.5, y1 - y0)
             # Text and rectangle sizing
             text = str(tempo_val)
             # Estimate extents in mm for unrotated text (width_mm, height_mm)
@@ -56,13 +57,17 @@ class TempoDrawerMixin:
             rect_w = max(h_mm + 6.0, 10.0)
             # Place rectangle near the outer right page edge
             x_left = float(page_w_mm) - rect_w - max(4.0, margin * 0.25)
+            # Underlay rectangle (grey) with height equal to rotated text height
+            du.add_rectangle(x_left + (rect_w/5), y0, x_left + (rect_w/5*4), y3,
+                             stroke_color=None, fill_color=(0.7, 0.7, 0.7, 1), id=0,
+                             tags=["tempo_under"], dash_pattern=None)
             # Background rectangle (black)
             du.add_rectangle(x_left, y0, x_left + rect_w, y1,
                              stroke_color=None, fill_color=(0, 0, 0, 1), id=0,
                              tags=["tempo_bg"], dash_pattern=None)
             # Rotated white text: center horizontally inside rectangle; start at top side
             # After 90° rotation, visual width along x ≈ unrotated height
-            x_text = x_left + (rect_w - h_mm) / 2.0
+            x_text = x_left + (rect_w - h_mm) / 2.0 + .41
             y_text = y0 + 2.0
             du.add_text(x_text, y_text, text,
                         family=font_family, size_pt=24.0, italic=False, bold=True,

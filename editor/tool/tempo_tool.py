@@ -60,107 +60,56 @@ class TempoTool(BaseTool):
         existing = self._find_tempo_at_time(t)
         if existing is not None:
             cur_tempo = int(getattr(existing, 'tempo', 60) or 60)
-            dur = float(getattr(existing, 'duration', 0.0) or 0.0)
-            ev_time = float(getattr(existing, 'time', 0.0) or 0.0)
-            # Determine whether this is the earliest tempo
-            lst = list(getattr(score.events, 'tempo', []) or [])
-            earliest_time = min(float(getattr(ev, 'time', 0.0) or 0.0) for ev in lst) if lst else ev_time
-            op = Operator(threshold=1e-6)
-            is_earliest = op.equal(ev_time, earliest_time)
-            # Compute minimum duration based on active time signature beat length
-            numer, denom = self._find_active_ts_at_time(ev_time)
-            min_du = self._beat_length_ticks(numer, denom)
-
-            # Prepare parent and relax editor focus so the dialog receives mouse
             parent_w = None
             try:
                 parent_w = QtWidgets.QApplication.activeWindow()
             except Exception:
                 parent_w = None
-            editor_widget = None
-            prev_focus_policy = None
-            try:
-                from ui.widgets.cairo_views import CairoEditorWidget as _CEW
-                if parent_w is not None:
-                    editor_widget = parent_w.findChild(_CEW)
-            except Exception:
-                editor_widget = None
-            try:
-                if editor_widget is not None:
-                    prev_focus_policy = int(editor_widget.focusPolicy())
-                    editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-                    editor_widget.clearFocus()
-                    editor_widget.releaseMouse()
-            except Exception:
-                pass
-
-            # Build a small modal dialog for editing tempo (and duration for earliest)
             dlg = QtWidgets.QDialog(parent_w)
             dlg.setWindowTitle("Edit Tempo")
             try:
-                dlg.setWindowModality(QtCore.Qt.ApplicationModal)
+                dlg.setModal(False)
+                dlg.setWindowModality(QtCore.Qt.NonModal)
             except Exception:
                 pass
             lay = QtWidgets.QFormLayout(dlg)
-            lay.setContentsMargins(12, 12, 12, 12)
-            lay.setSpacing(8)
-            tempo_spin = QtWidgets.QSpinBox(dlg)
-            tempo_spin.setRange(1, 1000)
-            tempo_spin.setValue(cur_tempo)
-            lay.addRow("Tempo (units/min):", tempo_spin)
-            duration_spin = None
-            if is_earliest:
-                duration_spin = QtWidgets.QSpinBox(dlg)
-                # Represent duration in ticks; enforce minimum beat length
-                duration_spin.setRange(int(max(1, round(min_du))), 1000000)
-                duration_spin.setValue(int(max(int(round(min_du)), int(round(dur)))))
-                lay.addRow("Duration (ticks):", duration_spin)
+            tempo = QtWidgets.QSpinBox(dlg)
+            tempo.setRange(1, 1000)
+            tempo.setValue(cur_tempo)
+            lay.addRow("Tempo (The length of the black rectangle is one unit) This amount of units in one minute:", tempo)
             btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, parent=dlg)
             lay.addRow(btns)
-            try:
-                ok_btn = btns.button(QtWidgets.QDialogButtonBox.Ok)
-                if ok_btn is not None:
-                    ok_btn.setDefault(True)
-                    ok_btn.setAutoDefault(True)
-                    ok_btn.setFocus()
-            except Exception:
-                pass
-
+            btns.accepted.connect(dlg.accept)
+            btns.rejected.connect(dlg.reject)
+            def _apply():
+                try:
+                    existing.tempo = int(tempo.value())
+                except Exception:
+                    pass
+                self._editor._snapshot_if_changed(coalesce=True, label='tempo_edit')
+                self._editor.draw_frame()
+                # Force the editor canvas to repaint so changes appear immediately
+                try:
+                    from PySide6 import QtWidgets as _QtW
+                    from ui.widgets.cairo_views import CairoEditorWidget as _CEW
+                    w = _QtW.QApplication.activeWindow()
+                    if w is not None:
+                        ed = w.findChild(_CEW)
+                        if ed is not None:
+                            ed.update()
+                except Exception:
+                    pass
+            dlg.accepted.connect(_apply)
             try:
                 dlg.raise_()
                 dlg.activateWindow()
             except Exception:
                 pass
-
-            res = dlg.exec()
             try:
-                if int(res) == int(QtWidgets.QDialog.Accepted):
-                    # Update tempo
-                    try:
-                        existing.tempo = int(tempo_spin.value())
-                    except Exception:
-                        pass
-                    # Update duration only for earliest marker; clamp to minimum
-                    if duration_spin is not None:
-                        try:
-                            new_du = float(duration_spin.value())
-                            existing.duration = max(float(min_du), float(new_du))
-                        except Exception:
-                            pass
-                    self._editor._snapshot_if_changed(coalesce=True, label='tempo_edit')
-                    self._editor.draw_frame()
-            finally:
-                # Restore editor focus policy
-                try:
-                    if editor_widget is not None:
-                        fp = prev_focus_policy if prev_focus_policy is not None else int(QtCore.Qt.FocusPolicy.StrongFocus)
-                        try:
-                            editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy(fp))
-                        except Exception:
-                            editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-                        editor_widget.setFocus()
-                except Exception:
-                    pass
+                self._tempo_dialog = dlg
+            except Exception:
+                pass
+            dlg.show()
             return
         # Create new tempo with minimum duration = one beat of active time signature
         numer, denom = self._find_active_ts_at_time(t)
@@ -188,6 +137,17 @@ class TempoTool(BaseTool):
                     pass
                 break
         self._editor.draw_frame()
+        # Force repaint for immediate visual feedback
+        try:
+            from PySide6 import QtWidgets as _QtW
+            from ui.widgets.cairo_views import CairoEditorWidget as _CEW
+            w = _QtW.QApplication.activeWindow()
+            if w is not None:
+                ed = w.findChild(_CEW)
+                if ed is not None:
+                    ed.update()
+        except Exception:
+            pass
 
     def on_left_drag_end(self, x: float, y: float) -> None:
         if self._editor is None:
@@ -195,6 +155,21 @@ class TempoTool(BaseTool):
         self._editor._snapshot_if_changed(coalesce=True, label='tempo_resize')
         self._active_tempo_id = None
         self._active_time = None
+
+    def on_left_press(self, x: float, y: float) -> None:
+        # If pressing on an existing tempo marker, prepare for duration drag
+        if self._editor is None:
+            return
+        score = self._editor.current_score()
+        t = self._editor.snap_time(self._editor.y_to_time(y))
+        existing = self._find_tempo_at_time(t)
+        if existing is None:
+            return
+        numer, denom = self._find_active_ts_at_time(float(getattr(existing, 'time', 0.0) or 0.0))
+        min_du = self._beat_length_ticks(numer, denom)
+        self._active_tempo_id = int(getattr(existing, 'id', 0) or 0)
+        self._active_time = float(getattr(existing, 'time', 0.0) or 0.0)
+        self._min_duration = float(min_du)
 
     def on_right_click(self, x: float, y: float) -> None:
         if self._editor is None:

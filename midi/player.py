@@ -250,28 +250,23 @@ class Player:
 
     def _build_events_full(self, score) -> List[Tuple[str, float, int, int]]:
         events: List[Tuple[str, float, int, int]] = []
-        bpm = 120.0
+        # Build tempo segments from SCORE.events.tempo (piecewise constant BPM)
+        segs = self._get_tempo_segments(score)
+        # Record nominal BPM from first segment and start at zero units
         try:
-            for t in score.events.text:
-                s = str(getattr(t, 'text', ''))
-                if s and '/' in s:
-                    bpm = float(s.split('/')[0])
-                    break
-        except Exception:
-            pass
-        # Record BPM and start at zero units for full-play runs
-        try:
-            self._bpm = float(bpm)
+            self._bpm = float(segs[0][2]) if segs else 120.0
             self._start_units = 0.0
         except Exception:
             pass
         for n in score.events.note:
-            start_sec = (float(n.time) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
             # Skip notes shorter than threshold in time units
             dur_units = float(getattr(n, 'duration', 0.0) or 0.0)
             if dur_units < float(self._min_duration_units):
                 continue
-            dur_sec = (dur_units / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+            start_units = float(getattr(n, 'time', 0.0) or 0.0)
+            end_units = float(start_units + dur_units)
+            start_sec = self._seconds_between(0.0, start_units, segs)
+            dur_sec = self._seconds_between(start_units, end_units, segs)
             vel = int(getattr(n, 'velocity', 64) or 64)
             app_pitch = int(n.pitch)
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
@@ -324,15 +319,8 @@ class Player:
         self._ensure_port()
         if self._out is None:
             return
-        bpm = 120.0
-        try:
-            for t in score.events.text:
-                s = str(getattr(t, 'text', ''))
-                if s and '/' in s:
-                    bpm = float(s.split('/')[0])
-                    break
-        except Exception:
-            pass
+        # Build tempo segments
+        segs = self._get_tempo_segments(score)
         su = float(max(0.0, start_units))
         events: list[tuple[str, float, int, int]] = []
         # Start any spanning notes immediately; schedule offs and future notes
@@ -350,12 +338,12 @@ class Player:
             if start < su < end:
                 # Start now; schedule off at remaining duration
                 self._note_on(int(midi_pitch), int(vel))
-                off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                off_t = self._seconds_between(su, end, segs)
                 off_t = max(0.0, float(off_t) - float(self._off_epsilon_sec))
                 events.append(('off', float(off_t), midi_pitch, 0))
             elif start >= su:
-                on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
-                dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                on_t = self._seconds_between(su, start, segs)
+                dur_t = self._seconds_between(start, float(n.time + n.duration), segs)
                 events.append(('on', float(on_t), midi_pitch, vel))
                 off_t = float(on_t + max(0.0, dur_t) - float(self._off_epsilon_sec))
                 events.append(('off', max(0.0, off_t), midi_pitch, 0))
@@ -365,25 +353,17 @@ class Player:
         # Record BPM and relative start units for playhead mapping
         try:
             self._start_units = float(su)
-            self._bpm = float(bpm)
+            self._bpm = float(segs[0][2]) if segs else 120.0
         except Exception:
             pass
         self._run_events_with_midi(events)
 
     def _build_events_from_time(self, start_units: float, score) -> List[Tuple[str, float, int, int]]:
-        bpm = 120.0
-        try:
-            for t in score.events.text:
-                s = str(getattr(t, 'text', ''))
-                if s and '/' in s:
-                    bpm = float(s.split('/')[0])
-                    break
-        except Exception:
-            pass
+        segs = self._get_tempo_segments(score)
         su = float(max(0.0, start_units))
         # Record BPM and start units so UI can compute playhead
         try:
-            self._bpm = float(bpm)
+            self._bpm = float(segs[0][2]) if segs else 120.0
             self._start_units = float(su)
         except Exception:
             pass
@@ -402,12 +382,12 @@ class Player:
             if start < su < end:
                 # Start now; schedule off at remaining duration
                 events.append(('on', 0.0, midi_pitch, vel))
-                off_t = ((end - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                off_t = self._seconds_between(su, end, segs)
                 off_t = max(0.0, float(off_t) - float(self._off_epsilon_sec))
                 events.append(('off', float(off_t), midi_pitch, 0))
             elif start >= su:
-                on_t = ((start - su) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
-                dur_t = (float(n.duration) / QUARTER_NOTE_UNIT) * (60.0 / bpm)
+                on_t = self._seconds_between(su, start, segs)
+                dur_t = self._seconds_between(start, float(n.time + n.duration), segs)
                 events.append(('on', float(on_t), midi_pitch, vel))
                 off_t = float(on_t + max(0.0, dur_t) - float(self._off_epsilon_sec))
                 events.append(('off', max(0.0, off_t), midi_pitch, 0))
@@ -504,19 +484,140 @@ class Player:
     def is_playing(self) -> bool:
         return bool(self._running)
 
-    def get_playhead_units(self) -> Optional[float]:
-        """Return current playhead position in app time units (ticks), or None if idle.
+    def get_playhead_units(self, score=None) -> Optional[float]:
+        """Return current playhead position in app units (ticks) under variable tempo.
 
-        Mapping: units = start_units + elapsed_sec * QUARTER_NOTE_UNIT * bpm / 60.
+        Uses tempo segments to invert elapsed seconds back into units from `self._start_units`.
         """
         if not bool(self._running):
             return None
         try:
             elapsed = max(0.0, time.time() - float(self._t0))
-            units = float(self._start_units) + float(elapsed) * float(QUARTER_NOTE_UNIT) * float(self._bpm) / 60.0
-            return units
+            # Build segments if score provided; else fall back to linear mapping
+            if score is None:
+                # Fallback when score is unavailable: interpret self._bpm as seconds-per-unit
+                s_per_unit = float(self._bpm) if self._bpm > 0 else (60.0 / (120.0 * float(QUARTER_NOTE_UNIT)))
+                units = float(self._start_units) + float(elapsed) / float(s_per_unit)
+                return units
+            segs = self._get_tempo_segments(score)
+            u = self._units_from_elapsed(float(elapsed), float(self._start_units), segs)
+            return u
         except Exception:
             return None
+
+    # ---- Tempo mapping helpers ----
+    def _get_tempo_segments(self, score) -> List[Tuple[float, float, float]]:
+        """Return list of tempo segments: (start_units, end_units, seconds_per_unit).
+
+        - Uses SCORE.events.tempo. Each event has `time`, `duration` (units), `tempo` (markers per minute).
+        - For each event, seconds per unit = 60 / (tempo * duration_units).
+        - Segments are clamped not to cross into the next event's start; the last extends by its duration.
+        - If no tempo events, fall back to quarter-note BPM 120: seconds per unit = 60 / (120 * QUARTER_NOTE_UNIT).
+        """
+        segs: List[Tuple[float, float, float]] = []
+        try:
+            lst = sorted(list(getattr(score.events, 'tempo', []) or []), key=lambda e: float(getattr(e, 'time', 0.0) or 0.0))
+        except Exception:
+            lst = []
+        if not lst:
+            return [(0.0, float('inf'), 60.0 / (120.0 * float(QUARTER_NOTE_UNIT)))]
+        for i, ev in enumerate(lst):
+            start = float(getattr(ev, 'time', 0.0) or 0.0)
+            dur = float(getattr(ev, 'duration', 0.0) or 0.0)
+            s_per_unit = self._calculate_tempo(ev)
+            # Clamp end to next event start to avoid overlaps
+            if i + 1 < len(lst):
+                next_start = float(getattr(lst[i + 1], 'time', 0.0) or 0.0)
+                end = min(start + max(0.0, dur), next_start)
+            else:
+                end = start + max(0.0, dur)
+            segs.append((start, end, float(s_per_unit)))
+        return segs
+
+    def _seconds_between(self, a_units: float, b_units: float, segs: List[Tuple[float, float, float]]) -> float:
+        """Integrate seconds from a_units to b_units across tempo segments.
+        sec = units * seconds_per_unit, piecewise per tempo segment.
+        If b_units exceeds last segment end, carry last segment's seconds_per_unit forward.
+        """
+        if b_units <= a_units:
+            return 0.0
+        total = 0.0
+        # Iterate segments overlapping [a_units, b_units)
+        for i, (s, e, s_per_unit) in enumerate(segs):
+            if e <= a_units:
+                continue
+            if s >= b_units:
+                break
+            lo = max(a_units, s)
+            hi = min(b_units, e)
+            if hi > lo:
+                total += (hi - lo) * float(s_per_unit)
+        # If b_units extends beyond the last segment end, carry last tempo forward
+        if segs and b_units > segs[-1][1]:
+            _s_last, e_last, s_per_unit_last = segs[-1]
+            lo = max(a_units, e_last)
+            hi = b_units
+            if hi > lo:
+                total += (hi - lo) * float(s_per_unit_last)
+        return total
+
+    def _units_from_elapsed(self, elapsed_sec: float, start_units: float, segs: List[Tuple[float, float, float]]) -> float:
+        """Invert seconds→units from start_units across tempo segments.
+
+        Walk segments from start_units forward subtracting their seconds length until remainder,
+        then convert remainder to units within the current segment.
+        """
+        u = float(start_units)
+        rem = float(elapsed_sec)
+        # Find the segment index where start_units lies
+        idx = 0
+        for i, (s, e, _s_per_unit) in enumerate(segs):
+            if s <= start_units < e:
+                idx = i
+                break
+            if start_units >= e:
+                idx = i + 1
+        # Walk segments
+        while rem > 0.0 and idx < len(segs):
+            s, e, s_per_unit = segs[idx]
+            seg_lo = max(s, u)
+            seg_hi = e
+            if seg_hi > seg_lo:
+                seg_sec = (seg_hi - seg_lo) * float(s_per_unit)
+                if rem >= seg_sec:
+                    u = seg_hi
+                    rem -= seg_sec
+                    idx += 1
+                    continue
+                # Partial within this segment
+                u += rem / float(s_per_unit)
+                rem = 0.0
+                return u
+            idx += 1
+        # If beyond last segment, carry last tempo
+        if segs and rem > 0.0:
+            _s, _e, s_per_unit_last = segs[-1]
+            u += rem / float(s_per_unit_last)
+        return u
+
+    def _calculate_tempo(self, tempo_event) -> float:
+        """Return seconds-per-unit scaling for a `Tempo` event.
+
+        Definition: `tempo` means markers-per-minute for this event, where one marker spans
+        `duration` units. Therefore, seconds per unit = 60 / (tempo * duration).
+        """
+        try:
+            tpm = float(getattr(tempo_event, 'tempo', 60.0) or 60.0)
+        except Exception:
+            tpm = 60.0
+        try:
+            dur_units = float(getattr(tempo_event, 'duration', 0.0) or 0.0)
+        except Exception:
+            dur_units = 0.0
+        if dur_units <= 0.0:
+            # Fallback to quarter-BPM 120 if invalid
+            return 60.0 / (120.0 * float(QUARTER_NOTE_UNIT))
+        return 60.0 / (float(tpm) * float(dur_units))
 
     def get_debug_status(self) -> dict:
         """Return current playback debug info for UI/status messages."""

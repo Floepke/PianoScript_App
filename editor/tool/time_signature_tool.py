@@ -118,82 +118,31 @@ class TimeSignatureTool(BaseTool):
         except Exception:
             indicator_type = 'classical'
         dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled, indicator_type=indicator_type)
-        # Ensure full application modality so no editor widget can steal mouse
+        # Make modeless/non-modal like FX synth dialog
         try:
-            dlg.setWindowModality(QtCore.Qt.ApplicationModal)
+            dlg.setModal(False)
+            dlg.setWindowModality(QtCore.Qt.NonModal)
         except Exception:
             pass
-        # Temporarily relax editor focus so the dialog receives mouse
-        editor_widget = None
+        # Wire OK/Cancel to accept/reject and apply via signals
         try:
-            from ui.widgets.cairo_views import CairoEditorWidget as _CEW
-            if parent_w is not None:
-                editor_widget = parent_w.findChild(_CEW)
-        except Exception:
-            editor_widget = None
-        try:
-            if editor_widget is not None:
-                # Save and drop StrongFocus + release any mouse grab
-                try:
-                    self._prev_editor_focus_policy = int(editor_widget.focusPolicy())
-                except Exception:
-                    self._prev_editor_focus_policy = None
-                try:
-                    editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-                except Exception:
-                    pass
-                try:
-                    editor_widget.clearFocus()
-                except Exception:
-                    pass
-                try:
-                    editor_widget.releaseMouse()
-                except Exception:
-                    pass
+            dlg.btns.accepted.connect(dlg.accept)
+            dlg.btns.rejected.connect(dlg.reject)
         except Exception:
             pass
-        # Prefer focusing OK button so keyboard and mouse go to the dialog
         try:
-            ok_btn = dlg.btns.button(QtWidgets.QDialogButtonBox.Ok)
-            if ok_btn is not None:
-                ok_btn.setDefault(True)
-                ok_btn.setAutoDefault(True)
-                ok_btn.setFocus()
+            dlg.accepted.connect(lambda: self._on_time_signature_accepted(dlg))
+            dlg.rejected.connect(lambda: self._on_time_signature_rejected(dlg))
         except Exception:
             pass
+        # Keep a reference while modeless and show
+        self._pending_dialog = dlg
         try:
             dlg.raise_()
             dlg.activateWindow()
         except Exception:
             pass
-        # Synchronously execute the dialog; handle result, then restore editor focus policy
-        try:
-            res = dlg.exec()
-            if int(res) == int(QtWidgets.QDialog.Accepted):
-                self._on_time_signature_accepted(dlg)
-            else:
-                self._on_time_signature_rejected(dlg)
-        finally:
-            try:
-                if editor_widget is not None:
-                    # Restore previous focus policy (default to StrongFocus if unknown)
-                    fp = self._prev_editor_focus_policy
-                    if fp is None:
-                        fp = int(QtCore.Qt.FocusPolicy.StrongFocus)
-                    try:
-                        editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy(fp))
-                    except Exception:
-                        # Fallback: ensure StrongFocus
-                        try:
-                            editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-                        except Exception:
-                            pass
-                    try:
-                        editor_widget.setFocus()
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+        dlg.show()
         return
 
     def _on_time_signature_accepted(self, dlg: QtWidgets.QDialog) -> None:
