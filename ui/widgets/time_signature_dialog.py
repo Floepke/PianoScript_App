@@ -1,10 +1,16 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
+from typing import Optional
 
-VALID_DENOMS = [1, 2, 4, 8, 16, 32]
+VALID_DENOMS = [1, 2, 4, 8, 16, 32, 64, 128]
 
 class TimeSignatureDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, initial_numer: int = 4, initial_denom: int = 4):
+    def __init__(self, parent=None,
+                 initial_numer: int = 4,
+                 initial_denom: int = 4,
+                 initial_grid_positions: Optional[list[int]] = None,
+                 initial_indicator_enabled: Optional[bool] = True,
+                 initial_indicator_type: Optional[str] = "classical"):
         super().__init__(parent)
         self.setWindowTitle("Set Time Signature")
         self.setModal(True)
@@ -12,106 +18,66 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
-        # Numerator control row: [-] [label] [+]
-        num_row = QtWidgets.QHBoxLayout()
-        num_row.setContentsMargins(0, 0, 0, 0)
-        num_row.setSpacing(0)
+        # Single entry: Time-Signature: "N/D"
+        entry_row = QtWidgets.QHBoxLayout()
+        entry_row.setContentsMargins(0, 0, 0, 0)
+        entry_row.setSpacing(6)
+        self.ts_label = QtWidgets.QLabel("Time-Signature:", self)
+        self.ts_edit = QtWidgets.QLineEdit(self)
+        self.ts_edit.setPlaceholderText("e.g., 4/4")
+        self.ts_edit.setClearButtonEnabled(True)
+        # Allow digits and '/'
+        rx = QtCore.QRegularExpression(r"^[0-9]+/[0-9]+$")
+        self._validator = QtGui.QRegularExpressionValidator(rx, self.ts_edit)
+        self.ts_edit.setValidator(self._validator)
+        entry_row.addWidget(self.ts_label)
+        entry_row.addWidget(self.ts_edit, 1)
+        lay.addLayout(entry_row)
 
-        self.minus_btn = QtWidgets.QToolButton(self)
-        ic_minus = None
+        # Validation message
+        self.msg_label = QtWidgets.QLabel("", self)
+        pal = self.msg_label.palette()
         try:
-            from icons.icons import get_qicon
-            ic_minus = get_qicon('minus', size=(36, 36))
-        except Exception:
-            ic_minus = None
-        if ic_minus:
-            self.minus_btn.setIcon(ic_minus)
-            self.minus_btn.setIconSize(QtCore.QSize(34, 34))
-            self.minus_btn.setText("")
-        else:
-            self.minus_btn.setText("-")
-        self.minus_btn.setFixedSize(54, 54)
-        # Improve hover/press UX
-        try:
-            self.minus_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-            self.minus_btn.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(200, 0, 0))
+            self.msg_label.setPalette(pal)
         except Exception:
             pass
-        fbtn = self.minus_btn.font()
-        try:
-            base_sz = fbtn.pointSize()
-            target = (base_sz * 2 if base_sz > 0 else 20)
-            fbtn.setPointSize(int(round(target * 0.75)))
-        except Exception:
-            fbtn.setPointSize(15)
-        self.minus_btn.setFont(fbtn)
-        self.minus_btn.clicked.connect(self._dec_numer)
+        lay.addWidget(self.msg_label)
 
-        self.num_label = QtWidgets.QLabel(self)
-        self.num_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        fl = self.num_label.font()
-        try:
-            szl = fl.pointSize()
-            fl.setPointSize(szl * 2 if szl > 0 else 20)
-        except Exception:
-            fl.setPointSize(20)
-        self.num_label.setFont(fl)
-        self.num_label.setMinimumHeight(54)
+        # Instruction + checkboxes container
+        self.info_label = QtWidgets.QLabel(
+            "Enable/disable beats below. Checkbox 1 toggles the barline; higher numbers toggle beat grid lines.",
+            self,
+        )
+        lay.addWidget(self.info_label)
+        # Beats enabled label
+        self.beats_label = QtWidgets.QLabel("Beats enabled:", self)
+        lay.addWidget(self.beats_label)
+        self.checkbox_container = QtWidgets.QWidget(self)
+        self.checkbox_layout = QtWidgets.QHBoxLayout(self.checkbox_container)
+        self.checkbox_layout.setContentsMargins(0, 0, 0, 0)
+        self.checkbox_layout.setSpacing(6)
+        lay.addWidget(self.checkbox_container)
 
-        self.plus_btn = QtWidgets.QToolButton(self)
-        ic_plus = None
-        try:
-            from icons.icons import get_qicon
-            ic_plus = get_qicon('plus', size=(36, 36))
-        except Exception:
-            ic_plus = None
-        if ic_plus:
-            self.plus_btn.setIcon(ic_plus)
-            self.plus_btn.setIconSize(QtCore.QSize(34, 34))
-            self.plus_btn.setText("")
-        else:
-            self.plus_btn.setText("+")
-        self.plus_btn.setFixedSize(54, 54)
-        try:
-            self.plus_btn.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-            self.plus_btn.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        except Exception:
-            pass
-        fbtn2 = self.plus_btn.font()
-        try:
-            base_sz2 = fbtn2.pointSize()
-            target2 = (base_sz2 * 2 if base_sz2 > 0 else 20)
-            fbtn2.setPointSize(int(round(target2 * 0.75)))
-        except Exception:
-            fbtn2.setPointSize(15)
-        self.plus_btn.setFont(fbtn2)
-        self.plus_btn.clicked.connect(self._inc_numer)
-
-        num_row.addWidget(self.minus_btn)
-        num_row.addWidget(self.num_label, 1)
-        num_row.addWidget(self.plus_btn)
-        lay.addLayout(num_row)
-
-        # Denominator dropdown
-        denom_row = QtWidgets.QHBoxLayout()
-        denom_row.setContentsMargins(0, 0, 0, 0)
-        denom_row.setSpacing(6)
-        denom_label = QtWidgets.QLabel("Denominator:", self)
-        self.denom_combo = QtWidgets.QComboBox(self)
-        for v in VALID_DENOMS:
-            self.denom_combo.addItem(str(v), v)
-        denom_row.addWidget(denom_label)
-        denom_row.addWidget(self.denom_combo, 1)
-        lay.addLayout(denom_row)
+        # Indicator controls
+        indicator_row = QtWidgets.QHBoxLayout()
+        indicator_row.setContentsMargins(0, 0, 0, 0)
+        indicator_row.setSpacing(6)
+        self.indicator_enabled_cb = QtWidgets.QCheckBox("Indicator enabled", self)
+        self.indicator_type_combo = QtWidgets.QComboBox(self)
+        self.indicator_type_combo.addItems(["classical", "klavarskribo", "both"])
+        indicator_row.addWidget(self.indicator_enabled_cb)
+        indicator_row.addWidget(QtWidgets.QLabel("Type:", self))
+        indicator_row.addWidget(self.indicator_type_combo, 1)
+        lay.addLayout(indicator_row)
 
         # Buttons
-        btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, parent=self)
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        lay.addWidget(btns)
-        # Make OK the default button for Enter/Return
+        self.btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, parent=self)
+        self.btns.accepted.connect(self._on_accept_clicked)
+        self.btns.rejected.connect(self.reject)
+        lay.addWidget(self.btns)
         try:
-            ok_btn = btns.button(QtWidgets.QDialogButtonBox.Ok)
+            ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
             if ok_btn is not None:
                 ok_btn.setDefault(True)
                 ok_btn.setAutoDefault(True)
@@ -121,53 +87,131 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         # State
         self._numer = int(initial_numer)
         self._denom = int(initial_denom) if int(initial_denom) in VALID_DENOMS else 4
-        self._update_ui()
-        # Select denom row
+        # Initialize grid positions. If provided, clamp to [1..numer]; otherwise default to all enabled.
+        init_gp = list(initial_grid_positions or [])
+        if init_gp:
+            self._grid_positions = [p for p in init_gp if isinstance(p, int) and 1 <= int(p) <= int(self._numer)]
+            # Keep unique + sorted
+            self._grid_positions = sorted(list(dict.fromkeys(self._grid_positions)))
+            if not self._grid_positions:
+                self._grid_positions = list(range(1, int(self._numer) + 1))
+        else:
+            self._grid_positions = list(range(1, int(self._numer) + 1))
+        # Initialize indicator state
+        self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
+        init_type = str(initial_indicator_type or "classical")
+        if init_type not in ("classical", "klavarskribo", "both"):
+            init_type = "classical"
+        self._indicator_type: str = init_type
         try:
-            idx = VALID_DENOMS.index(self._denom)
-            self.denom_combo.setCurrentIndex(idx)
+            self.indicator_enabled_cb.setChecked(self._indicator_enabled)
+            self.indicator_type_combo.setCurrentText(self._indicator_type)
         except Exception:
             pass
 
-        # Wheel control over label/buttons
-        self.num_label.installEventFilter(self)
-        self.minus_btn.installEventFilter(self)
-        self.plus_btn.installEventFilter(self)
-
-    def _update_ui(self) -> None:
-        self.num_label.setText(str(self._numer))
-        # Enable minus only above 1
-        self.minus_btn.setEnabled(self._numer > 1)
-
-    def _dec_numer(self) -> None:
-        if self._numer > 1:
-            self._numer -= 1
-            self._update_ui()
-
-    def _inc_numer(self) -> None:
-        # Arbitrary cap to prevent runaway
-        if self._numer < 64:
-            self._numer += 1
-            self._update_ui()
-
-    def eventFilter(self, obj: QtCore.QObject, ev: QtCore.QEvent) -> bool:
+        self._build_checkboxes()
+        # Initialize entry text
         try:
-            if ev.type() == QtCore.QEvent.Type.Wheel and obj in (self.minus_btn, self.plus_btn, self.num_label):
-                delta = 0
-                if isinstance(ev, QtGui.QWheelEvent):
-                    delta = ev.angleDelta().y()
-                if delta > 0:
-                    self._inc_numer()
-                elif delta < 0:
-                    self._dec_numer()
-                return True
+            self.ts_edit.setText(f"{self._numer}/{self._denom}")
         except Exception:
             pass
-        return super().eventFilter(obj, ev)
+        # React to changes
+        self.ts_edit.textChanged.connect(self._on_text_changed)
 
-    def get_values(self) -> tuple[int, int]:
-        denom = int(self.denom_combo.currentData()) if self.denom_combo.currentData() is not None else int(self.denom_combo.currentText())
-        return int(self._numer), int(denom)
+    def _on_text_changed(self, s: str) -> None:
+        numer, denom, err = self._parse_ts(s)
+        ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
+        if err:
+            self.msg_label.setText(err)
+            if ok_btn is not None:
+                ok_btn.setEnabled(False)
+            return
+        self.msg_label.setText("")
+        if ok_btn is not None:
+            ok_btn.setEnabled(True)
+        if numer is not None and denom is not None:
+            # Rebuild checkboxes if numerator changed
+            if numer != self._numer:
+                self._numer = numer
+                # Reset grid positions to all enabled by default
+                self._grid_positions = list(range(1, numer + 1))
+                self._build_checkboxes()
+            self._denom = denom
+
+        # Keep indicator values in sync with widgets
+        try:
+            self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
+            self._indicator_type = str(self.indicator_type_combo.currentText())
+        except Exception:
+            pass
+
+    def _on_accept_clicked(self) -> None:
+        s = self.ts_edit.text().strip()
+        numer, denom, err = self._parse_ts(s)
+        if err or numer is None or denom is None:
+            return
+        self._numer = numer
+        self._denom = denom
+        # Sync indicator values before accept
+        try:
+            self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
+            self._indicator_type = str(self.indicator_type_combo.currentText())
+        except Exception:
+            pass
+        self.accept()
+
+    def _parse_ts(self, s: str) -> tuple[Optional[int], Optional[int], Optional[str]]:
+        if not s:
+            return None, None, "Enter N/D with digits and '/'."
+        # validator already restricts pattern, but we further validate denominator set
+        try:
+            parts = s.split('/')
+            if len(parts) != 2:
+                return None, None, "Format must be N/D (e.g., 4/4)."
+            n_str, d_str = parts[0], parts[1]
+            if not n_str.isdigit() or not d_str.isdigit():
+                return None, None, "Only digits and '/' allowed."
+            n = int(n_str)
+            d = int(d_str)
+            if n <= 0:
+                return None, None, "Numerator must be a positive integer."
+            if d not in VALID_DENOMS:
+                return None, None, f"Denominator must be one of {VALID_DENOMS}."
+            return n, d, None
+        except Exception:
+            return None, None, "Invalid time signature."
+
+    def _build_checkboxes(self) -> None:
+        # Clear current
+        while self.checkbox_layout.count():
+            item = self.checkbox_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+        # Build new set
+        self._checkboxes: list[QtWidgets.QCheckBox] = []
+        for i in range(1, int(self._numer) + 1):
+            cb = QtWidgets.QCheckBox(str(i), self.checkbox_container)
+            cb.setChecked(i in self._grid_positions)
+            # Ensure barline (1) can be disabled per request
+            cb.toggled.connect(lambda checked, idx=i: self._on_cb_toggled(idx, checked))
+            self.checkbox_layout.addWidget(cb)
+            self._checkboxes.append(cb)
+        self.checkbox_layout.addStretch(1)
+
+    def _on_cb_toggled(self, idx: int, checked: bool) -> None:
+        if checked:
+            if idx not in self._grid_positions:
+                self._grid_positions.append(idx)
+                self._grid_positions.sort()
+        else:
+            try:
+                self._grid_positions.remove(idx)
+            except ValueError:
+                pass
+
+    def get_values(self) -> tuple[int, int, list[int], bool, str]:
+        return int(self._numer), int(self._denom), list(self._grid_positions), bool(self._indicator_enabled), str(self._indicator_type)
 
 
 if __name__ == '__main__':
@@ -193,7 +237,7 @@ if __name__ == '__main__':
     lbl = QtWidgets.QLabel("Result: (none)", central)
 
     def open_dialog():
-        dlg = TimeSignatureDialog(parent=win, initial_numer=4, initial_denom=4)
+        dlg = TimeSignatureDialog(parent=win, initial_numer=4, initial_denom=4, initial_grid_positions=[1, 2, 3, 4], initial_indicator_enabled=True, initial_indicator_type="classical")
         try:
             dlg.setWindowModality(QtCore.Qt.WindowModal)
         except Exception:
@@ -207,9 +251,9 @@ if __name__ == '__main__':
             pass
         res = dlg.exec()
         if res == QtWidgets.QDialog.Accepted:
-            numer, denom = dlg.get_values()
-            print(f"[accepted] numer={numer}, denom={denom}")
-            lbl.setText(f"Result: {numer}/{denom}")
+            numer, denom, grid_positions, ind_enabled, ind_type = dlg.get_values()
+            print(f"[accepted] numer={numer}, denom={denom}, grid_positions={grid_positions}, indicator_enabled={ind_enabled}, indicator_type={ind_type}")
+            lbl.setText(f"Result: {numer}/{denom} beats={grid_positions} indicator={ind_type if ind_enabled else 'disabled'}")
         else:
             print("[rejected]")
             lbl.setText("Result: (cancel)")

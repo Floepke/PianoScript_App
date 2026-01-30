@@ -58,6 +58,9 @@ class GridDrawerMixin:
             denominator = bg.denominator
             measure_amount = bg.measure_amount
 
+            # numerator/denominator indicator color: grey if disabled
+            indicator_color = self.notation_color if getattr(bg, 'indicator_enabled', True) else (0.6, 0.6, 0.6, 1.0)
+
             # numerator text
             tsig_indicator_x = stave_left_position - ((margin / 4) * 2)
             du.add_text(
@@ -65,7 +68,7 @@ class GridDrawerMixin:
                 time_cursor - 3,
                 f"{numerator}",
                 size_pt=32.0,
-                color=self.notation_color,
+                color=indicator_color,
                 id=0,
                 tags=["time_signature"],
                 anchor='s',
@@ -78,7 +81,7 @@ class GridDrawerMixin:
                 time_cursor,
                 tsig_indicator_x + 5,
                 time_cursor,
-                color=self.notation_color,
+                color=indicator_color,
                 width_mm=1.5,
                 id=0,
                 tags=["time_signature_line"],
@@ -91,7 +94,7 @@ class GridDrawerMixin:
                 time_cursor + 3,
                 f"{denominator}",
                 size_pt=32.0,
-                color=self.notation_color,
+                color=indicator_color,
                 id=0,
                 tags=["time_signature"],
                 anchor='n',

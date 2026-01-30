@@ -79,7 +79,43 @@ class TimeSignatureTool(BaseTool):
             TimeSignatureDialog = None  # type: ignore
         if TimeSignatureDialog is None:
             return
-        dlg = TimeSignatureDialog(parent=parent_w, initial_numer=4, initial_denom=4)
+        # Prefill dialog with active time signature at nearest barline
+        initial_numer = 4
+        initial_denom = 4
+        initial_grid_positions: list[int] = [1, 2, 3, 4]
+        initial_indicator_enabled: bool = True
+        initial_indicator_type: str = 'classical'
+        try:
+            score: SCORE = self._editor.current_score()
+            base_grid = list(getattr(score, 'base_grid', []) or [])
+            if base_grid:
+                bar_idx = int(self._pending_bar_idx or 0)
+                # Map bar_idx to segment index
+                cum = 0
+                seg_i = 0
+                for i, bg in enumerate(base_grid):
+                    m = int(getattr(bg, 'measure_amount', 1) or 1)
+                    if bar_idx < cum + m:
+                        seg_i = i
+                        break
+                    cum += m
+                cur_bg = base_grid[seg_i]
+                initial_numer = int(getattr(cur_bg, 'numerator', initial_numer))
+                initial_denom = int(getattr(cur_bg, 'denominator', initial_denom))
+                gp = list(getattr(cur_bg, 'grid_positions', []) or [])
+                if gp:
+                    # sanitize to valid positions
+                    initial_grid_positions = sorted([int(p) for p in gp if isinstance(p, int) and 1 <= int(p) <= int(initial_numer)])
+                    if not initial_grid_positions:
+                        initial_grid_positions = list(range(1, int(initial_numer) + 1))
+                else:
+                    initial_grid_positions = list(range(1, int(initial_numer) + 1))
+                initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', True))
+                it = str(getattr(cur_bg, 'indicator_type', 'classical'))
+                initial_indicator_type = it if it in ('classical', 'klavarskribo', 'both') else 'classical'
+        except Exception:
+            pass
+        dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled, initial_indicator_type=initial_indicator_type)
         try:
             dlg.setWindowModality(QtCore.Qt.WindowModal)
         except Exception:
@@ -126,13 +162,13 @@ class TimeSignatureTool(BaseTool):
             self._pending_bar_idx = None
             return
         try:
-            numer, denom = dlg.get_values()  # type: ignore[attr-defined]
+            numer, denom, grid_positions, indicator_enabled, indicator_type = dlg.get_values()  # type: ignore[attr-defined]
         except Exception:
-            numer, denom = 4, 4
+            numer, denom, grid_positions, indicator_enabled, indicator_type = 4, 4, [1, 2, 3, 4], True, 'classical'
         try:
             score: SCORE = self._editor.current_score()
             bar_idx = int(self._pending_bar_idx or 0)
-            self._apply_time_signature_at_barline(score, bar_idx, int(numer), int(denom))
+            self._apply_time_signature_at_barline(score, bar_idx, int(numer), int(denom), list(grid_positions), bool(indicator_enabled), str(indicator_type))
             try:
                 self._editor.update_score_length()
             except Exception:
@@ -151,11 +187,11 @@ class TimeSignatureTool(BaseTool):
         self._pending_dialog = None
         self._pending_bar_idx = None
 
-    def _apply_time_signature_at_barline(self, score: SCORE, bar_idx: int, numer: int, denom: int) -> None:
+    def _apply_time_signature_at_barline(self, score: SCORE, bar_idx: int, numer: int, denom: int, grid_positions: list[int], indicator_enabled: bool, indicator_type: str) -> None:
         base_grid = list(getattr(score, 'base_grid', []) or [])
         if not base_grid:
             # Initialize with a single segment
-            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, grid_positions=list(range(1, numer+1)), measure_amount=1)]
+            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, grid_positions=list(grid_positions or range(1, numer+1)), measure_amount=1, indicator_enabled=bool(indicator_enabled), indicator_type=str(indicator_type))]
             return
         # Map bar_idx to segment index and offset
         cum = 0
@@ -183,10 +219,19 @@ class TimeSignatureTool(BaseTool):
             except Exception:
                 pass
             try:
-                cur_bg.grid_positions = list(range(1, int(numer) + 1))
+                cur_bg.grid_positions = list(grid_positions or list(range(1, int(numer) + 1)))
+            except Exception:
+                pass
+            try:
+                cur_bg.indicator_enabled = bool(indicator_enabled)
+            except Exception:
+                pass
+            try:
+                cur_bg.indicator_type = str(indicator_type)
             except Exception:
                 pass
             # Keep measure_amount unchanged; no zero-measure segments created.
+            self._merge_adjacent_base_grids(score)
             return
 
         # Otherwise, split the current segment at the chosen bar and replace its tail with the new signature
@@ -198,16 +243,54 @@ class TimeSignatureTool(BaseTool):
             pass
         # Build new segment for the tail
         try:
-            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), grid_positions=list(range(1, int(numer)+1)), measure_amount=max(1, int(tail_count)))
+            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), grid_positions=list(grid_positions or list(range(1, int(numer)+1))), measure_amount=max(1, int(tail_count)), indicator_enabled=bool(indicator_enabled), indicator_type=str(indicator_type))
         except Exception:
             new_bg = BaseGrid()
             new_bg.numerator = int(numer)
             new_bg.denominator = int(denom)
-            new_bg.grid_positions = list(range(1, int(numer)+1))
+            new_bg.grid_positions = list(grid_positions or list(range(1, int(numer)+1)))
             new_bg.measure_amount = max(1, int(tail_count))
+            try:
+                new_bg.indicator_enabled = bool(indicator_enabled)
+            except Exception:
+                pass
+            try:
+                new_bg.indicator_type = str(indicator_type)
+            except Exception:
+                pass
         # Insert new segment after the adjusted current segment
         try:
             score.base_grid.insert(seg_i + 1, new_bg)
+        except Exception:
+            pass
+        # After insertion, merge adjacent identical segments except measure_amount
+        self._merge_adjacent_base_grids(score)
+
+    def _merge_adjacent_base_grids(self, score: SCORE) -> None:
+        try:
+            bgs = list(getattr(score, 'base_grid', []) or [])
+            if not bgs:
+                return
+            merged: list[BaseGrid] = []
+            for bg in bgs:
+                if merged:
+                    prev = merged[-1]
+                    # Compare all fields except measure_amount
+                    same = (
+                        int(getattr(prev, 'numerator', 0)) == int(getattr(bg, 'numerator', 0)) and
+                        int(getattr(prev, 'denominator', 0)) == int(getattr(bg, 'denominator', 0)) and
+                        list(getattr(prev, 'grid_positions', []) or []) == list(getattr(bg, 'grid_positions', []) or []) and
+                        bool(getattr(prev, 'indicator_enabled', True)) == bool(getattr(bg, 'indicator_enabled', True)) and
+                        str(getattr(prev, 'indicator_type', 'classical')) == str(getattr(bg, 'indicator_type', 'classical'))
+                    )
+                    if same:
+                        try:
+                            prev.measure_amount = int(getattr(prev, 'measure_amount', 1) or 1) + int(getattr(bg, 'measure_amount', 1) or 1)
+                        except Exception:
+                            pass
+                        continue
+                merged.append(bg)
+            score.base_grid = merged
         except Exception:
             pass
 
@@ -236,3 +319,81 @@ class TimeSignatureTool(BaseTool):
     def on_toolbar_button(self, name: str) -> None:
         # no-op
         return
+
+    def on_right_click(self, x: float, y: float) -> None:
+        """Delete the closest time signature change (segment start) except the first.
+
+        Maps the click Y to time, finds the nearest barline, then selects the nearest
+        BaseGrid segment boundary (start) other than the first and removes it by merging
+        its measure_amount into the previous segment.
+        """
+        super().on_right_click(x, y)
+        if self._editor is None:
+            return
+        score: SCORE = self._editor.current_score()
+        base_grid = list(getattr(score, 'base_grid', []) or [])
+        if not base_grid:
+            return
+        # Build barline times per measure across segments
+        click_t = float(self._editor.y_to_time(y))
+        bars: list[float] = []
+        seg_start_bar_indices: list[int] = []
+        cur_t = 0.0
+        for i, bg in enumerate(base_grid):
+            seg_start_bar_indices.append(len(bars))  # segment start at current bar count
+            measure_len = float(bg.numerator) * (4.0 / float(bg.denominator)) * float(QUARTER_NOTE_UNIT)
+            for _ in range(int(getattr(bg, 'measure_amount', 1) or 1)):
+                bars.append(cur_t)
+                cur_t += measure_len
+        if not bars:
+            return
+        # Find nearest barline index to click
+        nearest_bar_idx = 0
+        min_abs = abs(click_t - float(bars[0]))
+        for i, t in enumerate(bars):
+            d = abs(click_t - float(t))
+            if d < min_abs:
+                min_abs = d
+                nearest_bar_idx = i
+        # Find nearest segment start index (bar index) excluding the first
+        if len(seg_start_bar_indices) <= 1:
+            return  # nothing to delete
+        # Compute nearest segment start
+        nearest_seg_start = seg_start_bar_indices[1]  # init to first deletable
+        min_d = abs(nearest_bar_idx - nearest_seg_start)
+        for bidx in seg_start_bar_indices[1:]:  # exclude index 0
+            d = abs(nearest_bar_idx - bidx)
+            if d < min_d:
+                min_d = d
+                nearest_seg_start = bidx
+        # Map this segment-start bar index to the segment index in base_grid
+        # Using cumulative measure counts
+        cum = 0
+        seg_i = None
+        for i, bg in enumerate(base_grid):
+            m = int(getattr(bg, 'measure_amount', 1) or 1)
+            if nearest_seg_start == cum:
+                seg_i = i
+                break
+            cum += m
+        if seg_i is None or seg_i <= 0:
+            return  # cannot delete first segment or not found
+        # Merge current segment into previous and remove it
+        try:
+            prev = base_grid[seg_i - 1]
+            cur = base_grid[seg_i]
+            prev.measure_amount = int(getattr(prev, 'measure_amount', 1) or 1) + int(getattr(cur, 'measure_amount', 1) or 1)
+            # Remove cur
+            del base_grid[seg_i]
+            score.base_grid = base_grid
+        except Exception:
+            return
+        # Optional: coalesce adjacent identical segments after removal
+        self._merge_adjacent_base_grids(score)
+        # Update score length, snapshot, redraw
+        try:
+            self._editor.update_score_length()
+        except Exception:
+            pass
+        self._editor._snapshot_if_changed(coalesce=True, label='time_signature_delete')
+        self._editor.draw_frame()
