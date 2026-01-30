@@ -478,6 +478,8 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
         edit_menu.addAction(delete_act)
+        # Separator between Delete and Preferences
+        edit_menu.addSeparator()
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)

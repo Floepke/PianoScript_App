@@ -4,12 +4,16 @@
 		{
 			"label": "Run PianoScript System",
 			"type": "shell",
-			"command": "/usr/local/bin/python3",
+			"command": "${workspaceFolder}/.venv/bin/python",
 			"args": [
 				"${workspaceFolder}/pianoscript.py"
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
 			},
 			"problemMatcher": []
 		}

@@ -1,7 +1,6 @@
 [
   {
-    "key": "f5",
-    "command": "workbench.action.tasks.runTask",
-    "args": "Run PianoScript"
+    "key": "f1",
+    "command": "workbench.action.tasks.build"
   }
 ]

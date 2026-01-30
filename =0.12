@@ -1,0 +1,37 @@
+Collecting numpy==2.4.1
+  Downloading numpy-2.4.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Collecting mido==1.3.3
+  Downloading mido-1.3.3-py3-none-any.whl.metadata (6.4 kB)
+Collecting pretty_midi==0.2.11
+  Downloading pretty_midi-0.2.11.tar.gz (5.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.6/5.6 MB 17.1 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting tomlkit
+  Downloading tomlkit-0.14.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting packaging (from mido==1.3.3)
+  Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting six (from pretty_midi==0.2.11)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting importlib_resources (from pretty_midi==0.2.11)
+  Downloading importlib_resources-6.5.2-py3-none-any.whl.metadata (3.9 kB)
+Downloading numpy-2.4.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.4/16.4 MB 24.0 MB/s  0:00:00
+Downloading mido-1.3.3-py3-none-any.whl (54 kB)
+Downloading tomlkit-0.14.0-py3-none-any.whl (39 kB)
+Downloading importlib_resources-6.5.2-py3-none-any.whl (37 kB)
+Using cached packaging-26.0-py3-none-any.whl (74 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Building wheels for collected packages: pretty_midi
+  Building wheel for pretty_midi (pyproject.toml): started
+  Building wheel for pretty_midi (pyproject.toml): finished with status 'done'
+  Created wheel for pretty_midi: filename=pretty_midi-0.2.11-py3-none-any.whl size=5595976 sha256=51350aae3e4bef148054820fff02d05473ad2c914acb8180756f3363782a476d
+  Stored in directory: /home/flop/.cache/pip/wheels/f4/ad/93/a7042fe12668827574927ade9deec7f29aad2a1001b1501882
+Successfully built pretty_midi
+Installing collected packages: tomlkit, six, packaging, numpy, importlib_resources, mido, pretty_midi
+
+Successfully installed importlib_resources-6.5.2 mido-1.3.3 numpy-2.4.1 packaging-26.0 pretty_midi-0.2.11 six-1.17.0 tomlkit-0.14.0

@@ -76,7 +76,7 @@ class TempoTool(BaseTool):
             tempo = QtWidgets.QSpinBox(dlg)
             tempo.setRange(1, 1000)
             tempo.setValue(cur_tempo)
-            lay.addRow("Tempo (The length of the black rectangle is one unit) This amount of units in one minute:", tempo)
+            lay.addRow("This many of these units in one minute:", tempo)
             btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, parent=dlg)
             lay.addRow(btns)
             btns.accepted.connect(dlg.accept)

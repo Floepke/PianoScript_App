@@ -732,12 +732,14 @@ class Editor(QtCore.QObject,
             self.draw_frame()
             return
 
-        # Trim trailing measures/segments to minimally cover furthest_end
+        # Trim behavior: adjust measure_amount of the segment where music ends,
+        # but do not delete any existing time signature segments.
         if furthest_end <= 0.0:
             # Keep at least one measure in the first segment
             try:
                 bg_list[0].measure_amount = max(1, int(getattr(bg_list[0], 'measure_amount', 1) or 1))
-                score.base_grid = [bg_list[0]]
+                # Preserve all segments (do not delete time signature changes)
+                score.base_grid = bg_list
             except Exception:
                 pass
             self._snapshot_if_changed(coalesce=True, label='update_score_length')
@@ -767,12 +769,12 @@ class Editor(QtCore.QObject,
         if trim_index is None:
             # Shouldn't happen due to earlier extend check; bail out
             return
-        # Trim any segments after the adjusted one
+        # Preserve all segments; only the containing segment measure_amount is adjusted above.
         try:
-            score.base_grid = bg_list[:trim_index + 1]
+            score.base_grid = bg_list
         except Exception:
             pass
-        # Snapshot and redraw after trimming
+        # Snapshot and redraw after adjustment
         self._snapshot_if_changed(coalesce=True, label='update_score_length')
         self.draw_frame()
 
@@ -1224,6 +1226,8 @@ class Editor(QtCore.QObject,
             event_fields = [name for name in dir(score.events)
                             if isinstance(getattr(score.events, name, None), list)
                             and not name.startswith('_')]
+        # Exclude tempo events from selection rectangle detection
+        event_fields = [n for n in event_fields if n != 'tempo']
 
         out: dict[str, list] = {name: [] for name in event_fields}
 
