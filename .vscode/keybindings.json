@@ -1,8 +1,7 @@
 [
   {
-    "key": "f1",
+    "key": "f5",
     "command": "workbench.action.tasks.runTask",
-    "args": "Run PianoScript (venv)",
-    "when": "editorTextFocus || terminalFocus || filesExplorerFocus"
+    "args": "Run PianoScript"
   }
 ]

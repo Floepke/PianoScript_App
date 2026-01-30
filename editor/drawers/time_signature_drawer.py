@@ -83,9 +83,9 @@ class TimeSignatureDrawerMixin:
 
             # Column positions: left, middle, right (closest to stave)
             base_x = stave_left_position - ((margin / 4.0) * 2.0)
-            col_gap = 6.0
-            x_right = base_x + 10.0  # right column (guides)
-            x_mid = base_x - col_gap * 0.0  # middle column (beat numbers)
+            col_gap = 5.0
+            x_right = base_x + 10.0         # right column (guides)
+            x_mid = base_x                  # middle column (beat numbers)
             x_left = base_x - col_gap       # left column (group numbers)
 
             # Normalize grid positions (1-based indices within measure)

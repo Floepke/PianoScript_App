@@ -55,4 +55,4 @@ class Layout:
     countline_thickness_mm: float = 0.4
 
     # Time signature indicator type (global)
-    indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'classical'
+    indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'

@@ -18,15 +18,15 @@ TOOL_ITEMS: list[dict] = [
     # layout elements
     { 'name': 'line_break',     'displayed_name': 'Line Break/Page Break',     'icon': 'line_break',     'tooltip': 'Line Break: insert line breaks;\nclick on a line break to edit its properties' },
     { 'name': 'time_signature', 'displayed_name': 'Time Signature & Grid Pattern', 'icon': 'time_signature', 'tooltip': 'Base-Grid/Time-Signature: Configure\ntime signature & grid pattern' },
-    { 'name': 'pedal',          'displayed_name': 'Pedal',          'icon': 'pedal',          'tooltip': 'Pedal: add pedal markings' },
+    { 'name': 'tempo',          'displayed_name': 'Tempo',          'icon': 'metronome',           'tooltip': 'Tempo: add tempo regions (units per minute over a duration)'} ,
     { 'name': 'slur',           'displayed_name': 'Slur',           'icon': 'slur',           'tooltip': 'Slur: place phrasing slurs' },
+    { 'name': 'text',           'displayed_name': 'Text',           'icon': 'text',           'tooltip': 'Text: place text annotations' },
     { 'name': 'start_repeat',   'displayed_name': 'Start Repeat',   'icon': 'start_repeat',   'tooltip': 'Start Repeat: repeat begin mark' },
     { 'name': 'end_repeat',     'displayed_name': 'End Repeat',     'icon': 'end_repeat',     'tooltip': 'End Repeat: repeat end mark' },
-    { 'name': 'text',           'displayed_name': 'Text',           'icon': 'text',           'tooltip': 'Text: place text annotations' },
     { 'name': 'dynamic',        'displayed_name': 'Dynamics',        'icon': 'dynamic',        'tooltip': 'Dynamic: place dynamic markings' },
     { 'name': 'crescendo',      'displayed_name': 'Crescendo',      'icon': 'crescendo',      'tooltip': 'Crescendo: place hairpin volume up' },
     { 'name': 'decrescendo',    'displayed_name': 'Decrescendo',    'icon': 'decrescendo',    'tooltip': 'Decrescendo: place hairpin volume down' },
-    { 'name': 'tempo',          'displayed_name': 'Tempo',          'icon': 'text',           'tooltip': 'Tempo: add tempo regions (units per minute over a duration)'} ,
+    { 'name': 'pedal',          'displayed_name': 'Pedal',          'icon': 'pedal',          'tooltip': 'Pedal: add pedal markings' },
 ]
 
 

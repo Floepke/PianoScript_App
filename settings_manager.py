@@ -290,7 +290,7 @@ def get_preferences_manager() -> PreferencesManager:
         pm.register(
             "note_tool_mouse_gesture_hand_switching",
             True,
-            "Note tool: automatically switch hand at keyboard edges (pitch 1 → '<', pitch 88 → '>').",
+            "Note tool: automatically switch hand at keyboard edges (pitch 1 → switch to left hand, pitch 88 → switch to right hand).",
         )
         pm.load()
         _prefs_manager = pm
