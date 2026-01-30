@@ -98,6 +98,9 @@ class TimeSignatureDialog(QtWidgets.QDialog):
                 self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
         else:
             self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
+        # Ensure beat 1 is always present (cannot have ungrouped time)
+        if 1 not in self._grid_positions:
+            self._grid_positions.insert(0, 1)
         # Initialize indicator state
         self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
         try:
@@ -190,11 +193,26 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             init_checked = (i in self._grid_positions)
             cb.setChecked(init_checked)
             cb.toggled.connect(lambda checked, idx=i: self._on_cb_toggled(idx, checked))
+            if i == 1:
+                # Beat 1 cannot be unchecked; lock the checkbox
+                cb.setEnabled(False)
+                cb.setChecked(True)
             self.checkbox_layout.addWidget(cb)
             self._checkboxes.append(cb)
         self.checkbox_layout.addStretch(1)
 
     def _on_cb_toggled(self, idx: int, checked: bool) -> None:
+        # Prevent unchecking beat 1
+        if idx == 1:
+            # Force beat 1 to remain checked in internal state
+            if 1 not in self._grid_positions:
+                self._grid_positions.insert(0, 1)
+            # If the UI somehow fires a toggle for idx==1, revert it
+            cb = self._checkboxes[0]
+            cb.blockSignals(True)
+            cb.setChecked(True)
+            cb.blockSignals(False)
+            return
         if checked:
             if idx not in self._grid_positions:
                 self._grid_positions.append(idx)

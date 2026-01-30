@@ -121,7 +121,7 @@ def midi_load(path: str) -> SCORE:
         measure_units = quarters_per_measure * float(QUARTER_NOTE_UNIT)
         measures = int(max(1, math.ceil(dur_u / measure_units))) if measure_units > 0 else 1
         gp = _grid_positions_for(numer, denom)
-        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, grid_positions=gp, measure_amount=measures))
+        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, beat_grouping=gp, measure_amount=measures))
 
     # Apply
     score.base_grid = base_grid_list
@@ -275,7 +275,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
         measure_units = quarters_per_measure * float(QUARTER_NOTE_UNIT)
         measures = int(max(1, math.ceil(dur_u / measure_units))) if measure_units > 0 else 1
         gp = _grid_positions_for(numer, denom)
-        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, grid_positions=gp, measure_amount=measures))
+        base_grid_list.append(BaseGrid(numerator=numer, denominator=denom, beat_grouping=gp, measure_amount=measures))
 
     score.base_grid = base_grid_list
 

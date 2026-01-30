@@ -101,6 +101,7 @@ class Text:
     # Supported values: 'center', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'.
     # If None, defaults to baseline positioning (legacy behavior).
     anchor: str | None = None
+    angle_deg: float = 0.0
     # Deprecated: `id` is no longer used for picking; kept for compatibility.
     id: int = 0
     tags: List[str] = field(default_factory=list)
@@ -297,7 +298,8 @@ class DrawUtil:
                  color: Color = (0, 0, 0, 1),
                  anchor: str | None = None,
                  id: int = 0, tags: Optional[List[str]] = None,
-                 hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
+                 hit_rect_mm: Optional[Tuple[float, float, float, float]] = None,
+                 angle_deg: float = 0.0) -> None:
         """Add a text item. y_mm is the baseline.
 
         If hit_rect_mm is not provided, it will be computed from toy-text extents
@@ -349,7 +351,7 @@ class DrawUtil:
                 bx = rx - xb_mm
                 by = ry - yb_mm
         self._pages[self._current_index].items.append(
-            Text(bx, by, text, family, size_pt, italic, bold, color, anchor, id, tags, hit_rect_mm)
+            Text(bx, by, text, family, size_pt, italic, bold, color, anchor, angle_deg, id, tags, hit_rect_mm)
         )
 
     def _ensure_page(self) -> None:
@@ -708,15 +710,20 @@ class DrawUtil:
         # and ensure a single-color raster without edge bleed.
         slant = cairo.FONT_SLANT_ITALIC if t.italic else cairo.FONT_SLANT_NORMAL
         weight = cairo.FONT_WEIGHT_BOLD if t.bold else cairo.FONT_WEIGHT_NORMAL
+        ctx.save()
+        # Baseline positioning: anchor is pre-applied in add_text()
+        ctx.translate(t.x_mm, t.y_mm)
+        if getattr(t, 'angle_deg', 0.0):
+            import math
+            ctx.rotate(float(t.angle_deg) * math.pi / 180.0)
         ctx.select_font_face(t.family, slant, weight)
         # We are in mm user units; convert pt size to mm
         ctx.set_font_size(t.size_pt / PT_PER_MM)
-        # Baseline positioning: anchor is pre-applied in add_text()
-        ctx.move_to(t.x_mm, t.y_mm)
-        # Build path and fill with the desired color
+        ctx.move_to(0.0, 0.0)
         ctx.text_path(t.text)
         ctx.set_source_rgba(*t.color)
         ctx.fill()
+        ctx.restore()
         # Optional debug: draw text bounds and anchor point
         if os.getenv('PIANOSCRIPT_DEBUG_TEXT_BOUNDS', '0') in ('1', 'true', 'True'):
             rect = getattr(t, 'hit_rect_mm', None)

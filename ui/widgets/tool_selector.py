@@ -26,6 +26,7 @@ TOOL_ITEMS: list[dict] = [
     { 'name': 'dynamic',        'displayed_name': 'Dynamics',        'icon': 'dynamic',        'tooltip': 'Dynamic: place dynamic markings' },
     { 'name': 'crescendo',      'displayed_name': 'Crescendo',      'icon': 'crescendo',      'tooltip': 'Crescendo: place hairpin volume up' },
     { 'name': 'decrescendo',    'displayed_name': 'Decrescendo',    'icon': 'decrescendo',    'tooltip': 'Decrescendo: place hairpin volume down' },
+    { 'name': 'tempo',          'displayed_name': 'Tempo',          'icon': 'text',           'tooltip': 'Tempo: add tempo regions (units per minute over a duration)'} ,
 ]
 
 

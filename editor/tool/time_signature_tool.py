@@ -12,6 +12,8 @@ class TimeSignatureTool(BaseTool):
         super().__init__()
         self._pending_bar_idx: Optional[int] = None
         self._pending_dialog: Optional[QtWidgets.QDialog] = None
+        # Preserve editor widget focus policy while a modal dialog is active
+        self._prev_editor_focus_policy: Optional[int] = None
 
     def toolbar_spec(self) -> list[dict]:
         return [
@@ -61,18 +63,13 @@ class TimeSignatureTool(BaseTool):
     def _open_time_signature_dialog(self) -> None:
         if self._editor is None:
             return
-        # Determine a suitable parent (prefer MainWindow)
+        # Determine a suitable parent: prefer the active window (MainWindow)
         parent_w = None
         try:
-            splitter = getattr(getattr(self._editor, '_tm', None), '_splitter', None)
-            if splitter is not None and hasattr(splitter, 'parent'):
-                pw = splitter.parent()
-                if pw is not None:
-                    parent_w = pw
-            if parent_w is None:
-                parent_w = getattr(self._editor, 'widget', None)
+            from PySide6 import QtWidgets as _QtWidgets
+            parent_w = _QtWidgets.QApplication.activeWindow()
         except Exception:
-            parent_w = getattr(self._editor, 'widget', None)
+            parent_w = None
         try:
             from ui.widgets.time_signature_dialog import TimeSignatureDialog
         except Exception:
@@ -82,7 +79,8 @@ class TimeSignatureTool(BaseTool):
         # Prefill dialog with active time signature at nearest barline
         initial_numer = 4
         initial_denom = 4
-        initial_grid_positions: list[int] = [1, 2, 3, 4]
+        # For Klavarskribo grouping semantics, defer defaults to dialog
+        initial_grid_positions = None
         initial_indicator_enabled: bool = True
         try:
             score: SCORE = self._editor.current_score()
@@ -101,14 +99,15 @@ class TimeSignatureTool(BaseTool):
                 cur_bg = base_grid[seg_i]
                 initial_numer = int(getattr(cur_bg, 'numerator', initial_numer))
                 initial_denom = int(getattr(cur_bg, 'denominator', initial_denom))
-                gp = list(getattr(cur_bg, 'grid_positions', []) or [])
+                gp_attr = getattr(cur_bg, 'beat_grouping', None)
+                gp = list(gp_attr if gp_attr is not None else (getattr(cur_bg, 'grid_positions', []) or []))
                 if gp:
                     # sanitize to valid positions
-                    initial_grid_positions = sorted([int(p) for p in gp if isinstance(p, int) and 1 <= int(p) <= int(initial_numer)])
-                    if not initial_grid_positions:
-                        initial_grid_positions = list(range(1, int(initial_numer) + 1))
+                    sanitized = sorted([int(p) for p in gp if isinstance(p, int) and 1 <= int(p) <= int(initial_numer)])
+                    initial_grid_positions = sanitized if sanitized else None
                 else:
-                    initial_grid_positions = list(range(1, int(initial_numer) + 1))
+                    # Let dialog choose sensible defaults (e.g., [1] for Klavarskribo)
+                    initial_grid_positions = None
                 initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', True))
         except Exception:
             pass
@@ -119,45 +118,83 @@ class TimeSignatureTool(BaseTool):
         except Exception:
             indicator_type = 'classical'
         dlg = TimeSignatureDialog(parent=parent_w, initial_numer=initial_numer, initial_denom=initial_denom, initial_grid_positions=initial_grid_positions, initial_indicator_enabled=initial_indicator_enabled, indicator_type=indicator_type)
+        # Ensure full application modality so no editor widget can steal mouse
         try:
-            dlg.setWindowModality(QtCore.Qt.WindowModal)
+            dlg.setWindowModality(QtCore.Qt.ApplicationModal)
         except Exception:
             pass
-        # Release mouse + clear focus so dialog receives clicks
+        # Temporarily relax editor focus so the dialog receives mouse
+        editor_widget = None
         try:
-            ed_w = getattr(self._editor, 'widget', None)
-            if ed_w is not None:
-                if hasattr(ed_w, 'releaseMouse'):
-                    ed_w.releaseMouse()
-                if hasattr(ed_w, 'clearFocus'):
-                    ed_w.clearFocus()
+            from ui.widgets.cairo_views import CairoEditorWidget as _CEW
+            if parent_w is not None:
+                editor_widget = parent_w.findChild(_CEW)
+        except Exception:
+            editor_widget = None
+        try:
+            if editor_widget is not None:
+                # Save and drop StrongFocus + release any mouse grab
+                try:
+                    self._prev_editor_focus_policy = int(editor_widget.focusPolicy())
+                except Exception:
+                    self._prev_editor_focus_policy = None
+                try:
+                    editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+                except Exception:
+                    pass
+                try:
+                    editor_widget.clearFocus()
+                except Exception:
+                    pass
+                try:
+                    editor_widget.releaseMouse()
+                except Exception:
+                    pass
         except Exception:
             pass
-        # Show and use non-blocking open() with signal handlers
+        # Prefer focusing OK button so keyboard and mouse go to the dialog
         try:
-            dlg.show()
+            ok_btn = dlg.btns.button(QtWidgets.QDialogButtonBox.Ok)
+            if ok_btn is not None:
+                ok_btn.setDefault(True)
+                ok_btn.setAutoDefault(True)
+                ok_btn.setFocus()
+        except Exception:
+            pass
+        try:
             dlg.raise_()
             dlg.activateWindow()
         except Exception:
             pass
+        # Synchronously execute the dialog; handle result, then restore editor focus policy
         try:
-            dlg.open()
-        except Exception:
-            # Fallback to exec if open() unavailable
             res = dlg.exec()
             if int(res) == int(QtWidgets.QDialog.Accepted):
-                # Simulate accept path
                 self._on_time_signature_accepted(dlg)
             else:
                 self._on_time_signature_rejected(dlg)
-            return
-        # Keep reference while modeless-modal
-        self._pending_dialog = dlg
-        try:
-            dlg.accepted.connect(lambda: self._on_time_signature_accepted(dlg))
-            dlg.rejected.connect(lambda: self._on_time_signature_rejected(dlg))
-        except Exception:
-            pass
+        finally:
+            try:
+                if editor_widget is not None:
+                    # Restore previous focus policy (default to StrongFocus if unknown)
+                    fp = self._prev_editor_focus_policy
+                    if fp is None:
+                        fp = int(QtCore.Qt.FocusPolicy.StrongFocus)
+                    try:
+                        editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy(fp))
+                    except Exception:
+                        # Fallback: ensure StrongFocus
+                        try:
+                            editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+                        except Exception:
+                            pass
+                    try:
+                        editor_widget.setFocus()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        return
 
     def _on_time_signature_accepted(self, dlg: QtWidgets.QDialog) -> None:
         if self._editor is None:
@@ -194,7 +231,7 @@ class TimeSignatureTool(BaseTool):
         base_grid = list(getattr(score, 'base_grid', []) or [])
         if not base_grid:
             # Initialize with a single segment
-            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, grid_positions=list(grid_positions or range(1, numer+1)), measure_amount=1, indicator_enabled=bool(indicator_enabled))]
+            score.base_grid = [BaseGrid(numerator=numer, denominator=denom, beat_grouping=list(grid_positions or range(1, numer+1)), measure_amount=1, indicator_enabled=bool(indicator_enabled))]
             return
         # Map bar_idx to segment index and offset
         cum = 0
@@ -222,7 +259,7 @@ class TimeSignatureTool(BaseTool):
             except Exception:
                 pass
             try:
-                cur_bg.grid_positions = list(grid_positions or list(range(1, int(numer) + 1)))
+                cur_bg.beat_grouping = list(grid_positions or list(range(1, int(numer) + 1)))
             except Exception:
                 pass
             try:
@@ -242,12 +279,12 @@ class TimeSignatureTool(BaseTool):
             pass
         # Build new segment for the tail
         try:
-            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), grid_positions=list(grid_positions or list(range(1, int(numer)+1))), measure_amount=max(1, int(tail_count)), indicator_enabled=bool(indicator_enabled))
+            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom), beat_grouping=list(grid_positions or list(range(1, int(numer)+1))), measure_amount=max(1, int(tail_count)), indicator_enabled=bool(indicator_enabled))
         except Exception:
             new_bg = BaseGrid()
             new_bg.numerator = int(numer)
             new_bg.denominator = int(denom)
-            new_bg.grid_positions = list(grid_positions or list(range(1, int(numer)+1)))
+            new_bg.beat_grouping = list(grid_positions or list(range(1, int(numer)+1)))
             new_bg.measure_amount = max(1, int(tail_count))
             try:
                 new_bg.indicator_enabled = bool(indicator_enabled)
@@ -274,7 +311,8 @@ class TimeSignatureTool(BaseTool):
                     same = (
                         int(getattr(prev, 'numerator', 0)) == int(getattr(bg, 'numerator', 0)) and
                         int(getattr(prev, 'denominator', 0)) == int(getattr(bg, 'denominator', 0)) and
-                        list(getattr(prev, 'grid_positions', []) or []) == list(getattr(bg, 'grid_positions', []) or []) and
+                        list((getattr(prev, 'beat_grouping', None) if getattr(prev, 'beat_grouping', None) is not None else (getattr(prev, 'grid_positions', []) or []))) ==
+                        list((getattr(bg, 'beat_grouping', None) if getattr(bg, 'beat_grouping', None) is not None else (getattr(bg, 'grid_positions', []) or []))) and
                         bool(getattr(prev, 'indicator_enabled', True)) == bool(getattr(bg, 'indicator_enabled', True))
                     )
                     if same:

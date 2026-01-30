@@ -86,7 +86,7 @@ class GridDrawerMixin:
                 # Beat length inside this measure
                 beat_length = measure_len_mm / max(1, numerator)
 
-                for grid in bg.grid_positions:
+                for grid in getattr(bg, 'beat_grouping', []) or []:
                     # grid == 1 marks the barline (measure start)
                     is_barline = (grid == 1)
 

@@ -21,6 +21,7 @@ from editor.tool.time_signature_tool import TimeSignatureTool
 from editor.tool.dynamic_tool import DynamicTool
 from editor.tool.crescendo_tool import CrescendoTool
 from editor.tool.decrescendo_tool import DecrescendoTool
+from editor.tool.tempo_tool import TempoTool
 from editor.ctlz import CtlZ
 from settings_manager import get_preferences_manager
 from file_model.SCORE import SCORE
@@ -38,6 +39,7 @@ from editor.drawers.start_repeat_drawer import StartRepeatDrawerMixin
 from editor.drawers.end_repeat_drawer import EndRepeatDrawerMixin
 from editor.drawers.count_line_drawer import CountLineDrawerMixin
 from editor.drawers.line_break_drawer import LineBreakDrawerMixin
+from editor.drawers.tempo_drawer import TempoDrawerMixin
 from editor.drawers.dynamic_drawer import DynamicDrawerMixin
 from editor.drawers.crescendo_drawer import CrescendoDrawerMixin
 from editor.drawers.decrescendo_drawer import DecrescendoDrawerMixin
@@ -67,7 +69,8 @@ class Editor(QtCore.QObject,
              StartRepeatDrawerMixin,
              EndRepeatDrawerMixin,
              CountLineDrawerMixin,
-             LineBreakDrawerMixin):
+             LineBreakDrawerMixin,
+             TempoDrawerMixin):
     """Main editor class: routes UI events to the current tool.
 
     Handles click vs drag classification using a 3px threshold.
@@ -98,6 +101,7 @@ class Editor(QtCore.QObject,
             'dynamic': DynamicTool,
             'crescendo': CrescendoTool,
             'decrescendo': DecrescendoTool,
+            'tempo': TempoTool,
         }
         self._tm.set_tool(self._tool)
 
@@ -202,6 +206,7 @@ class Editor(QtCore.QObject,
             getattr(self, 'draw_start_repeat', None),
             getattr(self, 'draw_end_repeat', None),
             getattr(self, 'draw_count_line', None),
+            getattr(self, 'draw_tempo', None),
             getattr(self, 'draw_line_break', None),
         ]
         for fn in methods:
@@ -870,7 +875,9 @@ class Editor(QtCore.QObject,
             # For each measure in this segment
             for _ in range(int(bg.measure_amount)):
                 # Append grid line times for configured grid positions
-                for grid in list(getattr(bg, 'grid_positions', []) or []):
+                positions = getattr(bg, 'beat_grouping', None)
+                positions_list = list(positions if positions is not None else (getattr(bg, 'grid_positions', []) or []))
+                for grid in positions_list:
                     # grid == 1 marks the barline (measure start); positions are 1-based
                     t_line = cur_t + (int(grid) - 1) * beat_len_ticks
                     grid_den_times.append(float(t_line))

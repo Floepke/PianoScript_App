@@ -17,8 +17,9 @@ from file_model.events.start_repeat import StartRepeat
 from file_model.events.end_repeat import EndRepeat
 from file_model.events.count_line import CountLine
 from file_model.events.line_break import LineBreak
+from file_model.events.tempo import Tempo
 from file_model.layout import Layout
-from utils.CONSTANT import GRACENOTE_THRESHOLD
+from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid
 
 
@@ -64,6 +65,7 @@ class Events:
 	end_repeat: List[EndRepeat] = field(default_factory=list)
 	count_line: List[CountLine] = field(default_factory=list)
 	line_break: List[LineBreak] = field(default_factory=list)
+	tempo: List[Tempo] = field(default_factory=list)
 
 
 @dataclass
@@ -157,6 +159,13 @@ class SCORE:
 		base.update(kwargs)
 		obj = LineBreak(**base, id=self._gen_id())
 		self.events.line_break.append(obj)
+		return obj
+
+	def new_tempo(self, **kwargs) -> Tempo:
+		base = {'time': 0.0, 'duration': 0.0, 'tempo': 60}
+		base.update(kwargs)
+		obj = Tempo(**base, id=self._gen_id())
+		self.events.tempo.append(obj)
 		return obj
 
 	# ---- Dict conversion ----
@@ -300,6 +309,22 @@ class SCORE:
 		except Exception:
 			pass
 
+
+		# Ensure an initial tempo marker exists at time 0
+		try:
+			if not getattr(self.events, 'tempo', None):
+				self.events.tempo = []
+			# Determine a reasonable default duration: one beat of the first base grid
+			numer = int(getattr(self.base_grid[0], 'numerator', 4) or 4) if self.base_grid else 4
+			denom = int(getattr(self.base_grid[0], 'denominator', 4) or 4) if self.base_grid else 4
+			measure_len = float(numer) * (4.0 / float(denom)) * float(QUARTER_NOTE_UNIT)
+			beat_len = measure_len / max(1, int(numer))
+			# Check if any tempo at time 0 exists
+			at_zero = any(float(getattr(tp, 'time', 0.0) or 0.0) == 0.0 for tp in self.events.tempo)
+			if not at_zero:
+				self.new_tempo(time=0.0, duration=float(beat_len), tempo=60)
+		except Exception:
+			pass
 		return self
 
 	@classmethod
@@ -433,6 +458,15 @@ class SCORE:
 		self.layout = Layout()
 		self.editor = EditorSettings()
 		self._next_id = 1
+		# Add an initial tempo at time 0 for a default 4/4 beat length
+		try:
+			numer = int(getattr(self.base_grid[0], 'numerator', 4) or 4) if self.base_grid else 4
+			denom = int(getattr(self.base_grid[0], 'denominator', 4) or 4) if self.base_grid else 4
+			measure_len = float(numer) * (4.0 / float(denom)) * float(QUARTER_NOTE_UNIT)
+			beat_len = measure_len / max(1, int(numer))
+			self.new_tempo(time=0.0, duration=float(beat_len), tempo=60)
+		except Exception:
+			pass
 		return self
 	
 	# ---- Convenience methods ----
