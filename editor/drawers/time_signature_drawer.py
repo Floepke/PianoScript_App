@@ -50,9 +50,9 @@ class TimeSignatureDrawerMixin:
             )
             # Divider line
             du.add_line(
-                x - 5.0,
+                x - 3.0,
                 y_mm,
-                x + 5.0,
+                x + 3.0,
                 y_mm,
                 color=color,
                 width_mm=1.0,
@@ -101,36 +101,39 @@ class TimeSignatureDrawerMixin:
             for k in range(1, int(numerator) + 1):
                 y = y_mm + (k - 1) * beat_len_mm
                 du.add_line(x_right - guide_half_len, y, x_right + guide_half_len, y,
-                            color=color, width_mm=guide_width_mm, id=0, tags=["ts_klavars_guide"], dash_pattern=[0,1])
+                            color=color, width_mm=guide_width_mm, id=0, tags=["ts_klavars_guide"], dash_pattern=None)
             # Final identical guide at start of next measure
             du.add_line(x_right - guide_half_len, y_mm + measure_len_mm, x_right + guide_half_len, y_mm + measure_len_mm,
                         color=color, width_mm=guide_width_mm, id=0, tags=["ts_klavars_guide"], dash_pattern=None)
 
             # Middle + Left columns based on grouping semantics
-            # Build groups between consecutive starts; last group ends at numerator
-            group_starts = gp
-            groups = []  # list of (start_k, end_k)
-            for i, s in enumerate(group_starts):
-                e = (group_starts[i + 1] - 1) if (i + 1) < len(group_starts) else int(numerator)
-                groups.append((int(s), int(e)))
-            # Middle column rules:
-            # - If all checkboxes are checked (each beat is its own group), hide all numbers in the current measure.
-            # - Otherwise, only display numbers for groups with length > 1.
-            all_checked = (gp == list(range(1, int(numerator) + 1)))
-            if not all_checked:
+            # Special case: if all checkboxes are checked, each beat is its own group.
+            all_checked = (len(gp) == int(numerator) and gp == list(range(1, int(numerator) + 1)))
+            if all_checked:
+                # Draw all beats as numbers in the middle column; skip left column entirely
+                for k in range(1, int(numerator) + 1):
+                    y = y_mm + (k - 1) * beat_len_mm
+                    du.add_text(x_mid, y, str(k), size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
+                # Final 1 at next measure barline (start of next measure)
+                du.add_text(x_mid, y_mm + measure_len_mm, "1", size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
+            else:
+                # Build groups between consecutive starts; last group ends at numerator
+                group_starts = gp
+                groups = []  # list of (start_k, end_k)
+                for i, s in enumerate(group_starts):
+                    e = (group_starts[i + 1] - 1) if (i + 1) < len(group_starts) else int(numerator)
+                    groups.append((int(s), int(e)))
+                # Middle column: show subgroup numbers within each group
                 for (s, e) in groups:
-                    group_len = max(1, int(e - s + 1))
-                    if group_len <= 1:
-                        continue
                     for idx, k in enumerate(range(s, e + 1), start=1):
                         y = y_mm + (k - 1) * beat_len_mm
                         du.add_text(x_mid, y, str(idx), size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
-            # Final 1 at next measure barline (start of next measure)
-            du.add_text(x_mid, y_mm + measure_len_mm, "1", size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
-            # Left column: always number the groups at their start positions
-            for gi, (s, _e) in enumerate(groups, start=1):
-                y = y_mm + (s - 1) * beat_len_mm
-                du.add_text(x_left, y, str(gi), size_pt=18.0, color=color, id=0, tags=["ts_klavars_left"], anchor='w', family=ts_font_family)
+                # Final 1 at next measure barline (start of next measure)
+                du.add_text(x_mid, y_mm + measure_len_mm, "1", size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
+                # Left column: number the groups at their start positions
+                for gi, (s, _e) in enumerate(groups, start=1):
+                    y = y_mm + (s - 1) * beat_len_mm
+                    du.add_text(x_left - 2.0, y, str(gi), size_pt=18.0, color=color, id=0, tags=["ts_klavars_left"], anchor='w', family=ts_font_family)
 
         # Iterate BaseGrid segments and draw based on indicator_type
         for bg in list(getattr(score, 'base_grid', []) or []):
