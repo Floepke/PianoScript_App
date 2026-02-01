@@ -36,7 +36,7 @@ class EditorSettings:
 @dataclass
 class MetaData:
 	description: str = 'This is a .piano score file created with keyTAB.'
-	creator: str = 'keyTAB'
+	creator: str = 'keyTAB Team'
 	version: int = 1
 	extension: str = '.piano'
 	format: str = 'json'

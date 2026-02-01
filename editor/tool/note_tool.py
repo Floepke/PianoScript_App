@@ -124,7 +124,7 @@ class NoteTool(BaseTool):
         cur_pitch = int(self._editor.x_to_pitch(x))
 
         # Update rules:
-        # - New note: keep current behavior (pitch-only before start; else duration adjust with min snap)
+        # - New note: pitch-only before start; else duration adjust with min snap
         # - Existing note: do NOT shorten to snap while within one snap from start; allow pitch-only there.
         start_t = float(getattr(note, 'time', 0.0) or 0.0)
         units = float(max(1e-6, getattr(self._editor, 'snap_size_units', 8.0)))
@@ -156,8 +156,6 @@ class NoteTool(BaseTool):
                 if not self._duration_edit_armed:
                     if op.ge(cur_t_raw, start_t + units):
                         self._duration_edit_armed = True
-                    # While not armed, pitch-only
-                    note.pitch = cur_pitch
                 else:
                     # Armed: allow duration edits, including 1 snap when back inside first band
                     if op.lt(cur_t_raw, start_t + units):
@@ -189,11 +187,7 @@ class NoteTool(BaseTool):
     def on_right_click(self, x: float, y: float) -> None:
         super().on_right_click(x, y)
         # Detect a note at click position; if found, delete and redraw
-        if self._editor is None:
-            return
         score: SCORE = self._editor.current_score()
-        if score is None:
-            return
 
         # Use rectangle hit detection for delete
         target = None
