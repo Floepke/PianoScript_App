@@ -10,10 +10,17 @@ class TimeSignatureDialog(QtWidgets.QDialog):
                  initial_denom: int = 4,
                  initial_grid_positions: Optional[list[int]] = None,
                  initial_indicator_enabled: Optional[bool] = True,
-                 indicator_type: Optional[str] = None):
+                 indicator_type: Optional[str] = None,
+                 editor_widget: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Set Time Signature")
         self.setModal(True)
+        try:
+            self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+            self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+        except Exception:
+            pass
+        self._editor_widget = editor_widget
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
@@ -33,6 +40,10 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         entry_row.addWidget(self.ts_label)
         entry_row.addWidget(self.ts_edit, 1)
         lay.addLayout(entry_row)
+        try:
+            self.setFocusProxy(self.ts_edit)
+        except Exception:
+            pass
 
         # Validation message
         self.msg_label = QtWidgets.QLabel("", self)
@@ -44,20 +55,27 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             pass
         lay.addWidget(self.msg_label)
 
-        # Instruction + checkboxes container
+        # Beat grouping entry
         self.info_label = QtWidgets.QLabel(
-            "Enable/disable beats below. Checkbox 1 toggles the barline; higher numbers toggle beat grid lines.",
+            "Beat grouping: enter a sequence of digits (1-9 only). "
+            "Each group resets to 1. Examples: 6/8 with two groups of 3 → '123123'. "
+            "7/8 grouped 3+4 → '1231234'.",
             self,
         )
+        self.info_label.setWordWrap(True)
         lay.addWidget(self.info_label)
-        # Beats enabled label
-        self.beats_label = QtWidgets.QLabel("Beats enabled:", self)
-        lay.addWidget(self.beats_label)
-        self.checkbox_container = QtWidgets.QWidget(self)
-        self.checkbox_layout = QtWidgets.QHBoxLayout(self.checkbox_container)
-        self.checkbox_layout.setContentsMargins(0, 0, 0, 0)
-        self.checkbox_layout.setSpacing(6)
-        lay.addWidget(self.checkbox_container)
+        grouping_row = QtWidgets.QHBoxLayout()
+        grouping_row.setContentsMargins(0, 0, 0, 0)
+        grouping_row.setSpacing(6)
+        self.grouping_label = QtWidgets.QLabel("Beat grouping:", self)
+        self.grouping_edit = QtWidgets.QLineEdit(self)
+        self.grouping_edit.setPlaceholderText("e.g., 123123")
+        # Allow digits only
+        self._grouping_validator = QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^[0-9]+$"), self.grouping_edit)
+        self.grouping_edit.setValidator(self._grouping_validator)
+        grouping_row.addWidget(self.grouping_label)
+        grouping_row.addWidget(self.grouping_edit, 1)
+        lay.addLayout(grouping_row)
 
         # Indicator enabled toggle (global type comes from Layout; dialog no longer edits it)
         indicator_row = QtWidgets.QHBoxLayout()
@@ -87,20 +105,18 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self._indicator_type: str = str(indicator_type or 'classical')
         if self._indicator_type not in ('classical', 'klavarskribo', 'both'):
             self._indicator_type = 'classical'
-        # Initialize grid positions. If provided, clamp to [1..numer]; otherwise default based on indicator type.
+        # Initialize beat grouping sequence (one digit per beat)
         init_gp = list(initial_grid_positions or [])
         if init_gp:
-            self._grid_positions = [p for p in init_gp if isinstance(p, int) and 1 <= int(p) <= int(self._numer)]
-            # Keep unique + sorted
-            self._grid_positions = sorted(list(dict.fromkeys(self._grid_positions)))
-            if not self._grid_positions:
-                # Default: classical → all beats; klavarskribo/both → barline only
-                self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
+            seq = [int(p) for p in init_gp if isinstance(p, int) and 1 <= int(p) <= 9]
+            if len(seq) != int(self._numer):
+                seq = []
+            self._grid_positions = seq
         else:
-            self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, int(self._numer) + 1))
-        # Ensure beat 1 is always present (cannot have ungrouped time)
-        if 1 not in self._grid_positions:
-            self._grid_positions.insert(0, 1)
+            self._grid_positions = []
+        if not self._grid_positions:
+            # Default: 1..numer (single group across the measure)
+            self._grid_positions = list(range(1, int(self._numer) + 1))
         # Initialize indicator state
         self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
         try:
@@ -108,7 +124,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         except Exception:
             pass
 
-        self._build_checkboxes()
+        # Initialize grouping string from grid positions
+        self._update_grouping_text_from_positions()
         # Initialize entry text
         try:
             self.ts_edit.setText(f"{self._numer}/{self._denom}")
@@ -116,6 +133,69 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             pass
         # React to changes
         self.ts_edit.textChanged.connect(self._on_text_changed)
+        self.grouping_edit.textChanged.connect(self._on_grouping_changed)
+
+        # Focus logic: disable editor focus, then focus dialog
+        try:
+            if self._editor_widget is not None and hasattr(self._editor_widget, 'setFocusPolicy'):
+                self._editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+                try:
+                    self._editor_widget.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        try:
+            QtCore.QTimer.singleShot(0, lambda: self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason))
+        except Exception:
+            pass
+        try:
+            QtCore.QTimer.singleShot(0, self._poke_mouse_focus)
+        except Exception:
+            pass
+
+    def done(self, r: int) -> None:
+        # Restore editor mouse/focus behavior after dialog closes
+        try:
+            if self._editor_widget is not None:
+                try:
+                    self._editor_widget.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+                except Exception:
+                    pass
+                try:
+                    self._editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        super().done(r)
+
+    def _poke_mouse_focus(self) -> None:
+        self.ts_edit.setFocus(QtCore.Qt.FocusReason.MouseFocusReason)
+        center = self.ts_edit.rect().center()
+        local_pos = QtCore.QPointF(center)
+        global_pos = QtCore.QPointF(self.ts_edit.mapToGlobal(center))
+        ev_press = QtGui.QMouseEvent(
+            QtCore.QEvent.Type.MouseButtonPress,
+            local_pos,
+            local_pos,
+            global_pos,
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifier.NoModifier,
+        )
+        ev_release = QtGui.QMouseEvent(
+            QtCore.QEvent.Type.MouseButtonRelease,
+            local_pos,
+            local_pos,
+            global_pos,
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.MouseButton.NoButton,
+            QtCore.Qt.KeyboardModifier.NoModifier,
+        )
+        QtWidgets.QApplication.sendEvent(self.ts_edit, ev_press)
+        QtWidgets.QApplication.sendEvent(self.ts_edit, ev_release)
+
 
     def _on_text_changed(self, s: str) -> None:
         numer, denom, err = self._parse_ts(s)
@@ -132,9 +212,9 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             # Rebuild checkboxes if numerator changed
             if numer != self._numer:
                 self._numer = numer
-                # Reset grid positions: classical → all beats; klavarskribo/both → barline only
-                self._grid_positions = [1] if self._indicator_type in ('klavarskribo', 'both') else list(range(1, numer + 1))
-                self._build_checkboxes()
+                # Reset grouping sequence to 1..numer
+                self._grid_positions = list(range(1, numer + 1))
+                self._update_grouping_text_from_positions()
             self._denom = denom
 
         # Keep indicator enabled in sync with widget
@@ -147,6 +227,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         s = self.ts_edit.text().strip()
         numer, denom, err = self._parse_ts(s)
         if err or numer is None or denom is None:
+            return
+        if not self._apply_grouping_text():
             return
         self._numer = numer
         self._denom = denom
@@ -178,50 +260,60 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         except Exception:
             return None, None, "Invalid time signature."
 
-    def _build_checkboxes(self) -> None:
-        # Clear current
-        while self.checkbox_layout.count():
-            item = self.checkbox_layout.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-        # Build new set
-        self._checkboxes: list[QtWidgets.QCheckBox] = []
-        for i in range(1, int(self._numer) + 1):
-            cb = QtWidgets.QCheckBox(str(i), self.checkbox_container)
-            # Initial state reflects current grid_positions for all indicator types
-            init_checked = (i in self._grid_positions)
-            cb.setChecked(init_checked)
-            cb.toggled.connect(lambda checked, idx=i: self._on_cb_toggled(idx, checked))
-            if i == 1:
-                # Beat 1 cannot be unchecked; lock the checkbox
-                cb.setEnabled(False)
-                cb.setChecked(True)
-            self.checkbox_layout.addWidget(cb)
-            self._checkboxes.append(cb)
-        self.checkbox_layout.addStretch(1)
-
-    def _on_cb_toggled(self, idx: int, checked: bool) -> None:
-        # Prevent unchecking beat 1
-        if idx == 1:
-            # Force beat 1 to remain checked in internal state
-            if 1 not in self._grid_positions:
-                self._grid_positions.insert(0, 1)
-            # If the UI somehow fires a toggle for idx==1, revert it
-            cb = self._checkboxes[0]
-            cb.blockSignals(True)
-            cb.setChecked(True)
-            cb.blockSignals(False)
-            return
-        if checked:
-            if idx not in self._grid_positions:
-                self._grid_positions.append(idx)
-                self._grid_positions.sort()
+    def _update_grouping_text_from_positions(self) -> None:
+        # Build grouping string from per-beat sequence (e.g., [1,2,3,1,2,3,4] -> 1231234)
+        if not self._grid_positions:
+            txt = ""
         else:
+            seq = [int(p) for p in self._grid_positions if 1 <= int(p) <= 9]
+            if len(seq) != int(self._numer):
+                seq = list(range(1, int(self._numer) + 1))
+            txt = "".join(str(p) for p in seq)
+        try:
+            self.grouping_edit.blockSignals(True)
+            self.grouping_edit.setText(txt)
+        finally:
             try:
-                self._grid_positions.remove(idx)
-            except ValueError:
+                self.grouping_edit.blockSignals(False)
+            except Exception:
                 pass
+
+    def _on_grouping_changed(self, s: str) -> None:
+        # Live-validate grouping string
+        if not s:
+            self.msg_label.setText("Enter a beat grouping string (digits only).")
+            return
+        if any(ch not in "0123456789" for ch in s):
+            self.msg_label.setText("Beat grouping must contain digits only.")
+            return
+        if not self._apply_grouping_text(quiet=True):
+            return
+        # Clear error if parsing is ok
+        self.msg_label.setText("")
+
+    def _apply_grouping_text(self, quiet: bool = False) -> bool:
+        s = (self.grouping_edit.text() or "").strip()
+        if not s:
+            if not quiet:
+                self.msg_label.setText("Enter a beat grouping string (digits only).")
+            return False
+        # Parse: per-beat sequence; must start with 1 and follow reset-to-1 rule
+        seq: list[int] = [int(ch) for ch in s]
+        if not seq or seq[0] != 1:
+            if not quiet:
+                self.msg_label.setText("Grouping must start with '1'.")
+            return False
+        if len(seq) != int(self._numer):
+            if not quiet:
+                self.msg_label.setText(f"Grouping length must match the time signatures measure length.\nPlease enter {int(self._numer)} digits.")
+            return False
+        for prev, cur in zip(seq, seq[1:]):
+            if cur != 1 and cur != prev + 1:
+                if not quiet:
+                    self.msg_label.setText("Grouping must count up or reset to 1 (e.g., 1231234).")
+                return False
+        self._grid_positions = seq
+        return True
 
     def get_values(self) -> tuple[int, int, list[int], bool]:
         return int(self._numer), int(self._denom), list(self._grid_positions), bool(self._indicator_enabled)

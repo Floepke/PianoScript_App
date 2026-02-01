@@ -53,7 +53,7 @@ class TempoDrawerMixin:
             # Rotated 90°: horizontal width should accommodate original height
             rect_w = max(h_mm + 6.0, 10.0)
             # Place rectangle near the outer right page edge
-            x_left = float(page_w_mm) - rect_w - max(4.0, margin * 0.25)
+            x_left = float(page_w_mm) - rect_w - margin * 0.35
             # Underlay rectangle (grey) with height equal to rotated text height
             du.add_rectangle(x_left, y0, x_left + rect_w, y0 + w_mm + 3.0,
                              stroke_color=None, fill_color=(0.7, 0.7, 0.7, 1), id=0,

@@ -15,10 +15,12 @@ class BaseGrid:
     each measure. Higher denominators subdivide the measure into smaller units
     and `beat_grouping` selects which beats are drawn/enabled.
 
-    For example, in 4/4, `beat_grouping=[1,2,3,4]` draws beats 1-4.
+    For example, in 4/4, `beat_grouping=[1,2,3,4]` means a single group of 4.
+    In 7/8 with 3+4 grouping, `beat_grouping=[1,2,3,1,2,3,4]`.
 
-    - beat_grouping: list of beat indices within the measure to draw/enable.
-      Beat 1 always corresponds to the barline.
+    - beat_grouping: per-beat sequence describing grouping. The sequence length
+      must equal the numerator. It must start at 1 and can only count up or
+      reset to 1 (e.g., 1231234).
     - measure_amount: number of measures to generate with these settings.
     """
     numerator: int = 4

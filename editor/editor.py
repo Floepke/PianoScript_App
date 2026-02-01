@@ -878,11 +878,18 @@ class Editor(QtCore.QObject,
             for _ in range(int(bg.measure_amount)):
                 # Append grid line times for configured grid positions
                 positions = getattr(bg, 'beat_grouping', None)
-                positions_list = list(positions if positions is not None else (getattr(bg, 'grid_positions', []) or []))
-                for grid in positions_list:
-                    # grid == 1 marks the barline (measure start); positions are 1-based
-                    t_line = cur_t + (int(grid) - 1) * beat_len_ticks
-                    grid_den_times.append(float(t_line))
+                positions_list = list(positions if positions is not None else (getattr(bg, 'beat_grouping', []) or []))
+                # New scheme: list index represents beat; draw lines where value == 1
+                if len(positions_list) == int(bg.numerator):
+                    full_group = [int(v) for v in positions_list] == list(range(1, int(bg.numerator)))
+                    for idx, val in enumerate(positions_list, start=1):
+                        if not full_group and int(val) != 1:
+                            continue
+                        t_line = cur_t + (idx - 1) * beat_len_ticks
+                        grid_den_times.append(float(t_line))
+                else:
+                    # Fallback: if malformed, at least draw the barline
+                    grid_den_times.append(float(cur_t))
                 # Advance to next measure start
                 cur_t += measure_len_ticks
         # Append final end barline time for completeness

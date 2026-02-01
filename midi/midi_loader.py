@@ -89,11 +89,25 @@ def midi_load(path: str) -> SCORE:
         ts_changes = []
 
     def _grid_positions_for(numer: int, denom: int) -> List[int]:
-        if denom in (8,16) and numer in (6, 7):
-            return [1, 4]
-        if denom in (8,16) and numer == 9:
-            return [1, 4, 8]
-        return list(range(1, max(1, int(numer)) + 1))
+        # Return per-beat grouping sequence (one digit per beat)
+        starts: List[int]
+        if denom in (8, 16) and numer in (6, 7):
+            starts = [1, 4]
+        elif denom in (8, 16) and numer == 9:
+            starts = [1, 4, 8]
+        else:
+            starts = [1]
+        # Build sequence by counting within groups
+        seq: List[int] = []
+        count = 0
+        start_set = set(starts)
+        for beat in range(1, max(1, int(numer)) + 1):
+            if beat in start_set:
+                count = 1
+            else:
+                count += 1
+            seq.append(count)
+        return seq
 
     end_units_total = _seconds_to_units(pm, float(getattr(pm, 'get_end_time', lambda: 0.0)()))
     segments: List[Tuple[float, int, int]] = []  # (start_units, numer, denom)
@@ -249,11 +263,24 @@ def _midi_load_with_mido(path: str) -> SCORE:
 
     # Build base_grid from mido time signatures
     def _grid_positions_for(numer: int, denom: int) -> List[int]:
+        # Return per-beat grouping sequence (one digit per beat)
+        starts: List[int]
         if denom == 8 and numer in (6, 7):
-            return [1, 4]
-        if denom == 8 and numer == 9:
-            return [1, 4, 8]
-        return list(range(1, max(1, int(numer)) + 1))
+            starts = [1, 4]
+        elif denom == 8 and numer == 9:
+            starts = [1, 4, 8]
+        else:
+            starts = [1]
+        seq: List[int] = []
+        count = 0
+        start_set = set(starts)
+        for beat in range(1, max(1, int(numer)) + 1):
+            if beat in start_set:
+                count = 1
+            else:
+                count += 1
+            seq.append(count)
+        return seq
 
     end_units_total = (total_end_seconds / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
     segments: List[Tuple[float, int, int]] = []

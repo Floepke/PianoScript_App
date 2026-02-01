@@ -72,43 +72,53 @@ class GridDrawerMixin:
                 # measure numbers:
                 measure_number_str = str(measure_numbering_cursor)
                 du.add_text(
-                    1.0,
+                    self.margin + self.stave_width + self.margin - 1.0,
                     time_cursor + 1.0,
                     measure_number_str,
                     size_pt=16.0,
                     color=color,
                     id=0,
                     tags=["measure_number"],
-                    anchor='nw',
+                    anchor='ne',
                     family="Courier New"
                 )
 
                 # Beat length inside this measure
                 beat_length = measure_len_mm / max(1, numerator)
 
-                for grid in getattr(bg, 'beat_grouping', []) or []:
-                    # grid == 1 marks the barline (measure start)
-                    is_barline = (grid == 1)
-
-                    # Correct position: 1 → start of measure
-                    line_y = time_cursor + (grid - 1) * beat_length
-
-                    # Prepare style once, then call add_line
-                    style = {
-                        "color": color,
-                        "width_mm": bar_width_mm if is_barline else 0.2,
-                        "id": 0,
-                        "tags": ["barline"] if is_barline else ["grid_line"],
-                        "dash_pattern": None if is_barline else [2.0, 2.0],
-                    }
-
-                    # draw the line
+                beat_grouping = list(getattr(bg, 'beat_grouping', []) or [])
+                if len(beat_grouping) == int(numerator):
+                    for idx, val in enumerate(beat_grouping, start=1):
+                        if int(val) != 1:
+                            continue
+                        is_barline = (idx == 1)
+                        line_y = time_cursor + (idx - 1) * beat_length
+                        style = {
+                            "color": color,
+                            "width_mm": bar_width_mm if is_barline else 0.2,
+                            "id": 0,
+                            "tags": ["barline"] if is_barline else ["grid_line"],
+                            "dash_pattern": None if is_barline else [2.0, 2.0],
+                        }
+                        du.add_line(
+                            stave_left_position,
+                            line_y,
+                            stave_right_position,
+                            line_y,
+                            **style
+                        )
+                else:
+                    # Fallback: draw only the barline at the measure start
                     du.add_line(
                         stave_left_position,
-                        line_y,
+                        time_cursor,
                         stave_right_position,
-                        line_y,
-                        **style
+                        time_cursor,
+                        color=color,
+                        width_mm=bar_width_mm,
+                        id=0,
+                        tags=["barline"],
+                        dash_pattern=None
                     )
 
                 measure_numbering_cursor += 1

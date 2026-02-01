@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 from typing import Optional, List
 from PySide6 import QtCore, QtWidgets
 
@@ -77,17 +78,13 @@ class TimeSignatureTool(BaseTool):
           insert a new BaseGrid with measure_amount=1.
         """
         super().on_left_click(x, y)
-        if self._editor is None:
-            return
         score: SCORE | None = self._editor.current_score()
-        if score is None:
-            return
+
         # Map click to time (ticks)
         click_t = float(self._editor.y_to_time(y))
+        
         # Find nearest barline
         bars = self._compute_all_barline_positions()
-        if not bars:
-            return
         nearest = bars[0]
         min_abs = abs(click_t - float(nearest))
         for t in bars:
@@ -95,11 +92,11 @@ class TimeSignatureTool(BaseTool):
             if d < min_abs:
                 min_abs = d
                 nearest = float(t)
+        
         # Determine segment and offset within segment for this barline
         tol = 1e-6
         base_list = list(getattr(score, 'base_grid', []) or [])
-        if not base_list:
-            return
+        
         # Build segment boundaries (start times)
         seg_starts = []
         cur_t = 0.0
@@ -110,6 +107,7 @@ class TimeSignatureTool(BaseTool):
             mcount = int(getattr(bg, 'measure_amount', 1) or 1)
             measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
             cur_t += measure_len * mcount
+        
         # Find segment index such that barline lies within [start, next_start]
         seg_i = 0
         for i in range(len(base_list)):
@@ -118,108 +116,107 @@ class TimeSignatureTool(BaseTool):
             if start_t - tol <= nearest <= end_t + tol:
                 seg_i = i
                 break
-        seg_bg = base_list[seg_i]
+
+        # If click is on an existing change (segment start), edit that segment
+        edit_i = None
+        for i, s in enumerate(seg_starts):
+            if abs(float(s) - float(nearest)) <= tol:
+                edit_i = i
+                break
+        if edit_i is None:
+            seg_bg = base_list[seg_i]
+        else:
+            seg_i = edit_i
+            seg_bg = base_list[seg_i]
+
+        # Find the base_grid active at the click time (for dialog prefill)
+        active_i = 0
+        for i in range(len(base_list)):
+            start_t = seg_starts[i]
+            end_t = seg_starts[i + 1] if i + 1 < len(seg_starts) else cur_t
+            if start_t - tol <= click_t < end_t + tol:
+                active_i = i
+                break
+        active_bg = base_list[active_i]
+        
         # Compute measure index offset within segment
         num = float(getattr(seg_bg, 'numerator', 4) or 4)
         den = float(getattr(seg_bg, 'denominator', 4) or 4)
         measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+        
         # Offset in measures from segment start
-        offset_measures = int(round((nearest - seg_starts[seg_i]) / max(1e-9, measure_len)))
+        offset_measures = int(math.ceil((nearest - seg_starts[seg_i]) / max(1e-9, measure_len))) # not sure yet for floor/ceil...
+        
         # Clamp offset into valid range [0..measure_amount]
         m_total = int(getattr(seg_bg, 'measure_amount', 1) or 1)
         offset_measures = max(0, min(offset_measures, m_total))
+        
         # Open dialog and build a new BaseGrid from its values
-        try:
-            from ui.widgets.time_signature_dialog import TimeSignatureDialog
-        except Exception:
-            TimeSignatureDialog = None  # type: ignore
-        if TimeSignatureDialog is None:
-            return
+        from ui.widgets.time_signature_dialog import TimeSignatureDialog
+        
         # Prefill dialog from the current segment for sensible defaults
         initial_numer = 4
         initial_denom = 4
         initial_grid_positions: list[int] = [1, 2, 3, 4]
         initial_indicator_enabled = True
-        try:
-            cur_bg = seg_bg
-            initial_numer = int(getattr(cur_bg, 'numerator', initial_numer) or initial_numer)
-            initial_denom = int(getattr(cur_bg, 'denominator', initial_denom) or initial_denom)
-            gp_attr = getattr(cur_bg, 'beat_grouping', None)
-            initial_grid_positions = list(gp_attr if gp_attr is not None else (getattr(cur_bg, 'grid_positions', []) or initial_grid_positions))
-            initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', initial_indicator_enabled))
-        except Exception:
-            pass
+        cur_bg = active_bg
+        initial_numer = int(getattr(cur_bg, 'numerator', initial_numer) or initial_numer)
+        initial_denom = int(getattr(cur_bg, 'denominator', initial_denom) or initial_denom)
+        gp_attr = getattr(cur_bg, 'beat_grouping', None)
+        initial_grid_positions = list(gp_attr if gp_attr is not None else (getattr(cur_bg, 'grid_positions', []) or initial_grid_positions))
+        initial_indicator_enabled = bool(getattr(cur_bg, 'indicator_enabled', initial_indicator_enabled))
+        
         # Parent: try active window
         try:
             parent_w = QtWidgets.QApplication.activeWindow()
         except Exception:
             parent_w = None
+        
         # Guard against re-entrancy
         if getattr(self, '_dialog_open', False):
             return
         self._dialog_open = True
+        editor_widget = getattr(self._editor, 'widget', None) if self._editor else None
         dlg = TimeSignatureDialog(parent=parent_w,
                                   initial_numer=initial_numer,
                                   initial_denom=initial_denom,
                                   initial_grid_positions=initial_grid_positions,
-                                  initial_indicator_enabled=initial_indicator_enabled)
+                                  initial_indicator_enabled=initial_indicator_enabled,
+                                  editor_widget=editor_widget)
         try:
             res = dlg.exec()
         finally:
             self._dialog_open = False
         if res != QtWidgets.QDialog.Accepted:
             return
-        try:
-            numer, denom, grid_positions, indicator_enabled = dlg.get_values()
-        except Exception:
-            numer, denom, grid_positions, indicator_enabled = 4, 4, [1, 2, 3, 4], True
-        # Apply change: edit or insert at barline
-        if offset_measures == 0:
-            # Edit existing change at segment start
-            try:
-                seg_bg.numerator = int(numer)
-                seg_bg.denominator = int(denom)
-                seg_bg.beat_grouping = list(grid_positions)
-                seg_bg.indicator_enabled = bool(indicator_enabled)
-            except Exception:
-                pass
+        numer, denom, grid_positions, indicator_enabled = dlg.get_values()
+        
+        # Apply change: edit if click is on a change, otherwise insert at barline
+        if edit_i is not None:
+            seg_bg.numerator = int(numer)
+            seg_bg.denominator = int(denom)
+            seg_bg.beat_grouping = list(grid_positions)
+            seg_bg.indicator_enabled = bool(indicator_enabled)
         else:
             # Split segment at this barline and insert new change with 1 measure
-            try:
-                seg_bg.measure_amount = int(offset_measures)
-            except Exception:
-                pass
-            try:
-                new_bg = BaseGrid(numerator=int(numer), denominator=int(denom),
-                                  beat_grouping=list(grid_positions),
-                                  measure_amount=1, indicator_enabled=bool(indicator_enabled))
-            except Exception:
-                new_bg = BaseGrid()
-                new_bg.numerator = int(numer)
-                new_bg.denominator = int(denom)
-                new_bg.beat_grouping = list(grid_positions)
-                new_bg.measure_amount = 1
-                try:
-                    new_bg.indicator_enabled = bool(indicator_enabled)
-                except Exception:
-                    pass
+            seg_bg.measure_amount = int(offset_measures)
+            new_bg = BaseGrid(numerator=int(numer), denominator=int(denom),
+                                beat_grouping=list(grid_positions),
+                                measure_amount=1, indicator_enabled=bool(indicator_enabled))
+
             # Insert right after the current segment
-            try:
-                score.base_grid.insert(seg_i + 1, new_bg)
-            except Exception:
-                return
-        # Snapshot and immediate frame rebuild so drawers update
+            score.base_grid.insert(seg_i + 1, new_bg)
+        
+        # Snapshot and immediate update_score_length which also renders a new frame
+        self._editor._snapshot_if_changed(coalesce=False, label='time_signature_append')
         try:
-            self._editor._snapshot_if_changed(coalesce=False, label='time_signature_append')
-        except Exception:
-            pass
-        try:
+            self._editor.update_score_length()
             self._editor.draw_frame()
         except Exception:
             pass
 
     def on_right_click(self, x: float, y: float) -> None:
-        """Delete the BaseGrid at the clicked change (segment start), except the first."""
+        """Delete the BaseGrid at the clicked change (segment start), except for the first."""
         super().on_right_click(x, y)
         if self._editor is None:
             return
@@ -234,6 +231,7 @@ class TimeSignatureTool(BaseTool):
         if not bars:
             return
         nearest = min(bars, key=lambda t: abs(click_t - float(t)))
+
         # Find segment start positions
         seg_starts = []
         cur_t = 0.0
@@ -245,27 +243,23 @@ class TimeSignatureTool(BaseTool):
             measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
             cur_t += measure_len * mcount
         tol = 1e-6
+
         # Identify segment whose start matches the nearest barline
         seg_i = None
         for i, s in enumerate(seg_starts):
             if abs(float(s) - float(nearest)) <= tol:
                 seg_i = i
                 break
+
+        # cannot delete first or non-change barline
         if seg_i is None or seg_i <= 0:
-            return  # cannot delete first or non-change barline
-        try:
-            del base_list[seg_i]
-            score.base_grid = base_list
-        except Exception:
             return
-        try:
-            self._editor._snapshot_if_changed(coalesce=False, label='time_signature_delete')
-        except Exception:
-            pass
-        try:
-            self._editor.draw_frame()
-        except Exception:
-            pass
+
+        # Delete the BaseGrid at this segment start
+        del base_list[seg_i]
+        score.base_grid = base_list
+        self._editor._snapshot_if_changed(coalesce=False, label='time_signature_delete')
+        self._editor.update_score_length()
 
     # Block other mouse handlers for this tool; we use click only for now
     def on_left_press(self, x: float, y: float) -> None:
