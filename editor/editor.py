@@ -347,7 +347,7 @@ class Editor(QtCore.QObject,
             notes_view = cache.get('notes_view') or []
             if notes_view:
                 for n in notes_view:
-                    if int(getattr(n, 'id', -1) or -1) == nid:
+                    if int(getattr(n, '_id', -1) or -1) == nid:
                         return n
         except Exception:
             pass
@@ -357,7 +357,7 @@ class Editor(QtCore.QObject,
             if score is None:
                 return None
             for n in getattr(score.events, 'note', []) or []:
-                if int(getattr(n, 'id', -1) or -1) == nid:
+                if int(getattr(n, '_id', -1) or -1) == nid:
                     return n
         except Exception:
             pass

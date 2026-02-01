@@ -5,4 +5,4 @@ from dataclasses import dataclass
 class Pedal:
     type: str = 'v'  # 'v' = down, '^' = up
     time: float = 0.0
-    id: int = 0
+    _id: int = 0

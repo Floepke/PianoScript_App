@@ -10,4 +10,4 @@ class LineBreak:
     stave_range: List[int] | None = field(default_factory=lambda: [0, 0]) 
     # Whether this line break indicates a page break or a line break
     page_break: bool = False
-    id: int = 0
+    _id: int = 0

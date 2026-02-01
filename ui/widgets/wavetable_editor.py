@@ -166,7 +166,7 @@ class WavetableEditor(QtWidgets.QDialog):
         grid.addWidget(self.sustain, 2, 1)
         grid.addWidget(QtWidgets.QLabel("Release"), 3, 0)
         grid.addWidget(self.release, 3, 1)
-        grid.addWidget(QtWidgets.QLabel("Gain"), 4, 0)
+        grid.addWidget(QtWidgets.QLabel("Master Gain"), 4, 0)
         grid.addWidget(self.gain, 4, 1)
         grid.addWidget(QtWidgets.QLabel("Humanize pitch; range"), 5, 0)
         grid.addWidget(self.humanize, 5, 1)

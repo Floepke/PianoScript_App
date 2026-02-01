@@ -6,4 +6,4 @@ class CountLine:
     time: float = 0.0
     pitch1: int = 40
     pitch2: int = 44
-    id: int = 0
+    _id: int = 0

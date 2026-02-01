@@ -69,7 +69,7 @@ class BeamDrawerMixin:
                     b -= 1
                 # de-duplicate while preserving order by start time
                 if group:
-                    group = sorted({m.id: m for m in group}.values(), key=lambda n: float(n.time))
+                    group = sorted({m._id: m for m in group}.values(), key=lambda n: float(n.time))
                 result.append(group)
             return result
 

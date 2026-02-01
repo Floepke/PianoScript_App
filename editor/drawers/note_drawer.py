@@ -121,7 +121,7 @@ class NoteDrawerMixin:
             ],
             stroke_color=None,
             fill_color=fill,
-            id=n.id,
+            id=n._id,
             tags=["midi_note"],
         )
         # Register a clickable rectangle covering the main midinote body
@@ -134,7 +134,7 @@ class NoteDrawerMixin:
             x_left, x_right = x_right, x_left
         if y_top > y_bottom:
             y_top, y_bottom = y_bottom, y_top
-        rect_id = int(getattr(n, 'id', 0) or 0)
+        rect_id = int(getattr(n, '_id', 0) or 0)
         self.register_note_hit_rect(rect_id, float(x_left), float(y_top), float(x_right), float(y_bottom))
 
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
@@ -153,7 +153,7 @@ class NoteDrawerMixin:
                 stroke_color=self.notation_color,
                 stroke_width_mm=0.3,
                 fill_color=self.notation_color,
-                id=n.id,
+                id=n._id,
                 tags=["notehead_black"],
             )
         else:
@@ -167,7 +167,7 @@ class NoteDrawerMixin:
                 stroke_color=self.notation_color,
                 stroke_width_mm=outline_w,
                 fill_color=bg_fill,
-                id=n.id,
+                id=n._id,
                 tags=["notehead_white"],
             )
 
@@ -228,7 +228,7 @@ class NoteDrawerMixin:
         cache = cast("Editor", self)._draw_cache or {}
         notes_view = cache.get('notes_view') or (self._cached_notes_view or [])
         for m in notes_view:
-            if m.id == n.id or getattr(m, 'hand', '<') != hand:
+            if m._id == n._id or getattr(m, 'hand', '<') != hand:
                 continue
             s = float(m.time)
             e = float(m.time + m.duration)
@@ -340,7 +340,7 @@ class NoteDrawerMixin:
             min_delta = None
             for j in range(idx, len(hand_list)):
                 m = hand_list[j]
-                if m.id == n.id:
+                if m._id == n._id:
                     continue
                 delta = float(m.time) - end
                 if delta >= -thr:
@@ -361,7 +361,7 @@ class NoteDrawerMixin:
         min_delta = None
         for j in range(idx, len(notes_sorted)):
             m = notes_sorted[j]
-            if m.id == n.id or getattr(m, 'hand', '<') != hand:
+            if m._id == n._id or getattr(m, 'hand', '<') != hand:
                 continue
             delta = float(m.time) - end
             if delta >= -thr:

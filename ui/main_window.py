@@ -1173,7 +1173,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Audio", "No audio output devices found.")
                 return
             names = [str(d.get('name', '')) for d in outputs]
-            item, ok = QtWidgets.QInputDialog.getItem(self, "Select Audio Output", "Device:", names, 0, False)
+            # Preselect previously saved device if available
+            pref = str(get_appdata_manager().get("audio_output_device", "") or "")
+            default_index = names.index(pref) if pref in names else 0
+            item, ok = QtWidgets.QInputDialog.getItem(self, "Select Audio Output", "Device:", names, default_index, False)
             if not ok:
                 return
             name = str(item)

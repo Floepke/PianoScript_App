@@ -78,7 +78,7 @@ class SCORE:
 	editor: EditorSettings = field(default_factory=EditorSettings)
 	_next_id: int = 1
 
-	# ---- Builders (ensure unique id) ----
+	# ---- Builders (ensure unique _id) ----
 	def _gen_id(self) -> int:
 		i = self._next_id
 		self._next_id += 1
@@ -87,28 +87,28 @@ class SCORE:
 	def new_note(self, **kwargs) -> Note:
 		base = {'pitch': 40, 'time': 0.0, 'duration': 100.0, 'hand': '<'}
 		base.update(kwargs)
-		obj = Note(**base, id=self._gen_id())
+		obj = Note(**base, _id=self._gen_id())
 		self.events.note.append(obj)
 		return obj
 
 	def new_grace_note(self, **kwargs) -> GraceNote:
 		base = {'pitch': 41, 'time': 50.0}
 		base.update(kwargs)
-		obj = GraceNote(**base, id=self._gen_id())
+		obj = GraceNote(**base, _id=self._gen_id())
 		self.events.grace_note.append(obj)
 		return obj
 
 	def new_pedal(self, **kwargs) -> Pedal:
 		base = {'type': 'v', 'time': 0.0}
 		base.update(kwargs)
-		obj = Pedal(**base, id=self._gen_id())
+		obj = Pedal(**base, _id=self._gen_id())
 		self.events.pedal.append(obj)
 		return obj
 
 	def new_text(self, **kwargs) -> Text:
 		base = {'text': '120/4', 'time': 0.0, 'side': '<', 'mm_from_side': 5.0, 'rotated': True}
 		base.update(kwargs)
-		obj = Text(**base, id=self._gen_id())
+		obj = Text(**base, _id=self._gen_id())
 		self.events.text.append(obj)
 		return obj
 
@@ -121,35 +121,35 @@ class SCORE:
 			'x4_semitones_c4': 0, 'y4_time': 100.0,
 		}
 		base.update(kwargs)
-		obj = Slur(**base, id=self._gen_id())
+		obj = Slur(**base, _id=self._gen_id())
 		self.events.slur.append(obj)
 		return obj
 
 	def new_beam(self, **kwargs) -> Beam:
 		base = {'time': 0.0, 'duration': 100.0, 'hand': '<'}
 		base.update(kwargs)
-		obj = Beam(**base, id=self._gen_id())
+		obj = Beam(**base, _id=self._gen_id())
 		self.events.beam.append(obj)
 		return obj
 
 	def new_start_repeat(self, **kwargs) -> StartRepeat:
 		base = {'time': 0.0}
 		base.update(kwargs)
-		obj = StartRepeat(**base, id=self._gen_id())
+		obj = StartRepeat(**base, _id=self._gen_id())
 		self.events.start_repeat.append(obj)
 		return obj
 
 	def new_end_repeat(self, **kwargs) -> EndRepeat:
 		base = {'time': 0.0}
 		base.update(kwargs)
-		obj = EndRepeat(**base, id=self._gen_id())
+		obj = EndRepeat(**base, _id=self._gen_id())
 		self.events.end_repeat.append(obj)
 		return obj
 
 	def new_count_line(self, **kwargs) -> CountLine:
 		base = {'time': 0.0, 'pitch1': 40, 'pitch2': 44}
 		base.update(kwargs)
-		obj = CountLine(**base, id=self._gen_id())
+		obj = CountLine(**base, _id=self._gen_id())
 		self.events.count_line.append(obj)
 		return obj
 
@@ -157,14 +157,14 @@ class SCORE:
 	def new_line_break(self, **kwargs) -> LineBreak:
 		base = {'time': 0.0, 'margin_mm': [0.0, 0.0], 'stave_range': [0, 0]}
 		base.update(kwargs)
-		obj = LineBreak(**base, id=self._gen_id())
+		obj = LineBreak(**base, _id=self._gen_id())
 		self.events.line_break.append(obj)
 		return obj
 
 	def new_tempo(self, **kwargs) -> Tempo:
 		base = {'time': 0.0, 'duration': 0.0, 'tempo': 60}
 		base.update(kwargs)
-		obj = Tempo(**base, id=self._gen_id())
+		obj = Tempo(**base, _id=self._gen_id())
 		self.events.tempo.append(obj)
 		return obj
 
@@ -210,7 +210,7 @@ class SCORE:
 			return defaults
 
 		# Helper: merge incoming dict with dataclass defaults and report repairs
-		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id'}) -> dict:
+		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id', '_id'}) -> dict:
 			incoming = incoming or {}
 			defaults = _defaults_for(dc_type)
 			# Only keep keys that exist on the dataclass and are not skipped
@@ -265,9 +265,9 @@ class SCORE:
 			for idx, item in enumerate(items):
 				incoming = item if isinstance(item, dict) else {}
 				obj = elem_type(**_merge_with_defaults(elem_type, incoming, f'events.{name}[{idx}]'))
-				# Assign sequential id regardless of incoming value
+				# Assign sequential _id regardless of incoming value
 				try:
-					setattr(obj, 'id', self._gen_id())
+					setattr(obj, '_id', self._gen_id())
 				except Exception:
 					pass
 				lst.append(obj)
@@ -348,7 +348,7 @@ class SCORE:
 					defaults[f.name] = None
 			return defaults
 
-		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id'}) -> dict:
+		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id', '_id'}) -> dict:
 			incoming = incoming or {}
 			defaults = _defaults_for(dc_type)
 			filtered = {k: v for k, v in incoming.items() if k in defaults and k not in skip_keys}
@@ -404,7 +404,7 @@ class SCORE:
 				incoming = item if isinstance(item, dict) else {}
 				obj = elem_type(**_merge_with_defaults(elem_type, incoming, f'events.{name}[{idx}]'))
 				try:
-					setattr(obj, 'id', self._gen_id())
+					setattr(obj, '_id', self._gen_id())
 				except Exception:
 					pass
 				lst.append(obj)

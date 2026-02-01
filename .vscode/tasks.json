@@ -2,7 +2,7 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Run PianoScript System",
+			"label": "Run PianoScript",
 			"type": "shell",
 			"command": "${workspaceFolder}/.venv/bin/python",
 			"args": [

@@ -243,9 +243,14 @@ class ToolbarSplitter(QtWidgets.QSplitter):
             pass
 
     def mouseDoubleClickEvent(self, ev: QtGui.QMouseEvent) -> None:
-        # Double-click anywhere on the splitter requests fit (force True)
-        try:
+        # Only trigger fit when double-clicking the splitter handle
+        pos = ev.position().toPoint()
+        handle_hit = False
+        for i in range(1, self.count()):
+            h = self.handle(i)
+            if h is not None and h.geometry().contains(pos):
+                handle_hit = True
+                break
+        if handle_hit:
             self.fitRequested.emit(True)
-        except Exception:
-            pass
         super().mouseDoubleClickEvent(ev)

@@ -8,4 +8,4 @@ class Text:
     side: str = '<'
     mm_from_side: float = 5.0
     rotated: bool = True
-    id: int = 0
+    _id: int = 0

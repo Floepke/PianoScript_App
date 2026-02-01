@@ -50,7 +50,7 @@ class NoteTool(BaseTool):
             hit_id = hit_test(x, y)
         if hit_id is not None:
             for n in getattr(score.events, 'note', []) or []:
-                if int(getattr(n, 'id', -1) or -1) == int(hit_id):
+                if int(getattr(n, '_id', -1) or -1) == int(hit_id):
                     found = n
                     break
 
@@ -203,7 +203,7 @@ class NoteTool(BaseTool):
             hit_id = hit_test(x, y)
         if hit_id is not None:
             for n in getattr(score.events, 'note', []) or []:
-                if int(getattr(n, 'id', -1) or -1) == int(hit_id):
+                if int(getattr(n, '_id', -1) or -1) == int(hit_id):
                     target = n
                     break
 
@@ -213,8 +213,8 @@ class NoteTool(BaseTool):
                 if target in notes_list:
                     notes_list.remove(target)
                 else:
-                    tid = int(getattr(target, 'id', -1) or -1)
-                    new_list = [m for m in notes_list if int(getattr(m, 'id', -2) or -2) != tid]
+                    tid = int(getattr(target, '_id', -1) or -1)
+                    new_list = [m for m in notes_list if int(getattr(m, '_id', -2) or -2) != tid]
                     if len(new_list) != len(notes_list):
                         score.events.note = new_list
         # Explicitly build a frame for immediate feedback (cache + hit rects)

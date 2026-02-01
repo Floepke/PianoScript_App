@@ -33,4 +33,4 @@ class Note:
                       'triangle_black_down',
                       'cross_up',
                       'cross_down'] = 'default'
-    id: int = 0
+    _id: int = 0

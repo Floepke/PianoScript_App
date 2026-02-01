@@ -16,4 +16,4 @@ class Slur:
     y3_time: float = 75.0
     x4_rpitch: int = 0
     y4_time: float = 100.0
-    id: int = 0
+    _id: int = 0

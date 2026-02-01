@@ -115,7 +115,7 @@ class TempoTool(BaseTool):
         numer, denom = self._find_active_ts_at_time(t)
         min_du = self._beat_length_ticks(numer, denom)
         tp = score.new_tempo(time=float(t), duration=float(min_du), tempo=60)
-        self._active_tempo_id = int(getattr(tp, 'id', 0) or 0)
+        self._active_tempo_id = int(getattr(tp, '_id', 0) or 0)
         self._active_time = float(t)
         self._min_duration = float(min_du)
         self._editor._snapshot_if_changed(coalesce=True, label='tempo_create')
@@ -130,7 +130,7 @@ class TempoTool(BaseTool):
         if new_du <= 0.0:
             new_du = self._min_duration
         for ev in list(getattr(score.events, 'tempo', []) or []):
-            if int(getattr(ev, 'id', -1) or -1) == int(self._active_tempo_id):
+            if int(getattr(ev, '_id', -1) or -1) == int(self._active_tempo_id):
                 try:
                     ev.duration = float(new_du)
                 except Exception:
@@ -167,7 +167,7 @@ class TempoTool(BaseTool):
             return
         numer, denom = self._find_active_ts_at_time(float(getattr(existing, 'time', 0.0) or 0.0))
         min_du = self._beat_length_ticks(numer, denom)
-        self._active_tempo_id = int(getattr(existing, 'id', 0) or 0)
+        self._active_tempo_id = int(getattr(existing, '_id', 0) or 0)
         self._active_time = float(getattr(existing, 'time', 0.0) or 0.0)
         self._min_duration = float(min_du)
 
