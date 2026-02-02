@@ -705,30 +705,33 @@ class Editor(QtCore.QObject,
         """
         # get data
         score: SCORE | None = self.current_score()
-        notes = list(getattr(score.events, 'note', []) or [])
-        if not notes:
-            # No notes: do not auto-trim/extend; leave base_grid as-is
-            return
         
         # Furthest musical time
         furthest_end = 0.0
-        for n in notes:
+        for n in score.events.note:
             t = float(getattr(n, 'time', 0.0) or 0.0)
-            du = float(getattr(n, 'duration', 0.0) or 0.0)
-            furthest_end = max(furthest_end, t + du)
+            dur = float(getattr(n, 'duration', 0.0) or 0.0)
+            furthest_end = max(furthest_end, t + dur)
         
         # Current score end (sum of segment lengths)
-        cur_end = float(self._calc_base_grid_list_total_length())
-        bg_list = getattr(score, 'base_grid', [])
+        base_grid_total_length = float(self._calc_base_grid_list_total_length())
+        bg_list = score.base_grid
         
-        # Extend if needed
-        if furthest_end > cur_end:
-            last_bg: BaseGrid = bg_list[-1]
-            num = last_bg.numerator
-            den = last_bg.denominator
-            measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
-            extra_measures = int(max(1, math.ceil((furthest_end - cur_end) / max(1e-6, measure_len))))
-            last_bg.measure_amount = int(getattr(last_bg, 'measure_amount', 1) or 1) + extra_measures
+        # update only last BaseGrid
+        last_bg: BaseGrid = bg_list[-1]
+        num = last_bg.numerator
+        den = last_bg.denominator
+        measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
+        current_end = base_grid_total_length
+
+        # extend last segment
+        needed_length = furthest_end - current_end
+        needed_measures = int((needed_length + measure_len - 1) // measure_len)
+        last_bg.measure_amount += needed_measures
+        
+        # reset to 1 measure if < 1 to prevent zero-measure segments
+        if last_bg.measure_amount < 1:
+            last_bg.measure_amount = 1
         
         return
 
