@@ -23,7 +23,7 @@ class StaveDrawerMixin:
         semitone_dx = float(self.semitone_dist)
         stave_left = margin
         stave_right = w_mm - margin
-        total_score_time = self._calc_score_time()
+        total_score_time = self._calc_base_grid_list_total_length()
         stave_length_mm = (total_score_time / QUARTER_NOTE_UNIT) * score.editor.zoom_mm_per_quarter
         y1 = margin
         y2 = margin + stave_length_mm

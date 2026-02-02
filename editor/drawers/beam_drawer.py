@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from ui.widgets.draw_util import DrawUtil
 from utils.operator import Operator
+from utils.CONSTANT import QUARTER_NOTE_UNIT
 import bisect
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ class BeamDrawerMixin:
         grid_times = cache.get('grid_den_times') or []
         beam_markers = cache.get('beam_by_hand') or {}
         op: Operator = cache.get('op') or Operator(7)
+        score = self.current_score()
 
         # Initialize storage for groups
         if not hasattr(self, '_beam_groups_by_hand'):
@@ -73,30 +75,52 @@ class BeamDrawerMixin:
                 result.append(group)
             return result
 
-        def build_grid_windows(times: list[float], a: float, b: float) -> list[tuple[float, float]]:
-            if not times or len(times) < 2:
-                return []
-            a0 = max(a, float(times[0]))
-            b0 = min(b, float(times[-1]))
-            if op.ge(a0, b0):
+        def build_grid_windows(_times: list[float], a: float, b: float) -> list[tuple[float, float]]:
+            """Build windows using base_grid beat_grouping.
+
+            - If beat_grouping is a single full group (1..numer), windows are whole measures.
+            - Otherwise, windows are per-group segments using beats where value == 1 as starts.
+            """
+            if score is None:
                 return []
             windows: list[tuple[float, float]] = []
-            # index where a0 would be inserted (after any equal entries)
-            i = bisect.bisect_right(times, a0)
-            prev_i = max(0, i - 1)
-            # if a0 equals a grid line, start at that grid, else start at next grid
-            k = prev_i if op.eq(a0, float(times[prev_i])) else i
-            # add partial head if a0 sits between grid lines
-            if op.gt(a0, float(times[prev_i])) and (prev_i < len(times)):
-                windows.append((float(times[prev_i]), a0))
-            # add full grid windows until b0
-            while (k + 1) < len(times) and op.le(float(times[k + 1]), b0):
-                windows.append((float(times[k]), float(times[k + 1])))
-                k += 1
-            # add partial tail if b0 sits between grid lines
-            last_grid = float(times[k]) if k < len(times) else float(times[-1])
-            if op.gt(b0, last_grid):
-                windows.append((last_grid, b0))
+            cur = 0.0
+            for bg in getattr(score, 'base_grid', []) or []:
+                numer = int(getattr(bg, 'numerator', 4) or 4)
+                denom = int(getattr(bg, 'denominator', 4) or 4)
+                # Use ticks: QUARTER_NOTE_UNIT per quarter note
+                measure_len_ticks = float(numer) * (4.0 / float(denom)) * float(QUARTER_NOTE_UNIT)
+                beat_len_ticks = measure_len_ticks / max(1, int(numer))
+                seq = list(getattr(bg, 'beat_grouping', []) or [])
+                full_group = len(seq) == numer and [int(v) for v in seq] == list(range(1, numer + 1))
+                for _ in range(int(getattr(bg, 'measure_amount', 1) or 1)):
+                    m_start = float(cur)
+                    m_end = float(cur + measure_len_ticks)
+                    if op.lt(m_end, float(a)):
+                        cur = m_end
+                        continue
+                    if op.gt(m_start, float(b)):
+                        cur = m_end
+                        continue
+                    if len(seq) != numer:
+                        seq = [1]
+                    if full_group:
+                        # Single full group: split into per-beat windows
+                        group_starts = list(range(1, numer + 1))
+                    else:
+                        # Multiple groups: split by reset-to-1 positions
+                        group_starts = [i for i, v in enumerate(seq, start=1) if int(v) == 1]
+                        if not group_starts or group_starts[0] != 1:
+                            group_starts = [1] + group_starts
+                    for gi, s in enumerate(group_starts):
+                        e = (group_starts[gi + 1] - 1) if (gi + 1) < len(group_starts) else numer
+                        w0 = m_start + (s - 1) * beat_len_ticks
+                        w1 = m_start + float(e) * beat_len_ticks
+                        w0 = max(float(a), w0)
+                        w1 = min(float(b), w1)
+                        if op.lt(w0, w1):
+                            windows.append((w0, w1))
+                    cur = m_end
             return windows
 
         def build_duration_windows(start: float, end: float, dur: float) -> list[tuple[float, float]]:
@@ -289,44 +313,3 @@ class BeamDrawerMixin:
                     id=0,
                     tags=["beam_connect_left"],
                 )
-
-        # # ---- Test visualization: draw diagonal beams at stave sides per interval ----
-        # # Page metrics and stave positions consistent with GridDrawerMixin
-        # width_mm, _height_mm = du.current_page_size_mm()
-        # margin = float(self.margin or 0.0)
-        # stave_left = margin + float(self.semitone_dist or 0.0)
-        # stave_right = max(0.0, float(width_mm) - margin) - float(self.semitone_dist or 0.0) * 2.0
-
-        # # Slight horizontal offset for diagonal effect
-        # dx_left = 1.0
-        # dx_right = -1.0
-        # color = getattr(self, 'accent_color', (0.2, 0.6, 1.0, 1.0))
-        # width_mm_line = 0.45
-
-        # # Left hand: draw on left side, Right hand: draw on right side
-        # for hand, windows in windows_all.items():
-        #     for (t0, t1) in windows:
-        #         y0 = float(self.time_to_mm(float(t0)))
-        #         y1 = float(self.time_to_mm(float(t1)))
-        #         if hand in ('<', 'l', 'l'):
-        #             du.add_line(
-        #                 stave_left,
-        #                 y0,
-        #                 stave_left + dx_left,
-        #                 y1,
-        #                 color=color,
-        #                 width_mm=width_mm_line,
-        #                 id=0,
-        #                 tags=["beam_test_left"],
-        #             )
-        #         else:
-        #             du.add_line(
-        #                 stave_right,
-        #                 y0,
-        #                 stave_right + dx_right,
-        #                 y1,
-        #                 color=color,
-        #                 width_mm=width_mm_line,
-        #                 id=0,
-        #                 tags=["beam_test_right"],
-        #             )

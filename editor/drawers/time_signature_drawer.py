@@ -99,12 +99,13 @@ class TimeSignatureDrawerMixin:
             guide_width_mm = .5
             full_group = [int(v) for v in seq] == list(range(1, int(numerator) + 1))
             for k, val in enumerate(seq, start=1):
-                if not full_group and val != 1:
-                    continue
+                # if not full_group and val != 1:
+                #     continue
                 y = y_mm + (k - 1) * beat_len_mm
                 du.add_line(x_right - guide_half_len, y, x_right + guide_half_len, y,
                             color=color, width_mm=guide_width_mm, id=0, tags=["ts_klavars_guide"], dash_pattern=None)
-            # Final identical guide at start of next measure
+            
+            # Final guide at start of next measure
             du.add_line(x_right - guide_half_len, y_mm + measure_len_mm, x_right + guide_half_len, y_mm + measure_len_mm,
                         color=color, width_mm=guide_width_mm, id=0, tags=["ts_klavars_guide"], dash_pattern=None)
 

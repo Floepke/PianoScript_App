@@ -23,6 +23,7 @@ from editor.tool.crescendo_tool import CrescendoTool
 from editor.tool.decrescendo_tool import DecrescendoTool
 from editor.tool.tempo_tool import TempoTool
 from editor.ctlz import CtlZ
+from file_model.base_grid import BaseGrid
 from settings_manager import get_preferences_manager
 from file_model.SCORE import SCORE
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
@@ -181,10 +182,8 @@ class Editor(QtCore.QObject,
         We simply call all drawer methods; DrawUtil sorts items by tag layering.
         """
         # Reset hit rectangles for this frame; drawers will register rectangles
-        try:
-            self._note_hit_rects = []
-        except Exception:
-            self._note_hit_rects = []
+        self._note_hit_rects = []
+        
         # Build shared render cache for this draw pass (fresh each frame)
         self._build_render_cache()
         
@@ -250,9 +249,11 @@ class Editor(QtCore.QObject,
             self.draw_all(du)
         except Exception:
             # As a fallback, still attempt to rebuild render cache
+            print("Editor.draw_frame: draw_all failed, attempting cache rebuild")
             try:
                 self._build_render_cache()
             except Exception:
+                print("Editor.draw_frame: cache rebuild also failed")
                 pass
         
         # refresh overlay guides if applicable
@@ -667,14 +668,14 @@ class Editor(QtCore.QObject,
     '''
         ---- Editor drawer mixin helper methods ----
     '''
-    def _calc_score_time(self) -> int:
+    def _calc_base_grid_list_total_length(self) -> int:
         """Return the total length of the current SCORE in ticks."""
         score: SCORE = self.current_score()
         
         length_ticks = 0
         for bg in score.base_grid:
-            measure_length = bg.numerator * (4.0 / bg.denominator) * bg.measure_amount * QUARTER_NOTE_UNIT
-            length_ticks += measure_length
+            base_grid_length = bg.numerator * (4.0 / bg.denominator) * bg.measure_amount * QUARTER_NOTE_UNIT
+            length_ticks += base_grid_length
         return length_ticks
     
     def _calc_editor_height(self) -> float:
@@ -685,7 +686,7 @@ class Editor(QtCore.QObject,
         can rely on `self.editor_height` for vertical layout and that DrawUtil
         uses a matching page height for scrolling.
         """
-        total_time_ticks = float(self._calc_score_time())
+        total_time_ticks = float(self._calc_base_grid_list_total_length())
         score: SCORE | None = self.current_score()
         zpq: float = score.editor.zoom_mm_per_quarter
         stave_length_mm = (total_time_ticks / float(QUARTER_NOTE_UNIT)) * zpq
@@ -702,81 +703,34 @@ class Editor(QtCore.QObject,
 
         Never creates zero-measure segments; always keeps at least one measure.
         """
+        # get data
         score: SCORE | None = self.current_score()
-        if score is None:
-            return
         notes = list(getattr(score.events, 'note', []) or [])
         if not notes:
             # No notes: do not auto-trim/extend; leave base_grid as-is
             return
+        
         # Furthest musical time
         furthest_end = 0.0
         for n in notes:
             t = float(getattr(n, 'time', 0.0) or 0.0)
             du = float(getattr(n, 'duration', 0.0) or 0.0)
             furthest_end = max(furthest_end, t + du)
+        
         # Current score end (sum of segment lengths)
-        cur_end = float(self._calc_score_time())
-        bg_list = list(getattr(score, 'base_grid', []) or [])
-        if not bg_list:
-            return
+        cur_end = float(self._calc_base_grid_list_total_length())
+        bg_list = getattr(score, 'base_grid', [])
+        
         # Extend if needed
         if furthest_end > cur_end:
-            last_bg = bg_list[-1]
-            num = float(getattr(last_bg, 'numerator', 4) or 4)
-            den = float(getattr(last_bg, 'denominator', 4) or 4)
+            last_bg: BaseGrid = bg_list[-1]
+            num = last_bg.numerator
+            den = last_bg.denominator
             measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
             extra_measures = int(max(1, math.ceil((furthest_end - cur_end) / max(1e-6, measure_len))))
             last_bg.measure_amount = int(getattr(last_bg, 'measure_amount', 1) or 1) + extra_measures
-            self._snapshot_if_changed(coalesce=True, label='update_score_length')
-            self.draw_frame()
-            return
-
-        # Trim behavior: adjust measure_amount of the segment where music ends,
-        # but do not delete any existing time signature segments.
-        if furthest_end <= 0.0:
-            # Keep at least one measure in the first segment
-            try:
-                bg_list[0].measure_amount = max(1, int(getattr(bg_list[0], 'measure_amount', 1) or 1))
-                # Preserve all segments (do not delete time signature changes)
-                score.base_grid = bg_list
-            except Exception:
-                pass
-            self._snapshot_if_changed(coalesce=True, label='update_score_length')
-            self.draw_frame()
-            return
-
-        cumulative = 0.0
-        trim_index = None
-        for i, bg in enumerate(bg_list):
-            num = float(getattr(bg, 'numerator', 4) or 4)
-            den = float(getattr(bg, 'denominator', 4) or 4)
-            mcount = int(getattr(bg, 'measure_amount', 1) or 1)
-            measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
-            seg_len = measure_len * float(mcount)
-            if cumulative + seg_len >= furthest_end:
-                # Music ends within this segment: adjust its measure_amount
-                required_len = float(max(0.0, furthest_end - cumulative))
-                required_measures = int(max(1, math.ceil(required_len / max(1e-6, measure_len))))
-                try:
-                    bg.measure_amount = required_measures
-                except Exception:
-                    pass
-                trim_index = i
-                break
-            cumulative += seg_len
-
-        if trim_index is None:
-            # Shouldn't happen due to earlier extend check; bail out
-            return
-        # Preserve all segments; only the containing segment measure_amount is adjusted above.
-        try:
-            score.base_grid = bg_list
-        except Exception:
-            pass
-        # Snapshot and redraw after adjustment
-        self._snapshot_if_changed(coalesce=True, label='update_score_length')
-        self.draw_frame()
+        
+        return
 
     # ---- Shared render cache ----
     def _build_render_cache(self) -> None:
@@ -866,32 +820,43 @@ class Editor(QtCore.QObject,
         for h in beam_by_hand:
             beam_by_hand[h] = sorted(beam_by_hand[h], key=lambda b: float(getattr(b, 'time', 0.0)))
 
-        # Grid helpers: absolute times (ticks) of drawn grid lines across the score
+        # Grid helpers: absolute times (ticks) of drawn grid lines across the score following specific conditions
         grid_den_times: list[float] = []
         cur_t = 0.0
         for bg in getattr(score, 'base_grid', []) or []:
             # Total measure length in ticks
             measure_len_ticks = float(bg.numerator) * (4.0 / float(bg.denominator)) * float(QUARTER_NOTE_UNIT)
+            
             # Beat length inside this measure (ticks)
             beat_len_ticks = measure_len_ticks / max(1, int(bg.numerator))
+            
             # For each measure in this segment
             for _ in range(int(bg.measure_amount)):
                 # Append grid line times for configured grid positions
                 positions = getattr(bg, 'beat_grouping', None)
                 positions_list = list(positions if positions is not None else (getattr(bg, 'beat_grouping', []) or []))
+                
                 # New scheme: list index represents beat; draw lines where value == 1
                 if len(positions_list) == int(bg.numerator):
-                    full_group = [int(v) for v in positions_list] == list(range(1, int(bg.numerator)))
-                    for idx, val in enumerate(positions_list, start=1):
-                        if not full_group and int(val) != 1:
-                            continue
-                        t_line = cur_t + (idx - 1) * beat_len_ticks
-                        grid_den_times.append(float(t_line))
+                    if (positions_list == [v for v in range(1, int(bg.numerator) + 1)]):
+                        # we have one group so we draw all beats
+                        for idx in range(1, int(bg.numerator) + 1):
+                            t_line = cur_t + (idx - 1) * beat_len_ticks
+                            grid_den_times.append(float(t_line))
+                    else:
+                        # we have multiple groups so only draw first beat of each group e.g. 7/8 and 1231234 draws beat 1 and 4
+                        for idx, val in enumerate(positions_list, start=1):
+                            if int(val) != 1:
+                                continue
+                            t_line = cur_t + (idx - 1) * beat_len_ticks
+                            grid_den_times.append(float(t_line))
                 else:
                     # Fallback: if malformed, at least draw the barline
                     grid_den_times.append(float(cur_t))
+                
                 # Advance to next measure start
                 cur_t += measure_len_ticks
+        
         # Append final end barline time for completeness
         grid_den_times.append(float(cur_t))
 
@@ -1374,7 +1339,7 @@ class Editor(QtCore.QObject,
         delta = float(target - a)
 
         # Track furthest end time to extend timeline if needed
-        furthest_end = float(self._calc_score_time())
+        furthest_end = float(self._calc_base_grid_list_total_length())
 
         # Iterate types from clipboard dynamically
         for ev_type, items in (self.clipboard.items() if isinstance(self.clipboard, dict) else []):
@@ -1410,7 +1375,7 @@ class Editor(QtCore.QObject,
                 except Exception:
                     pass
         # Extend timeline if pasted content exceeds current end barline
-        cur_end = float(self._calc_score_time())
+        cur_end = float(self._calc_base_grid_list_total_length())
         if furthest_end > cur_end:
             bg_list = list(getattr(score, 'base_grid', []) or [])
             if bg_list:

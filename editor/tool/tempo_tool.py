@@ -119,7 +119,7 @@ class TempoTool(BaseTool):
         self._active_time = float(t)
         self._min_duration = float(min_du)
         self._editor._snapshot_if_changed(coalesce=True, label='tempo_create')
-        self._editor.draw_frame()
+        self._editor.draw_all()
 
     def on_left_drag(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._editor is None or self._active_tempo_id is None or self._active_time is None:

@@ -57,9 +57,14 @@ class TimeSignatureDialog(QtWidgets.QDialog):
 
         # Beat grouping entry
         self.info_label = QtWidgets.QLabel(
-            "Beat grouping: enter a sequence of digits (1-9 only). "
-            "Each group resets to 1. Examples: 6/8 with two groups of 3 → '123123'. "
-            "7/8 grouped 3+4 → '1231234'.",
+            "Beat grouping: enter space-separated numbers."
+            "Each group starts with 1.\n"
+            "Examples:"
+            "\n6/8 with two groups of 3 → "
+            "'1 2 3 1 2 3'."
+            "\n7/8 grouped in 3+4 → "
+            "'1 2 3 1 2 3 4'."
+            "\n\nGroups must start with '1' and the amount of numbers must match the given time-signature numerator (the first number of the signature).",
             self,
         )
         self.info_label.setWordWrap(True)
@@ -69,9 +74,9 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         grouping_row.setSpacing(6)
         self.grouping_label = QtWidgets.QLabel("Beat grouping:", self)
         self.grouping_edit = QtWidgets.QLineEdit(self)
-        self.grouping_edit.setPlaceholderText("e.g., 123123")
-        # Allow digits only
-        self._grouping_validator = QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^[0-9]+$"), self.grouping_edit)
+        self.grouping_edit.setPlaceholderText("e.g., 1 2 3 1 2 3")
+        # Allow digits and spaces
+        self._grouping_validator = QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^[0-9\s]+$"), self.grouping_edit)
         self.grouping_edit.setValidator(self._grouping_validator)
         grouping_row.addWidget(self.grouping_label)
         grouping_row.addWidget(self.grouping_edit, 1)
@@ -108,7 +113,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         # Initialize beat grouping sequence (one digit per beat)
         init_gp = list(initial_grid_positions or [])
         if init_gp:
-            seq = [int(p) for p in init_gp if isinstance(p, int) and 1 <= int(p) <= 9]
+            seq = [int(p) for p in init_gp if isinstance(p, int) and int(p) >= 1]
             if len(seq) != int(self._numer):
                 seq = []
             self._grid_positions = seq
@@ -134,68 +139,6 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         # React to changes
         self.ts_edit.textChanged.connect(self._on_text_changed)
         self.grouping_edit.textChanged.connect(self._on_grouping_changed)
-
-        # Focus logic: disable editor focus, then focus dialog
-        try:
-            if self._editor_widget is not None and hasattr(self._editor_widget, 'setFocusPolicy'):
-                self._editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-                try:
-                    self._editor_widget.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        try:
-            QtCore.QTimer.singleShot(0, lambda: self.setFocus(QtCore.Qt.FocusReason.OtherFocusReason))
-        except Exception:
-            pass
-        try:
-            QtCore.QTimer.singleShot(0, self._poke_mouse_focus)
-        except Exception:
-            pass
-
-    def done(self, r: int) -> None:
-        # Restore editor mouse/focus behavior after dialog closes
-        try:
-            if self._editor_widget is not None:
-                try:
-                    self._editor_widget.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
-                except Exception:
-                    pass
-                try:
-                    self._editor_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        super().done(r)
-
-    def _poke_mouse_focus(self) -> None:
-        self.ts_edit.setFocus(QtCore.Qt.FocusReason.MouseFocusReason)
-        center = self.ts_edit.rect().center()
-        local_pos = QtCore.QPointF(center)
-        global_pos = QtCore.QPointF(self.ts_edit.mapToGlobal(center))
-        ev_press = QtGui.QMouseEvent(
-            QtCore.QEvent.Type.MouseButtonPress,
-            local_pos,
-            local_pos,
-            global_pos,
-            QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifier.NoModifier,
-        )
-        ev_release = QtGui.QMouseEvent(
-            QtCore.QEvent.Type.MouseButtonRelease,
-            local_pos,
-            local_pos,
-            global_pos,
-            QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.MouseButton.NoButton,
-            QtCore.Qt.KeyboardModifier.NoModifier,
-        )
-        QtWidgets.QApplication.sendEvent(self.ts_edit, ev_press)
-        QtWidgets.QApplication.sendEvent(self.ts_edit, ev_release)
-
 
     def _on_text_changed(self, s: str) -> None:
         numer, denom, err = self._parse_ts(s)
@@ -241,7 +184,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
 
     def _parse_ts(self, s: str) -> tuple[Optional[int], Optional[int], Optional[str]]:
         if not s:
-            return None, None, "Enter N/D with digits and '/'."
+            return None, None, "Enter '<numerator>/<denominator>' with digits and '/'."
         # validator already restricts pattern, but we further validate denominator set
         try:
             parts = s.split('/')
@@ -261,14 +204,14 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             return None, None, "Invalid time signature."
 
     def _update_grouping_text_from_positions(self) -> None:
-        # Build grouping string from per-beat sequence (e.g., [1,2,3,1,2,3,4] -> 1231234)
+        # Build grouping string from per-beat sequence (e.g., [1,2,3,1,2,3,4] -> "1 2 3 1 2 3 4")
         if not self._grid_positions:
             txt = ""
         else:
-            seq = [int(p) for p in self._grid_positions if 1 <= int(p) <= 9]
+            seq = [int(p) for p in self._grid_positions if int(p) >= 1]
             if len(seq) != int(self._numer):
                 seq = list(range(1, int(self._numer) + 1))
-            txt = "".join(str(p) for p in seq)
+            txt = " ".join(str(p) for p in seq)
         try:
             self.grouping_edit.blockSignals(True)
             self.grouping_edit.setText(txt)
@@ -283,8 +226,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         if not s:
             self.msg_label.setText("Enter a beat grouping string (digits only).")
             return
-        if any(ch not in "0123456789" for ch in s):
-            self.msg_label.setText("Beat grouping must contain digits only.")
+        if any(ch not in "0123456789 " for ch in s):
+            self.msg_label.setText("Beat grouping must contain digits and spaces only.")
             return
         if not self._apply_grouping_text(quiet=True):
             return
@@ -295,10 +238,16 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         s = (self.grouping_edit.text() or "").strip()
         if not s:
             if not quiet:
-                self.msg_label.setText("Enter a beat grouping string (digits only).")
+                self.msg_label.setText("Enter a beat grouping string (space-separated).")
             return False
         # Parse: per-beat sequence; must start with 1 and follow reset-to-1 rule
-        seq: list[int] = [int(ch) for ch in s]
+        parts = [p for p in s.split(" ") if p.strip() != ""]
+        try:
+            seq: list[int] = [int(p) for p in parts]
+        except Exception:
+            if not quiet:
+                self.msg_label.setText("Grouping must be space-separated integers.")
+            return False
         if not seq or seq[0] != 1:
             if not quiet:
                 self.msg_label.setText("Grouping must start with '1'.")
@@ -310,7 +259,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         for prev, cur in zip(seq, seq[1:]):
             if cur != 1 and cur != prev + 1:
                 if not quiet:
-                    self.msg_label.setText("Grouping must count up or reset to 1 (e.g., 1231234).")
+                    self.msg_label.setText("Beat grouping must count up or reset to 1 (e.g., '1 2 3 1 2 3 4').")
                 return False
         self._grid_positions = seq
         return True
@@ -318,7 +267,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
     def get_values(self) -> tuple[int, int, list[int], bool]:
         return int(self._numer), int(self._denom), list(self._grid_positions), bool(self._indicator_enabled)
 
-
+# Test
 if __name__ == '__main__':
     # Simple standalone test harness to verify dialog mouse/keyboard interaction
     import sys

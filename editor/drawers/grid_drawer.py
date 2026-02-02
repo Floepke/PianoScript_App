@@ -49,20 +49,23 @@ class GridDrawerMixin:
         # Editor zoom controls vertical mm per quarter note
         zpq = score.editor.zoom_mm_per_quarter
 
-        # --------------- drawing the grid lines, barlines, measure numbers and time signature indicators ---------------
+        # --------------- drawing the grid lines, barlines, measure numbers ---------------
         base_grid = score.base_grid
         measure_numbering_cursor = 1
         time_cursor = margin
+        
         for bg in base_grid:
             numerator = bg.numerator
             denominator = bg.denominator
             measure_amount = bg.measure_amount
-
-            # Time signature indicator drawing moved to TimeSignatureDrawerMixin
+            beat_grouping = bg.beat_grouping
 
             # General formula: quarters per measure = numerator * (4/denominator)
             quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))
             measure_len_mm = quarters_per_measure * zpq
+
+            # Beat length inside this base_grid object
+            beat_length = measure_len_mm / numerator
 
             # Draw horizontal barlines across the stave width for each measure boundary
             color = self.notation_color
@@ -82,33 +85,45 @@ class GridDrawerMixin:
                     anchor='ne',
                     family="Courier New"
                 )
-
-                # Beat length inside this measure
-                beat_length = measure_len_mm / max(1, numerator)
-
-                beat_grouping = list(getattr(bg, 'beat_grouping', []) or [])
+                
+                # following the 1 == grid system:
                 if len(beat_grouping) == int(numerator):
-                    for idx, val in enumerate(beat_grouping, start=1):
-                        if int(val) != 1:
+                    full_group = [int(v) for v in beat_grouping] == list(range(1, int(numerator) + 1))
+                    for idx, group in enumerate(beat_grouping, start=1):
+                        line_y = time_cursor + (beat_length * (idx - 1))
+                        # draw the barline
+                        if idx == 1:
+                            du.add_line(
+                                stave_left_position,
+                                line_y,
+                                stave_right_position,
+                                line_y,
+                                color=color,
+                                width_mm=bar_width_mm,
+                                id=0,
+                                tags=["grid_line"],
+                                dash_pattern=None
+                            )
+                            if full_group:
+                                # continue to next beat to draw subgrid lines
+                                continue
                             continue
-                        is_barline = (idx == 1)
-                        line_y = time_cursor + (idx - 1) * beat_length
-                        style = {
-                            "color": color,
-                            "width_mm": bar_width_mm if is_barline else 0.2,
-                            "id": 0,
-                            "tags": ["barline"] if is_barline else ["grid_line"],
-                            "dash_pattern": None if is_barline else [2.0, 2.0],
-                        }
-                        du.add_line(
-                            stave_left_position,
-                            line_y,
-                            stave_right_position,
-                            line_y,
-                            **style
-                        )
+
+                        # draw subgrid lines: all beats for single full group, or only resets (value == 1)
+                        if full_group or int(group) == 1:
+                            du.add_line(
+                                stave_left_position,
+                                line_y,
+                                stave_right_position,
+                                line_y,
+                                color=color,
+                                width_mm=bar_width_mm / 2,
+                                id=0,
+                                tags=["grid_line"],
+                                dash_pattern=[2.0, 2.0]
+                            )
                 else:
-                    # Fallback: draw only the barline at the measure start
+                    # Fallback: draw only the barline
                     du.add_line(
                         stave_left_position,
                         time_cursor,
@@ -117,10 +132,10 @@ class GridDrawerMixin:
                         color=color,
                         width_mm=bar_width_mm,
                         id=0,
-                        tags=["barline"],
+                        tags=["grid_line"],
                         dash_pattern=None
                     )
-
+                
                 measure_numbering_cursor += 1
                 time_cursor += measure_len_mm
 
@@ -133,6 +148,6 @@ class GridDrawerMixin:
             color=color,
             width_mm=bar_width_mm * 3,
             id=0,
-            tags=["barline"],
+            tags=["end_barline"],
             dash_pattern=None
         )

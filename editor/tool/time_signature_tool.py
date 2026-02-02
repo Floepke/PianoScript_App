@@ -207,13 +207,18 @@ class TimeSignatureTool(BaseTool):
             # Insert right after the current segment
             score.base_grid.insert(seg_i + 1, new_bg)
         
-        # Snapshot and immediate update_score_length which also renders a new frame
+        # Snapshot and update after dialog closes (next event loop tick)
         self._editor._snapshot_if_changed(coalesce=False, label='time_signature_append')
-        try:
-            self._editor.update_score_length()
-            self._editor.draw_frame()
-        except Exception:
-            pass
+        
+        # update view
+        self._editor.update_score_length()
+        self._editor.draw_all()
+        # # Nudge scroll to force visual refresh (some views only update on scroll)
+        # w = getattr(self._editor, 'widget', None)
+        # if w is not None and hasattr(w, 'set_scroll_logical_px'):
+        #     cur = int(getattr(w, '_scroll_logical_px', 0) or 0)
+        #     w.set_scroll_logical_px(cur + 1)
+        #     w.set_scroll_logical_px(cur)
 
     def on_right_click(self, x: float, y: float) -> None:
         """Delete the BaseGrid at the clicked change (segment start), except for the first."""
