@@ -511,7 +511,7 @@ class Player:
 
         - Uses SCORE.events.tempo. Each event has `time`, `duration` (units), `tempo` (markers per minute).
         - For each event, seconds per unit = 60 / (tempo * duration_units).
-        - Segments are clamped not to cross into the next event's start; the last extends by its duration.
+        - Segments last until the next event's start; the last extends indefinitely.
         - If no tempo events, fall back to quarter-note BPM 120: seconds per unit = 60 / (120 * QUARTER_NOTE_UNIT).
         """
         segs: List[Tuple[float, float, float]] = []
@@ -523,14 +523,14 @@ class Player:
             return [(0.0, float('inf'), 60.0 / (120.0 * float(QUARTER_NOTE_UNIT)))]
         for i, ev in enumerate(lst):
             start = float(getattr(ev, 'time', 0.0) or 0.0)
-            dur = float(getattr(ev, 'duration', 0.0) or 0.0)
+            _dur = float(getattr(ev, 'duration', 0.0) or 0.0)
             s_per_unit = self._calculate_tempo(ev)
-            # Clamp end to next event start to avoid overlaps
+            # Tempo stays active until the next tempo event starts
             if i + 1 < len(lst):
                 next_start = float(getattr(lst[i + 1], 'time', 0.0) or 0.0)
-                end = min(start + max(0.0, dur), next_start)
+                end = max(start, next_start)
             else:
-                end = start + max(0.0, dur)
+                end = float('inf')
             segs.append((start, end, float(s_per_unit)))
         return segs
 

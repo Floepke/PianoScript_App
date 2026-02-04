@@ -15,11 +15,8 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Set Time Signature")
         self.setModal(True)
-        try:
-            self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
-            self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-        except Exception:
-            pass
+        self.setWindowModality(QtCore.Qt.NonModal)
+        #self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self._editor_widget = editor_widget
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -40,19 +37,13 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         entry_row.addWidget(self.ts_label)
         entry_row.addWidget(self.ts_edit, 1)
         lay.addLayout(entry_row)
-        try:
-            self.setFocusProxy(self.ts_edit)
-        except Exception:
-            pass
+        self.setFocusProxy(self.ts_edit)
 
         # Validation message
         self.msg_label = QtWidgets.QLabel("", self)
         pal = self.msg_label.palette()
-        try:
-            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(200, 0, 0))
-            self.msg_label.setPalette(pal)
-        except Exception:
-            pass
+        pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(200, 0, 0))
+        self.msg_label.setPalette(pal)
         lay.addWidget(self.msg_label)
 
         # Beat grouping entry
@@ -95,13 +86,10 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self.btns.accepted.connect(self._on_accept_clicked)
         self.btns.rejected.connect(self.reject)
         lay.addWidget(self.btns)
-        try:
-            ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
-            if ok_btn is not None:
-                ok_btn.setDefault(True)
-                ok_btn.setAutoDefault(True)
-        except Exception:
-            pass
+        ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
+        if ok_btn is not None:
+            ok_btn.setDefault(True)
+            ok_btn.setAutoDefault(True)
 
         # State
         self._numer = int(initial_numer)
@@ -124,18 +112,12 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             self._grid_positions = list(range(1, int(self._numer) + 1))
         # Initialize indicator state
         self._indicator_enabled: bool = bool(initial_indicator_enabled if initial_indicator_enabled is not None else True)
-        try:
-            self.indicator_enabled_cb.setChecked(self._indicator_enabled)
-        except Exception:
-            pass
+        self.indicator_enabled_cb.setChecked(self._indicator_enabled)
 
         # Initialize grouping string from grid positions
         self._update_grouping_text_from_positions()
         # Initialize entry text
-        try:
-            self.ts_edit.setText(f"{self._numer}/{self._denom}")
-        except Exception:
-            pass
+        self.ts_edit.setText(f"{self._numer}/{self._denom}")
         # React to changes
         self.ts_edit.textChanged.connect(self._on_text_changed)
         self.grouping_edit.textChanged.connect(self._on_grouping_changed)
@@ -161,10 +143,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             self._denom = denom
 
         # Keep indicator enabled in sync with widget
-        try:
-            self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
-        except Exception:
-            pass
+        self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
 
     def _on_accept_clicked(self) -> None:
         s = self.ts_edit.text().strip()
@@ -176,10 +155,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self._numer = numer
         self._denom = denom
         # Sync indicator values before accept
-        try:
-            self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
-        except Exception:
-            pass
+        self._indicator_enabled = bool(self.indicator_enabled_cb.isChecked())
         self.accept()
 
     def _parse_ts(self, s: str) -> tuple[Optional[int], Optional[int], Optional[str]]:
@@ -216,10 +192,7 @@ class TimeSignatureDialog(QtWidgets.QDialog):
             self.grouping_edit.blockSignals(True)
             self.grouping_edit.setText(txt)
         finally:
-            try:
-                self.grouping_edit.blockSignals(False)
-            except Exception:
-                pass
+            self.grouping_edit.blockSignals(False)
 
     def _on_grouping_changed(self, s: str) -> None:
         # Live-validate grouping string
@@ -275,10 +248,7 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     # Optional: use Fusion style for consistent visuals across platforms
-    try:
-        QtWidgets.QApplication.setStyle('Fusion')
-    except Exception:
-        pass
+    QtWidgets.QApplication.setStyle('Fusion')
 
     win = QtWidgets.QMainWindow()
     win.setWindowTitle("TimeSignatureDialog Test")
@@ -292,17 +262,10 @@ if __name__ == '__main__':
 
     def open_dialog():
         dlg = TimeSignatureDialog(parent=win, initial_numer=4, initial_denom=4, initial_grid_positions=[1, 2, 3, 4], initial_indicator_enabled=True)
-        try:
-            dlg.setWindowModality(QtCore.Qt.WindowModal)
-        except Exception:
-            pass
         # Ensure dialog is visible and focused
-        try:
-            dlg.show()
-            dlg.raise_()
-            dlg.activateWindow()
-        except Exception:
-            pass
+        dlg.show()
+        dlg.raise_()
+        dlg.activateWindow()
         res = dlg.exec()
         if res == QtWidgets.QDialog.Accepted:
             numer, denom, grid_positions, ind_enabled = dlg.get_values()

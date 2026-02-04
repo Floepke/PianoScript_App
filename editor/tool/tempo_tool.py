@@ -61,17 +61,11 @@ class TempoTool(BaseTool):
         if existing is not None:
             cur_tempo = int(getattr(existing, 'tempo', 60) or 60)
             parent_w = None
-            try:
-                parent_w = QtWidgets.QApplication.activeWindow()
-            except Exception:
-                parent_w = None
+            parent_w = QtWidgets.QApplication.activeWindow()
             dlg = QtWidgets.QDialog(parent_w)
             dlg.setWindowTitle("Edit Tempo")
-            try:
-                dlg.setModal(False)
-                dlg.setWindowModality(QtCore.Qt.NonModal)
-            except Exception:
-                pass
+            dlg.setModal(True)
+            dlg.setWindowModality(QtCore.Qt.NonModal)
             lay = QtWidgets.QFormLayout(dlg)
             tempo = QtWidgets.QSpinBox(dlg)
             tempo.setRange(1, 1000)
@@ -82,44 +76,24 @@ class TempoTool(BaseTool):
             btns.accepted.connect(dlg.accept)
             btns.rejected.connect(dlg.reject)
             def _apply():
-                try:
-                    existing.tempo = int(tempo.value())
-                except Exception:
-                    pass
+                existing.tempo = int(tempo.value())
                 self._editor._snapshot_if_changed(coalesce=True, label='tempo_edit')
                 self._editor.draw_frame()
-                # Force the editor canvas to repaint so changes appear immediately
-                try:
-                    from PySide6 import QtWidgets as _QtW
-                    from ui.widgets.cairo_views import CairoEditorWidget as _CEW
-                    w = _QtW.QApplication.activeWindow()
-                    if w is not None:
-                        ed = w.findChild(_CEW)
-                        if ed is not None:
-                            ed.update()
-                except Exception:
-                    pass
             dlg.accepted.connect(_apply)
-            try:
-                dlg.raise_()
-                dlg.activateWindow()
-            except Exception:
-                pass
-            try:
-                self._tempo_dialog = dlg
-            except Exception:
-                pass
+            dlg.raise_()
+            dlg.activateWindow()
+            self._tempo_dialog = dlg
             dlg.show()
             return
         # Create new tempo with minimum duration = one beat of active time signature
         numer, denom = self._find_active_ts_at_time(t)
-        min_du = self._beat_length_ticks(numer, denom)
-        tp = score.new_tempo(time=float(t), duration=float(min_du), tempo=60)
+        min_dur = self._beat_length_ticks(numer, denom)
+        tp = score.new_tempo(time=float(t), duration=float(min_dur), tempo=60)
         self._active_tempo_id = int(getattr(tp, '_id', 0) or 0)
         self._active_time = float(t)
-        self._min_duration = float(min_du)
+        self._min_duration = float(min_dur)
         self._editor._snapshot_if_changed(coalesce=True, label='tempo_create')
-        self._editor.draw_all()
+        self._editor.draw_frame()
 
     def on_left_drag(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._editor is None or self._active_tempo_id is None or self._active_time is None:
@@ -137,17 +111,6 @@ class TempoTool(BaseTool):
                     pass
                 break
         self._editor.draw_frame()
-        # Force repaint for immediate visual feedback
-        try:
-            from PySide6 import QtWidgets as _QtW
-            from ui.widgets.cairo_views import CairoEditorWidget as _CEW
-            w = _QtW.QApplication.activeWindow()
-            if w is not None:
-                ed = w.findChild(_CEW)
-                if ed is not None:
-                    ed.update()
-        except Exception:
-            pass
 
     def on_left_drag_end(self, x: float, y: float) -> None:
         if self._editor is None:

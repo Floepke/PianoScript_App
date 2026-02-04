@@ -78,11 +78,7 @@ class NoteTool(BaseTool):
         self._editor.guides_active = False
 
         # Ensure score length covers latest note end
-        try:
-            if hasattr(self._editor, 'update_score_length'):
-                self._editor.update_score_length()
-        except Exception:
-            pass
+        self._editor.update_score_length()
 
         self._editor.draw_frame()
 
