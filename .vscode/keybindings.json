@@ -1,7 +1,0 @@
-[
-  {
-    "key": "f12",
-    "command": "workbench.action.tasks.runTask",
-    "args": "Run PianoScript"
-  }
-]
