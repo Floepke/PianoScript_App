@@ -9,10 +9,7 @@ import numpy as np
 from utils.CONSTANT import QUARTER_NOTE_UNIT
 from appdata_manager import get_appdata_manager
 
-try:
-    from synth.wavetable_synth import WavetableSynth
-except Exception:
-    WavetableSynth = None  # type: ignore
+from synth.wavetable_synth import WavetableSynth
 
 
 class Player:
@@ -484,7 +481,7 @@ class Player:
     def is_playing(self) -> bool:
         return bool(self._running)
 
-    def get_playhead_units(self, score=None) -> Optional[float]:
+    def get_playhead_time(self, score=None) -> Optional[float]:
         """Return current playhead position in app units (ticks) under variable tempo.
 
         Uses tempo segments to invert elapsed seconds back into units from `self._start_units`.

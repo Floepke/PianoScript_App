@@ -1000,30 +1000,21 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def _update_playhead_overlay(self) -> None:
-        try:
-            if hasattr(self, 'player') and self.player is not None and hasattr(self.player, 'is_playing') and self.player.is_playing():
-                units = None
-                try:
-                    units = self.player.get_playhead_units() if hasattr(self.player, 'get_playhead_units') else None
-                except Exception:
-                    units = None
-                # Update editor playhead and trigger overlay refresh
-                try:
-                    self.editor_controller.playhead_units = units
-                except Exception:
-                    pass
-                try:
-                    if hasattr(self.editor, 'request_overlay_refresh'):
-                        self.editor.request_overlay_refresh()
-                    else:
-                        self.editor.update()
-                except Exception:
-                    pass
+        if hasattr(self, 'player') and self.player is not None and hasattr(self.player, 'is_playing') and self.player.is_playing():
+            units = None
+            sc = None
+            sc = self.file_manager.current() if hasattr(self, 'file_manager') else None
+            units = self.player.get_playhead_time(sc) if hasattr(self.player, 'get_playhead_time') else None
+            # Update editor playhead and trigger overlay refresh
+            self.editor_controller.playhead_time = units
+            if hasattr(self.editor, 'request_overlay_refresh'):
+                self.editor.request_overlay_refresh()
             else:
-                # Not playing: clear and stop timer
-                self._clear_playhead_overlay()
-        except Exception:
-            pass
+                self.editor.update()
+                pass
+        else:
+            # Not playing: clear and stop timer
+            self._clear_playhead_overlay()
 
     def _clear_playhead_overlay(self) -> None:
         try:
@@ -1032,7 +1023,7 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
         try:
-            self.editor_controller.playhead_units = None
+            self.editor_controller.playhead_time = None
             if hasattr(self.editor, 'request_overlay_refresh'):
                 self.editor.request_overlay_refresh()
             else:

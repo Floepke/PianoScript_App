@@ -147,7 +147,7 @@ class Editor(QtCore.QObject,
         # show/hide guides depending on mouse over editor
         self.guides_active: bool = True
         # Playhead position (app time units). When set, draws a red line overlay.
-        self.playhead_units: Optional[float] = None
+        self.playhead_time: Optional[float] = None
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
@@ -1007,8 +1007,8 @@ class Editor(QtCore.QObject,
         stave_width = float(self.stave_width or 0.0)
 
         # --- Playhead overlay (always, if available) ---
-        if self.playhead_units is not None:
-            y_mm_ph = float(self.time_to_mm(float(self.playhead_units)))
+        if self.playhead_time is not None:
+            y_mm_ph = float(self.time_to_mm(float(self.playhead_time)))
             du.add_line(
                 self.pitch_to_x(2),
                 y_mm_ph,
