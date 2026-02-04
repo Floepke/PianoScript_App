@@ -222,6 +222,7 @@ class Editor(QtCore.QObject,
         Useful for immediate feedback from tools (e.g., updating hit rects/cache) before
         the widget triggers a repaint.
         """
+        print("Editor.draw_frame: rebuilding frame")
         try:
             from ui.widgets.draw_util import DrawUtil
         except Exception:
@@ -247,14 +248,22 @@ class Editor(QtCore.QObject,
         # Run the drawer pipeline to rebuild caches and register hit rectangles
         try:
             self.draw_all(du)
-        except Exception:
+        except Exception as exc:
             # As a fallback, still attempt to rebuild render cache
             print("Editor.draw_frame: draw_all failed, attempting cache rebuild")
             try:
-                self._build_render_cache()
+                import traceback
+                traceback.print_exc()
             except Exception:
-                print("Editor.draw_frame: cache rebuild also failed")
-                pass
+                print(f"Editor.draw_frame: draw_all exception: {exc}")
+            try:
+                self._build_render_cache()
+            except Exception as exc2:
+                try:
+                    import traceback
+                    traceback.print_exc()
+                except Exception:
+                    print(f"Editor.draw_frame: cache rebuild also failed: {exc2}")
         
         # refresh overlay guides if applicable
         self.draw_guides(du)
@@ -269,7 +278,7 @@ class Editor(QtCore.QObject,
             cx = (float(x_left_mm) + float(x_right_mm)) * 0.5
             cy = (float(y_top_mm) + float(y_bottom_mm)) * 0.5
             self._note_hit_rects.append({
-                'id': int(note_id),
+                '_id': int(note_id),
                 'x1': float(x_left_mm),
                 'y1': float(y_top_mm),
                 'x2': float(x_right_mm),
@@ -303,7 +312,7 @@ class Editor(QtCore.QObject,
                     dx = x_mm - float(r['cx'])
                     dy = y_mm - float(r['cy'])
                     dist2 = dx * dx + dy * dy
-                    matches.append((dist2, int(r['id'])))
+                    matches.append((dist2, int(r['_id'])))
             if not matches:
                 return None
             matches.sort(key=lambda t: t[0])
@@ -888,10 +897,20 @@ class Editor(QtCore.QObject,
     def time_to_mm(self, time: float) -> float:
         """Convert time in ticks to mm position."""
         score: SCORE = self.current_score()
-
+        # Ensure layout metrics are initialized
+        if self.margin is None:
+            try:
+                lay = getattr(score, 'layout', None)
+                w_mm = float(getattr(lay, 'page_width_mm', 210.0) or 210.0) if lay is not None else 210.0
+            except Exception:
+                w_mm = 210.0
+            try:
+                self._calculate_layout(float(w_mm))
+            except Exception:
+                pass
         # Layout metrics
         zpq = float(score.editor.zoom_mm_per_quarter)
-        return self.margin + (float(time) / float(QUARTER_NOTE_UNIT)) * zpq
+        return float(self.margin or 0.0) + (float(time) / float(QUARTER_NOTE_UNIT)) * zpq
     
     def pitch_to_x(self, key_number: int) -> float:
         '''Convert piano key number (1-88) to X position using specific Klavarskribo spacing.'''
@@ -958,8 +977,19 @@ class Editor(QtCore.QObject,
     def mm_to_time(self, y_mm: float) -> float:
         """Convert Y in mm to time ticks (inverse of time_to_mm)."""
         score: SCORE = self.current_score()
+        # Ensure layout metrics are initialized
+        if self.margin is None:
+            try:
+                lay = getattr(score, 'layout', None)
+                w_mm = float(getattr(lay, 'page_width_mm', 210.0) or 210.0) if lay is not None else 210.0
+            except Exception:
+                w_mm = 210.0
+            try:
+                self._calculate_layout(float(w_mm))
+            except Exception:
+                pass
         zpq = float(score.editor.zoom_mm_per_quarter)
-        ticks = (float(y_mm) - float(self.margin)) / max(1e-6, zpq) * float(QUARTER_NOTE_UNIT)
+        ticks = (float(y_mm) - float(self.margin or 0.0)) / max(1e-6, zpq) * float(QUARTER_NOTE_UNIT)
         return max(0.0, ticks)
 
     def px_to_time(self, y_px: float) -> float:
@@ -1352,12 +1382,9 @@ class Editor(QtCore.QObject,
             if ctor is None:
                 continue
             for ev in items:
-                try:
-                    d = dataclasses.asdict(ev)
-                except Exception:
-                    d = getattr(ev, '__dict__', {}).copy()
+                d = dataclasses.asdict(ev)
                 # Remove id; it will be assigned by the constructor
-                d.pop('id', None)
+                d.pop('_id', None)
                 # Shift all time-related fields
                 for k in list(d.keys()):
                     if k == 'time' or k.endswith('_time'):

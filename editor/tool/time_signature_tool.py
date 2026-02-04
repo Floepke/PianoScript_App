@@ -184,35 +184,32 @@ class TimeSignatureTool(BaseTool):
         dlg.activateWindow()
 
         def _finalize_dialog(result: int) -> None:
-            try:
-                if result != QtWidgets.QDialog.Accepted:
-                    return
-                numer, denom, grid_positions, indicator_enabled = dlg.get_values()
+            if result != QtWidgets.QDialog.Accepted:
+                return
+            numer, denom, grid_positions, indicator_enabled = dlg.get_values()
 
-                # Apply change: edit if click is on a change, otherwise insert at barline
-                if edit_i is not None:
-                    seg_bg.numerator = int(numer)
-                    seg_bg.denominator = int(denom)
-                    seg_bg.beat_grouping = list(grid_positions)
-                    seg_bg.indicator_enabled = bool(indicator_enabled)
-                else:
-                    # Split segment at this barline and insert new change with 1 measure
-                    seg_bg.measure_amount = int(offset_measures)
-                    new_bg = BaseGrid(numerator=int(numer), denominator=int(denom),
-                                        beat_grouping=list(grid_positions),
-                                        measure_amount=1, indicator_enabled=bool(indicator_enabled))
+            # Apply change: edit if click is on a change, otherwise insert at barline
+            if edit_i is not None:
+                seg_bg.numerator = int(numer)
+                seg_bg.denominator = int(denom)
+                seg_bg.beat_grouping = list(grid_positions)
+                seg_bg.indicator_enabled = bool(indicator_enabled)
+            else:
+                # Split segment at this barline and insert new change with 1 measure
+                seg_bg.measure_amount = int(offset_measures)
+                new_bg = BaseGrid(numerator=int(numer), denominator=int(denom),
+                                    beat_grouping=list(grid_positions),
+                                    measure_amount=1, indicator_enabled=bool(indicator_enabled))
 
-                    # Insert right after the current segment
-                    score.base_grid.insert(seg_i + 1, new_bg)
+                # Insert right after the current segment
+                score.base_grid.insert(seg_i + 1, new_bg)
 
-                # Snapshot and update after dialog closes (next event loop tick)
-                self._editor._snapshot_if_changed(coalesce=False, label='time_signature_append')
+            # Snapshot and update after dialog closes (next event loop tick)
+            self._editor._snapshot_if_changed(coalesce=False, label='time_signature_append')
 
-                # update view
-                self._editor.update_score_length()
-                self._editor.draw_all()
-            finally:
-                self._dialog_open = False
+            # update view
+            self._editor.update_score_length()
+            self._editor.draw_frame()
 
         def _clear_dialog_flag() -> None:
             self._dialog_open = False
