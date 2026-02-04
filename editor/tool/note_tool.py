@@ -42,6 +42,19 @@ class NoteTool(BaseTool):
         pitch_press = int(self._editor.x_to_pitch(x))
         self._hand = str(getattr(self._editor, 'hand_cursor', '<') or '<')
 
+        # Audition on input if enabled
+        try:
+            from settings_manager import get_preferences_manager
+            pm = get_preferences_manager()
+            audition = bool(pm.get("audition_during_note_input", True))
+            if audition and hasattr(self._editor, 'player') and self._editor.player is not None:
+                try:
+                    self._editor.player.audition_note(pitch=pitch_press)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # Prefer rectangle-based hit detection for precise clickable area
         found = None
         hit_id = None

@@ -265,6 +265,11 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             from midi.player import Player
             self.player = Player()
+            try:
+                if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+                    self.editor_controller.set_player(self.player)
+            except Exception:
+                pass
         except Exception:
             # Player initialization is optional at startup
             self.player = None

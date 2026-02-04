@@ -478,6 +478,49 @@ class Player:
             except Exception:
                 pass
 
+    def audition_note(self, pitch: int = 40, velocity: int = 80, duration_sec: float = 0.2) -> None:
+        """Play a short audition note using the current playback backend."""
+        if self.is_playing():
+            return
+        try:
+            app_pitch = int(pitch)
+        except Exception:
+            app_pitch = 40
+        midi_pitch = max(0, min(127, int(app_pitch) + int(self._pitch_offset)))
+        vel = int(max(1, min(127, velocity)))
+        dur = float(max(0.02, duration_sec))
+
+        def _run():
+            if self._playback_type == 'internal_synth' and WavetableSynth is not None:
+                if self._synth is None:
+                    try:
+                        self._synth = WavetableSynth()
+                    except Exception:
+                        return
+                try:
+                    self._synth.note_on(int(midi_pitch), int(vel))
+                    time.sleep(dur)
+                    self._synth.note_off(int(midi_pitch))
+                except Exception:
+                    pass
+                return
+            # MIDI backend
+            try:
+                self._ensure_port()
+            except Exception:
+                return
+            if self._out is None:
+                return
+            try:
+                self._note_on(int(midi_pitch), int(vel))
+                time.sleep(dur)
+                self._note_off(int(midi_pitch))
+            except Exception:
+                pass
+
+        th = threading.Thread(target=_run, daemon=True)
+        th.start()
+
     def is_playing(self) -> bool:
         return bool(self._running)
 

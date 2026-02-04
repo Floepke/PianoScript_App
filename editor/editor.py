@@ -168,6 +168,8 @@ class Editor(QtCore.QObject,
         self.clipboard: dict | None = None
         # Modifier state
         self._shift_down: bool = False
+        # Optional player for auditioning
+        self.player = None
 
     # ---- Drawing via mixins ----
     def draw_background_gray(self, du) -> None:
@@ -411,6 +413,9 @@ class Editor(QtCore.QObject,
             return
         self._tool = cls()
         self._tm.set_tool(self._tool)
+
+    def set_player(self, player) -> None:
+        self.player = player
 
     def set_score(self, score):
         # Set an explicit score model when not using FileManager
