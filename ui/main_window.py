@@ -538,43 +538,59 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def _choose_midi_port(self) -> None:
+        # Ensure player exists
         try:
-            # Ensure player exists
             if not hasattr(self, 'player') or self.player is None:
                 from midi.player import Player
                 self.player = Player()
-            # If not in MIDI mode, inform user
+        except Exception as exc:
             try:
-                adm = get_appdata_manager()
-                if str(adm.get("playback_type", "midi_port")) != "midi_port":
-                    QtWidgets.QMessageBox.information(self, "Playback Mode", "Switch to 'External MIDI Port' mode to choose a port.")
-                    return
+                QtWidgets.QMessageBox.critical(self, "MIDI Output", f"MIDI backend unavailable: {exc}")
+            except Exception:
+                print(f"MIDI backend unavailable: {exc}")
+            try:
+                self._status("MIDI backend unavailable", 3000)
             except Exception:
                 pass
-            # Query ports
-            try:
-                names = self.player.list_output_ports()
-            except Exception:
-                names = []
-            if not names:
-                try:
-                    QtWidgets.QMessageBox.warning(self, "MIDI Output", "No MIDI output ports found.")
-                except Exception:
-                    print("No MIDI output ports found.")
+            return
+        # If not in MIDI mode, inform user
+        try:
+            adm = get_appdata_manager()
+            if str(adm.get("playback_type", "midi_port")) != "midi_port":
+                QtWidgets.QMessageBox.information(self, "Playback Mode", "Switch to 'External MIDI Port' mode to choose a port.")
                 return
-            # Simple chooser dialog
-            item, ok = QtWidgets.QInputDialog.getItem(self, "Select MIDI Output", "Port:", names, 0, False)
-            if not ok:
-                return
-            try:
-                self.player.set_output_port(str(item))
-            except Exception as exc:
-                try:
-                    QtWidgets.QMessageBox.critical(self, "MIDI Output", f"Failed to open port: {exc}")
-                except Exception:
-                    print(f"Failed to open port: {exc}")
         except Exception:
             pass
+        # Query ports
+        try:
+            names = self.player.list_output_ports()
+        except Exception as exc:
+            names = []
+            try:
+                QtWidgets.QMessageBox.warning(self, "MIDI Output", f"Failed to query MIDI ports: {exc}")
+            except Exception:
+                print(f"Failed to query MIDI ports: {exc}")
+        if not names:
+            try:
+                QtWidgets.QMessageBox.warning(self, "MIDI Output", "No MIDI output ports found.")
+            except Exception:
+                print("No MIDI output ports found.")
+            try:
+                self._status("No MIDI output ports found", 3000)
+            except Exception:
+                pass
+            return
+        # Simple chooser dialog
+        item, ok = QtWidgets.QInputDialog.getItem(self, "Select MIDI Output", "Port:", names, 0, False)
+        if not ok:
+            return
+        try:
+            self.player.set_output_port(str(item))
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "MIDI Output", f"Failed to open port: {exc}")
+            except Exception:
+                print(f"Failed to open port: {exc}")
 
     def _update_clock(self) -> None:
         try:

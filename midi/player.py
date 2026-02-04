@@ -178,6 +178,7 @@ class Player:
                 print(f"[MIDI] Using output port: {self._port_name}")
             except Exception as exc:
                 print(f"[MIDI] Failed to open '{self._port_name}': {exc}")
+                # Keep preferred port name so we can retry later
                 self._out = None
 
     def _ensure_port(self) -> None:
@@ -194,8 +195,9 @@ class Player:
                 except Exception as exc:
                     print(f"[MIDI] Failed to open '{self._port_name}': {exc}")
             else:
+                # Port temporarily unavailable; keep name and retry later
                 print(f"[MIDI] Preferred port not found: {self._port_name}")
-                raise RuntimeError(f"Preferred MIDI port not found: {self._port_name}")
+                return
         # Prefer first non-"Through" port
         non_through = [n for n in names if 'through' not in str(n).lower()]
         if not non_through:
