@@ -411,6 +411,16 @@ class MainWindow(QtWidgets.QMainWindow):
         midi_port_act.triggered.connect(self._choose_midi_port)
         playback_menu.addAction(midi_port_act)
 
+        # MIDI transport toggle (Start/Stop/Clock/SPP)
+        transport_act = QtGui.QAction("Send MIDI Transport (start/stop/clock/spp)", self, checkable=True)
+        try:
+            adm = get_appdata_manager()
+            transport_act.setChecked(bool(adm.get("send_midi_transport", True)))
+        except Exception:
+            transport_act.setChecked(True)
+        transport_act.triggered.connect(lambda: self._set_send_midi_transport(transport_act.isChecked()))
+        playback_menu.addAction(transport_act)
+
         # Playback Mode submenu (under Playback menu)
         pm_submenu = playback_menu.addMenu("Playback Mode")
         grp = QtGui.QActionGroup(self)
@@ -1122,6 +1132,22 @@ class MainWindow(QtWidgets.QMainWindow):
             self._status(f"Playback mode: {'Internal Synth' if mode=='internal_synth' else 'External MIDI Port'}", 2500)
         except Exception:
             pass
+
+    def _set_send_midi_transport(self, enabled: bool) -> None:
+        try:
+            if not hasattr(self, 'player') or self.player is None:
+                from midi.player import Player
+                self.player = Player()
+            if hasattr(self.player, 'set_send_midi_transport'):
+                self.player.set_send_midi_transport(bool(enabled))
+            self._status(f"MIDI transport: {'On' if enabled else 'Off'}", 2000)
+        except Exception:
+            try:
+                adm = get_appdata_manager()
+                adm.set("send_midi_transport", bool(enabled))
+                adm.save()
+            except Exception:
+                pass
 
     def _play_test_tone(self) -> None:
         try:

@@ -29,6 +29,8 @@ class Player:
         self._playback_type: str = 'midi_port'
         # Internal synth instance
         self._synth = None  # internal synth instance when using 'internal_synth'
+        # Whether to send MIDI transport (start/stop/clock/Spp)
+        self._send_midi_transport: bool = True
         # Load preferences from appdata
         try:
             adm = get_appdata_manager()
@@ -36,6 +38,7 @@ class Player:
             pn = str(adm.get("midi_out_port", "") or "")
             if pn:
                 self._port_name = pn
+            self._send_midi_transport = bool(adm.get("send_midi_transport", True))
         except Exception:
             pass
         # Playback timing state for UI playhead
@@ -48,10 +51,17 @@ class Player:
         # Ignore very short notes (in app units) to avoid hanging/stuck behavior
         # App duration units: QUARTER_NOTE_UNIT == 100.0, so 4 units ≈ 0.04 quarter notes
         self._min_duration_units: float = 4.0
+        # MIDI sync clock thread
+        self._clock_thread: Optional[threading.Thread] = None
+        self._clock_stop_event = threading.Event()
 
     def _stop_for_restart(self) -> None:
         # Fast, immediate stop used before restarting playback to avoid overlap/clicks.
         self._running = False
+        try:
+            self._stop_midi_sync(send_stop=True)
+        except Exception:
+            pass
         try:
             if self._thread is not None and self._thread.is_alive():
                 self._thread.join(timeout=0.2)
@@ -247,6 +257,102 @@ class Player:
         except Exception:
             pass
 
+    def _send_midi_message(self, msg: mido.Message) -> None:
+        if self._out is None:
+            return
+        try:
+            self._out.send(msg)
+        except Exception:
+            pass
+
+    def _seconds_per_unit_at(self, units: float, segs: List[Tuple[float, float, float]]) -> float:
+        if not segs:
+            return 60.0 / (120.0 * float(QUARTER_NOTE_UNIT))
+        for s, e, s_per_unit in segs:
+            if s <= units < e:
+                return float(s_per_unit)
+        return float(segs[-1][2])
+
+    def _start_midi_sync(self, segs: List[Tuple[float, float, float]], start_units: float) -> None:
+        if self._out is None or not bool(self._send_midi_transport):
+            return
+        # Reset transport, send Song Position Pointer (SPP), then Start/Continue
+        try:
+            self._send_midi_message(mido.Message('stop'))
+        except Exception:
+            pass
+        try:
+            spp = int(max(0.0, (float(start_units) / float(QUARTER_NOTE_UNIT)) * 4.0))
+            self._send_midi_message(mido.Message('songpos', pos=int(spp)))
+        except Exception:
+            pass
+        try:
+            if float(start_units) > 0.0:
+                self._send_midi_message(mido.Message('continue'))
+            else:
+                self._send_midi_message(mido.Message('start'))
+        except Exception:
+            pass
+
+        # Start clock thread
+        try:
+            self._clock_stop_event.clear()
+        except Exception:
+            pass
+
+        def _clock_runner():
+            next_tick = time.time()
+            while not self._clock_stop_event.is_set():
+                now = time.time()
+                if now < next_tick:
+                    time.sleep(min(0.001, next_tick - now))
+                    continue
+                # Send MIDI clock tick
+                try:
+                    self._send_midi_message(mido.Message('clock'))
+                except Exception:
+                    pass
+                # Compute interval from current tempo segment
+                try:
+                    elapsed = max(0.0, now - float(self._t0))
+                    units = self._units_from_elapsed(float(elapsed), float(start_units), segs)
+                    s_per_unit = float(self._seconds_per_unit_at(float(units), segs))
+                    sec_per_quarter = float(s_per_unit) * float(QUARTER_NOTE_UNIT)
+                    interval = max(0.001, float(sec_per_quarter) / 24.0)
+                except Exception:
+                    interval = 0.02
+                next_tick = now + interval
+
+        th = threading.Thread(target=_clock_runner, daemon=True)
+        th.start()
+        self._clock_thread = th
+
+    def _stop_midi_sync(self, send_stop: bool = False) -> None:
+        try:
+            self._clock_stop_event.set()
+        except Exception:
+            pass
+        try:
+            if self._clock_thread is not None and self._clock_thread.is_alive():
+                self._clock_thread.join(timeout=0.2)
+        except Exception:
+            pass
+        self._clock_thread = None
+        if send_stop and bool(self._send_midi_transport):
+            try:
+                self._send_midi_message(mido.Message('stop'))
+            except Exception:
+                pass
+
+    def set_send_midi_transport(self, enabled: bool) -> None:
+        self._send_midi_transport = bool(enabled)
+        try:
+            adm = get_appdata_manager()
+            adm.set("send_midi_transport", bool(self._send_midi_transport))
+            adm.save()
+        except Exception:
+            pass
+
     def _build_events_full(self, score) -> List[Tuple[str, float, int, int]]:
         events: List[Tuple[str, float, int, int]] = []
         # Build tempo segments from SCORE.events.tempo (piecewise constant BPM)
@@ -298,7 +404,12 @@ class Player:
         self._ensure_port()
         if self._out is None:
             return
+        segs = self._get_tempo_segments(score)
         events = self._build_events_full(score)
+        try:
+            self._start_midi_sync(segs, 0.0)
+        except Exception:
+            pass
         self._run_events_with_midi(events)
 
     def play_from_time_cursor(self, start_units: float, score) -> None:
@@ -353,6 +464,10 @@ class Player:
         try:
             self._start_units = float(su)
             self._bpm = float(segs[0][2]) if segs else 120.0
+        except Exception:
+            pass
+        try:
+            self._start_midi_sync(segs, su)
         except Exception:
             pass
         self._run_events_with_midi(events)
@@ -420,6 +535,10 @@ class Player:
                     self._note_off(int(midi_note))
             # Playback finished naturally
             self._running = False
+            try:
+                self._stop_midi_sync(send_stop=True)
+            except Exception:
+                pass
         th = threading.Thread(target=_runner, daemon=True)
         th.start()
         self._thread = th
@@ -458,6 +577,10 @@ class Player:
 
     def stop(self) -> None:
         self._running = False
+        try:
+            self._stop_midi_sync(send_stop=True)
+        except Exception:
+            pass
         try:
             if self._thread is not None and self._thread.is_alive():
                 self._thread.join(timeout=0.5)

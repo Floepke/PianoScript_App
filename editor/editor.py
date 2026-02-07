@@ -1190,6 +1190,33 @@ class Editor(QtCore.QObject,
         self._sel_anchor_pitch = 1
         # Persistent clipboard is not cleared here
 
+    def set_selected_notes_hand(self, hand: str) -> bool:
+        """Assign selected notes to a hand and snapshot the change.
+
+        Returns True if any notes were updated.
+        """
+        score: SCORE | None = self.current_score()
+        if score is None or not self._selection_active:
+            return False
+        h = str(hand)
+        if h not in ('<', '>'):
+            return False
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1)
+        notes = sel.get('note', []) if isinstance(sel, dict) else []
+        if not notes:
+            return False
+        updated = False
+        for n in notes:
+            try:
+                if str(getattr(n, 'hand', '')) != h:
+                    setattr(n, 'hand', h)
+                    updated = True
+            except Exception:
+                continue
+        if updated:
+            self._snapshot_if_changed(coalesce=True, label='set_note_hand')
+        return updated
+
     # ---- Modifier updates ----
     def set_shift_down(self, down: bool) -> None:
         self._shift_down = bool(down)

@@ -314,6 +314,16 @@ class CairoEditorWidget(QtWidgets.QWidget):
             if sc is not None:
                 ed = getattr(sc, 'editor', None)
                 if ed is not None:
+                    # Preserve the screen position of the editor time cursor during zoom
+                    anchor_units = getattr(self._editor, 'time_cursor', None)
+                    anchor_y_logical_px = None
+                    if anchor_units is not None:
+                        try:
+                            abs_mm_before = self._editor.time_to_mm(float(anchor_units))
+                            clip_y_mm = float(self._scroll_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm))
+                            anchor_y_logical_px = (abs_mm_before - clip_y_mm) * (float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr)))
+                        except Exception:
+                            anchor_y_logical_px = None
                     # Zoom multiplicative steps: ~10% per wheel notch
                     steps = int(round(angle / 120.0))
                     current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
@@ -323,6 +333,22 @@ class CairoEditorWidget(QtWidgets.QWidget):
                         ed.zoom_mm_per_quarter = float(new_zoom)
                     except Exception:
                         pass
+                    # Adjust scroll to keep the time cursor anchored
+                    if anchor_y_logical_px is not None:
+                        try:
+                            abs_mm_after = self._editor.time_to_mm(float(anchor_units))
+                            new_clip_y_mm = abs_mm_after - (float(anchor_y_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm)))
+                            new_scroll = int(round(new_clip_y_mm * float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr))))
+                            new_scroll = max(0, new_scroll)
+                            vp_h_px = int(max(1, self.size().height() * float(self._last_dpr)))
+                            max_scroll = max(0, int(round((int(self._content_h_px) - vp_h_px) / max(1.0, float(self._last_dpr)))))
+                            if new_scroll > max_scroll:
+                                new_scroll = max_scroll
+                            if new_scroll != self._scroll_logical_px:
+                                self._scroll_logical_px = new_scroll
+                                self.scrollLogicalPxChanged.emit(new_scroll)
+                        except Exception:
+                            pass
                     # Repaint; metrics will be recomputed and emitted in paintEvent
                     self.update()
             ev.accept()
@@ -449,6 +475,17 @@ class CairoEditorWidget(QtWidgets.QWidget):
         key = ev.key()
         mods = ev.modifiers()
         if self._editor is not None:
+            if key in (QtCore.Qt.Key_BracketLeft, QtCore.Qt.Key_BracketRight):
+                try:
+                    tool_name = str(getattr(getattr(self._editor, '_tool', None), 'TOOL_NAME', '') or '')
+                    if tool_name == 'note':
+                        hand = '<' if key == QtCore.Qt.Key_BracketLeft else '>'
+                        if self._editor.set_selected_notes_hand(hand):
+                            self.update()
+                        ev.accept()
+                        return
+                except Exception:
+                    pass
             # Delete selection on Backspace/Delete
             if key in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
                 try:
