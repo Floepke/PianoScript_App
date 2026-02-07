@@ -149,8 +149,18 @@ class Editor(QtCore.QObject,
         # Playhead position (app time units). When set, draws a red line overlay.
         self.playhead_time: Optional[float] = None
 
+        # Debounced snapshot for fast transpose bursts
+        self._transpose_timer = QtCore.QTimer(self)
+        try:
+            self._transpose_timer.setSingleShot(True)
+            self._transpose_timer.timeout.connect(self._finalize_transpose_snapshot)
+        except Exception:
+            pass
+
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
+        # One-shot hint to reuse the current draw cache on the next frame
+        self._reuse_draw_cache_once: bool = False
         # Per-frame note hit rectangles in absolute mm coordinates
         self._note_hit_rects: list[dict] = []
 
@@ -269,6 +279,40 @@ class Editor(QtCore.QObject,
         
         # refresh overlay guides if applicable
         self.draw_guides(du)
+
+    def force_redraw_from_model(self) -> None:
+        """Rebuild caches from SCORE and request a full widget repaint."""
+        try:
+            self.draw_frame()
+        except Exception:
+            pass
+        try:
+            w = getattr(self, 'widget', None)
+            if w is not None and hasattr(w, 'force_full_redraw'):
+                w.force_full_redraw()
+            elif w is not None and hasattr(w, 'update'):
+                w.update()
+        except Exception:
+            pass
+
+    def _queue_transpose_snapshot(self, delay_ms: int = 200) -> None:
+        """Debounce transpose snapshots to avoid heavy work on every keypress."""
+        try:
+            if self._transpose_timer.isActive():
+                self._transpose_timer.stop()
+            self._transpose_timer.start(int(max(1, delay_ms)))
+        except Exception:
+            # Fallback: snapshot immediately if timer is unavailable
+            try:
+                self._finalize_transpose_snapshot()
+            except Exception:
+                pass
+
+    def _finalize_transpose_snapshot(self) -> None:
+        try:
+            self._snapshot_if_changed(coalesce=True, label='transpose_notes')
+        except Exception:
+            pass
 
     # ---- Hit rectangles (notes) ----
     def register_note_hit_rect(self, note_id: int, x_left_mm: float, y_top_mm: float, x_right_mm: float, y_bottom_mm: float) -> None:
@@ -456,6 +500,11 @@ class Editor(QtCore.QObject,
                 # Fallback to legacy behavior
                 self._file_manager.autosave_current()
                 self._file_manager.mark_dirty()
+        except Exception:
+            pass
+        # Ensure any edit is reflected immediately from the model
+        try:
+            self.force_redraw_from_model()
         except Exception:
             pass
 
@@ -658,7 +707,8 @@ class Editor(QtCore.QObject,
         elif button == 2:
             if self._dragging_right:
                 self._tool.on_right_drag_end(x, y)
-                self._snapshot_if_changed(coalesce=True, label="right_drag")
+                if bool(getattr(self._tool, 'RIGHT_DRAG_EDITS', False)):
+                    self._snapshot_if_changed(coalesce=True, label="right_drag")
                 # Do not modify clipboard on selection changes
             else:
                 px, py = self._press_pos
@@ -761,6 +811,10 @@ class Editor(QtCore.QObject,
         - notes_view slice and notes grouped by hand
         - beam markers by hand (if available) and grid helpers (for future beam grouping)
         """
+        # Optionally reuse the existing cache once (for fast edits like transpose)
+        if self._reuse_draw_cache_once and self._draw_cache is not None:
+            self._reuse_draw_cache_once = False
+            return
         # Clear previous cache at start so callers don't read stale data
         self._draw_cache = None
         score: SCORE | None = self.current_score()
@@ -1190,6 +1244,96 @@ class Editor(QtCore.QObject,
         self._sel_anchor_pitch = 1
         # Persistent clipboard is not cleared here
 
+    def select_all(self) -> None:
+        """Select the full score range and all pitches."""
+        try:
+            total_len = float(self._calc_base_grid_list_total_length())
+        except Exception:
+            total_len = 0.0
+        ss = max(1e-6, float(getattr(self, 'snap_size_units', 1.0) or 1.0))
+        end_units = float(total_len) if total_len > ss else float(ss)
+        self._sel_anchor_units = 0.0
+        self._sel_start_units = 0.0
+        self._sel_end_units = end_units
+        self._sel_anchor_pitch = 1
+        self._sel_min_pitch = 1
+        self._sel_max_pitch = 88
+        self._selection_active = True
+
+    def transpose_selected_notes(self, delta_semitones: int) -> bool:
+        """Move selected notes by semitone steps and shift selection range.
+
+        Returns True if any notes were updated.
+        """
+        score: SCORE | None = self.current_score()
+        if score is None or not self._selection_active:
+            return False
+        try:
+            delta = int(delta_semitones)
+        except Exception:
+            return False
+        if delta == 0:
+            return False
+        # Prefer cached viewport notes when selection is fully within cache range
+        a = float(min(self._sel_start_units, self._sel_end_units))
+        b = float(max(self._sel_start_units, self._sel_end_units - 0.1))
+        min_p = max(1, min(88, int(getattr(self, '_sel_min_pitch', 1))))
+        max_p = max(1, min(88, int(getattr(self, '_sel_max_pitch', 88))))
+        notes = []
+        used_cache = False
+        try:
+            cache = getattr(self, '_draw_cache', None) or {}
+            t_begin = float(cache.get('time_begin', float('inf')))
+            t_end = float(cache.get('time_end', float('-inf')))
+            if a >= t_begin and b <= t_end:
+                for n in list(cache.get('notes_view') or []):
+                    try:
+                        t0 = float(getattr(n, 'time', 0.0) or 0.0)
+                        p = int(getattr(n, 'pitch', 0) or 0)
+                    except Exception:
+                        continue
+                    if a <= t0 <= b and min_p <= p <= max_p:
+                        notes.append(n)
+                used_cache = True
+        except Exception:
+            used_cache = False
+        if not notes:
+            sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1)
+            notes = sel.get('note', []) if isinstance(sel, dict) else []
+        if not notes:
+            return False
+        updated = False
+        for n in notes:
+            try:
+                p = int(getattr(n, 'pitch', 0) or 0)
+                if p <= 0:
+                    continue
+                np = max(1, min(88, p + delta))
+                if np != p:
+                    setattr(n, 'pitch', int(np))
+                    updated = True
+            except Exception:
+                continue
+        if not updated:
+            return False
+        try:
+            self._sel_min_pitch = max(1, min(88, int(self._sel_min_pitch) + delta))
+            self._sel_max_pitch = max(1, min(88, int(self._sel_max_pitch) + delta))
+            self._sel_anchor_pitch = max(1, min(88, int(self._sel_anchor_pitch) + delta))
+        except Exception:
+            pass
+        if used_cache:
+            self._reuse_draw_cache_once = True
+        # Lightweight redraw now; snapshot is debounced to avoid lag on key repeat
+        try:
+            w = getattr(self, 'widget', None)
+            if w is not None and hasattr(w, 'force_full_redraw'):
+                w.force_full_redraw()
+        except Exception:
+            pass
+        self._queue_transpose_snapshot()
+        return True
+
     def set_selected_notes_hand(self, hand: str) -> bool:
         """Assign selected notes to a hand and snapshot the change.
 
@@ -1294,9 +1438,23 @@ class Editor(QtCore.QObject,
                 return False
             return True
 
+        # Prefer cached viewport notes when selection is fully within cache range
+        cached_notes_view = None
+        try:
+            cache = getattr(self, '_draw_cache', None) or {}
+            t_begin = float(cache.get('time_begin', float('inf')))
+            t_end = float(cache.get('time_end', float('-inf')))
+            if a >= t_begin and b <= t_end:
+                cached_notes_view = cache.get('notes_view') or []
+        except Exception:
+            cached_notes_view = None
+
         # Generic filtering across all event lists
         for name in event_fields:
-            lst = getattr(score.events, name, []) or []
+            if name == 'note' and cached_notes_view is not None:
+                lst = list(cached_notes_view)
+            else:
+                lst = getattr(score.events, name, []) or []
             if name == 'slur':
                 # Special-case: slur uses 4 handles with relative pitch from C4 (key 40)
                 for ev in lst:

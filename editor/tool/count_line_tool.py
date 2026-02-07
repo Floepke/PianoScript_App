@@ -67,7 +67,10 @@ class CountLineTool(BaseTool):
         p2 = max(1, min(88, pitch_press + 4))
         self._active_line = score.new_count_line(time=t_press_snap, pitch1=pitch_press, pitch2=p2)
         self._active_handle = 'end'
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
     def on_left_unpress(self, x: float, y: float) -> None:
         super().on_left_unpress(x, y)
         self._active_line = None
@@ -106,7 +109,10 @@ class CountLineTool(BaseTool):
                 self._active_line.pitch2 = int(pitch)
             except Exception:
                 pass
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
     def on_left_drag_end(self, x: float, y: float) -> None:
         super().on_left_drag_end(x, y)
         self._active_line = None
@@ -146,12 +152,18 @@ class CountLineTool(BaseTool):
             if (x1 - handle_w * 0.5) <= x_mm <= (x1 + handle_w * 0.5) and (y_ev - handle_h * 0.5) <= y_mm <= (y_ev + handle_h * 0.5):
                 lst.remove(ev)
                 score.events.count_line = lst
-                self._editor.draw_frame()
+                if hasattr(self._editor, 'force_redraw_from_model'):
+                    self._editor.force_redraw_from_model()
+                else:
+                    self._editor.draw_frame()
                 return
             if (x2 - handle_w * 0.5) <= x_mm <= (x2 + handle_w * 0.5) and (y_ev - handle_h * 0.5) <= y_mm <= (y_ev + handle_h * 0.5):
                 lst.remove(ev)
                 score.events.count_line = lst
-                self._editor.draw_frame()
+                if hasattr(self._editor, 'force_redraw_from_model'):
+                    self._editor.force_redraw_from_model()
+                else:
+                    self._editor.draw_frame()
                 return
     def on_right_double_click(self, x: float, y: float) -> None:
         super().on_right_double_click(x, y)

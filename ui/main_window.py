@@ -168,6 +168,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tool_manager = ToolManager(self.splitter)
         self.editor_controller = Editor(self.tool_manager)
         self.editor.set_editor(self.editor_controller)
+        # Provide widget reference to editor for explicit full redraws
+        try:
+            self.editor_controller.widget = self.editor
+        except Exception:
+            pass
         # Provide editor to ToolManager so tools can use editor wrappers
         try:
             self.tool_manager.set_editor(self.editor_controller)
@@ -255,6 +260,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor.scrollLogicalPxChanged.connect(self.editor_vscroll.setValue)
         except Exception:
             pass
+        # Restore last scroll position once viewport metrics are available
+        try:
+            adm_scroll = get_appdata_manager()
+            self._pending_scroll_restore = int(adm_scroll.get("editor_scroll_pos", 0) or 0)
+        except Exception:
+            self._pending_scroll_restore = 0
 
         # Fit state tracking
         self.is_fit = False
@@ -682,6 +693,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.editor_controller.reset_undo_stack()
             except Exception:
                 pass
+            try:
+                if hasattr(self.editor_controller, 'force_redraw_from_model'):
+                    self.editor_controller.force_redraw_from_model()
+            except Exception:
+                pass
             self._update_title()
 
     def _file_save(self) -> None:
@@ -724,6 +740,16 @@ class MainWindow(QtWidgets.QMainWindow):
         cur = int(self.editor_vscroll.value())
         if cur > max_scroll:
             self.editor_vscroll.setValue(max_scroll)
+        # Apply a pending restore once, after we know the range
+        try:
+            pending = int(getattr(self, '_pending_scroll_restore', 0) or 0)
+            if pending and max_scroll >= 0:
+                target = max(0, min(pending, max_scroll))
+                if int(self.editor_vscroll.value()) != target:
+                    self.editor_vscroll.setValue(target)
+                self._pending_scroll_restore = 0
+        except Exception:
+            pass
 
     @QtCore.Slot(int)
     def _on_editor_scroll_changed(self, value: int) -> None:
@@ -1038,6 +1064,8 @@ class MainWindow(QtWidgets.QMainWindow):
             units = self.player.get_playhead_time(sc) if hasattr(self.player, 'get_playhead_time') else None
             # Update editor playhead and trigger overlay refresh
             self.editor_controller.playhead_time = units
+            # Center the playhead in the viewport while playing
+            self._center_playhead_scroll(units)
             if hasattr(self.editor, 'request_overlay_refresh'):
                 self.editor.request_overlay_refresh()
             else:
@@ -1046,6 +1074,33 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # Not playing: clear and stop timer
             self._clear_playhead_overlay()
+
+    def _center_playhead_scroll(self, units: Optional[float]) -> None:
+        if units is None:
+            return
+        try:
+            ed = getattr(self, 'editor_controller', None)
+            if ed is None:
+                return
+            abs_mm = float(ed.time_to_mm(float(units)))
+            vp_h_mm = float(getattr(ed, '_viewport_h_mm', 0.0) or 0.0)
+            if vp_h_mm <= 0.0:
+                return
+            target_top_mm = max(0.0, abs_mm - (vp_h_mm * 0.5))
+            px_per_mm = float(getattr(ed, '_px_per_mm', 0.0) or 0.0)
+            dpr = float(getattr(ed, '_dpr', 1.0) or 1.0)
+            if px_per_mm <= 0.0:
+                return
+            target_scroll = int(round(target_top_mm * px_per_mm / max(1e-6, dpr)))
+            if hasattr(self, 'editor_vscroll') and self.editor_vscroll is not None:
+                max_scroll = int(self.editor_vscroll.maximum())
+                target_scroll = max(0, min(target_scroll, max_scroll))
+                if int(self.editor_vscroll.value()) != target_scroll:
+                    self.editor_vscroll.setValue(target_scroll)
+            elif hasattr(self, 'editor') and self.editor is not None:
+                self.editor.set_scroll_logical_px(target_scroll)
+        except Exception:
+            pass
 
     def _clear_playhead_overlay(self) -> None:
         try:
@@ -1282,7 +1337,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _force_redraw(self, *_args) -> None:
         # Rebuild editor caches and hit-rects for immediate tool feedback
         if hasattr(self, 'editor_controller') and self.editor_controller is not None:
-            self.editor_controller.draw_frame()
+            if hasattr(self.editor_controller, 'force_redraw_from_model'):
+                self.editor_controller.force_redraw_from_model()
+            else:
+                self.editor_controller.draw_frame()
         # Also refresh the canvas overlays so guide stem direction updates instantly
         try:
             if hasattr(self, 'editor') and self.editor is not None:
@@ -1381,6 +1439,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 if sp is not None and hasattr(sp, 'sizes'):
                     sizes = list(sp.sizes())
                     adm.set("splitter_sizes", [int(sizes[0]) if sizes else 0, int(sizes[1]) if len(sizes) > 1 else 0])
+            except Exception:
+                pass
+            # Save current editor scroll position
+            try:
+                if hasattr(self, 'editor_vscroll') and self.editor_vscroll is not None:
+                    adm.set("editor_scroll_pos", int(self.editor_vscroll.value()))
             except Exception:
                 pass
             # Persist whether the session is currently saved to a project file

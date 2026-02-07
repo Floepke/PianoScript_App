@@ -104,6 +104,16 @@ class CairoEditorWidget(QtWidgets.QWidget):
             pass
         self.update()
 
+    def force_full_redraw(self) -> None:
+        """Invalidate cached content and request a full repaint from the model."""
+        try:
+            self._content_cache_image = None
+            self._content_cache_key = None
+            self._overlay_only_repaint = False
+        except Exception:
+            pass
+        self.update()
+
     def set_tool(self, tool_name: str | None) -> None:
         self._current_tool = tool_name
         self.update()
@@ -475,12 +485,37 @@ class CairoEditorWidget(QtWidgets.QWidget):
         key = ev.key()
         mods = ev.modifiers()
         if self._editor is not None:
+            try:
+                if ev.matches(QtGui.QKeySequence.StandardKey.SelectAll):
+                    self._editor.select_all()
+                    if hasattr(self, 'request_overlay_refresh'):
+                        self.request_overlay_refresh()
+                    else:
+                        self.update()
+                    ev.accept()
+                    return
+            except Exception:
+                pass
             if key in (QtCore.Qt.Key_BracketLeft, QtCore.Qt.Key_BracketRight):
                 try:
                     tool_name = str(getattr(getattr(self._editor, '_tool', None), 'TOOL_NAME', '') or '')
                     if tool_name == 'note':
                         hand = '<' if key == QtCore.Qt.Key_BracketLeft else '>'
                         if self._editor.set_selected_notes_hand(hand):
+                            # Force full redraw (not overlay-only) so note styling updates immediately
+                            self._content_cache_image = None
+                            self._content_cache_key = None
+                            self.update()
+                        ev.accept()
+                        return
+                except Exception:
+                    pass
+            if key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
+                try:
+                    tool_name = str(getattr(getattr(self._editor, '_tool', None), 'TOOL_NAME', '') or '')
+                    if tool_name == 'note':
+                        delta = -1 if key == QtCore.Qt.Key_Left else 1
+                        if self._editor.transpose_selected_notes(delta):
                             self.update()
                         ev.accept()
                         return

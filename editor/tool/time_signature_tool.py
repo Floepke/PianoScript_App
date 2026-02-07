@@ -209,7 +209,10 @@ class TimeSignatureTool(BaseTool):
 
             # update view
             self._editor.update_score_length()
-            self._editor.draw_frame()
+            if hasattr(self._editor, 'force_redraw_from_model'):
+                self._editor.force_redraw_from_model()
+            else:
+                self._editor.draw_frame()
 
         def _clear_dialog_flag() -> None:
             self._dialog_open = False

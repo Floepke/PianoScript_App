@@ -14,6 +14,8 @@ class BaseTool:
     """
 
     TOOL_NAME: str = "base"
+    # Set to True in tools that edit the model during right-drag
+    RIGHT_DRAG_EDITS: bool = False
 
     def __init__(self):
         # Optional: shared state across events

@@ -93,7 +93,10 @@ class NoteTool(BaseTool):
         # Ensure score length covers latest note end
         self._editor.update_score_length()
 
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
 
     def on_left_unpress(self, x: float, y: float) -> None:
         super().on_left_unpress(x, y)
@@ -105,7 +108,10 @@ class NoteTool(BaseTool):
         # switch guides back on after note editing
         self._editor.guides_active = True
 
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
 
     def on_left_click(self, x: float, y: float) -> None:
         super().on_left_click(x, y)
@@ -221,7 +227,10 @@ class NoteTool(BaseTool):
                     if len(new_list) != len(notes_list):
                         score.events.note = new_list
         # Explicitly build a frame for immediate feedback (cache + hit rects)
-        self._editor.draw_frame()
+            if hasattr(self._editor, 'force_redraw_from_model'):
+                self._editor.force_redraw_from_model()
+            else:
+                self._editor.draw_frame()
 
     def _latest_measure_has_notes(self, score: SCORE) -> bool:
         """Return True if there is at least one note in the score's latest measure window.

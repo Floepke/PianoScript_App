@@ -78,7 +78,10 @@ class TempoTool(BaseTool):
             def _apply():
                 existing.tempo = int(tempo.value())
                 self._editor._snapshot_if_changed(coalesce=True, label='tempo_edit')
-                self._editor.draw_frame()
+                if hasattr(self._editor, 'force_redraw_from_model'):
+                    self._editor.force_redraw_from_model()
+                else:
+                    self._editor.draw_frame()
             dlg.accepted.connect(_apply)
             dlg.raise_()
             dlg.activateWindow()
@@ -93,7 +96,10 @@ class TempoTool(BaseTool):
         self._active_time = float(t)
         self._min_duration = float(min_dur)
         self._editor._snapshot_if_changed(coalesce=True, label='tempo_create')
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
 
     def on_left_drag(self, x: float, y: float, dx: float, dy: float) -> None:
         if self._editor is None or self._active_tempo_id is None or self._active_time is None:
@@ -110,7 +116,10 @@ class TempoTool(BaseTool):
                 except Exception:
                     pass
                 break
-        self._editor.draw_frame()
+        if hasattr(self._editor, 'force_redraw_from_model'):
+            self._editor.force_redraw_from_model()
+        else:
+            self._editor.draw_frame()
 
     def on_left_drag_end(self, x: float, y: float) -> None:
         if self._editor is None:
@@ -157,7 +166,10 @@ class TempoTool(BaseTool):
                 except Exception:
                     pass
                 self._editor._snapshot_if_changed(coalesce=True, label='tempo_delete')
-                self._editor.draw_frame()
+                if hasattr(self._editor, 'force_redraw_from_model'):
+                    self._editor.force_redraw_from_model()
+                else:
+                    self._editor.draw_frame()
                 return
 
     def on_mouse_move(self, x: float, y: float) -> None:
