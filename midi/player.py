@@ -31,6 +31,8 @@ class Player:
         self._synth = None  # internal synth instance when using 'internal_synth'
         # Whether to send MIDI transport (start/stop/clock/Spp)
         self._send_midi_transport: bool = True
+        # Whether to persist settings to appdata
+        self._persist_settings: bool = True
         # Load preferences from appdata
         try:
             adm = get_appdata_manager()
@@ -144,12 +146,13 @@ class Player:
 
     def set_playback_type(self, playback_type: str) -> None:
         self._playback_type = str(playback_type)
-        try:
-            adm = get_appdata_manager()
-            adm.set("playback_type", self._playback_type)
-            adm.save()
-        except Exception:
-            pass
+        if self._persist_settings:
+            try:
+                adm = get_appdata_manager()
+                adm.set("playback_type", self._playback_type)
+                adm.save()
+            except Exception:
+                pass
 
     def list_output_ports(self) -> list[str]:
         try:
@@ -175,12 +178,13 @@ class Player:
             pass
         self._port_name = str(name) if name else None
         # Persist selection
-        try:
-            adm = get_appdata_manager()
-            adm.set("midi_out_port", self._port_name or "")
-            adm.save()
-        except Exception:
-            pass
+        if self._persist_settings:
+            try:
+                adm = get_appdata_manager()
+                adm.set("midi_out_port", self._port_name or "")
+                adm.save()
+            except Exception:
+                pass
         # Attempt to open immediately
         if self._port_name:
             try:
@@ -346,12 +350,16 @@ class Player:
 
     def set_send_midi_transport(self, enabled: bool) -> None:
         self._send_midi_transport = bool(enabled)
-        try:
-            adm = get_appdata_manager()
-            adm.set("send_midi_transport", bool(self._send_midi_transport))
-            adm.save()
-        except Exception:
-            pass
+        if self._persist_settings:
+            try:
+                adm = get_appdata_manager()
+                adm.set("send_midi_transport", bool(self._send_midi_transport))
+                adm.save()
+            except Exception:
+                pass
+
+    def set_persist_settings(self, enabled: bool) -> None:
+        self._persist_settings = bool(enabled)
 
     def _build_events_full(self, score) -> List[Tuple[str, float, int, int]]:
         events: List[Tuple[str, float, int, int]] = []

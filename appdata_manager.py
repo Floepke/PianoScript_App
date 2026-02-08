@@ -228,6 +228,7 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("snap_divide", 1, "Last selected snap divide (tuplets factor) for editor snapping")
         adm.register("selected_tool", "note", "Last selected tool name in the tool selector")
         adm.register("editor_scroll_pos", 0, "Last editor scroll position (logical px)")
+        adm.register("center_playhead_enabled", True, "Center editor view on playhead during playback")
         # MIDI output port preference
         adm.register("midi_out_port", "", "Last selected external MIDI output port name")
         # Playback backend selection

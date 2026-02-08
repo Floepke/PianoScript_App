@@ -21,6 +21,7 @@ from file_model.events.tempo import Tempo
 from file_model.layout import Layout
 from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid
+from file_model.appstate import AppState
 
 
 @dataclass
@@ -76,7 +77,9 @@ class SCORE:
 	events: Events = field(default_factory=Events)
 	layout: Layout = field(default_factory=Layout)
 	editor: EditorSettings = field(default_factory=EditorSettings)
+	app_state: AppState = field(default_factory=AppState)
 	_next_id: int = 1
+	_app_state_from_file: bool = False
 
 	# ---- Builders (ensure unique _id) ----
 	def _gen_id(self) -> int:
@@ -239,6 +242,15 @@ class SCORE:
 		ed = data.get('editor', {}) or {}
 		self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
 
+		# App state (optional)
+		app = data.get('app_state', None)
+		if isinstance(app, dict):
+			self.app_state = AppState(**_merge_with_defaults(AppState, app, 'app_state'))
+			self._app_state_from_file = True
+		else:
+			self.app_state = AppState()
+			self._app_state_from_file = False
+
 		# Events lists: generic loader based on Events dataclass field types
 		ev = data.get('events', {}) or {}
 		self.events = Events()
@@ -379,6 +391,15 @@ class SCORE:
 		ed = (data or {}).get('editor', {}) or {}
 		self.editor = EditorSettings(**_merge_with_defaults(EditorSettings, ed, 'editor'))
 
+		# App state
+		app = (data or {}).get('app_state', None)
+		if isinstance(app, dict):
+			self.app_state = AppState(**_merge_with_defaults(AppState, app, 'app_state'))
+			self._app_state_from_file = True
+		else:
+			self.app_state = AppState()
+			self._app_state_from_file = False
+
 		# Events
 		ev = (data or {}).get('events', {}) or {}
 		self.events = Events()
@@ -457,7 +478,9 @@ class SCORE:
 		self.events = Events()
 		self.layout = Layout()
 		self.editor = EditorSettings()
+		self.app_state = AppState()
 		self._next_id = 1
+		self._app_state_from_file = False
 		# Add an initial tempo at time 0 for a default 4/4 beat length
 		try:
 			numer = int(getattr(self.base_grid[0], 'numerator', 4) or 4) if self.base_grid else 4

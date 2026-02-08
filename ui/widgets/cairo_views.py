@@ -33,6 +33,8 @@ class CairoEditorWidget(QtWidgets.QWidget):
     viewportMetricsChanged = QtCore.Signal(int, int, float, float)
     # Signal: emit logical pixel scroll value when wheel scrolling changes it
     scrollLogicalPxChanged = QtCore.Signal(int)
+    # Signal: emitted when the mouse wheel scrolls inside the editor view
+    scrollWheelUsed = QtCore.Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
         # Allow splitter to fully collapse this view
@@ -357,6 +359,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
                             if new_scroll != self._scroll_logical_px:
                                 self._scroll_logical_px = new_scroll
                                 self.scrollLogicalPxChanged.emit(new_scroll)
+                                self.scrollWheelUsed.emit()
                         except Exception:
                             pass
                     # Repaint; metrics will be recomputed and emitted in paintEvent
@@ -377,6 +380,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
         if new_val != self._scroll_logical_px:
             self._scroll_logical_px = new_val
             self.scrollLogicalPxChanged.emit(new_val)
+            self.scrollWheelUsed.emit()
             self.update()
         ev.accept()
 

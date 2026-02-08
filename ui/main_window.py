@@ -2,7 +2,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from typing import Optional
 import sys
 from datetime import datetime
-from file_model.SCORE import SCORE
+from file_model.appstate import AppState
 from file_model.file_manager import FileManager
 from ui.widgets.toolbar_splitter import ToolbarSplitter
 from ui.widgets.cairo_views import CairoEditorWidget
@@ -10,7 +10,7 @@ from ui.widgets.tool_selector import ToolSelectorDock
 from ui.widgets.snap_size_selector import SnapSizeDock
 from ui.widgets.draw_util import DrawUtil
 from ui.widgets.draw_view import DrawUtilView
-from settings_manager import open_preferences, get_preferences
+from settings_manager import open_preferences, get_preferences_manager
 from appdata_manager import get_appdata_manager
 from engraver.engraver import Engraver
 from editor.tool_manager import ToolManager
@@ -25,6 +25,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # File management
         self.file_manager = FileManager(self)
+
+        # View options
+        self._center_playhead_enabled = True
         
         # Install error-backup hook early so any unhandled exception triggers a backup
         self.file_manager.install_error_backup_hook()
@@ -189,22 +192,10 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         # Persist snap changes and update editor
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
-        # Restore last tool and snap size from appdata; fallback to defaults
+        # Restore tool and snap size from project app state (fallback to appdata defaults)
         try:
-            adm_restore = get_appdata_manager()
-            last_tool = str(adm_restore.get("selected_tool", "note") or "note")
-            try:
-                self.tool_dock.selector.set_selected_tool(last_tool, emit=True)
-            except Exception:
-                self.editor_controller.set_tool_by_name('note')
-            sb = int(adm_restore.get("snap_base", 8) or 8)
-            sd = int(adm_restore.get("snap_divide", 1) or 1)
-            try:
-                self.snap_dock.selector.set_snap(sb, sd, emit=True)
-            except Exception:
-                pass
+            self._restore_app_state_from_score()
         except Exception:
-            # Fallback defaults
             try:
                 self.editor_controller.set_tool_by_name('note')
             except Exception:
@@ -258,12 +249,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor_vscroll.valueChanged.connect(self._on_editor_scroll_changed)
             # Keep external scrollbar in sync with wheel-driven scroll from the editor
             self.editor.scrollLogicalPxChanged.connect(self.editor_vscroll.setValue)
+            # Persist app state only on wheel scrolling inside the editor view
+            self.editor.scrollWheelUsed.connect(self._schedule_app_state_save)
         except Exception:
             pass
         # Restore last scroll position once viewport metrics are available
         try:
-            adm_scroll = get_appdata_manager()
-            self._pending_scroll_restore = int(adm_scroll.get("editor_scroll_pos", 0) or 0)
+            app_state = self._resolve_app_state_defaults()
+            self._pending_scroll_restore = int(getattr(app_state, "editor_scroll_pos", 0) or 0)
         except Exception:
             self._pending_scroll_restore = 0
 
@@ -274,8 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Initialize player (MIDI or Synth)
         try:
-            from midi.player import Player
-            self.player = Player()
+            self._ensure_player()
             try:
                 if hasattr(self, 'editor_controller') and self.editor_controller is not None:
                     self.editor_controller.set_player(self.player)
@@ -292,17 +284,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self._playhead_timer.timeout.connect(self._update_playhead_overlay)
         except Exception:
             self._playhead_timer = None
-        # Apply stored synth settings if any
+        # Apply stored synth settings if any (per project)
         try:
-            adm_init = get_appdata_manager()
-            if str(adm_init.get("playback_type", "midi_port")) == "internal_synth":
+            app_state = self._resolve_app_state_defaults()
+            if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") == "internal_synth":
                 if not hasattr(self, 'player') or self.player is None:
                     from midi.player import Player
                     self.player = Player()
-                lw = adm_init.get("synth_left_wavetable", []) or []
-                rw = adm_init.get("synth_right_wavetable", []) or []
+                lw = list(getattr(app_state, "synth_left_wavetable", []) or [])
+                rw = list(getattr(app_state, "synth_right_wavetable", []) or [])
                 # Apply preferred audio device first
-                dev = str(adm_init.get("audio_output_device", "") or "")
+                dev = str(getattr(app_state, "audio_output_device", "") or "")
                 if dev and hasattr(self.player, 'set_audio_output_device'):
                     try:
                         self.player.set_audio_output_device(dev)
@@ -311,20 +303,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 if lw and rw:
                     import numpy as _np
                     self.player.set_wavetables(_np.asarray(lw, dtype=_np.float32), _np.asarray(rw, dtype=_np.float32))
-                self.player.set_adsr(float(adm_init.get("synth_attack", 0.005) or 0.005),
-                                     float(adm_init.get("synth_decay", 0.05) or 0.05),
-                                     float(adm_init.get("synth_sustain", 0.6) or 0.6),
-                                     float(adm_init.get("synth_release", 0.1) or 0.1))
+                self.player.set_adsr(float(getattr(app_state, "synth_attack", 0.005) or 0.005),
+                                     float(getattr(app_state, "synth_decay", 0.05) or 0.05),
+                                     float(getattr(app_state, "synth_sustain", 0.6) or 0.6),
+                                     float(getattr(app_state, "synth_release", 0.1) or 0.1))
                 try:
                     # Apply persisted master gain
                     if hasattr(self.player, 'set_gain'):
-                        self.player.set_gain(float(adm_init.get("synth_gain", 0.35) or 0.35))
+                        self.player.set_gain(float(getattr(app_state, "synth_gain", 0.35) or 0.35))
                     # Apply persisted humanize (detune cents)
                     if hasattr(self.player, 'set_humanize_detune_cents'):
-                        self.player.set_humanize_detune_cents(float(adm_init.get("synth_humanize_cents", 3.0) or 3.0))
+                        self.player.set_humanize_detune_cents(float(getattr(app_state, "synth_humanize_cents", 3.0) or 3.0))
                     # Apply persisted humanize interval (seconds)
                     if hasattr(self.player, 'set_humanize_interval_s'):
-                        self.player.set_humanize_interval_s(float(adm_init.get("synth_humanize_interval_s", 1.0) or 1.0))
+                        self.player.set_humanize_interval_s(float(getattr(app_state, "synth_humanize_interval_s", 1.0) or 1.0))
                 except Exception:
                     pass
         except Exception:
@@ -422,15 +414,17 @@ class MainWindow(QtWidgets.QMainWindow):
         midi_port_act.triggered.connect(self._choose_midi_port)
         playback_menu.addAction(midi_port_act)
 
+        app_state = self._resolve_app_state_defaults()
+
         # MIDI transport toggle (Start/Stop/Clock/SPP)
         transport_act = QtGui.QAction("Send MIDI Transport (start/stop/clock/spp)", self, checkable=True)
         try:
-            adm = get_appdata_manager()
-            transport_act.setChecked(bool(adm.get("send_midi_transport", True)))
+            transport_act.setChecked(bool(app_state.send_midi_transport))
         except Exception:
             transport_act.setChecked(True)
         transport_act.triggered.connect(lambda: self._set_send_midi_transport(transport_act.isChecked()))
         playback_menu.addAction(transport_act)
+        self._transport_act = transport_act
 
         # Playback Mode submenu (under Playback menu)
         pm_submenu = playback_menu.addMenu("Playback Mode")
@@ -441,10 +435,9 @@ class MainWindow(QtWidgets.QMainWindow):
         grp.addAction(act_synth)
         pm_submenu.addAction(act_midi)
         pm_submenu.addAction(act_synth)
-        # Initialize from appdata
+        # Initialize from app state
         try:
-            adm = get_appdata_manager()
-            mode = str(adm.get("playback_type", "midi_port") or "midi_port")
+            mode = str(getattr(app_state, "playback_type", "midi_port") or "midi_port")
             if mode == "internal_synth":
                 act_synth.setChecked(True)
             else:
@@ -454,6 +447,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Handlers
         act_midi.triggered.connect(lambda: self._set_playback_mode("midi_port"))
         act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
+        self._act_midi = act_midi
+        self._act_synth = act_synth
 
         # Audio output device chooser for internal synth (under Playback menu)
         audio_dev_act = QtGui.QAction("Set Audio Output Device...", self)
@@ -517,6 +512,20 @@ class MainWindow(QtWidgets.QMainWindow):
         # View actions
         view_menu.addAction(QtGui.QAction("Zoom In", self))
         view_menu.addAction(QtGui.QAction("Zoom Out", self))
+        view_menu.addSeparator()
+        center_playhead_act = QtGui.QAction("Center View on Playhead", self, checkable=True)
+        try:
+            enabled = bool(getattr(app_state, "center_playhead_enabled", True))
+            center_playhead_act.setChecked(enabled)
+            self._center_playhead_enabled = enabled
+        except Exception:
+            center_playhead_act.setChecked(True)
+            self._center_playhead_enabled = True
+        center_playhead_act.triggered.connect(
+            lambda checked=False: self._set_center_playhead_enabled(bool(checked))
+        )
+        view_menu.addAction(center_playhead_act)
+        self._center_playhead_act = center_playhead_act
 
         # Wire up triggers
         new_act.triggered.connect(self._file_new)
@@ -558,12 +567,209 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _choose_midi_port(self) -> None:
-        # Ensure player exists
+    def _current_app_state(self) -> AppState:
+        try:
+            sc = self.file_manager.current() if hasattr(self, 'file_manager') else None
+        except Exception:
+            sc = None
+        if sc is None:
+            return AppState()
+        try:
+            if not hasattr(sc, 'app_state') or sc.app_state is None:
+                sc.app_state = AppState()
+        except Exception:
+            sc.app_state = AppState()
+        return sc.app_state
+
+    def _resolve_app_state_defaults(self) -> AppState:
+        """Return app state; if not present in file, seed from appdata defaults."""
+        app_state = self._current_app_state()
+        try:
+            sc = self.file_manager.current()
+            if bool(getattr(sc, '_app_state_from_file', False)):
+                return app_state
+        except Exception:
+            pass
+        try:
+            adm = get_appdata_manager()
+            app_state.editor_scroll_pos = int(adm.get("editor_scroll_pos", app_state.editor_scroll_pos) or app_state.editor_scroll_pos)
+            app_state.snap_base = int(adm.get("snap_base", app_state.snap_base) or app_state.snap_base)
+            app_state.snap_divide = int(adm.get("snap_divide", app_state.snap_divide) or app_state.snap_divide)
+            app_state.selected_tool = str(adm.get("selected_tool", app_state.selected_tool) or app_state.selected_tool)
+            app_state.center_playhead_enabled = bool(adm.get("center_playhead_enabled", app_state.center_playhead_enabled))
+            app_state.playback_type = str(adm.get("playback_type", app_state.playback_type) or app_state.playback_type)
+            app_state.send_midi_transport = bool(adm.get("send_midi_transport", app_state.send_midi_transport))
+            app_state.midi_out_port = str(adm.get("midi_out_port", app_state.midi_out_port) or app_state.midi_out_port)
+            app_state.audio_output_device = str(adm.get("audio_output_device", app_state.audio_output_device) or app_state.audio_output_device)
+            app_state.synth_left_wavetable = list(adm.get("synth_left_wavetable", app_state.synth_left_wavetable) or [])
+            app_state.synth_right_wavetable = list(adm.get("synth_right_wavetable", app_state.synth_right_wavetable) or [])
+            app_state.synth_attack = float(adm.get("synth_attack", app_state.synth_attack) or app_state.synth_attack)
+            app_state.synth_decay = float(adm.get("synth_decay", app_state.synth_decay) or app_state.synth_decay)
+            app_state.synth_sustain = float(adm.get("synth_sustain", app_state.synth_sustain) or app_state.synth_sustain)
+            app_state.synth_release = float(adm.get("synth_release", app_state.synth_release) or app_state.synth_release)
+            app_state.synth_gain = float(adm.get("synth_gain", app_state.synth_gain) or app_state.synth_gain)
+            app_state.synth_humanize_cents = float(adm.get("synth_humanize_cents", app_state.synth_humanize_cents) or app_state.synth_humanize_cents)
+            app_state.synth_humanize_interval_s = float(adm.get("synth_humanize_interval_s", app_state.synth_humanize_interval_s) or app_state.synth_humanize_interval_s)
+        except Exception:
+            pass
+        return app_state
+
+    def _restore_app_state_from_score(self) -> None:
+        self._is_restoring_app_state = True
+        try:
+            app_state = self._resolve_app_state_defaults()
+            # Tool selection
+            try:
+                self.tool_dock.selector.set_selected_tool(str(app_state.selected_tool or "note"), emit=True)
+            except Exception:
+                try:
+                    self.editor_controller.set_tool_by_name('note')
+                except Exception:
+                    pass
+            # Snap size
+            try:
+                sb = int(app_state.snap_base or 8)
+                sd = int(app_state.snap_divide or 1)
+                self.snap_dock.selector.set_snap(sb, sd, emit=True)
+            except Exception:
+                pass
+            # Center playhead toggle
+            try:
+                self._center_playhead_enabled = bool(app_state.center_playhead_enabled)
+                if hasattr(self, '_center_playhead_act') and self._center_playhead_act is not None:
+                    self._center_playhead_act.blockSignals(True)
+                    self._center_playhead_act.setChecked(self._center_playhead_enabled)
+                    self._center_playhead_act.blockSignals(False)
+            except Exception:
+                pass
+            # Playback mode + transport toggles
+            try:
+                if hasattr(self, '_transport_act') and self._transport_act is not None:
+                    self._transport_act.blockSignals(True)
+                    self._transport_act.setChecked(bool(app_state.send_midi_transport))
+                    self._transport_act.blockSignals(False)
+            except Exception:
+                pass
+            try:
+                mode = str(app_state.playback_type or "midi_port")
+                if hasattr(self, '_act_midi') and self._act_midi is not None:
+                    self._act_midi.blockSignals(True)
+                    self._act_midi.setChecked(mode != "internal_synth")
+                    self._act_midi.blockSignals(False)
+                if hasattr(self, '_act_synth') and self._act_synth is not None:
+                    self._act_synth.blockSignals(True)
+                    self._act_synth.setChecked(mode == "internal_synth")
+                    self._act_synth.blockSignals(False)
+            except Exception:
+                pass
+            # Apply player settings
+            try:
+                self._apply_app_state_to_player(app_state)
+            except Exception:
+                pass
+            # Scroll restore (used when metrics arrive)
+            try:
+                self._pending_scroll_restore = int(app_state.editor_scroll_pos or 0)
+            except Exception:
+                pass
+        finally:
+            self._is_restoring_app_state = False
+
+    def _apply_app_state_to_player(self, app_state: AppState) -> None:
+        try:
+            self._ensure_player()
+            # Playback mode
+            try:
+                if hasattr(self.player, 'set_playback_type'):
+                    self.player.set_playback_type(str(app_state.playback_type or "midi_port"))
+            except Exception:
+                pass
+            # Transport toggle
+            try:
+                if hasattr(self.player, 'set_send_midi_transport'):
+                    self.player.set_send_midi_transport(bool(app_state.send_midi_transport))
+            except Exception:
+                pass
+            # MIDI port preference
+            try:
+                if str(app_state.midi_out_port or ""):
+                    self.player.set_output_port(str(app_state.midi_out_port))
+            except Exception:
+                pass
+            # Audio device + synth parameters
+            try:
+                dev = str(app_state.audio_output_device or "")
+                if dev and hasattr(self.player, 'set_audio_output_device'):
+                    self.player.set_audio_output_device(dev)
+            except Exception:
+                pass
+            try:
+                lw = list(app_state.synth_left_wavetable or [])
+                rw = list(app_state.synth_right_wavetable or [])
+                if lw and rw:
+                    import numpy as _np
+                    self.player.set_wavetables(_np.asarray(lw, dtype=_np.float32), _np.asarray(rw, dtype=_np.float32))
+            except Exception:
+                pass
+            try:
+                if hasattr(self.player, 'set_adsr'):
+                    self.player.set_adsr(float(app_state.synth_attack or 0.005),
+                                         float(app_state.synth_decay or 0.05),
+                                         float(app_state.synth_sustain or 0.6),
+                                         float(app_state.synth_release or 0.1))
+                if hasattr(self.player, 'set_gain'):
+                    self.player.set_gain(float(app_state.synth_gain or 0.35))
+                if hasattr(self.player, 'set_humanize_detune_cents'):
+                    self.player.set_humanize_detune_cents(float(app_state.synth_humanize_cents or 3.0))
+                if hasattr(self.player, 'set_humanize_interval_s'):
+                    self.player.set_humanize_interval_s(float(app_state.synth_humanize_interval_s or 1.0))
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _schedule_app_state_save(self) -> None:
+        if self._is_restoring_app_state:
+            return
+        try:
+            if hasattr(self, '_app_state_save_timer') and self._app_state_save_timer is not None:
+                self._app_state_save_timer.start(500)
+        except Exception:
+            pass
+
+    def _flush_app_state_save(self) -> None:
+        """Persist app state to session and optionally autosave project."""
+        try:
+            if hasattr(self.file_manager, 'autosave_current'):
+                self.file_manager.autosave_current()
+        except Exception:
+            pass
+        try:
+            pm = get_preferences_manager()
+            auto_save_enabled = bool(pm.get("auto_save", True))
+        except Exception:
+            auto_save_enabled = True
+        if auto_save_enabled:
+            try:
+                if self.file_manager.path() is not None:
+                    self.file_manager.save()
+            except Exception:
+                pass
+
+    def _ensure_player(self) -> None:
         try:
             if not hasattr(self, 'player') or self.player is None:
                 from midi.player import Player
                 self.player = Player()
+            if hasattr(self.player, 'set_persist_settings'):
+                self.player.set_persist_settings(False)
+        except Exception:
+            pass
+
+    def _choose_midi_port(self) -> None:
+        # Ensure player exists
+        try:
+            self._ensure_player()
         except Exception as exc:
             try:
                 QtWidgets.QMessageBox.critical(self, "MIDI Output", f"MIDI backend unavailable: {exc}")
@@ -576,8 +782,8 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         # If not in MIDI mode, inform user
         try:
-            adm = get_appdata_manager()
-            if str(adm.get("playback_type", "midi_port")) != "midi_port":
+            app_state = self._current_app_state()
+            if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") != "midi_port":
                 QtWidgets.QMessageBox.information(self, "Playback Mode", "Switch to 'External MIDI Port' mode to choose a port.")
                 return
         except Exception:
@@ -607,6 +813,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         try:
             self.player.set_output_port(str(item))
+            try:
+                app_state = self._current_app_state()
+                app_state.midi_out_port = str(item)
+            except Exception:
+                pass
         except Exception as exc:
             try:
                 QtWidgets.QMessageBox.critical(self, "MIDI Output", f"Failed to open port: {exc}")
@@ -678,6 +889,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor_controller.reset_undo_stack()
         except Exception:
             pass
+        # Reset editor scroll to top for a fresh project
+        try:
+            self._pending_scroll_restore = 0
+            self.editor_vscroll.setValue(0)
+            self.editor.set_scroll_logical_px(0)
+        except Exception:
+            pass
+        try:
+            self._restore_app_state_from_score()
+        except Exception:
+            pass
         self._update_title()
 
     def _file_open(self) -> None:
@@ -696,6 +918,10 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 if hasattr(self.editor_controller, 'force_redraw_from_model'):
                     self.editor_controller.force_redraw_from_model()
+            except Exception:
+                pass
+            try:
+                self._restore_app_state_from_score()
             except Exception:
                 pass
             self._update_title()
@@ -754,6 +980,11 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.Slot(int)
     def _on_editor_scroll_changed(self, value: int) -> None:
         self.editor.set_scroll_logical_px(value)
+        try:
+            app_state = self._current_app_state()
+            app_state.editor_scroll_pos = int(value)
+        except Exception:
+            pass
 
     def _edit_undo(self) -> None:
         self.editor_controller.undo()
@@ -809,7 +1040,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 res = self.editor_controller.delete_selection()
                 deleted = bool(res)
             if deleted:
-                self._refresh_views_from_score()
                 try:
                     self.editor_controller.set_score(self.file_manager.current())
                 except Exception:
@@ -962,14 +1192,12 @@ class MainWindow(QtWidgets.QMainWindow):
         plays the full score.
         """
         try:
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
+            self._ensure_player()
             sc = self.file_manager.current()
             # If internal synth mode, no port prompt
             try:
-                adm = get_appdata_manager()
-                if str(adm.get("playback_type", "midi_port")) == "internal_synth":
+                app_state = self._current_app_state()
+                if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") == "internal_synth":
                     if start_units is None:
                         self.player.play_score(sc)
                     else:
@@ -1065,7 +1293,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # Update editor playhead and trigger overlay refresh
             self.editor_controller.playhead_time = units
             # Center the playhead in the viewport while playing
-            self._center_playhead_scroll(units)
+            if getattr(self, "_center_playhead_enabled", True):
+                self._center_playhead_scroll(units)
             if hasattr(self.editor, 'request_overlay_refresh'):
                 self.editor.request_overlay_refresh()
             else:
@@ -1102,6 +1331,20 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+    def _set_center_playhead_enabled(self, enabled: bool) -> None:
+        self._center_playhead_enabled = bool(enabled)
+        try:
+            app_state = self._current_app_state()
+            app_state.center_playhead_enabled = bool(enabled)
+        except Exception:
+            pass
+        if self._center_playhead_enabled:
+            try:
+                units = getattr(self.editor_controller, 'playhead_time', None)
+                self._center_playhead_scroll(units)
+            except Exception:
+                pass
+
     def _clear_playhead_overlay(self) -> None:
         try:
             if hasattr(self, '_playhead_timer') and self._playhead_timer is not None and self._playhead_timer.isActive():
@@ -1128,13 +1371,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 dlg.setWindowModality(QtCore.Qt.WindowModality.NonModal)
             except Exception:
                 pass
-            # Initialize from appdata
-            adm = get_appdata_manager()
             def on_apply(left, right, a, d, s, r, g, h, hi):
                 try:
-                    if not hasattr(self, 'player') or self.player is None:
-                        from midi.player import Player
-                        self.player = Player()
+                    self._ensure_player()
                     self.player.set_wavetables(left, right)
                     self.player.set_adsr(a, d, s, r)
                     if hasattr(self.player, 'set_gain'):
@@ -1143,16 +1382,19 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.player.set_humanize_detune_cents(float(h))
                     if hasattr(self.player, 'set_humanize_interval_s'):
                         self.player.set_humanize_interval_s(float(hi))
-                    adm.set("synth_left_wavetable", [float(x) for x in list(left)])
-                    adm.set("synth_right_wavetable", [float(x) for x in list(right)])
-                    adm.set("synth_attack", float(a))
-                    adm.set("synth_decay", float(d))
-                    adm.set("synth_sustain", float(s))
-                    adm.set("synth_release", float(r))
-                    adm.set("synth_gain", float(g))
-                    adm.set("synth_humanize_cents", float(h))
-                    adm.set("synth_humanize_interval_s", float(hi))
-                    adm.save()
+                    try:
+                        app_state = self._current_app_state()
+                        app_state.synth_left_wavetable = [float(x) for x in list(left)]
+                        app_state.synth_right_wavetable = [float(x) for x in list(right)]
+                        app_state.synth_attack = float(a)
+                        app_state.synth_decay = float(d)
+                        app_state.synth_sustain = float(s)
+                        app_state.synth_release = float(r)
+                        app_state.synth_gain = float(g)
+                        app_state.synth_humanize_cents = float(h)
+                        app_state.synth_humanize_interval_s = float(hi)
+                    except Exception:
+                        pass
                     self._status("Synth updated", 1500)
                 except Exception:
                     pass
@@ -1168,20 +1410,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _set_playback_mode(self, mode: str) -> None:
         try:
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
+            self._ensure_player()
             try:
                 self.player.stop()
             except Exception:
                 pass
             try:
                 # Persist and update player
-                adm = get_appdata_manager()
-                adm.set("playback_type", str(mode))
-                adm.save()
                 if hasattr(self.player, 'set_playback_type'):
                     self.player.set_playback_type(str(mode))
+                try:
+                    app_state = self._current_app_state()
+                    app_state.playback_type = str(mode)
+                except Exception:
+                    pass
             except Exception:
                 pass
             self._status(f"Playback mode: {'Internal Synth' if mode=='internal_synth' else 'External MIDI Port'}", 2500)
@@ -1190,26 +1432,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _set_send_midi_transport(self, enabled: bool) -> None:
         try:
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
+            self._ensure_player()
             if hasattr(self.player, 'set_send_midi_transport'):
                 self.player.set_send_midi_transport(bool(enabled))
-            self._status(f"MIDI transport: {'On' if enabled else 'Off'}", 2000)
-        except Exception:
             try:
-                adm = get_appdata_manager()
-                adm.set("send_midi_transport", bool(enabled))
-                adm.save()
+                app_state = self._current_app_state()
+                app_state.send_midi_transport = bool(enabled)
             except Exception:
                 pass
+            self._status(f"MIDI transport: {'On' if enabled else 'Off'}", 2000)
+        except Exception:
+            pass
 
     def _play_test_tone(self) -> None:
         try:
             # Ensure player and synth exist
-            if not hasattr(self, 'player') or self.player is None:
-                from midi.player import Player
-                self.player = Player()
+            self._ensure_player()
             # Switch to synth temporarily if needed
             try:
                 if hasattr(self.player, 'set_playback_type'):
@@ -1234,7 +1472,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 try:
                     # Apply preferred audio device if set
                     try:
-                        dev = str(get_appdata_manager().get("audio_output_device", "") or "")
+                        app_state = self._current_app_state()
+                        dev = str(getattr(app_state, "audio_output_device", "") or "")
                         if dev and hasattr(self.player, 'set_audio_output_device'):
                             self.player.set_audio_output_device(dev)
                     except Exception:
@@ -1267,20 +1506,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             names = [str(d.get('name', '')) for d in outputs]
             # Preselect previously saved device if available
-            pref = str(get_appdata_manager().get("audio_output_device", "") or "")
+            pref = str(getattr(self._current_app_state(), "audio_output_device", "") or "")
             default_index = names.index(pref) if pref in names else 0
             item, ok = QtWidgets.QInputDialog.getItem(self, "Select Audio Output", "Device:", names, default_index, False)
             if not ok:
                 return
             name = str(item)
-            adm = get_appdata_manager()
-            adm.set("audio_output_device", name)
-            adm.save()
+            try:
+                app_state = self._current_app_state()
+                app_state.audio_output_device = name
+            except Exception:
+                pass
             # Apply to synth if present
             try:
-                if not hasattr(self, 'player') or self.player is None:
-                    from midi.player import Player
-                    self.player = Player()
+                self._ensure_player()
                 if hasattr(self.player, 'set_audio_output_device'):
                     self.player.set_audio_output_device(name)
             except Exception:
@@ -1303,7 +1542,7 @@ class MainWindow(QtWidgets.QMainWindow):
             wave = _np.sin(2 * _np.pi * 440.0 * t).astype(_np.float32)
             stereo = _np.column_stack([wave, wave])
             # Preferred device
-            name = str(get_appdata_manager().get("audio_output_device", "") or "")
+            name = str(getattr(self._current_app_state(), "audio_output_device", "") or "")
             dev = name if name else 'default'
             # Stop any previous playback
             try:
@@ -1378,23 +1617,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 
             if hasattr(self, 'editor_canvas') and self.editor_canvas is not None:
                 self.editor_canvas.update()
-            # Persist to appdata
+            # Persist to app state
             try:
-                adm = get_appdata_manager()
-                adm.set("snap_base", int(base))
-                adm.set("snap_divide", int(divide))
-                adm.save()
+                app_state = self._current_app_state()
+                app_state.snap_base = int(base)
+                app_state.snap_divide = int(divide)
             except Exception:
                 pass
         except Exception:
             pass
 
     def _on_tool_selected(self, name: str) -> None:
-        # Persist selected tool to appdata
+        # Persist selected tool to app state
         try:
-            adm = get_appdata_manager()
-            adm.set("selected_tool", str(name))
-            adm.save()
+            app_state = self._current_app_state()
+            app_state.selected_tool = str(name)
         except Exception:
             pass
 
@@ -1439,12 +1676,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 if sp is not None and hasattr(sp, 'sizes'):
                     sizes = list(sp.sizes())
                     adm.set("splitter_sizes", [int(sizes[0]) if sizes else 0, int(sizes[1]) if len(sizes) > 1 else 0])
-            except Exception:
-                pass
-            # Save current editor scroll position
-            try:
-                if hasattr(self, 'editor_vscroll') and self.editor_vscroll is not None:
-                    adm.set("editor_scroll_pos", int(self.editor_vscroll.value()))
             except Exception:
                 pass
             # Persist whether the session is currently saved to a project file
