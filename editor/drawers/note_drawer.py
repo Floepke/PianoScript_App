@@ -155,7 +155,7 @@ class NoteDrawerMixin:
             return
         layout = cast("Editor", self).current_score().layout
         w = float(self.semitone_dist or 0.5)
-        stem_len = float(layout.note_stem_length_mm or 7.5) * float(layout.scale or 1.0)
+        stem_len = float(layout.note_stem_length_semitone or 3) * w
         thickness = float(layout.grid_barline_thickness_mm or 0.25)
         hand = getattr(n, 'hand', '<')
         if hand in ('l', '<'):
@@ -192,7 +192,7 @@ class NoteDrawerMixin:
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)
         layout = cast("Editor", self).current_score().layout
-        outline_w = float(layout.note_stem_thickness_mm or 0.5)
+        outline_w = 0.4
         # Adjust vertical for black-note rule 'above_stem'
         if n.pitch in BLACK_KEYS and layout.black_note_rule == 'above_stem':
             y1 = y1 - (w * 2.0)
@@ -249,8 +249,8 @@ class NoteDrawerMixin:
 
     def _draw_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         layout = cast("Editor", self).current_score().layout
-        stem_len = float(layout.note_stem_length_mm or 5.0) * float(layout.scale or 1.0)
-        stem_w = float(layout.note_stem_thickness_mm or 0.5)
+        stem_len = float(layout.note_stem_length_semitone or 3) * float(self.semitone_dist or 0.5)
+        stem_w = 0.75
         # Stem direction based on hand
         if getattr(n, 'hand', '<') in ('l', '<'):
             x2 = x - stem_len
@@ -308,7 +308,7 @@ class NoteDrawerMixin:
 
     def _draw_connect_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         # Connect notes in a chord (same start time, same hand)
-        layout = cast("Editor", self).current_score().layout
+        stem_w = 0.75
         hand = getattr(n, 'hand', '<')
         t = float(n.time)
         cache = cast("Editor", self)._draw_cache or {}
@@ -326,7 +326,7 @@ class NoteDrawerMixin:
             x2,
             y1,
             color=self.notation_color,
-            width_mm=layout.note_stem_thickness_mm or 0.5,
+            width_mm=stem_w,
             id=0,
             tags=["chord_connect"],
         )

@@ -1153,7 +1153,7 @@ class Editor(QtCore.QObject,
                 if self.pitch_cursor in BLACK_KEYS:
                     w *= .8
                 layout = self.current_score().layout
-                l = float(layout.note_stem_length_mm) * float(layout.scale or 1.0)
+                l = float(layout.note_stem_length_semitone or 3) * float(self.semitone_dist or 0.5)
                 # Draw a translucent preview notehead at cursor
                 fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
                 
@@ -1197,38 +1197,35 @@ class Editor(QtCore.QObject,
                     )
 
         # --- Selection window overlay (always visible when active) ---
-        try:
-            if self._selection_active:
-                # Compute absolute selection bounds in mm
-                y1_mm = float(self.time_to_mm(float(self._sel_start_units)))
-                y2_mm = float(self.time_to_mm(float(self._sel_end_units)))
-                sel_top_mm = min(y1_mm, y2_mm)
-                sel_bottom_mm = max(y1_mm, y2_mm)
-                # Clamp to current viewport to allow selection beyond the visible area
-                vp_top = float(self._view_y_mm_offset or 0.0)
-                vp_bottom = vp_top + float(self._viewport_h_mm or 0.0)
-                draw_top = max(sel_top_mm, vp_top)
-                draw_bottom = min(sel_bottom_mm, vp_bottom)
-                if draw_bottom > draw_top:
-                    # Horizontal extent: span between selected pitch range
-                    min_p = max(1, min(88, int(self._sel_min_pitch)))
-                    max_p = max(1, min(88, int(self._sel_max_pitch)))
-                    x_left = float(self.pitch_to_x(min_p))
-                    x_right = float(self.pitch_to_x(max_p))
-                    x2 = min(x_left, x_right)
-                    x1 = max(x_left, x_right)
-                    du.add_rectangle(
-                        x2,
-                        draw_top,
-                        x1,
-                        draw_bottom,
-                        stroke_color=None,
-                        fill_color=self.selection_color,
-                        id=0,
-                        tags=['selection_rect'],
-                    )
-        except Exception:
-            pass
+        if self._selection_active:
+            # Compute absolute selection bounds in mm
+            y1_mm = float(self.time_to_mm(float(self._sel_start_units)))
+            y2_mm = float(self.time_to_mm(float(self._sel_end_units)))
+            sel_top_mm = min(y1_mm, y2_mm)
+            sel_bottom_mm = max(y1_mm, y2_mm)
+            # Clamp to current viewport to allow selection beyond the visible area
+            vp_top = float(self._view_y_mm_offset or 0.0)
+            vp_bottom = vp_top + float(self._viewport_h_mm or 0.0)
+            draw_top = max(sel_top_mm, vp_top)
+            draw_bottom = min(sel_bottom_mm, vp_bottom)
+            if draw_bottom > draw_top:
+                # Horizontal extent: span between selected pitch range
+                min_p = max(1, min(88, int(self._sel_min_pitch)))
+                max_p = max(1, min(88, int(self._sel_max_pitch)))
+                x_left = float(self.pitch_to_x(min_p))
+                x_right = float(self.pitch_to_x(max_p))
+                x2 = min(x_left, x_right)
+                x1 = max(x_left, x_right)
+                du.add_rectangle(
+                    x2,
+                    draw_top,
+                    x1,
+                    draw_bottom,
+                    stroke_color=None,
+                    fill_color=self.selection_color,
+                    id=0,
+                    tags=['selection_rect'],
+                )
 
     # ---- Selection detection & clipboard ----
     def set_selection_window(self, start_units: float, end_units: float, active: bool = True) -> None:

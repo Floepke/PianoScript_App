@@ -1,5 +1,4 @@
 from PySide6 import QtCore
-from pathlib import Path
 from datetime import datetime
 import bisect
 import traceback
@@ -23,6 +22,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     base_grid = list(score.get('base_grid', []) or [])
     line_breaks = list(events.get('line_break', []) or [])
     notes = list(events.get('note', []) or [])
+    count_lines = list(events.get('count_line', []) or [])
     beam_markers = list(events.get('beam', []) or [])
 
     beam_by_hand: dict[str, list[dict]] = {'l': [], 'r': []}
@@ -104,13 +104,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             cur_bar += measure_len
 
     def _log(msg: str) -> None:
-        try:
-            log_path = Path.home() / '.keyTAB' / 'engraver.log'
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            with log_path.open('a', encoding='utf-8') as f:
-                f.write(msg + '\n')
-        except Exception:
-            traceback.print_exc()
+        return
 
     def _normalize_hex_color(value: str | None) -> str | None:
         if value is None:
@@ -822,6 +816,39 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     dash_pattern=None,
                 )
 
+            # Count line drawing (no handles)
+            if bool(layout.get('countline_visible', True)) and count_lines:
+                dash_pattern = list(layout.get('countline_dash_pattern', []) or [])
+                if dash_pattern:
+                    dash_pattern = [float(v) * scale for v in dash_pattern]
+                countline_w = float(layout.get('countline_thickness_mm', 0.5) or 0.5) * scale
+                for ev in count_lines:
+                    try:
+                        t0 = float(ev.get('time', 0.0) or 0.0)
+                        p1 = int(ev.get('pitch1', 40) or 40)
+                        p2 = int(ev.get('pitch2', 44) or 44)
+                    except Exception:
+                        traceback.print_exc()
+                        continue
+                    if op_time.lt(t0, float(line['time_start'])) or op_time.gt(t0, float(line['time_end'])):
+                        continue
+                    x1 = _key_to_x(p1)
+                    x2 = _key_to_x(p2)
+                    if x2 < x1:
+                        x1, x2 = x2, x1
+                    y_mm = _time_to_y(t0)
+                    du.add_line(
+                        x1,
+                        y_mm,
+                        x2,
+                        y_mm,
+                        color=(0, 0, 0, 1),
+                        width_mm=countline_w,
+                        dash_pattern=dash_pattern or [0.0, 1.5 * scale],
+                        id=int(ev.get('_id', 0) or 0),
+                        tags=['count_line'],
+                    )
+
             visible_keys = list(line.get('visible_keys', []))
             if not visible_keys:
                 visible_keys = [k for k in range(int(line['range'][0]), int(line['range'][1]) + 1) if k in line_keys]
@@ -860,7 +887,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     hand_norm = 'l' if hk in ('<', 'l') else 'r'
                     notes_by_hand_line[hand_norm].append(item)
 
-                layout_stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
+                stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
+                layout_stem_len = stem_len_units * semitone_mm
                 beam_w = float(layout.get('beam_thickness_mm', 1.0) or 1.0) * scale
                 stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                 line_start = float(line.get('time_start', 0.0) or 0.0)
@@ -980,7 +1008,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         on_barline = True
                         break
                 if on_barline:
-                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
+                    stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
+                    stem_len = stem_len_units * semitone_mm
                     thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale
                     if hand_key in ('l', '<'):
                         x1 = x
@@ -1043,7 +1072,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
                 # Draw stem
                 if bool(layout.get('note_stem_visible', True)):
-                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
+                    stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
+                    stem_len = stem_len_units * semitone_mm
                     stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                     x2 = x - stem_len if hand_key in ('l', '<') else x + stem_len
                     du.add_line(
@@ -1122,10 +1152,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                                     tags=['stave'],
                                 )
 
-                # Draw note continuation dots
+                # Draw note continuation dots (same rules as editor; uses scaled semitone size).
                 dot_times: list[float] = []
                 for m in line_notes:
-                    if int(m.get('id', 0) or 0) == int(item.get('id', 0) or 0):
+                    if int(m.get('idx', -1) or -1) == int(item.get('idx', -2) or -2):
                         continue
                     if str(m.get('hand', '<') or '<') != hand_key:
                         continue

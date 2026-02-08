@@ -23,7 +23,7 @@ class Layout:
     # Note appearance
     note_head_visible: bool = True
     note_stem_visible: bool = True
-    note_stem_length_mm: float = 7.5
+    note_stem_length_semitone: int = 3
     note_stem_thickness_mm: float = 0.5 # Thickness of the stem as well the notehead outline
     note_leftdot_visible: bool = True
     note_midinote_visible: bool = True
@@ -66,7 +66,7 @@ class Layout:
     grid_gridline_dash_pattern_mm: list[float] = field(default_factory=lambda: [3.0, 3.0])
 
     # Time signature indicator type (global)
-    indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'
+    time_signature_indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'
 
     # Stave appearence
     stave_two_line_thickness_mm: float = 0.5
@@ -84,7 +84,7 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'header_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'footer_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'scale': {'min': 0.0, 'max': 1.0, 'step': 0.01},
-    'note_stem_length_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
+    'note_stem_length_semitone': {'min': 0.0, 'max': 20.0, 'step': 1.0},
     'note_stem_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'beam_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'pedal_lane_width_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},

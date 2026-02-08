@@ -13,7 +13,7 @@ class TimeSignatureDrawerMixin:
         if score is None:
             return
         # Read global indicator type from Layout
-        indicator_type = getattr(score.layout, 'indicator_type', 'classical')
+        indicator_type = getattr(score.layout, 'time_signature_indicator_type', 'classical')
         # Ensure the custom C059 font is registered and get a usable family name
         try:
             from fonts import register_font_from_bytes
@@ -97,7 +97,7 @@ class TimeSignatureDrawerMixin:
             # but draw all beats when grouping is a single full group (1..numer)
             guide_half_len = 3.0
             guide_width_mm = .5
-            full_group = [int(v) for v in seq] == list(range(1, int(numerator) + 1))
+            #full_group = [int(v) for v in seq] == list(range(1, int(numerator) + 1))
             for k, val in enumerate(seq, start=1):
                 # if not full_group and val != 1:
                 #     continue
