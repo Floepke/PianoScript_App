@@ -158,7 +158,13 @@ class SCORE:
 
 
 	def new_line_break(self, **kwargs) -> LineBreak:
-		base = {'time': 0.0, 'margin_mm': [0.0, 0.0], 'stave_range': [0, 0]}
+		defaults = LineBreak()
+		default_range = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+		base = {
+			'time': 0.0,
+			'margin_mm': list(defaults.margin_mm),
+			'stave_range': default_range
+		}
 		base.update(kwargs)
 		obj = LineBreak(**base, _id=self._gen_id())
 		self.events.line_break.append(obj)
@@ -337,6 +343,12 @@ class SCORE:
 				self.new_tempo(time=0.0, duration=float(beat_len), tempo=60)
 		except Exception:
 			pass
+
+		# Ensure a line break exists at time 0
+		try:
+			self._ensure_line_break_zero()
+		except Exception:
+			pass
 		return self
 
 	@classmethod
@@ -466,6 +478,12 @@ class SCORE:
 		except Exception:
 			pass
 
+		# Ensure a line break exists at time 0
+		try:
+			self._ensure_line_break_zero()
+		except Exception:
+			pass
+
 		return self
 
 	# ---- New minimal template ----
@@ -481,6 +499,10 @@ class SCORE:
 		self.app_state = AppState()
 		self._next_id = 1
 		self._app_state_from_file = False
+		try:
+			self._ensure_line_break_zero()
+		except Exception:
+			pass
 		# Add an initial tempo at time 0 for a default 4/4 beat length
 		try:
 			numer = int(getattr(self.base_grid[0], 'numerator', 4) or 4) if self.base_grid else 4
@@ -491,5 +513,22 @@ class SCORE:
 		except Exception:
 			pass
 		return self
+
+	def _ensure_line_break_zero(self) -> None:
+		"""Ensure there is always a line break at time 0."""
+		try:
+			lb_list = list(getattr(self.events, 'line_break', []) or [])
+		except Exception:
+			lb_list = []
+		if not lb_list:
+			self.new_line_break(time=0.0)
+			return
+		tol = 1e-6
+		if not any(abs(float(getattr(lb, 'time', 0.0) or 0.0)) <= tol for lb in lb_list):
+			self.new_line_break(time=0.0)
+		try:
+			self.events.line_break.sort(key=lambda lb: float(getattr(lb, 'time', 0.0) or 0.0))
+		except Exception:
+			pass
 	
 	# ---- Convenience methods ----

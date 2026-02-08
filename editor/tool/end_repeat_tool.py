@@ -5,9 +5,7 @@ class EndRepeatTool(BaseTool):
     TOOL_NAME = 'end_repeat'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'end_repeat', 'icon': 'end_repeat', 'tooltip': 'End repeat tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

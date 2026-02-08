@@ -5,9 +5,7 @@ class StartRepeatTool(BaseTool):
     TOOL_NAME = 'start_repeat'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'start_repeat', 'icon': 'start_repeat', 'tooltip': 'Start repeat tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None: print('StartRepeatTool: on_left_press()')
     def on_left_unpress(self, x: float, y: float) -> None: print('StartRepeatTool: on_left_unpress()')

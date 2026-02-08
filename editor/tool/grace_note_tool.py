@@ -5,9 +5,7 @@ class GraceNoteTool(BaseTool):
     TOOL_NAME = 'grace_note'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'grace_note', 'icon': 'grace_note', 'tooltip': 'Grace note tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

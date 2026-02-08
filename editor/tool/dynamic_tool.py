@@ -5,9 +5,7 @@ class DynamicTool(BaseTool):
     TOOL_NAME = 'dynamic'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'dynamic', 'icon': 'dynamic', 'tooltip': 'Dynamic tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

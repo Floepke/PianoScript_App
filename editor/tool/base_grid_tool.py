@@ -5,9 +5,7 @@ class BaseGridTool(BaseTool):
     TOOL_NAME = 'base_grid'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'base_grid', 'icon': 'base_grid', 'tooltip': 'Base grid tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None: print('BaseGridTool: on_left_press()')
     def on_left_unpress(self, x: float, y: float) -> None: print('BaseGridTool: on_left_unpress()')

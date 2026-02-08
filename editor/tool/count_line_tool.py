@@ -12,9 +12,7 @@ class CountLineTool(BaseTool):
         self._active_handle: str | None = None  # 'start', 'end', or 'line'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'count_line', 'icon': 'count_line', 'tooltip': 'Count line tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

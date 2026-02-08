@@ -5,9 +5,7 @@ class DecrescendoTool(BaseTool):
     TOOL_NAME = 'decrescendo'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'decrescendo', 'icon': 'decrescendo', 'tooltip': 'Decrescendo tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

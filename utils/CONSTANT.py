@@ -52,8 +52,9 @@ EDITOR_LAYERING = [
     'slur',
     'text',
     'tempo',
-    'line_break',
+    'count_line_handle',
     'count_line',
+    'line_break',
     
     # UI elements (top layers)
     'selection_rect',  # Selection rectangle
@@ -61,6 +62,7 @@ EDITOR_LAYERING = [
     'keyboard_overlay_keys',   # Piano keyboard overlay keys
     'cursor',
     'playhead',
+    'line_break_guide'
 ]
 
 ENGRAVER_LAYERING = [

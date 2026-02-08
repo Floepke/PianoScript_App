@@ -5,9 +5,7 @@ class TextTool(BaseTool):
     TOOL_NAME = 'text'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'text', 'icon': 'text', 'tooltip': 'Text tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None: print('TextTool: on_left_press()')
     def on_left_unpress(self, x: float, y: float) -> None: print('TextTool: on_left_unpress()')

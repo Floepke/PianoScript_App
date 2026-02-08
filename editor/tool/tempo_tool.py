@@ -16,9 +16,7 @@ class TempoTool(BaseTool):
         self._min_duration: float = 0.0
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'tempo', 'icon': 'text', 'tooltip': 'Tempo tool'},
-        ]
+        return []
 
     def _find_active_ts_at_time(self, t: float) -> tuple[int, int]:
         """Return (numer, denom) for base grid segment active at time t."""

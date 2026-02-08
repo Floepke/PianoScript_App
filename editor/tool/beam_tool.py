@@ -5,9 +5,7 @@ class BeamTool(BaseTool):
     TOOL_NAME = 'beam'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'beam', 'icon': 'beam', 'tooltip': 'Beam tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

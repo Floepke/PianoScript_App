@@ -77,7 +77,7 @@ class Editor(QtCore.QObject,
     Handles click vs drag classification using a 3px threshold.
     """
 
-    DRAG_THRESHOLD: int = 1
+    DRAG_THRESHOLD: int = 4
 
     def __init__(self, tool_manager: ToolManager):
         super().__init__()

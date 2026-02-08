@@ -5,9 +5,7 @@ class PedalTool(BaseTool):
     TOOL_NAME = 'pedal'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'pedal', 'icon': 'pedal', 'tooltip': 'Pedal tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None:
         super().on_left_press(x, y)

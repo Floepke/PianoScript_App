@@ -23,8 +23,10 @@ class CountLineDrawerMixin:
         bleed_mm = max(2.0, float(getattr(score.editor, 'zoom_mm_per_quarter', 25.0)) * 0.25)
 
         # Handle size scales with semitone spacing
-        handle_w = max(1.5, float(self.semitone_dist or 2.5) * 0.6)
-        handle_h = max(1.5, float(self.semitone_dist or 2.5) * 0.6)
+        handle_w = max(2.0, float(self.semitone_dist or 2.5) * 0.85)
+        handle_h = max(2.0, float(self.semitone_dist or 2.5) * 0.85)
+        active_tool = str(getattr(getattr(self, "_tool", None), "TOOL_NAME", ""))
+        show_handles = active_tool == "count_line"
 
         for ev in events:
             try:
@@ -50,31 +52,32 @@ class CountLineDrawerMixin:
                 y_mm,
                 color=(0, 0, 0, 1),
                 width_mm=0.4,
-                dash_pattern=[1.5, 1.5],
+                dash_pattern=[0, 1.5],
                 id=int(getattr(ev, '_id', 0) or 0),
                 tags=["count_line"],
             )
 
-            # Handle rectangles at both ends
-            du.add_rectangle(
-                x1 - handle_w * 0.5,
-                y_mm - handle_h * 0.5,
-                x1 + handle_w * 0.5,
-                y_mm + handle_h * 0.5,
-                stroke_color=(0, 0, 0, 1),
-                stroke_width_mm=0.4,
-                fill_color=(1, 1, 1, 1),
-                id=int(getattr(ev, '_id', 0) or 0),
-                tags=["count_line_handle", "count_line_handle_start"],
-            )
-            du.add_rectangle(
-                x2 - handle_w * 0.5,
-                y_mm - handle_h * 0.5,
-                x2 + handle_w * 0.5,
-                y_mm + handle_h * 0.5,
-                stroke_color=(0, 0, 0, 1),
-                stroke_width_mm=0.4,
-                fill_color=(1, 1, 1, 1),
-                id=int(getattr(ev, '_id', 0) or 0),
-                tags=["count_line_handle", "count_line_handle_end"],
-            )
+            # Handle rectangles at both ends (only in count line tool)
+            if show_handles:
+                du.add_rectangle(
+                    x1 - handle_w * 0.5,
+                    y_mm - handle_h * 0.5,
+                    x1 + handle_w * 0.5,
+                    y_mm + handle_h * 0.5,
+                    stroke_color=None,
+                    stroke_width_mm=0.0,
+                    fill_color=(1.0, 0.4, 0.7, 1.0),
+                    id=int(getattr(ev, '_id', 0) or 0),
+                    tags=["count_line", "count_line_handle", "count_line_handle_start"],
+                )
+                du.add_rectangle(
+                    x2 - handle_w * 0.5,
+                    y_mm - handle_h * 0.5,
+                    x2 + handle_w * 0.5,
+                    y_mm + handle_h * 0.5,
+                    stroke_color=None,
+                    stroke_width_mm=0.0,
+                    fill_color=(1.0, 0.4, 0.7, 1.0),
+                    id=int(getattr(ev, '_id', 0) or 0),
+                    tags=["count_line", "count_line_handle", "count_line_handle_end"],
+                )

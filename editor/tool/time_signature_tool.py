@@ -16,9 +16,7 @@ class TimeSignatureTool(BaseTool):
         self._dialog_open: bool = False
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'time_signature', 'icon': 'time_signature', 'tooltip': 'Time Signature'},
-        ]
+        return []
 
     def _get_base_grid_start_positions(self) -> List[float]:
         """Return a list of segment-start positions (barline times in ticks) for each BaseGrid.

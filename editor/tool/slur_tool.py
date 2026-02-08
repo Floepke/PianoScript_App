@@ -5,9 +5,7 @@ class SlurTool(BaseTool):
     TOOL_NAME = 'slur'
 
     def toolbar_spec(self) -> list[dict]:
-        return [
-            {'name': 'slur', 'icon': 'slur', 'tooltip': 'Slur tool'},
-        ]
+        return []
 
     def on_left_press(self, x: float, y: float) -> None: print('SlurTool: on_left_press()')
     def on_left_unpress(self, x: float, y: float) -> None: print('SlurTool: on_left_unpress()')
