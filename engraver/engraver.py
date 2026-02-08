@@ -637,7 +637,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
         _log(f"page_lines={len(page)}")
-        footer_height = float(layout.get('copyright_area_height_mm', 0.0) or 0.0)
+        footer_height = float(layout.get('footer_height_mm', 0.0) or 0.0)
         footer_height = max(0.0, footer_height)
         if page_index == 0:
             title_text = _header_text('title', 'title')
@@ -719,7 +719,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             line_x_end = line_x_start + float(line['stave_width'])
             header_offset = 0.0
             if page_index == 0:
-                header_offset = float(layout.get('title_composer_area_height_mm', 0.0) or 0.0)
+                header_offset = float(layout.get('header_height_mm', 0.0) or 0.0)
             y1 = page_top + header_offset
             y2 = float(page_h - page_bottom - footer_height)
             if y2 <= y1:
@@ -861,8 +861,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     notes_by_hand_line[hand_norm].append(item)
 
                 layout_stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
-                beam_w = float(layout.get('beam_thickness_mm', 1.0) or 1.0)
-                stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
+                beam_w = float(layout.get('beam_thickness_mm', 1.0) or 1.0) * scale
+                stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                 line_start = float(line.get('time_start', 0.0) or 0.0)
                 line_end = float(line.get('time_end', 0.0) or 0.0)
 
@@ -981,7 +981,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         break
                 if on_barline:
                     stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
-                    thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25)
+                    thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale
                     if hand_key in ('l', '<'):
                         x1 = x
                         x2 = x + (w * 2.0)
@@ -1015,7 +1015,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
                 # Draw notehead
                 if bool(layout.get('note_head_visible', True)):
-                    outline_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
+                    outline_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                     if p in BLACK_KEYS:
                         du.add_oval(
                             x - (w * 0.8),
@@ -1044,7 +1044,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 # Draw stem
                 if bool(layout.get('note_stem_visible', True)):
                     stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
-                    stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
+                    stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                     x2 = x - stem_len if hand_key in ('l', '<') else x + stem_len
                     du.add_line(
                         x,
@@ -1164,7 +1164,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             x2,
                             y_start,
                             color=(0, 0, 0, 1),
-                            width_mm=float(layout.get('note_stem_thickness_mm', 0.5) or 0.5),
+                            width_mm=float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale,
                             id=0,
                             tags=['chord_connect'],
                         )

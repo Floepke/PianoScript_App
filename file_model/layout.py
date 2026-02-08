@@ -12,9 +12,9 @@ class Layout:
     page_left_margin_mm: float = 5.0
     page_right_margin_mm: float = 5.0
     
-    # header area settings
-    title_composer_area_height_mm: float = 15.0
-    copyright_area_height_mm: float = 8.0
+    # header/footer area settings
+    header_height_mm: float = 15.0
+    footer_height_mm: float = 8.0
 
     # Global drawing options
     scale: float = 0.38
@@ -81,8 +81,8 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'page_bottom_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'page_left_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'page_right_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
-    'title_composer_area_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
-    'copyright_area_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'header_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'footer_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'scale': {'min': 0.0, 'max': 1.0, 'step': 0.01},
     'note_stem_length_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
     'note_stem_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},

@@ -1152,7 +1152,8 @@ class Editor(QtCore.QObject,
                 h = w * 2
                 if self.pitch_cursor in BLACK_KEYS:
                     w *= .8
-                l = self.current_score().layout.note_stem_length_mm
+                layout = self.current_score().layout
+                l = float(layout.note_stem_length_mm) * float(layout.scale or 1.0)
                 # Draw a translucent preview notehead at cursor
                 fill_color = self.accent_color if self.pitch_cursor in BLACK_KEYS else (1,1,1,1)
                 

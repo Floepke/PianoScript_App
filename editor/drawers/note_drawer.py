@@ -155,7 +155,7 @@ class NoteDrawerMixin:
             return
         layout = cast("Editor", self).current_score().layout
         w = float(self.semitone_dist or 0.5)
-        stem_len = float(layout.note_stem_length_mm or 7.5)
+        stem_len = float(layout.note_stem_length_mm or 7.5) * float(layout.scale or 1.0)
         thickness = float(layout.grid_barline_thickness_mm or 0.25)
         hand = getattr(n, 'hand', '<')
         if hand in ('l', '<'):
@@ -249,7 +249,7 @@ class NoteDrawerMixin:
 
     def _draw_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         layout = cast("Editor", self).current_score().layout
-        stem_len = float(layout.note_stem_length_mm or 5.0)
+        stem_len = float(layout.note_stem_length_mm or 5.0) * float(layout.scale or 1.0)
         stem_w = float(layout.note_stem_thickness_mm or 0.5)
         # Stem direction based on hand
         if getattr(n, 'hand', '<') in ('l', '<'):

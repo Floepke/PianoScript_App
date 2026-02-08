@@ -194,7 +194,7 @@ class BeamDrawerMixin:
         # X positions: start at the highest pitch's stem tip (pitch_x + stem_len),
         # and end at x1 + semitone_dist to give a gentle diagonal.
         layout = self.current_score().layout
-        stem_len = float(layout.note_stem_length_mm or 5.0)
+        stem_len = float(layout.note_stem_length_mm or 5.0) * float(layout.scale or 1.0)
         beam_w = float(layout.beam_thickness_mm or 1.0)
         stem_w = float(layout.note_stem_thickness_mm or 0.5)
 
