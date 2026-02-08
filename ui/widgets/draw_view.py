@@ -66,6 +66,7 @@ class DrawUtilView(QtWidgets.QWidget):
         self._last_widget_px_per_mm: float = 1.0  # widget px per mm
         self._last_dpr: float = 1.0
         self._last_h_px: int = 0
+        self._scroll_px: float = 0.0
         self._score: dict | None = None
         self._page_prev_cb = None
         self._page_next_cb = None
@@ -81,6 +82,7 @@ class DrawUtilView(QtWidgets.QWidget):
 
     def set_page(self, index: int):
         self._page_index = index
+        self._scroll_px = 0.0
         self.request_render()
 
     def set_page_turn_callbacks(self, prev_cb, next_cb) -> None:
@@ -126,9 +128,31 @@ class DrawUtilView(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         if self._image is not None:
             x = 0
-            y = (self.height() - int(self._image.height() / self._image.devicePixelRatio())) // 2
-            painter.drawImage(QtCore.QPoint(x, max(0, y)), self._image)
+            img_h = int(self._image.height() / self._image.devicePixelRatio())
+            if img_h <= self.height():
+                y = (self.height() - img_h) // 2
+            else:
+                max_scroll = max(0, img_h - self.height())
+                self._scroll_px = max(0.0, min(float(max_scroll), float(self._scroll_px)))
+                y = -int(round(self._scroll_px))
+            painter.drawImage(QtCore.QPoint(x, y), self._image)
         painter.end()
+
+    def wheelEvent(self, ev: QtGui.QWheelEvent) -> None:
+        if self._image is None:
+            return
+        img_h = int(self._image.height() / self._image.devicePixelRatio())
+        if img_h <= self.height():
+            return
+        delta = ev.pixelDelta().y()
+        if delta == 0:
+            delta = ev.angleDelta().y() / 2
+        if delta == 0:
+            return
+        max_scroll = max(0, img_h - self.height())
+        self._scroll_px = max(0.0, min(float(max_scroll), float(self._scroll_px - delta)))
+        self.update()
+        ev.accept()
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         if ev.button() == QtCore.Qt.MouseButton.LeftButton and callable(self._page_prev_cb):
@@ -140,7 +164,11 @@ class DrawUtilView(QtWidgets.QWidget):
         if self._image is None:
             return
         # Convert from widget px to page mm
-        y_offset_px = (self.height() - int(self._image.height() / self._last_dpr)) // 2
+        img_h = int(self._image.height() / self._last_dpr)
+        if img_h <= self.height():
+            y_offset_px = (self.height() - img_h) // 2
+        else:
+            y_offset_px = -int(round(self._scroll_px))
         x_px = ev.position().x()
         y_px = ev.position().y() - y_offset_px
         if y_px < 0 or y_px > (self._last_h_px / self._last_dpr) or x_px < 0:

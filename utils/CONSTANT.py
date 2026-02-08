@@ -29,6 +29,7 @@ EDITOR_LAYERING = [
     'stave_two_line',
     'stave_clef_line',
     'barline',
+    'hand_split',
     'stem_white_space',
     
     # note elements
@@ -69,7 +70,10 @@ ENGRAVER_LAYERING = [
     # Stave lines first
     'midi_note',
     'grid_line',
+    'hand_split',
     'stave',
+    'beam',
+    'beam_stem',
     'engrave_test',
 ]
 

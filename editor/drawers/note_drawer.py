@@ -31,6 +31,7 @@ class NoteDrawerMixin:
     _cached_window_lo: int | None = None
     _cached_window_hi: int | None = None
     _cached_notes_view: list | None = None
+    _cached_barline_positions: list[float] | None = None
 
     def draw_note(self, du: DrawUtil) -> None:
         """Editor drawer entry point as used by draw_all()."""
@@ -65,6 +66,7 @@ class NoteDrawerMixin:
             self._cached_notes_view = cache.get('notes_view') or []
             self._cached_notes_sorted = cache.get('notes_sorted') or []
             self._cached_notes_starts = cache.get('starts') or []
+            self._cached_barline_positions = cache.get('barline_positions') or []
         else:
             # Fallback: minimal local candidate selection (start-only)
             notes_sorted = sorted(score.events.note or [], key=lambda n: (n.time, n.pitch))
@@ -73,6 +75,7 @@ class NoteDrawerMixin:
             hi = bisect.bisect_right(starts, time_end)
             candidate_indices = list(range(max(0, lo - 1), hi))
             self._cached_notes_view = [notes_sorted[i] for i in candidate_indices]
+            self._cached_barline_positions = self._get_barline_positions()
 
         # Iterate candidate set only
         for idx in candidate_indices:
@@ -96,6 +99,7 @@ class NoteDrawerMixin:
         
         # Draw all parts of the note
         self._draw_midinote(du, n, x, y1, y2, draw_mode)
+        self._draw_hand_split_indicator(du, n, x, y1)
         self._draw_notehead(du, n, x, y1, draw_mode)
         self._draw_notestop(du, n, x, y2, draw_mode)
         self._draw_stem(du, n, x, y1, draw_mode)
@@ -136,6 +140,54 @@ class NoteDrawerMixin:
             y_top, y_bottom = y_bottom, y_top
         rect_id = int(getattr(n, '_id', 0) or 0)
         self.register_note_hit_rect(rect_id, float(x_left), float(y_top), float(x_right), float(y_bottom))
+
+    def _draw_hand_split_indicator(self, du: DrawUtil, n, x: float, y1: float) -> None:
+        barlines = self._cached_barline_positions or []
+        if not barlines:
+            return
+        t = float(getattr(n, 'time', 0.0) or 0.0)
+        on_barline = False
+        for bt in barlines:
+            if self._time_op.eq(float(bt), t):
+                on_barline = True
+                break
+        if not on_barline:
+            return
+        layout = cast("Editor", self).current_score().layout
+        w = float(self.semitone_dist or 0.5)
+        stem_len = float(layout.note_stem_length_mm or 7.5)
+        thickness = float(layout.grid_barline_thickness_mm or 0.25)
+        hand = getattr(n, 'hand', '<')
+        if hand in ('l', '<'):
+            x1 = x
+            x2 = x + (w * 2.0)
+            x3 = x - stem_len
+        else:
+            x1 = x
+            x2 = x - (w * 2.0)
+            x3 = x + stem_len
+        du.add_line(
+            x1,
+            y1,
+            x2,
+            y1,
+            color=self._editor_background_rgba(),
+            width_mm=thickness,
+            line_cap="butt",
+            id=0,
+            tags=["hand_split"],
+        )
+        du.add_line(
+            x3,
+            y1,
+            x2,
+            y1,
+            color=self._editor_background_rgba(),
+            width_mm=thickness,
+            line_cap="butt",
+            id=0,
+            tags=["hand_split"],
+        )
 
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)
@@ -198,7 +250,7 @@ class NoteDrawerMixin:
     def _draw_stem(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         layout = cast("Editor", self).current_score().layout
         stem_len = float(layout.note_stem_length_mm or 5.0)
-        stem_w = float(layout.note_stem_width_mm or 0.5)
+        stem_w = float(layout.note_stem_thickness_mm or 0.5)
         # Stem direction based on hand
         if getattr(n, 'hand', '<') in ('l', '<'):
             x2 = x - stem_len
@@ -274,7 +326,7 @@ class NoteDrawerMixin:
             x2,
             y1,
             color=self.notation_color,
-            width_mm=layout.note_stem_width_mm or 0.5,
+            width_mm=layout.note_stem_thickness_mm or 0.5,
             id=0,
             tags=["chord_connect"],
         )

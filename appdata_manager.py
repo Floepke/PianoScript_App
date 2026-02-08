@@ -56,6 +56,10 @@ class AppDataManager:
     def set(self, key: str, value: object) -> None:
         self._values[key] = value
 
+    def remove(self, key: str) -> None:
+        if key in self._values:
+            self._values.pop(key, None)
+
     def load(self) -> None:
         _ensure_dir()
         parsed: Dict[str, object] = {}
@@ -252,6 +256,7 @@ def get_appdata_manager() -> AppDataManager:
         # Window state (session-managed)
         adm.register("window_maximized", True, "Start maximized; updated on exit")
         adm.register("window_geometry", "", "Base64-encoded Qt window geometry for normal state")
+        adm.register("layout_template", {}, "Default layout template for new scores (dict of layout fields)")
         # Removed window_state persistence to avoid saving/restoring dock/toolbar layout
         adm.load()
         # Strip any legacy 'window_state' key from stored values

@@ -16,14 +16,14 @@ class Layout:
     title_composer_area_height_mm: float = 15.0
 
     # Global drawing options
-    scale: float = 1.0
+    scale: float = 0.38
     black_note_rule: Literal['above_stem','below_stem'] = 'below_stem'
 
     # Note appearance
     note_head_visible: bool = True
     note_stem_visible: bool = True
     note_stem_length_mm: float = 7.5
-    note_stem_width_mm: float = 0.5 # Thickness of the stem as well the notehead outline
+    note_stem_thickness_mm: float = 0.5 # Thickness of the stem as well the notehead outline
     note_leftdot_visible: bool = True
     note_midinote_visible: bool = True
     note_midinote_left_color: str = '#cccccc'
@@ -31,7 +31,7 @@ class Layout:
 
     # Beam appearance
     beam_visible: bool = True
-    beam_thickness_mm: float = 0.5
+    beam_thickness_mm: float = 1.0
 
     # Grace note appearance
     grace_note_visible: bool = True
@@ -48,7 +48,7 @@ class Layout:
     # Slur appearance
     slur_visible: bool = True
     slur_width_sides_mm: float = 0.1
-    slur_width_middle_mm: float = 0.35
+    slur_width_middle_mm: float = 0.3
 
     # Repeat markers
     repeat_start_visible: bool = True
@@ -59,13 +59,18 @@ class Layout:
     countline_dash_pattern: list[float] = field(default_factory=lambda: [0.0, 1.0])  # Dash pattern for count lines (e.g., [dash_length, gap_length])
     countline_thickness_mm: float = 0.5
 
+    # Grid lines
+    grid_barline_thickness_mm: float = 0.8
+    grid_gridline_thickness_mm: float = 0.8
+    grid_gridline_dash_pattern_mm: list[float] = field(default_factory=lambda: [3.0, 3.0])
+
     # Time signature indicator type (global)
     indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'
 
     # Stave appearence
     stave_two_line_thickness_mm: float = 0.5
     stave_three_line_thickness_mm: float = 0.5
-    stave_clef_line_dash_pattern_mm: list[float] = field(default_factory=lambda: [0.0, 1.0])  # Dash pattern for clef lines (e.g., [dash_length, gap_length])
+    stave_clef_line_dash_pattern_mm: list[float] = field(default_factory=lambda: [3.0, 3.0])  # Dash pattern for clef lines (e.g., [dash_length, gap_length])
 
 
 LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
@@ -78,13 +83,15 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'title_composer_area_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
     'scale': {'min': 0.0, 'max': 1.0, 'step': 0.01},
     'note_stem_length_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
-    'note_stem_width_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'note_stem_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'beam_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'pedal_lane_width_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
     'text_font_size_pt': {'min': 4.0, 'max': 94.0, 'step': 0.5},
     'slur_width_sides_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'slur_width_middle_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'countline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'grid_barline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'grid_gridline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'stave_two_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
     'stave_three_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
 }

@@ -9,6 +9,7 @@ from datetime import datetime
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from file_model.SCORE import SCORE
+from file_model.layout import Layout
 from utils.CONSTANT import UTILS_SAVE_DIR
 from settings_manager import get_preferences_manager
 from appdata_manager import get_appdata_manager
@@ -57,9 +58,29 @@ class FileManager:
     def new(self) -> SCORE:
         """Create a new SCORE and clear the current path."""
         self._current = SCORE().new()
+        try:
+            adm = get_appdata_manager()
+            template = adm.get("layout_template", {})
+            if isinstance(template, dict) and template:
+                self._apply_layout_template(template)
+        except Exception:
+            pass
         self._path = None
         self._dirty = False
         return self._current
+
+    def _apply_layout_template(self, template: dict) -> None:
+        layout = getattr(self._current, 'layout', None)
+        if layout is None:
+            return
+        valid_fields = {f.name for f in getattr(Layout, '__dataclass_fields__', {}).values()}
+        for key, value in template.items():
+            if key not in valid_fields:
+                continue
+            try:
+                setattr(layout, key, value)
+            except Exception:
+                continue
 
     def replace_current(self, new_score: SCORE) -> None:
         """Replace the current SCORE instance (used by undo/redo)."""

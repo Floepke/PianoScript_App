@@ -18,6 +18,7 @@ class Stroke:
     width_mm: float = 0.3
     dash_pattern_mm: Optional[Sequence[float]] = None
     dash_offset_mm: float = 0.0
+    line_cap: str = "round"
 
 
 @dataclass
@@ -152,11 +153,12 @@ class DrawUtil:
                  color: Color = (0, 0, 0, 1), width_mm: float = 0.3,
                  dash_pattern: Optional[Sequence[float]] = None,
                  dash_offset_mm: float = 0.0,
+               line_cap: str = "round",
                  id: int = 0, tags: Optional[List[str]] = None,
                  hit_rect_mm: Optional[Tuple[float, float, float, float]] = None) -> None:
         self._ensure_page()
         stroke = Stroke(color=color, width_mm=width_mm,
-                        dash_pattern_mm=dash_pattern, dash_offset_mm=dash_offset_mm)
+                   dash_pattern_mm=dash_pattern, dash_offset_mm=dash_offset_mm, line_cap=line_cap)
         if tags is None:
             tags = []
         # Compute a default hit rect for picking if not provided.
@@ -594,7 +596,12 @@ class DrawUtil:
         ctx.set_source_rgba(*stroke.color)
         ctx.set_line_width(stroke.width_mm)
         ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        if stroke.line_cap == "butt":
+            ctx.set_line_cap(cairo.LINE_CAP_BUTT)
+        elif stroke.line_cap == "square":
+            ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
+        else:
+            ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         if stroke.dash_pattern_mm:
             ctx.set_dash(list(stroke.dash_pattern_mm), stroke.dash_offset_mm)
         else:

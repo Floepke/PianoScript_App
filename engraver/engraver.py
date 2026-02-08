@@ -21,6 +21,23 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
     base_grid = list(score.get('base_grid', []) or [])
     line_breaks = list(events.get('line_break', []) or [])
     notes = list(events.get('note', []) or [])
+    beam_markers = list(events.get('beam', []) or [])
+
+    beam_by_hand: dict[str, list[dict]] = {'l': [], 'r': []}
+    for b in beam_markers:
+        if not isinstance(b, dict):
+            continue
+        try:
+            bt = float(b.get('time', 0.0) or 0.0)
+            bd = float(b.get('duration', 0.0) or 0.0)
+        except Exception:
+            traceback.print_exc()
+            continue
+        hand_raw = str(b.get('hand', '<') or '<')
+        hand_key = 'l' if hand_raw in ('<', 'l') else 'r'
+        beam_by_hand[hand_key].append({'time': bt, 'duration': bd})
+    for hk in beam_by_hand:
+        beam_by_hand[hk] = sorted(beam_by_hand[hk], key=lambda m: float(m.get('time', 0.0)))
 
     norm_notes: list[dict] = []
     notes_by_hand: dict[str, list[dict]] = {'<': [], '>': []}
@@ -69,6 +86,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
     if clef_dash:
         clef_dash = [float(v) * scale for v in clef_dash]
     op_time = Operator(SHORTEST_DURATION)
+    barline_positions: list[float] = []
+    cur_bar = 0.0
+    for bg in base_grid:
+        try:
+            numer = int(bg.get('numerator', 4) or 4)
+            denom = int(bg.get('denominator', 4) or 4)
+            measures = int(bg.get('measure_amount', 1) or 1)
+        except Exception:
+            traceback.print_exc()
+            continue
+        measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+        for _ in range(int(max(0, measures))):
+            barline_positions.append(float(cur_bar))
+            cur_bar += measure_len
 
     def _log(msg: str) -> None:
         try:
@@ -104,6 +135,121 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
         rgba = hex_to_rgba(hex_color, alpha)
         r, g, b, a = rgba
         return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a))
+
+    def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
+        if not notes_sorted or not windows:
+            return []
+        starts = [float(n.get('time', 0.0) or 0.0) for n in notes_sorted]
+        ends = [float(n.get('end', 0.0) or 0.0) for n in notes_sorted]
+        result: list[list[dict]] = []
+        j = 0
+        for (t0, t1) in windows:
+            j = bisect.bisect_left(starts, float(t0) - float(op_time.threshold), j)
+            group: list[dict] = []
+            k = j
+            while k < len(starts):
+                s = starts[k]
+                if op_time.ge(s, float(t1) + float(op_time.threshold)):
+                    break
+                e = ends[k]
+                if op_time.gt(e, float(t0)) and op_time.lt(s, float(t1)):
+                    group.append(notes_sorted[k])
+                k += 1
+            b = j - 1
+            while b >= 0:
+                s = starts[b]
+                e = ends[b]
+                if op_time.gt(e, float(t0)) and op_time.lt(s, float(t1)):
+                    group.append(notes_sorted[b])
+                b -= 1
+            if group:
+                keyed: dict[int, dict] = {}
+                for m in group:
+                    key_id = int(m.get('idx', m.get('id', 0)) or 0)
+                    keyed[key_id] = m
+                group = sorted(keyed.values(), key=lambda n: float(n.get('time', 0.0) or 0.0))
+            result.append(group)
+        return result
+
+    def _build_grid_windows(a: float, b: float) -> list[tuple[float, float]]:
+        windows: list[tuple[float, float]] = []
+        cur = 0.0
+        for bg in base_grid:
+            try:
+                numer = int(bg.get('numerator', 4) or 4)
+                denom = int(bg.get('denominator', 4) or 4)
+                measures = int(bg.get('measure_amount', 1) or 1)
+                seq = list(bg.get('beat_grouping', []) or [])
+            except Exception:
+                traceback.print_exc()
+                continue
+            measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+            beat_len = measure_len / max(1, int(numer))
+            full_group = len(seq) == numer and [int(v) for v in seq] == list(range(1, numer + 1))
+            for _ in range(int(measures)):
+                m_start = float(cur)
+                m_end = float(cur + measure_len)
+                if op_time.lt(m_end, float(a)):
+                    cur = m_end
+                    continue
+                if op_time.gt(m_start, float(b)):
+                    cur = m_end
+                    continue
+                if len(seq) != numer:
+                    seq = [1]
+                if full_group:
+                    group_starts = list(range(1, numer + 1))
+                else:
+                    group_starts = [i for i, v in enumerate(seq, start=1) if int(v) == 1]
+                    if not group_starts or group_starts[0] != 1:
+                        group_starts = [1] + group_starts
+                for gi, s in enumerate(group_starts):
+                    e = (group_starts[gi + 1] - 1) if (gi + 1) < len(group_starts) else numer
+                    w0 = m_start + (s - 1) * beat_len
+                    w1 = m_start + float(e) * beat_len
+                    w0 = max(float(a), w0)
+                    w1 = min(float(b), w1)
+                    if op_time.lt(w0, w1):
+                        windows.append((w0, w1))
+                cur = m_end
+        return windows
+
+    def _build_duration_windows(start: float, end: float, dur: float) -> list[tuple[float, float]]:
+        if dur <= 0:
+            return [(start, end)]
+        windows: list[tuple[float, float]] = []
+        t = float(start)
+        while op_time.lt(t, float(end)):
+            t1 = min(float(end), t + float(dur))
+            windows.append((t, t1))
+            t = t1
+        return windows
+
+    def _group_by_beam_markers(notes: list[dict], markers: list[dict], start: float, end: float) -> tuple[list[list[dict]], list[tuple[float, float]]]:
+        notes_sorted = sorted(notes, key=lambda n: float(n.get('time', 0.0) or 0.0)) if notes else []
+        windows: list[tuple[float, float]] = []
+        markers_sorted = sorted(markers, key=lambda m: float(m.get('time', 0.0))) if markers else []
+        cur = float(start)
+        for idx, mk in enumerate(markers_sorted):
+            mt = float(mk.get('time', cur) or cur)
+            if op_time.lt(mt, float(start)):
+                continue
+            if op_time.ge(mt, float(end)):
+                break
+            dur = float(mk.get('duration', 0.0) or 0.0)
+            next_t = float(markers_sorted[idx + 1].get('time', end)) if (idx + 1) < len(markers_sorted) else float(end)
+            next_t = min(float(end), next_t)
+            if op_time.gt(mt, cur):
+                windows.extend(_build_grid_windows(cur, mt))
+            if dur > 0.0:
+                windows.extend(_build_duration_windows(mt, next_t, dur))
+            else:
+                windows.extend(_build_grid_windows(mt, next_t))
+            cur = next_t
+        if op_time.lt(cur, float(end)):
+            windows.extend(_build_grid_windows(cur, float(end)))
+        groups = _assign_groups(notes_sorted, windows) if notes_sorted else []
+        return groups, windows
 
     def _has_followed_rest(item: dict) -> bool:
         hand_key = str(item.get('hand', '<') or '<')
@@ -459,37 +605,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
         _log(f"page_lines={len(page)}")
-        # Debug: outline the page bounds to ensure nothing covers the drawing
-        try:
-            du.add_rectangle(
-                0.5,
-                0.5,
-                max(0.5, page_w - 0.5),
-                max(0.5, page_h - 0.5),
-                stroke_color=(0.6, 0.6, 0.6, 1),
-                stroke_width_mm=0.5,
-                fill_color=None,
-                dash_pattern=[0.0, 1.0],
-                id=0,
-                tags=['engrave_test'],
-            )
-        except Exception:
-            traceback.print_exc()
-        # Debug: show printable area (page margins)
-        try:
-            du.add_rectangle(
-                page_left,
-                page_top,
-                max(page_left + 0.5, page_w - page_right),
-                max(page_top + 0.5, page_h - page_bottom),
-                stroke_color=(0, .9, 0, 1),
-                stroke_width_mm=0.35,
-                fill_color=None,
-                id=0,
-                tags=['engrave_test'],
-            )
-        except Exception:
-            traceback.print_exc()
         if not page:
             continue
         used_width = sum(float(l['total_width']) for l in page)
@@ -519,6 +634,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
             line['y_top'] = y1
             line['y_bottom'] = y2
 
+            manual_range = isinstance(line.get('stave_range'), list) and len(line.get('stave_range')) >= 2
+            bound_group_low = _group_index_for_key(bound_left) if manual_range else None
+            bound_group_high = _group_index_for_key(bound_right) if manual_range else None
+            ledger_drawn: set[tuple[int, int]] = set()
+
             bound_left = int(line.get('bound_left', line['range'][0]))
             bound_right = int(line.get('bound_right', line['range'][1]))
             origin = float(key_positions.get(bound_left, 0.0))
@@ -536,8 +656,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
             grid_left = line_x_start
             grid_right = line_x_start + float(line['stave_width'])
             grid_color = (0, 0, 0, 1)
-            bar_width_mm = 0.25 * scale
-            dash_pattern = list(layout.get('stave_clef_line_dash_pattern_mm', []) or [])
+            bar_width_mm = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale
+            grid_width_mm = float(layout.get('grid_gridline_thickness_mm', 0.15) or 0.15) * scale
+            dash_pattern = list(layout.get('grid_gridline_dash_pattern_mm', []) or [])
             if dash_pattern:
                 dash_pattern = [float(v) * scale for v in dash_pattern]
             time_cursor = 0.0
@@ -586,7 +707,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                                     grid_right,
                                     y,
                                     color=grid_color,
-                                    width_mm=max(0.1, bar_width_mm / 2.0),
+                                    width_mm=max(0.1, grid_width_mm),
                                     id=0,
                                     tags=['grid_line'],
                                     dash_pattern=dash_pattern or [2.0 * scale, 2.0 * scale],
@@ -594,6 +715,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                     time_cursor += measure_len
                 if op_time.gt(time_cursor, float(line['time_end'])):
                     break
+
+            if op_time.ge(total_ticks, float(line['time_start'])) and op_time.le(total_ticks, float(line['time_end'])):
+                y_end_bar = _time_to_y(float(total_ticks))
+                du.add_line(
+                    grid_left,
+                    y_end_bar,
+                    grid_right,
+                    y_end_bar,
+                    color=grid_color,
+                    width_mm=bar_width_mm * 2.0,
+                    id=0,
+                    tags=['grid_line'],
+                    dash_pattern=None,
+                )
 
             visible_keys = list(line.get('visible_keys', []))
             if not visible_keys:
@@ -625,6 +760,79 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                     continue
                 line_notes.append(item)
 
+            # ---- Beam drawing per line ----
+            notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
+            for item in line_notes:
+                hk = str(item.get('hand', '<') or '<')
+                hand_norm = 'l' if hk in ('<', 'l') else 'r'
+                notes_by_hand_line[hand_norm].append(item)
+
+            layout_stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
+            beam_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
+            line_start = float(line.get('time_start', 0.0) or 0.0)
+            line_end = float(line.get('time_end', 0.0) or 0.0)
+
+            for hand_norm in ('r', 'l'):
+                notes_for_hand = notes_by_hand_line.get(hand_norm, [])
+                markers_for_hand = beam_by_hand.get(hand_norm, [])
+                groups, windows = _group_by_beam_markers(notes_for_hand, markers_for_hand, line_start, line_end)
+                for idx, grp in enumerate(groups):
+                    if not grp:
+                        continue
+                    t0, t1 = windows[idx] if idx < len(windows) else (line_start, line_end)
+                    starts_in = [float(n.get('time', 0.0) or 0.0) for n in grp if op_time.ge(float(n.get('time', 0.0) or 0.0), float(t0)) and op_time.lt(float(n.get('time', 0.0) or 0.0), float(t1))]
+                    if not starts_in:
+                        continue
+                    s_min, s_max = min(starts_in), max(starts_in)
+                    if op_time.eq(float(s_min), float(s_max)):
+                        continue
+                    t_first = min(starts_in)
+                    t_last = max(starts_in)
+                    if hand_norm == 'r':
+                        highest = max(grp, key=lambda n: int(n.get('pitch', 0) or 0))
+                        x1 = _key_to_x(int(highest.get('pitch', 0) or 0)) + float(layout_stem_len)
+                        x2 = x1 + float(semitone_mm)
+                    else:
+                        lowest = min(grp, key=lambda n: int(n.get('pitch', 0) or 0))
+                        x1 = _key_to_x(int(lowest.get('pitch', 0) or 0)) - float(layout_stem_len)
+                        x2 = x1 - float(semitone_mm)
+                    yb1 = _time_to_y(float(t_first))
+                    yb2 = _time_to_y(float(t_last))
+                    du.add_line(
+                        x1,
+                        yb1,
+                        x2,
+                        yb2,
+                        color=(0, 0, 0, 1),
+                        width_mm=max(0.2, beam_w) * 2.0,
+                        id=0,
+                        tags=['beam'],
+                    )
+                    for m in grp:
+                        mt = float(m.get('time', t_first) or t_first)
+                        if not (op_time.ge(mt, float(t0)) and op_time.lt(mt, float(t1))):
+                            continue
+                        y_note = _time_to_y(float(mt))
+                        if hand_norm == 'r':
+                            x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) + float(layout_stem_len)
+                        else:
+                            x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) - float(layout_stem_len)
+                        if abs(yb2 - yb1) > 1e-6:
+                            t_ratio = (y_note - yb1) / (yb2 - yb1)
+                            x_on_beam = x1 + t_ratio * (x2 - x1)
+                        else:
+                            x_on_beam = x1
+                        du.add_line(
+                            x_tip,
+                            y_note,
+                            float(x_on_beam),
+                            y_note,
+                            color=(0, 0, 0, 1),
+                            width_mm=max(0.15, beam_w),
+                            id=0,
+                            tags=['beam_stem'],
+                        )
+
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
                 n_end = float(item.get('end', 0.0) or 0.0)
@@ -637,6 +845,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                 if y_end < y_start:
                     y_start, y_end = y_end, y_start
                 w = semitone_mm
+                note_y = y_start
+                if p in BLACK_KEYS and str(layout.get('black_note_rule', 'below_stem')) == 'above_stem':
+                    note_y = y_start - (w * 2.0)
                 # Draw midi-note body
                 raw_color = n.get('midinote_color', None)
                 if raw_color in (None, ''):
@@ -669,11 +880,47 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                         tags=['midi_note'],
                     )
 
+                on_barline = False
+                for bt in barline_positions:
+                    if op_time.eq(float(bt), n_t):
+                        on_barline = True
+                        break
+                if on_barline:
+                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
+                    thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25)
+                    if hand_key in ('l', '<'):
+                        x1 = x
+                        x2 = x + (w * 2.0)
+                        x3 = x - stem_len
+                    else:
+                        x1 = x
+                        x2 = x - (w * 2.0)
+                        x3 = x + stem_len
+                    du.add_line(
+                        x1,
+                        y_start,
+                        x2,
+                        y_start,
+                        color=(1, 1, 1, 1),
+                        width_mm=thickness,
+                        line_cap="butt",
+                        id=0,
+                        tags=['hand_split'],
+                    )
+                    du.add_line(
+                        x3,
+                        y_start,
+                        x2,
+                        y_start,
+                        color=(1, 1, 1, 1),
+                        width_mm=thickness,
+                        line_cap="butt",
+                        id=0,
+                        tags=['hand_split'],
+                    )
+
                 # Draw notehead
                 if bool(layout.get('note_head_visible', True)):
-                    note_y = y_start
-                    if p in BLACK_KEYS and str(layout.get('black_note_rule', 'below_stem')) == 'above_stem':
-                        note_y = y_start - (w * 2.0)
                     if p in BLACK_KEYS:
                         du.add_oval(
                             x - (w * 0.8),
@@ -702,7 +949,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                 # Draw stem
                 if bool(layout.get('note_stem_visible', True)):
                     stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
-                    stem_w = float(layout.get('note_stem_width_mm', 0.5) or 0.5)
+                    stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
                     x2 = x - stem_len if hand_key in ('l', '<') else x + stem_len
                     du.add_line(
                         x,
@@ -717,9 +964,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
 
                 # Draw left-hand dot
                 if bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
-                    note_y = y_start
-                    if p in BLACK_KEYS and str(layout.get('black_note_rule', 'below_stem')) == 'above_stem':
-                        note_y = y_start - (w * 2.0)
                     w2 = w * 2.0
                     dot_d = w2 * 0.35
                     cy = note_y + (w2 / 2.0)
@@ -733,6 +977,54 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                         id=0,
                         tags=['left_dot'],
                     )
+
+                # Draw ledger lines when manual range trims the stave
+                if manual_range:
+                    ledger_groups: list[dict] = []
+                    if p < bound_left:
+                        g_start = _group_index_for_key(p)
+                        g_end = int(bound_group_low or 0) - 1
+                        if g_start <= g_end:
+                            ledger_groups = line_groups[g_start:g_end + 1]
+                    elif p > bound_right:
+                        g_start = int(bound_group_high or 0) + 1
+                        g_end = _group_index_for_key(p)
+                        if g_start <= g_end:
+                            ledger_groups = line_groups[g_start:g_end + 1]
+                    if ledger_groups:
+                        y_center = note_y + w
+                        seg_half = w
+                        y_seg1 = y_center - seg_half
+                        y_seg2 = y_center + seg_half + seg_half + (seg_half / 2.0)
+                        for grp in ledger_groups:
+                            for key in grp.get('keys', []):
+                                x_pos = _key_to_x(int(key))
+                                is_clef_line = int(key) in (41, 43)
+                                is_three_line = int(key) in key_class_filter('FGA')
+                                if is_clef_line:
+                                    width_mm = max(stave_two_w, semitone_mm / 6.0)
+                                    dash = clef_dash if clef_dash else [2.0 * scale, 2.0 * scale]
+                                elif is_three_line:
+                                    width_mm = max(stave_three_w, semitone_mm / 3.0)
+                                    dash = None
+                                else:
+                                    width_mm = max(stave_two_w, semitone_mm / 10.0)
+                                    dash = None
+                                key_sig = (int(key), int(round(y_center * 1000)))
+                                if key_sig in ledger_drawn:
+                                    continue
+                                ledger_drawn.add(key_sig)
+                                du.add_line(
+                                    x_pos,
+                                    y_seg1,
+                                    x_pos,
+                                    y_seg2,
+                                    color=(0, 0, 0, 1),
+                                    width_mm=width_mm,
+                                    dash_pattern=dash,
+                                    id=0,
+                                    tags=['stave'],
+                                )
 
                 # Draw note continuation dots
                 dot_times: list[float] = []
@@ -776,7 +1068,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                             x2,
                             y_start,
                             color=(0, 0, 0, 1),
-                            width_mm=float(layout.get('note_stem_width_mm', 0.5) or 0.5),
+                            width_mm=float(layout.get('note_stem_thickness_mm', 0.5) or 0.5),
                             id=0,
                             tags=['chord_connect'],
                         )

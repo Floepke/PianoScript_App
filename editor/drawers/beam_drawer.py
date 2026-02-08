@@ -191,7 +191,7 @@ class BeamDrawerMixin:
         # and end at x1 + semitone_dist to give a gentle diagonal.
         layout = self.current_score().layout
         stem_len = float(layout.note_stem_length_mm or 5.0)
-        beam_w = float(layout.note_stem_width_mm or 0.5)
+        beam_w = float(layout.note_stem_thickness_mm or 0.5)
 
         # Iterate windows in lockstep with groups for right hand
         right_groups = groups_all.get('r') or []

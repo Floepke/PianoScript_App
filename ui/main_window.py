@@ -246,8 +246,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Page navigation state
         self._page_counter = 0
 
-        self._total_pages_placeholder = 2  # TODO: replace with real page count
-
         # Connect external scrollbar to the editor canvas
         try:
             self.editor.viewportMetricsChanged.connect(self._on_editor_metrics)
@@ -417,6 +415,14 @@ class MainWindow(QtWidgets.QMainWindow):
         layout_act = QtGui.QAction("Layout", self)
         layout_act.triggered.connect(self._open_layout_dialog)
         file_menu.addAction(layout_act)
+
+        set_layout_default_act = QtGui.QAction("Set current layout settings as default", self)
+        set_layout_default_act.triggered.connect(self._set_layout_template)
+        file_menu.addAction(set_layout_default_act)
+
+        reset_layout_default_act = QtGui.QAction("Reset default template", self)
+        reset_layout_default_act.triggered.connect(self._reset_layout_template)
+        file_menu.addAction(reset_layout_default_act)
 
         header_act = QtGui.QAction("Titles, Composer & Copyright...", self)
         header_act.triggered.connect(self._open_header_dialog)
@@ -1052,6 +1058,28 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(self, "Header Dialog Error", str(exc))
             except Exception:
                 pass
+
+    def _set_layout_template(self) -> None:
+        try:
+            layout = getattr(self.file_manager.current(), 'layout', None)
+            if layout is None:
+                return
+            template = {k: getattr(layout, k) for k in layout.__dataclass_fields__.keys()}
+            adm = get_appdata_manager()
+            adm.set("layout_template", template)
+            adm.save()
+            self._status("Saved layout defaults.", 3000)
+        except Exception:
+            pass
+
+    def _reset_layout_template(self) -> None:
+        try:
+            adm = get_appdata_manager()
+            adm.remove("layout_template")
+            adm.save()
+            self._status("Layout defaults reset.", 3000)
+        except Exception:
+            pass
 
     @QtCore.Slot(int, int, float, float)
     def _on_editor_metrics(self, content_px: int, viewport_px: int, px_per_mm: float, dpr: float) -> None:
