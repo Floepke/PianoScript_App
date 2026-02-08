@@ -122,6 +122,16 @@ class TimeSignatureDialog(QtWidgets.QDialog):
         self.ts_edit.textChanged.connect(self._on_text_changed)
         self.grouping_edit.textChanged.connect(self._on_grouping_changed)
 
+        # Focus and select the main entry when the dialog opens
+        QtCore.QTimer.singleShot(0, self._focus_time_signature_entry)
+
+    def _focus_time_signature_entry(self) -> None:
+        try:
+            self.ts_edit.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+            self.ts_edit.selectAll()
+        except Exception:
+            pass
+
     def _on_text_changed(self, s: str) -> None:
         numer, denom, err = self._parse_ts(s)
         ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
