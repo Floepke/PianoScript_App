@@ -561,6 +561,11 @@ class SCORE:
 		# Set creation timestamp in format dd-mm-YYYY_HH:MM:SS
 		self.meta_data.creation_timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
 		self.header = Header()
+		try:
+			year = datetime.now().year
+			self.header.copyright.text = f"keyTAB all copyrights reserved {year}"
+		except Exception:
+			pass
 		self.base_grid = [BaseGrid()]
 		self.events = Events()
 		self.layout = Layout()

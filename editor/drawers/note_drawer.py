@@ -192,7 +192,7 @@ class NoteDrawerMixin:
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)
         layout = cast("Editor", self).current_score().layout
-        outline_w = .3
+        outline_w = float(layout.note_stem_thickness_mm or 0.5)
         # Adjust vertical for black-note rule 'above_stem'
         if n.pitch in BLACK_KEYS and layout.black_note_rule == 'above_stem':
             y1 = y1 - (w * 2.0)

@@ -259,23 +259,10 @@ class LineBreakTool(BaseTool):
             # Never insert at time 0
             return
 
-        # Use the first line break as the template for margins/range
-        template = None
+        # Always insert with dataclass defaults (auto range enabled on new line breaks).
         defaults = LineBreak()
-        try:
-            template = list(getattr(score.events, 'line_break', []) or [None])[0]
-        except Exception:
-            template = None
-        margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
-        if template:
-            templ_range = getattr(template, 'stave_range', defaults.stave_range)
-            if templ_range == 'auto' or templ_range is True:
-                stave_range = 'auto'
-            else:
-                fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-                stave_range = list(templ_range or fallback)
-        else:
-            stave_range = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
+        margin_mm = list(defaults.margin_mm)
+        stave_range = defaults.stave_range
 
         try:
             score.new_line_break(time=click_time, margin_mm=margin_mm, stave_range=stave_range, page_break=False)

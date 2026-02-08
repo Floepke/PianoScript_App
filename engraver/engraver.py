@@ -1,5 +1,6 @@
 from PySide6 import QtCore
 from pathlib import Path
+from datetime import datetime
 import bisect
 import traceback
 from ui.widgets.draw_util import DrawUtil
@@ -8,7 +9,7 @@ from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
 
-def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
+def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = False) -> None:
     """Compute the full page drawing from the score dict into DrawUtil.
 
     This function runs off-thread. It should rebuild pages deterministically
@@ -16,6 +17,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
     """
     score: SCORE = score or {}
     layout = (score.get('layout', {}) or {})
+    header = (score.get('header', {}) or {})
     editor = (score.get('editor', {}) or {})
     events = (score.get('events', {}) or {})
     base_grid = list(score.get('base_grid', []) or [])
@@ -135,6 +137,36 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
         rgba = hex_to_rgba(hex_color, alpha)
         r, g, b, a = rgba
         return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a))
+
+    def _header_entry(key: str) -> dict:
+        value = header.get(key, {}) if isinstance(header, dict) else {}
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            return {'text': value}
+        return {}
+
+    def _resolve_font_family(family: str) -> str:
+        try:
+            from fonts import resolve_font_family
+            return str(resolve_font_family(family))
+        except Exception:
+            return family
+
+    def _header_text(key: str, fallback: str) -> str:
+        entry = _header_entry(key)
+        txt = entry.get('text', fallback)
+        return str(txt) if txt is not None else str(fallback)
+
+    def _header_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool, float, float]:
+        entry = _header_entry(key)
+        family = _resolve_font_family(str(entry.get('family', fallback_family) or fallback_family))
+        size_pt = float(entry.get('size_pt', fallback_size) or fallback_size)
+        bold = bool(entry.get('bold', False))
+        italic = bool(entry.get('italic', False))
+        x_off = float(entry.get('x_offset_mm', 0.0) or 0.0)
+        y_off = float(entry.get('y_offset_mm', 0.0) or 0.0)
+        return family, size_pt, bold, italic, x_off, y_off
 
     def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
         if not notes_sorted or not windows:
@@ -489,7 +521,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
             prev = key
         return positions
 
-    _log("-- do_engrave start --")
+    _log(f"-- do_engrave start pdf_export={bool(pdf_export)} --")
     try:
         pitches = [int(n.get('pitch', 0) or 0) for n in notes if isinstance(n, dict)]
         if pitches:
@@ -605,6 +637,67 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
         _log(f"page_lines={len(page)}")
+        footer_height = float(layout.get('copyright_area_height_mm', 0.0) or 0.0)
+        footer_height = max(0.0, footer_height)
+        if page_index == 0:
+            title_text = _header_text('title', 'title')
+            composer_text = _header_text('composer', 'composer')
+            title_family, title_size, title_bold, title_italic, title_x_off, title_y_off = _header_font(
+                'title',
+                'Times New Roman',
+                12.0,
+            )
+            composer_family, composer_size, composer_bold, composer_italic, composer_x_off, composer_y_off = _header_font(
+                'composer',
+                'Times New Roman',
+                10.0,
+            )
+            du.add_text(
+                page_left + title_x_off,
+                page_top + title_y_off,
+                title_text,
+                family=title_family,
+                size_pt=title_size,
+                bold=title_bold,
+                italic=title_italic,
+                color=(0, 0, 0, 1),
+                id=0,
+                tags=['title'],
+                anchor='nw',
+            )
+            du.add_text(
+                (page_w - page_right) + composer_x_off,
+                page_top + composer_y_off,
+                composer_text,
+                family=composer_family,
+                size_pt=composer_size,
+                bold=composer_bold,
+                italic=composer_italic,
+                color=(0, 0, 0, 1),
+                id=0,
+                tags=['composer'],
+                anchor='ne',
+            )
+        if footer_height > 0.0:
+            footer_text = _header_text('copyright', f"keyTAB all copyrights reserved {datetime.now().year}")
+            footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _header_font(
+                'copyright',
+                'Times New Roman',
+                8.0,
+            )
+            du.add_text(
+                page_left + footer_x_off,
+                (page_h - page_bottom) + footer_y_off,
+                f"Page {page_index + 1} of {len(pages)} | {footer_text}",
+                family=footer_family,
+                size_pt=footer_size,
+                bold=footer_bold,
+                italic=footer_italic,
+                color=(0, 0, 0, 1),
+                id=0,
+                tags=['copyright'],
+                anchor='sw',
+            )
         if not page:
             continue
         used_width = sum(float(l['total_width']) for l in page)
@@ -628,20 +721,19 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
             if page_index == 0:
                 header_offset = float(layout.get('title_composer_area_height_mm', 0.0) or 0.0)
             y1 = page_top + header_offset
-            y2 = float(page_h - page_bottom)
+            y2 = float(page_h - page_bottom - footer_height)
             if y2 <= y1:
                 y2 = y1 + 1.0
             line['y_top'] = y1
             line['y_bottom'] = y2
 
+            bound_left = int(line.get('bound_left', line['range'][0]))
+            bound_right = int(line.get('bound_right', line['range'][1]))
+            origin = float(key_positions.get(bound_left, 0.0))
             manual_range = isinstance(line.get('stave_range'), list) and len(line.get('stave_range')) >= 2
             bound_group_low = _group_index_for_key(bound_left) if manual_range else None
             bound_group_high = _group_index_for_key(bound_right) if manual_range else None
             ledger_drawn: set[tuple[int, int]] = set()
-
-            bound_left = int(line.get('bound_left', line['range'][0]))
-            bound_right = int(line.get('bound_right', line['range'][1]))
-            origin = float(key_positions.get(bound_left, 0.0))
 
             def _key_to_x(key: int) -> float:
                 return line_x_start + (float(key_positions.get(key, 0.0)) - origin)
@@ -761,77 +853,79 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                 line_notes.append(item)
 
             # ---- Beam drawing per line ----
-            notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
-            for item in line_notes:
-                hk = str(item.get('hand', '<') or '<')
-                hand_norm = 'l' if hk in ('<', 'l') else 'r'
-                notes_by_hand_line[hand_norm].append(item)
+            if bool(layout.get('beam_visible', True)):
+                notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
+                for item in line_notes:
+                    hk = str(item.get('hand', '<') or '<')
+                    hand_norm = 'l' if hk in ('<', 'l') else 'r'
+                    notes_by_hand_line[hand_norm].append(item)
 
-            layout_stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
-            beam_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
-            line_start = float(line.get('time_start', 0.0) or 0.0)
-            line_end = float(line.get('time_end', 0.0) or 0.0)
+                layout_stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
+                beam_w = float(layout.get('beam_thickness_mm', 1.0) or 1.0)
+                stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
+                line_start = float(line.get('time_start', 0.0) or 0.0)
+                line_end = float(line.get('time_end', 0.0) or 0.0)
 
-            for hand_norm in ('r', 'l'):
-                notes_for_hand = notes_by_hand_line.get(hand_norm, [])
-                markers_for_hand = beam_by_hand.get(hand_norm, [])
-                groups, windows = _group_by_beam_markers(notes_for_hand, markers_for_hand, line_start, line_end)
-                for idx, grp in enumerate(groups):
-                    if not grp:
-                        continue
-                    t0, t1 = windows[idx] if idx < len(windows) else (line_start, line_end)
-                    starts_in = [float(n.get('time', 0.0) or 0.0) for n in grp if op_time.ge(float(n.get('time', 0.0) or 0.0), float(t0)) and op_time.lt(float(n.get('time', 0.0) or 0.0), float(t1))]
-                    if not starts_in:
-                        continue
-                    s_min, s_max = min(starts_in), max(starts_in)
-                    if op_time.eq(float(s_min), float(s_max)):
-                        continue
-                    t_first = min(starts_in)
-                    t_last = max(starts_in)
-                    if hand_norm == 'r':
-                        highest = max(grp, key=lambda n: int(n.get('pitch', 0) or 0))
-                        x1 = _key_to_x(int(highest.get('pitch', 0) or 0)) + float(layout_stem_len)
-                        x2 = x1 + float(semitone_mm)
-                    else:
-                        lowest = min(grp, key=lambda n: int(n.get('pitch', 0) or 0))
-                        x1 = _key_to_x(int(lowest.get('pitch', 0) or 0)) - float(layout_stem_len)
-                        x2 = x1 - float(semitone_mm)
-                    yb1 = _time_to_y(float(t_first))
-                    yb2 = _time_to_y(float(t_last))
-                    du.add_line(
-                        x1,
-                        yb1,
-                        x2,
-                        yb2,
-                        color=(0, 0, 0, 1),
-                        width_mm=max(0.2, beam_w) * 2.0,
-                        id=0,
-                        tags=['beam'],
-                    )
-                    for m in grp:
-                        mt = float(m.get('time', t_first) or t_first)
-                        if not (op_time.ge(mt, float(t0)) and op_time.lt(mt, float(t1))):
+                for hand_norm in ('r', 'l'):
+                    notes_for_hand = notes_by_hand_line.get(hand_norm, [])
+                    markers_for_hand = beam_by_hand.get(hand_norm, [])
+                    groups, windows = _group_by_beam_markers(notes_for_hand, markers_for_hand, line_start, line_end)
+                    for idx, grp in enumerate(groups):
+                        if not grp:
                             continue
-                        y_note = _time_to_y(float(mt))
+                        t0, t1 = windows[idx] if idx < len(windows) else (line_start, line_end)
+                        starts_in = [float(n.get('time', 0.0) or 0.0) for n in grp if op_time.ge(float(n.get('time', 0.0) or 0.0), float(t0)) and op_time.lt(float(n.get('time', 0.0) or 0.0), float(t1))]
+                        if not starts_in:
+                            continue
+                        s_min, s_max = min(starts_in), max(starts_in)
+                        if op_time.eq(float(s_min), float(s_max)):
+                            continue
+                        t_first = min(starts_in)
+                        t_last = max(starts_in)
                         if hand_norm == 'r':
-                            x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) + float(layout_stem_len)
+                            highest = max(grp, key=lambda n: int(n.get('pitch', 0) or 0))
+                            x1 = _key_to_x(int(highest.get('pitch', 0) or 0)) + float(layout_stem_len)
+                            x2 = x1 + float(semitone_mm)
                         else:
-                            x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) - float(layout_stem_len)
-                        if abs(yb2 - yb1) > 1e-6:
-                            t_ratio = (y_note - yb1) / (yb2 - yb1)
-                            x_on_beam = x1 + t_ratio * (x2 - x1)
-                        else:
-                            x_on_beam = x1
+                            lowest = min(grp, key=lambda n: int(n.get('pitch', 0) or 0))
+                            x1 = _key_to_x(int(lowest.get('pitch', 0) or 0)) - float(layout_stem_len)
+                            x2 = x1 - float(semitone_mm)
+                        yb1 = _time_to_y(float(t_first))
+                        yb2 = _time_to_y(float(t_last))
                         du.add_line(
-                            x_tip,
-                            y_note,
-                            float(x_on_beam),
-                            y_note,
+                            x1,
+                            yb1,
+                            x2,
+                            yb2,
                             color=(0, 0, 0, 1),
-                            width_mm=max(0.15, beam_w),
+                            width_mm=max(0.2, beam_w),
                             id=0,
-                            tags=['beam_stem'],
+                            tags=['beam'],
                         )
+                        for m in grp:
+                            mt = float(m.get('time', t_first) or t_first)
+                            if not (op_time.ge(mt, float(t0)) and op_time.lt(mt, float(t1))):
+                                continue
+                            y_note = _time_to_y(float(mt))
+                            if hand_norm == 'r':
+                                x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) + float(layout_stem_len)
+                            else:
+                                x_tip = _key_to_x(int(m.get('pitch', 0) or 0)) - float(layout_stem_len)
+                            if abs(yb2 - yb1) > 1e-6:
+                                t_ratio = (y_note - yb1) / (yb2 - yb1)
+                                x_on_beam = x1 + t_ratio * (x2 - x1)
+                            else:
+                                x_on_beam = x1
+                            du.add_line(
+                                x_tip,
+                                y_note,
+                                float(x_on_beam),
+                                y_note,
+                                color=(0, 0, 0, 1),
+                                width_mm=max(0.15, stem_w),
+                                id=0,
+                                tags=['beam_stem'],
+                            )
 
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
@@ -886,7 +980,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                         on_barline = True
                         break
                 if on_barline:
-                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
+                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
                     thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25)
                     if hand_key in ('l', '<'):
                         x1 = x
@@ -921,6 +1015,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
 
                 # Draw notehead
                 if bool(layout.get('note_head_visible', True)):
+                    outline_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
                     if p in BLACK_KEYS:
                         du.add_oval(
                             x - (w * 0.8),
@@ -940,7 +1035,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                             x + w,
                             note_y + (w * 2.0),
                             stroke_color=(0, 0, 0, 1),
-                            stroke_width_mm=0.3,
+                            stroke_width_mm=outline_w,
                             fill_color=(1, 1, 1, 1),
                             id=int(item.get('id', 0) or 0),
                             tags=['notehead_white'],
@@ -948,7 +1043,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
 
                 # Draw stem
                 if bool(layout.get('note_stem_visible', True)):
-                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5)
+                    stem_len = float(layout.get('note_stem_length_mm', 7.5) or 7.5) * scale
                     stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5)
                     x2 = x - stem_len if hand_key in ('l', '<') else x + stem_len
                     du.add_line(
@@ -967,13 +1062,14 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                     w2 = w * 2.0
                     dot_d = w2 * 0.35
                     cy = note_y + (w2 / 2.0)
+                    fill = (1, 1, 1, 1) if p in BLACK_KEYS else (0, 0, 0, 1)
                     du.add_oval(
                         x - (dot_d / 3.0),
                         cy - (dot_d / 3.0),
                         x + (dot_d / 3.0),
                         cy + (dot_d / 3.0),
                         stroke_color=None,
-                        fill_color=(0, 0, 0, 1),
+                        fill_color=fill,
                         id=0,
                         tags=['left_dot'],
                     )
@@ -1090,6 +1186,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0) -> None:
                     )
 
             x_cursor = x_cursor + float(line['total_width']) + gap
+
 
     # Ensure a valid current page index
     try:

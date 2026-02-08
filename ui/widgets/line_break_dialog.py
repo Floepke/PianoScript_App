@@ -29,15 +29,17 @@ class LineBreakDialog(QtWidgets.QDialog):
         form.addRow(QtWidgets.QLabel("Margin left:", self), self.margin_left)
         form.addRow(QtWidgets.QLabel("Margin right:", self), self.margin_right)
 
-        self.range_low = QtWidgets.QLineEdit(self)
-        self.range_high = QtWidgets.QLineEdit(self)
-        form.addRow(QtWidgets.QLabel("Range from key:", self), self.range_low)
-        form.addRow(QtWidgets.QLabel("Range to key:", self), self.range_high)
-
-        lay.addLayout(form)
-
         self.auto_range_cb = QtWidgets.QCheckBox("Auto range", self)
         self.auto_range_cb.toggled.connect(self._sync_range_enabled)
+
+        form.addRow(self.auto_range_cb)
+
+        self.range_low = QtWidgets.QLineEdit(self)
+        self.range_high = QtWidgets.QLineEdit(self)
+        form.addRow(QtWidgets.QLabel("Stave range from key:", self), self.range_low)
+        form.addRow(QtWidgets.QLabel("Stave range to key:", self), self.range_high)
+
+        lay.addLayout(form)
 
         # Page break toggle
         self.page_break_cb = QtWidgets.QCheckBox("Page break", self)
@@ -49,7 +51,6 @@ class LineBreakDialog(QtWidgets.QDialog):
         options_col = QtWidgets.QVBoxLayout()
         options_col.setContentsMargins(0, 0, 0, 0)
         options_col.setSpacing(4)
-        options_col.addWidget(self.auto_range_cb)
         options_col.addWidget(self.page_break_cb)
         options_row.addLayout(options_col)
         options_row.addStretch(1)
@@ -85,7 +86,7 @@ class LineBreakDialog(QtWidgets.QDialog):
 
         # Initialize
         defaults = LineBreak()
-        default_range = list(defaults.stave_range) if isinstance(defaults.stave_range, list) else [0, 0]
+        default_range = list(defaults.stave_range) if isinstance(defaults.stave_range, list) else [40, 44]
         m = margin_mm if margin_mm is not None else list(defaults.margin_mm)
         is_auto = bool(stave_range == 'auto' or stave_range is True)
         r = [] if is_auto else (stave_range if isinstance(stave_range, list) else list(default_range))

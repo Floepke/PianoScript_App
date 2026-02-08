@@ -23,6 +23,7 @@ class BeamDrawerMixin:
         beam_markers = cache.get('beam_by_hand') or {}
         op: Operator = cache.get('op') or Operator(7)
         score = self.current_score()
+        layout = score.layout if score else None
 
         # Initialize storage for groups
         if not hasattr(self, '_beam_groups_by_hand'):
@@ -184,6 +185,9 @@ class BeamDrawerMixin:
         # Cache on editor for downstream drawing steps
         self._beam_groups_by_hand = groups_all
 
+        if not bool(layout.beam_visible):
+            return
+
         # ---- Actual beam line drawing (right hand) ----
         # For each right-hand group, draw a slightly diagonal beam line
         # from the first note time (y1) to the last note time (y2).
@@ -191,7 +195,8 @@ class BeamDrawerMixin:
         # and end at x1 + semitone_dist to give a gentle diagonal.
         layout = self.current_score().layout
         stem_len = float(layout.note_stem_length_mm or 5.0)
-        beam_w = float(layout.note_stem_thickness_mm or 0.5)
+        beam_w = float(layout.beam_thickness_mm or 1.0)
+        stem_w = float(layout.note_stem_thickness_mm or 0.5)
 
         # Iterate windows in lockstep with groups for right hand
         right_groups = groups_all.get('r') or []
@@ -225,7 +230,7 @@ class BeamDrawerMixin:
                 x2,
                 y2,
                 color=self.notation_color,
-                width_mm=max(0.2, beam_w) * 2,
+                width_mm=max(0.2, beam_w),
                 id=0,
                 tags=["beam_line_right"],
             )
@@ -248,7 +253,7 @@ class BeamDrawerMixin:
                     float(x_on_beam),
                     y_note,
                     color=self.notation_color,
-                    width_mm=max(0.15, beam_w),
+                    width_mm=max(0.15, stem_w),
                     id=0,
                     tags=["beam_connect_right"],
                 )
@@ -287,7 +292,7 @@ class BeamDrawerMixin:
                 x2,
                 y2,
                 color=self.notation_color,
-                width_mm=max(0.2, beam_w) * 2,
+                width_mm=max(0.2, beam_w),
                 id=0,
                 tags=["beam_line_left"],
             )
@@ -309,7 +314,7 @@ class BeamDrawerMixin:
                     float(x_on_beam),
                     y_note,
                     color=self.notation_color,
-                    width_mm=max(0.15, beam_w),
+                    width_mm=max(0.15, stem_w),
                     id=0,
                     tags=["beam_connect_left"],
                 )

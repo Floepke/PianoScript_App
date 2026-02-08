@@ -878,7 +878,10 @@ class MainWindow(QtWidgets.QMainWindow):
             out_path = dlg.selectedFiles()[0]
             try:
                 from utils.CONSTANT import ENGRAVER_LAYERING
-                self.du.save_pdf(out_path, layering=ENGRAVER_LAYERING)
+                from engraver.engraver import do_engrave
+                export_du = DrawUtil()
+                do_engrave(self._current_score_dict(), export_du, pdf_export=True)
+                export_du.save_pdf(out_path, layering=ENGRAVER_LAYERING)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Export PDF failed", str(e))
 
