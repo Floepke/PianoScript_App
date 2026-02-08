@@ -88,6 +88,11 @@ class DrawUtilView(QtWidgets.QWidget):
     def request_render(self):
         w = max(1, self.width())
         dpr = float(self.devicePixelRatioF())
+        page_count = self._du.page_count()
+        if page_count <= 0:
+            return
+        if self._page_index >= page_count:
+            self._page_index = max(0, page_count - 1)
         page_w_mm, page_h_mm = self._du.current_page_size_mm()
         if page_w_mm <= 0 or page_h_mm <= 0:
             return

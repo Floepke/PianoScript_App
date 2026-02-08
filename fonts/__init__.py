@@ -43,6 +43,30 @@ def register_font_from_bytes(name: str) -> Optional[str]:
         return None
 
 
+def resolve_font_family(family: str, fallback_family: str = 'C059') -> str:
+    """Resolve a usable font family name.
+
+    - Prefer the requested system font if available.
+    - Otherwise, register the embedded fallback font and use it if available.
+    - As a last resort, return the original family string.
+    """
+    if QFontDatabase is None:
+        return family
+    try:
+        families = set(QFontDatabase.families())
+        if family in families:
+            return family
+    except Exception:
+        pass
+    try:
+        fallback = register_font_from_bytes(fallback_family)
+        if fallback:
+            return fallback
+    except Exception:
+        pass
+    return family
+
+
 def install_default_ui_font(app: Optional[QApplication] = None, name: str = 'FiraCode-SemiBold', point_size: int = 11) -> bool:
     """Install the embedded font and set it as the QApplication default.
 

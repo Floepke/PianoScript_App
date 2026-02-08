@@ -95,10 +95,10 @@ class LineBreakTool(BaseTool):
             template = None
         margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
         templ_range = getattr(template, 'stave_range', defaults.stave_range) if template else defaults.stave_range
-        if templ_range is True:
-            stave_range = True
+        if templ_range == 'auto' or templ_range is True:
+            stave_range = 'auto'
         else:
-            fallback = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
             stave_range = list(templ_range or fallback)
 
         score.events.line_break = []
@@ -269,13 +269,13 @@ class LineBreakTool(BaseTool):
         margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
         if template:
             templ_range = getattr(template, 'stave_range', defaults.stave_range)
-            if templ_range is True:
-                stave_range = True
+            if templ_range == 'auto' or templ_range is True:
+                stave_range = 'auto'
             else:
-                fallback = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+                fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
                 stave_range = list(templ_range or fallback)
         else:
-            stave_range = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+            stave_range = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
 
         try:
             score.new_line_break(time=click_time, margin_mm=margin_mm, stave_range=stave_range, page_break=False)
@@ -298,10 +298,10 @@ class LineBreakTool(BaseTool):
         parent_w = QtWidgets.QApplication.activeWindow() if hasattr(QtWidgets, 'QApplication') else None
         defaults = LineBreak()
         lb_range = getattr(lb, 'stave_range', defaults.stave_range)
-        if lb_range is True:
-            dialog_range = True
+        if lb_range == 'auto' or lb_range is True:
+            dialog_range = 'auto'
         else:
-            fallback = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
             dialog_range = list(lb_range or fallback)
         dlg = LineBreakDialog(
             parent=parent_w,
@@ -316,7 +316,7 @@ class LineBreakTool(BaseTool):
                     return
                 margin_mm, stave_range, page_break = dlg.get_values()
                 lb.margin_mm = list(margin_mm)
-                lb.stave_range = True if stave_range is True else list(stave_range)
+                lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
                 lb.page_break = bool(page_break)
                 self._editor._snapshot_if_changed(coalesce=False, label='line_break_edit')
                 if hasattr(self._editor, 'force_redraw_from_model'):

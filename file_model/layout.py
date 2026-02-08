@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 @dataclass
@@ -11,6 +11,9 @@ class Layout:
     page_bottom_margin_mm: float = 10.0
     page_left_margin_mm: float = 5.0
     page_right_margin_mm: float = 5.0
+    
+    # header area settings
+    title_composer_area_height_mm: float = 15.0
 
     # Global drawing options
     scale: float = 1.0
@@ -44,7 +47,7 @@ class Layout:
     # Slur appearance
     slur_visible: bool = True
     slur_width_sides_mm: float = 0.1
-    slur_width_middle_mm: float = 0.3
+    slur_width_middle_mm: float = 0.35
 
     # Repeat markers
     repeat_start_visible: bool = True
@@ -52,7 +55,13 @@ class Layout:
 
     # Count line
     countline_visible: bool = True
-    countline_thickness_mm: float = 0.4
+    countline_dash_pattern: list[float] = field(default_factory=lambda: [0.0, 1.0])  # Dash pattern for count lines (e.g., [dash_length, gap_length])
+    countline_thickness_mm: float = 0.5
 
     # Time signature indicator type (global)
     indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'
+
+    # Stave appearence
+    stave_two_line_thickness_mm: float = 0.5
+    stave_three_line_thickness_mm: float = 0.5
+    

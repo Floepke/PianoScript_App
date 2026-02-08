@@ -409,6 +409,14 @@ class MainWindow(QtWidgets.QMainWindow):
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
 
+        layout_act = QtGui.QAction("Layout", self)
+        layout_act.triggered.connect(self._open_layout_dialog)
+        file_menu.addAction(layout_act)
+
+        header_act = QtGui.QAction("Titles, Composer & Copyright...", self)
+        header_act.triggered.connect(self._open_header_dialog)
+        file_menu.addAction(header_act)
+
         # MIDI Output port chooser (under Playback menu)
         midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
         midi_port_act.triggered.connect(self._choose_midi_port)
@@ -948,6 +956,52 @@ class MainWindow(QtWidgets.QMainWindow):
             self.print_view.request_render()
         # Also refresh the editor view
         self.editor.update()
+
+    def _open_layout_dialog(self) -> None:
+        try:
+            from ui.widgets.layout_dialog import LayoutDialog
+            sc = self.file_manager.current()
+            layout = getattr(sc, 'layout', None)
+            dlg = LayoutDialog(parent=self, layout=layout)
+
+            def _apply(result: int) -> None:
+                if result != QtWidgets.QDialog.Accepted:
+                    return
+                new_layout = dlg.get_values()
+                try:
+                    sc.layout = new_layout
+                except Exception:
+                    return
+                self._refresh_views_from_score()
+            dlg.finished.connect(_apply)
+            dlg.show()
+        except Exception:
+            pass
+
+    def _open_header_dialog(self) -> None:
+        try:
+            from ui.widgets.header_dialog import HeaderDialog
+            sc = self.file_manager.current()
+            header = getattr(sc, 'header', None)
+            dlg = HeaderDialog(parent=self, header=header)
+
+            def _apply(result: int) -> None:
+                if result != QtWidgets.QDialog.Accepted:
+                    return
+                new_header = dlg.get_values()
+                try:
+                    sc.header = new_header
+                except Exception:
+                    return
+                self._refresh_views_from_score()
+
+            dlg.finished.connect(_apply)
+            dlg.show()
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "Header Dialog Error", str(exc))
+            except Exception:
+                pass
 
     @QtCore.Slot(int, int, float, float)
     def _on_editor_metrics(self, content_px: int, viewport_px: int, px_per_mm: float, dpr: float) -> None:

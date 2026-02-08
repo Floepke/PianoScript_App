@@ -362,6 +362,8 @@ class DrawUtil:
                         clip_rect_mm: Optional[Tuple[float, float, float, float]] = None,
                         overscan_mm: float = 0.0,
                         layering: Optional[Sequence[str]] = None) -> None:
+        if page_index < 0 or page_index >= len(self._pages):
+            return
         page = self._pages[page_index]
         ctx.save()
         # Prefer highest quality to keep text and thin lines smooth across scales

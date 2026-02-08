@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 from PySide6 import QtCore, QtWidgets
 
 from file_model.events.line_break import LineBreak
@@ -9,7 +9,7 @@ class LineBreakDialog(QtWidgets.QDialog):
     def __init__(self,
                  parent=None,
                  margin_mm: Optional[list[float]] = None,
-                 stave_range: Optional[list[int] | bool] = None,
+                 stave_range: Optional[list[int] | Literal['auto'] | bool] = None,
                  page_break: bool = False) -> None:
         super().__init__(parent)
         self.setWindowTitle("Line Break")
@@ -87,7 +87,7 @@ class LineBreakDialog(QtWidgets.QDialog):
         defaults = LineBreak()
         default_range = list(defaults.stave_range) if isinstance(defaults.stave_range, list) else [0, 0]
         m = margin_mm if margin_mm is not None else list(defaults.margin_mm)
-        is_auto = bool(stave_range is True)
+        is_auto = bool(stave_range == 'auto' or stave_range is True)
         r = [] if is_auto else (stave_range if isinstance(stave_range, list) else list(default_range))
         self.margin_left.setText(str(m[0] if len(m) > 0 else defaults.margin_mm[0]))
         self.margin_right.setText(str(m[1] if len(m) > 1 else defaults.margin_mm[1]))
@@ -149,16 +149,16 @@ class LineBreakDialog(QtWidgets.QDialog):
             self.msg_label.setText("Margins must be numbers (mm).")
             return
         if rl is None or rh is None:
-            self.msg_label.setText("Stave range must be integers (0 for auto).")
+            self.msg_label.setText("Stave range must be integers.")
             return
         self.msg_label.setText("")
         self.accept()
 
-    def get_values(self) -> Tuple[list[float], list[int] | bool, bool]:
+    def get_values(self) -> Tuple[list[float], list[int] | Literal['auto'], bool]:
         ml = float(self.margin_left.text().strip() or 0.0)
         mr = float(self.margin_right.text().strip() or 0.0)
         if self.auto_range_cb.isChecked():
-            return [ml, mr], True, bool(self.page_break_cb.isChecked())
+            return [ml, mr], 'auto', bool(self.page_break_cb.isChecked())
         rl = int(self.range_low.text().strip() or 0)
         rh = int(self.range_high.text().strip() or 0)
         return [ml, mr], [rl, rh], bool(self.page_break_cb.isChecked())

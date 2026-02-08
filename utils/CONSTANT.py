@@ -66,8 +66,9 @@ EDITOR_LAYERING = [
 ]
 
 ENGRAVER_LAYERING = [
-    # to be entered later
-    ...
+    # Stave lines first
+    'stave',
+    'engrave_test',
 ]
 
 # Keyboard constants

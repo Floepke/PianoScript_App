@@ -19,6 +19,7 @@ from file_model.events.count_line import CountLine
 from file_model.events.line_break import LineBreak
 from file_model.events.tempo import Tempo
 from file_model.layout import Layout
+from file_model.header import Header, HeaderText
 from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid
 from file_model.appstate import AppState
@@ -43,15 +44,6 @@ class MetaData:
 	format: str = 'json'
 	creation_timestamp: str = ''
 	modification_timestamp: str = ''
-
-
-@dataclass
-class Header:
-	title: str = 'title'
-	composer: str = 'composer'
-	arranger: str = 'arranger'
-	lyricist: str = 'lyricist'
-	copyright: str = 'copyright'
 
 
 @dataclass
@@ -159,7 +151,7 @@ class SCORE:
 
 	def new_line_break(self, **kwargs) -> LineBreak:
 		defaults = LineBreak()
-		default_range = True if defaults.stave_range is True else list(defaults.stave_range or [0, 0])
+		default_range = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
 		base = {
 			'time': 0.0,
 			'margin_mm': list(defaults.margin_mm),
@@ -220,11 +212,49 @@ class SCORE:
 
 		# Helper: merge incoming dict with dataclass defaults and report repairs
 		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id', '_id'}) -> dict:
+			from dataclasses import is_dataclass
+
 			incoming = incoming or {}
+			if not isinstance(incoming, dict):
+				incoming = {}
 			defaults = _defaults_for(dc_type)
-			# Only keep keys that exist on the dataclass and are not skipped
-			filtered = {k: v for k, v in incoming.items() if k in defaults and k not in skip_keys}
-			merged = {**defaults, **filtered}
+			try:
+				type_hints = get_type_hints(dc_type, globals(), locals())
+			except Exception:
+				type_hints = {}
+			merged = {}
+			for f in fields(dc_type):
+				name = f.name
+				if name.startswith('_') or name in skip_keys:
+					continue
+				field_type = type_hints.get(name, f.type)
+				default_value = defaults.get(name)
+				raw_value = incoming.get(name, MISSING)
+				if raw_value is MISSING:
+					merged[name] = default_value
+					continue
+				if is_dataclass(field_type):
+					if isinstance(raw_value, str):
+						raw_value = {'text': raw_value}
+					if isinstance(raw_value, field_type):
+						merged[name] = raw_value
+						continue
+					if isinstance(raw_value, dict):
+						if field_type is HeaderText and 'font' in raw_value:
+							font_data = raw_value.get('font', {})
+							if isinstance(font_data, dict):
+								merged_raw = dict(raw_value)
+								merged_raw.pop('font', None)
+								merged_raw.update(font_data)
+								raw_value = merged_raw
+							if 'size' in raw_value and 'size_pt' not in raw_value:
+								raw_value['size_pt'] = raw_value.get('size')
+						child = _merge_with_defaults(field_type, raw_value, f"{context}.{name}")
+						merged[name] = field_type(**child)
+					else:
+						merged[name] = default_value
+					continue
+				merged[name] = raw_value
 			return merged
 		# Meta/Header
 		md = data.get('meta_data', {})
@@ -373,10 +403,49 @@ class SCORE:
 			return defaults
 
 		def _merge_with_defaults(dc_type, incoming: dict, context: str, skip_keys: set = {'id', '_id'}) -> dict:
+			from dataclasses import is_dataclass
+
 			incoming = incoming or {}
+			if not isinstance(incoming, dict):
+				incoming = {}
 			defaults = _defaults_for(dc_type)
-			filtered = {k: v for k, v in incoming.items() if k in defaults and k not in skip_keys}
-			merged = {**defaults, **filtered}
+			try:
+				type_hints = get_type_hints(dc_type, globals(), locals())
+			except Exception:
+				type_hints = {}
+			merged = {}
+			for f in fields(dc_type):
+				name = f.name
+				if name.startswith('_') or name in skip_keys:
+					continue
+				field_type = type_hints.get(name, f.type)
+				default_value = defaults.get(name)
+				raw_value = incoming.get(name, MISSING)
+				if raw_value is MISSING:
+					merged[name] = default_value
+					continue
+				if is_dataclass(field_type):
+					if isinstance(raw_value, str):
+						raw_value = {'text': raw_value}
+					if isinstance(raw_value, field_type):
+						merged[name] = raw_value
+						continue
+					if isinstance(raw_value, dict):
+						if field_type is HeaderText and 'font' in raw_value:
+							font_data = raw_value.get('font', {})
+							if isinstance(font_data, dict):
+								merged_raw = dict(raw_value)
+								merged_raw.pop('font', None)
+								merged_raw.update(font_data)
+								raw_value = merged_raw
+							if 'size' in raw_value and 'size_pt' not in raw_value:
+								raw_value['size_pt'] = raw_value.get('size')
+						child = _merge_with_defaults(field_type, raw_value, f"{context}.{name}")
+						merged[name] = field_type(**child)
+					else:
+						merged[name] = default_value
+					continue
+				merged[name] = raw_value
 			return merged
 
 		# Meta/Header
