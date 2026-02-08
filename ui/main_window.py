@@ -111,8 +111,8 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 status_msg = "Restored unsaved session"
 
-        # Provide initial score to engrave and update titlebar
-        self._refresh_views_from_score()
+        # Provide initial score to engrave and update titlebar (delay first engrave)
+        self._refresh_views_from_score(delay_engrave_ms=1000)
         # Show startup status on the status bar
         try:
             if status_msg:
@@ -972,18 +972,26 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.file_manager.save_as():
             self._update_title()
 
-    def _refresh_views_from_score(self) -> None:
+    def _refresh_views_from_score(self, delay_engrave_ms: int = 0) -> None:
         try:
             sc_dict = self.file_manager.current().get_dict()
         except Exception:
             sc_dict = {}
         self.print_view.set_score(sc_dict)
         # Request engraving via Engraver; render happens on engraved signal
-        try:
-            self.engraver.engrave(sc_dict)
-        except Exception:
-            # Fallback: render current content
-            self.print_view.request_render()
+        if delay_engrave_ms and delay_engrave_ms > 0:
+            def _delayed_engrave() -> None:
+                try:
+                    self.engraver.engrave(self._current_score_dict())
+                except Exception:
+                    self.print_view.request_render()
+            QtCore.QTimer.singleShot(int(delay_engrave_ms), _delayed_engrave)
+        else:
+            try:
+                self.engraver.engrave(sc_dict)
+            except Exception:
+                # Fallback: render current content
+                self.print_view.request_render()
         # Also refresh the editor view
         self.editor.update()
 
