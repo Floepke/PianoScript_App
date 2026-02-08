@@ -1295,7 +1295,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _set_page_index(self, index: int) -> None:
         try:
-            self.print_view.set_page(index)
+            self.print_view.set_page(index, request_render=False)
         except Exception:
             pass
 

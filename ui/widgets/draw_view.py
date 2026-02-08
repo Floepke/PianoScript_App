@@ -88,10 +88,11 @@ class DrawUtilView(QtWidgets.QWidget):
         except Exception:
             pass
 
-    def set_page(self, index: int):
+    def set_page(self, index: int, request_render: bool = True):
         self._page_index = index
         self._scroll_px = 0.0
-        self.request_render()
+        if request_render:
+            self.request_render()
 
     def set_page_turn_callbacks(self, prev_cb, next_cb) -> None:
         self._page_prev_cb = prev_cb
