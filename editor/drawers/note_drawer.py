@@ -283,6 +283,9 @@ class NoteDrawerMixin:
         # Simple left-hand indicator dot in notehead (optional)
         if getattr(n, 'hand', '<') not in ('l', '<'):
             return
+        layout = cast("Editor", self).current_score().layout
+        if n.pitch in BLACK_KEYS and layout.black_note_rule == 'above_stem':
+            y1 = y1 - (float(self.semitone_dist or 0.5) * 2.0)
         w = float(self.semitone_dist or 0.5) * 2.0
         dot_d = w * 0.35
         cy = y1 + (w / 2.0)

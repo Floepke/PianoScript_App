@@ -52,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.du.new_page(width_mm=210, height_mm=297)
 
         self.print_view = DrawUtilView(self.du)
+        self.print_view.set_page_turn_callbacks(self._previous_page, self._next_page)
         
         # Engraver instance (single)
         self.engraver = Engraver(self.du, self)
@@ -183,6 +184,10 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         # Provide FileManager to editor (for undo snapshots)
         self.editor_controller.set_file_manager(self.file_manager)
+        try:
+            self.editor_controller.score_changed.connect(self._on_score_changed)
+        except Exception:
+            pass
         # Wire tool selector to Editor controller
         self.tool_dock.selector.toolSelected.connect(self.editor_controller.set_tool_by_name)
         # Also persist tool selection to appdata
@@ -957,16 +962,49 @@ class MainWindow(QtWidgets.QMainWindow):
         # Also refresh the editor view
         self.editor.update()
 
+    def _on_score_changed(self) -> None:
+        try:
+            self.engraver.engrave(self._current_score_dict())
+        except Exception:
+            pass
+
     def _open_layout_dialog(self) -> None:
         try:
             from ui.widgets.layout_dialog import LayoutDialog
             sc = self.file_manager.current()
             layout = getattr(sc, 'layout', None)
+            try:
+                from dataclasses import asdict
+                original_layout = asdict(layout) if layout is not None else None
+            except Exception:
+                original_layout = None
             dlg = LayoutDialog(parent=self, layout=layout)
+
+            previewing = {'active': True}
+
+            def _apply_preview() -> None:
+                if not previewing.get('active', True):
+                    return
+                try:
+                    sc.layout = dlg.get_values()
+                except Exception:
+                    return
+                try:
+                    sc_dict = self._current_score_dict()
+                    self.print_view.set_score(sc_dict)
+                    self.engraver.engrave(sc_dict)
+                except Exception:
+                    pass
+
+            try:
+                dlg.values_changed.connect(_apply_preview)
+            except Exception:
+                pass
 
             def _apply(result: int) -> None:
                 if result != QtWidgets.QDialog.Accepted:
                     return
+                previewing['active'] = False
                 new_layout = dlg.get_values()
                 try:
                     sc.layout = new_layout
@@ -974,6 +1012,18 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
                 self._refresh_views_from_score()
             dlg.finished.connect(_apply)
+
+            def _restore_original() -> None:
+                if original_layout is None:
+                    return
+                try:
+                    from file_model.layout import Layout
+                    sc.layout = Layout(**original_layout)
+                except Exception:
+                    return
+                self._refresh_views_from_score()
+
+            dlg.rejected.connect(_restore_original)
             dlg.show()
         except Exception:
             pass
@@ -1204,18 +1254,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _next_page(self) -> None:
         try:
-            self._page_counter += 1
-            pageno = self._page_counter % max(1, self._total_pages_placeholder)
-            self._set_page_index(pageno)
+            page_count = int(self.du.page_count())
+            if page_count <= 0:
+                return
+            self._page_counter = (self._page_counter + 1) % page_count
+            self._set_page_index(self._page_counter)
             self.engraver.engrave(self._current_score_dict())
         except Exception:
             pass
 
     def _previous_page(self) -> None:
         try:
-            self._page_counter -= 1
-            pageno = self._page_counter % max(1, self._total_pages_placeholder)
-            self._set_page_index(pageno)
+            page_count = int(self.du.page_count())
+            if page_count <= 0:
+                return
+            self._page_counter = (self._page_counter - 1) % page_count
+            self._set_page_index(self._page_counter)
             self.engraver.engrave(self._current_score_dict())
         except Exception:
             pass

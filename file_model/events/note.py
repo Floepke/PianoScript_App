@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+MidiNoteColor = Literal['<', '>'] | str
+
 @dataclass
 class Note:
     pitch: int = 40
@@ -33,4 +35,5 @@ class Note:
                       'triangle_black_down',
                       'cross_up',
                       'cross_down'] = 'default'
+    midinote_color: MidiNoteColor = hand
     _id: int = 0

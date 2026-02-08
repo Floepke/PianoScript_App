@@ -67,6 +67,8 @@ EDITOR_LAYERING = [
 
 ENGRAVER_LAYERING = [
     # Stave lines first
+    'midi_note',
+    'grid_line',
     'stave',
     'engrave_test',
 ]

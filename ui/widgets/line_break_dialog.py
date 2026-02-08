@@ -64,9 +64,9 @@ class LineBreakDialog(QtWidgets.QDialog):
         marker_font.setPointSize(18)
         marker_font.setBold(True)
         self.break_marker.setFont(marker_font)
-        self.break_marker.setFixedWidth(22)
+        self.break_marker.setFixedSize(22, 22)
         self.break_marker.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.break_marker.setStyleSheet("QLabel { background: #000000; color: #ffffff; border-radius: 3px; }")
+        self.break_marker.setStyleSheet("QLabel { background: #000000; color: #ffffff; border-radius: 0px; }")
         options_row.addWidget(self.break_marker)
         lay.addLayout(options_row)
 

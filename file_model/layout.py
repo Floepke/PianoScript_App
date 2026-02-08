@@ -17,8 +17,6 @@ class Layout:
 
     # Global drawing options
     scale: float = 1.0
-    color_right_midinote: str = '#cccccc'
-    color_left_midinote: str = '#cccccc'
     black_note_rule: Literal['above_stem','below_stem'] = 'below_stem'
 
     # Note appearance
@@ -27,6 +25,9 @@ class Layout:
     note_stem_length_mm: float = 7.5
     note_stem_width_mm: float = 0.5 # Thickness of the stem as well the notehead outline
     note_leftdot_visible: bool = True
+    note_midinote_visible: bool = True
+    note_midinote_left_color: str = '#cccccc'
+    note_midinote_right_color: str = '#cccccc'
 
     # Beam appearance
     beam_visible: bool = True
@@ -64,4 +65,27 @@ class Layout:
     # Stave appearence
     stave_two_line_thickness_mm: float = 0.5
     stave_three_line_thickness_mm: float = 0.5
+    stave_clef_line_dash_pattern_mm: list[float] = field(default_factory=lambda: [0.0, 1.0])  # Dash pattern for clef lines (e.g., [dash_length, gap_length])
+
+
+LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
+    'page_width_mm': {'min': 50.0, 'max': 10000.0, 'step': 0.5},
+    'page_height_mm': {'min': 50.0, 'max': 10000.0, 'step': 0.5},
+    'page_top_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'page_bottom_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'page_left_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'page_right_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'title_composer_area_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.5},
+    'scale': {'min': 0.0, 'max': 1.0, 'step': 0.01},
+    'note_stem_length_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
+    'note_stem_width_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'beam_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'pedal_lane_width_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
+    'text_font_size_pt': {'min': 4.0, 'max': 94.0, 'step': 0.5},
+    'slur_width_sides_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'slur_width_middle_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'countline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'stave_two_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+    'stave_three_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.1},
+}
     

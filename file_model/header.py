@@ -21,6 +21,8 @@ class FontSpec:
 @dataclass
 class HeaderText(FontSpec):
     text: str = ""
+    x_offset_mm: float = 0.0
+    y_offset_mm: float = 0.0
 
 
 @dataclass

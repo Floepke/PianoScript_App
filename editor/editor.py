@@ -79,6 +79,8 @@ class Editor(QtCore.QObject,
 
     DRAG_THRESHOLD: int = 4
 
+    score_changed = QtCore.Signal()
+
     def __init__(self, tool_manager: ToolManager):
         super().__init__()
         self._tm = tool_manager
@@ -505,6 +507,10 @@ class Editor(QtCore.QObject,
         # Ensure any edit is reflected immediately from the model
         try:
             self.force_redraw_from_model()
+        except Exception:
+            pass
+        try:
+            self.score_changed.emit()
         except Exception:
             pass
 
@@ -1407,8 +1413,8 @@ class Editor(QtCore.QObject,
             event_fields = [name for name in dir(score.events)
                             if isinstance(getattr(score.events, name, None), list)
                             and not name.startswith('_')]
-        # Exclude tempo events from selection rectangle detection
-        event_fields = [n for n in event_fields if n != 'tempo']
+        # Exclude tempo and line_break from selection rectangle detection
+        event_fields = [n for n in event_fields if n not in ('tempo', 'line_break')]
 
         out: dict[str, list] = {name: [] for name in event_fields}
 

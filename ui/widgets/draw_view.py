@@ -67,6 +67,8 @@ class DrawUtilView(QtWidgets.QWidget):
         self._last_dpr: float = 1.0
         self._last_h_px: int = 0
         self._score: dict | None = None
+        self._page_prev_cb = None
+        self._page_next_cb = None
         # Apply a dedicated background color for DrawUtil views
         try:
             color = Style.get_named_qcolor('draw_util')
@@ -80,6 +82,10 @@ class DrawUtilView(QtWidgets.QWidget):
     def set_page(self, index: int):
         self._page_index = index
         self.request_render()
+
+    def set_page_turn_callbacks(self, prev_cb, next_cb) -> None:
+        self._page_prev_cb = prev_cb
+        self._page_next_cb = next_cb
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 800)
@@ -125,6 +131,12 @@ class DrawUtilView(QtWidgets.QWidget):
         painter.end()
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
+        if ev.button() == QtCore.Qt.MouseButton.LeftButton and callable(self._page_prev_cb):
+            self._page_prev_cb()
+            return
+        if ev.button() == QtCore.Qt.MouseButton.RightButton and callable(self._page_next_cb):
+            self._page_next_cb()
+            return
         if self._image is None:
             return
         # Convert from widget px to page mm

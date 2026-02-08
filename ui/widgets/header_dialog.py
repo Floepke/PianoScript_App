@@ -85,20 +85,47 @@ class HeaderDialog(QtWidgets.QDialog):
         self._title_text = QtWidgets.QLineEdit(self)
         self._title_text.setText(str(self._header.title.text))
         self._title_font = FontEditor(self._header.title, self)
+        self._title_x = QtWidgets.QDoubleSpinBox(self)
+        self._title_y = QtWidgets.QDoubleSpinBox(self)
+        for sb in (self._title_x, self._title_y):
+            sb.setDecimals(2)
+            sb.setRange(-1000000.0, 1000000.0)
+        self._title_x.setValue(float(getattr(self._header.title, 'x_offset_mm', 0.0) or 0.0))
+        self._title_y.setValue(float(getattr(self._header.title, 'y_offset_mm', 0.0) or 0.0))
         form.addRow(QtWidgets.QLabel("Title text:", self), self._title_text)
         form.addRow(QtWidgets.QLabel("Title font:", self), self._title_font)
+        form.addRow(QtWidgets.QLabel("Title x offset (mm):", self), self._title_x)
+        form.addRow(QtWidgets.QLabel("Title y offset (mm):", self), self._title_y)
 
         self._composer_text = QtWidgets.QLineEdit(self)
         self._composer_text.setText(str(self._header.composer.text))
         self._composer_font = FontEditor(self._header.composer, self)
+        self._composer_x = QtWidgets.QDoubleSpinBox(self)
+        self._composer_y = QtWidgets.QDoubleSpinBox(self)
+        for sb in (self._composer_x, self._composer_y):
+            sb.setDecimals(2)
+            sb.setRange(-1000000.0, 1000000.0)
+        self._composer_x.setValue(float(getattr(self._header.composer, 'x_offset_mm', 0.0) or 0.0))
+        self._composer_y.setValue(float(getattr(self._header.composer, 'y_offset_mm', 0.0) or 0.0))
         form.addRow(QtWidgets.QLabel("Composer text:", self), self._composer_text)
         form.addRow(QtWidgets.QLabel("Composer font:", self), self._composer_font)
+        form.addRow(QtWidgets.QLabel("Composer x offset (mm):", self), self._composer_x)
+        form.addRow(QtWidgets.QLabel("Composer y offset (mm):", self), self._composer_y)
 
         self._copyright_text = QtWidgets.QLineEdit(self)
         self._copyright_text.setText(str(self._header.copyright.text))
         self._copyright_font = FontEditor(self._header.copyright, self)
+        self._copyright_x = QtWidgets.QDoubleSpinBox(self)
+        self._copyright_y = QtWidgets.QDoubleSpinBox(self)
+        for sb in (self._copyright_x, self._copyright_y):
+            sb.setDecimals(2)
+            sb.setRange(-1000000.0, 1000000.0)
+        self._copyright_x.setValue(float(getattr(self._header.copyright, 'x_offset_mm', 0.0) or 0.0))
+        self._copyright_y.setValue(float(getattr(self._header.copyright, 'y_offset_mm', 0.0) or 0.0))
         form.addRow(QtWidgets.QLabel("Copyright text:", self), self._copyright_text)
         form.addRow(QtWidgets.QLabel("Copyright font:", self), self._copyright_font)
+        form.addRow(QtWidgets.QLabel("Copyright x offset (mm):", self), self._copyright_x)
+        form.addRow(QtWidgets.QLabel("Copyright y offset (mm):", self), self._copyright_y)
 
         self._msg = QtWidgets.QLabel("", self)
         pal = self._msg.palette()
@@ -133,6 +160,8 @@ class HeaderDialog(QtWidgets.QDialog):
             size_pt=title_font.size_pt,
             bold=title_font.bold,
             italic=title_font.italic,
+            x_offset_mm=float(self._title_x.value()),
+            y_offset_mm=float(self._title_y.value()),
         )
         composer = HeaderText(
             text=str(self._composer_text.text()),
@@ -140,6 +169,8 @@ class HeaderDialog(QtWidgets.QDialog):
             size_pt=composer_font.size_pt,
             bold=composer_font.bold,
             italic=composer_font.italic,
+            x_offset_mm=float(self._composer_x.value()),
+            y_offset_mm=float(self._composer_y.value()),
         )
         copyright_text = HeaderText(
             text=str(self._copyright_text.text()),
@@ -147,5 +178,7 @@ class HeaderDialog(QtWidgets.QDialog):
             size_pt=copyright_font.size_pt,
             bold=copyright_font.bold,
             italic=copyright_font.italic,
+            x_offset_mm=float(self._copyright_x.value()),
+            y_offset_mm=float(self._copyright_y.value()),
         )
         return Header(title=title, composer=composer, copyright=copyright_text)
