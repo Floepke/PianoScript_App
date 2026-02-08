@@ -56,6 +56,13 @@ class DrawUtilView(QtWidgets.QWidget):
         super().__init__(parent)
         self._du = draw_util
         self._image: QtGui.QImage | None = None
+        self._prev_image: QtGui.QImage | None = None
+        self._fade_progress: float = 1.0
+        self._fade_elapsed_ms: int = 0
+        self._fade_duration_ms: int = 500
+        self._fade_timer = QtCore.QTimer(self)
+        self._fade_timer.setInterval(16)
+        self._fade_timer.timeout.connect(self._on_fade_tick)
         self._page_index = max(0, self._du.current_page_index())
         self._pool = QtCore.QThreadPool.globalInstance()
         self._emitter = RenderEmitter()
@@ -77,6 +84,7 @@ class DrawUtilView(QtWidgets.QWidget):
             pal.setColor(QtGui.QPalette.Window, color)
             self.setPalette(pal)
             self.setAutoFillBackground(True)
+            self.setAttribute(QtCore.Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         except Exception:
             pass
 
@@ -126,16 +134,30 @@ class DrawUtilView(QtWidgets.QWidget):
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
+        try:
+            painter.fillRect(self.rect(), self.palette().window())
+        except Exception:
+            painter.fillRect(self.rect(), QtCore.Qt.GlobalColor.white)
         if self._image is not None:
-            x = 0
-            img_h = int(self._image.height() / self._image.devicePixelRatio())
-            if img_h <= self.height():
-                y = (self.height() - img_h) // 2
+            def _draw_image(img: QtGui.QImage, opacity: float) -> None:
+                painter.save()
+                painter.setOpacity(opacity)
+                x = 0
+                img_h = int(img.height() / img.devicePixelRatio())
+                if img_h <= self.height():
+                    y = (self.height() - img_h) // 2
+                else:
+                    max_scroll = max(0, img_h - self.height())
+                    self._scroll_px = max(0.0, min(float(max_scroll), float(self._scroll_px)))
+                    y = -int(round(self._scroll_px))
+                painter.drawImage(QtCore.QPoint(x, y), img)
+                painter.restore()
+
+            if self._prev_image is not None and self._fade_progress < 1.0:
+                _draw_image(self._prev_image, 1.0 - self._fade_progress)
+                _draw_image(self._image, self._fade_progress)
             else:
-                max_scroll = max(0, img_h - self.height())
-                self._scroll_px = max(0.0, min(float(max_scroll), float(self._scroll_px)))
-                y = -int(round(self._scroll_px))
-            painter.drawImage(QtCore.QPoint(x, y), self._image)
+                _draw_image(self._image, 1.0)
         painter.end()
 
     def wheelEvent(self, ev: QtGui.QWheelEvent) -> None:
@@ -208,7 +230,26 @@ class DrawUtilView(QtWidgets.QWidget):
     def _on_rendered(self, image: QtGui.QImage, page_index: int):
         if page_index != self._page_index:
             return
+        if self._image is not None:
+            self._prev_image = self._image
+            self._fade_progress = 0.0
+            self._fade_elapsed_ms = 0
+            self._fade_timer.start()
+        else:
+            self._prev_image = None
+            self._fade_progress = 1.0
         self._image = image
+        self.update()
+
+    def _on_fade_tick(self) -> None:
+        self._fade_elapsed_ms += int(self._fade_timer.interval())
+        if self._fade_duration_ms <= 0:
+            self._fade_progress = 1.0
+        else:
+            self._fade_progress = min(1.0, float(self._fade_elapsed_ms) / float(self._fade_duration_ms))
+        if self._fade_progress >= 1.0:
+            self._fade_timer.stop()
+            self._prev_image = None
         self.update()
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:

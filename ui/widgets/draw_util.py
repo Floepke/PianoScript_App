@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 import os
 import cairo
 from utils.CONSTANT import EDITOR_LAYERING
@@ -558,19 +558,25 @@ class DrawUtil:
         out.sort(key=lambda t: t[0])
         return [i for (_a, i) in out]
 
-    def save_pdf(self, path: str, layering: Optional[Sequence[str]] = None) -> None:
+    def save_pdf(
+        self,
+        path: str,
+        layering: Optional[Sequence[str]] = None,
+        progress_cb: Optional[Callable[[int, int], None]] = None,
+    ) -> None:
         if not self._pages:
             return
+        surface: Optional[cairo.PDFSurface] = None
+        ctx: Optional[cairo.Context] = None
+        total_pages = len(self._pages)
         for i, page in enumerate(self._pages):
             width_pt = page.width_mm * PT_PER_MM
             height_pt = page.height_mm * PT_PER_MM
             if i == 0:
                 surface = cairo.PDFSurface(path, width_pt, height_pt)
-                ctx = cairo.Context(surface)
             else:
                 surface.set_size(width_pt, height_pt)
-                surface.show_page()
-                ctx = cairo.Context(surface)
+            ctx = cairo.Context(surface)
             ctx.save()
             ctx.scale(PT_PER_MM, PT_PER_MM)
             ctx.set_source_rgb(1, 1, 1)
@@ -589,8 +595,15 @@ class DrawUtil:
                 elif isinstance(item, Text):
                     self._draw_text(ctx, item)
             ctx.restore()
-        surface.show_page()
-        surface.finish()
+            if progress_cb is not None:
+                try:
+                    progress_cb(i + 1, total_pages)
+                except Exception:
+                    pass
+            if i < (len(self._pages) - 1):
+                surface.show_page()
+        if surface is not None:
+            surface.finish()
 
     def _apply_stroke(self, ctx: cairo.Context, stroke: Stroke):
         ctx.set_source_rgba(*stroke.color)

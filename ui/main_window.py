@@ -881,7 +881,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 from engraver.engraver import do_engrave
                 export_du = DrawUtil()
                 do_engrave(self._current_score_dict(), export_du, pdf_export=True)
-                export_du.save_pdf(out_path, layering=ENGRAVER_LAYERING)
+                total_pages = max(1, export_du.page_count())
+                progress = QtWidgets.QProgressDialog("Exporting PDF...", None, 0, total_pages, self)
+                progress.setWindowTitle("Export PDF")
+                progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+                progress.setMinimumDuration(0)
+                progress.setValue(0)
+                progress.show()
+
+                def _on_progress(done: int, total: int) -> None:
+                    if progress.maximum() != int(total):
+                        progress.setMaximum(int(total))
+                    progress.setValue(int(done))
+                    QtWidgets.QApplication.processEvents()
+
+                export_du.save_pdf(out_path, layering=ENGRAVER_LAYERING, progress_cb=_on_progress)
+                progress.setValue(total_pages)
+                progress.close()
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Export PDF failed", str(e))
 

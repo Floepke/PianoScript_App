@@ -81,7 +81,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     page_top = float(layout.get('page_top_margin_mm', 10.0) or 10.0)
     page_bottom = float(layout.get('page_bottom_margin_mm', 10.0) or 10.0)
     scale = float(layout.get('scale', 1.0) or 1.0)
-    zpq = float(editor.get('zoom_mm_per_quarter', 25.0) or 25.0)
     stave_two_w = float(layout.get('stave_two_line_thickness_mm', 0.5) or 0.5) * scale
     stave_three_w = float(layout.get('stave_three_line_thickness_mm', 0.5) or 0.5) * scale
     clef_dash = list(layout.get('stave_clef_line_dash_pattern_mm', []) or [])
@@ -91,22 +90,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     barline_positions: list[float] = []
     cur_bar = 0.0
     for bg in base_grid:
-        try:
-            numer = int(bg.get('numerator', 4) or 4)
-            denom = int(bg.get('denominator', 4) or 4)
-            measures = int(bg.get('measure_amount', 1) or 1)
-        except Exception:
-            traceback.print_exc()
-            continue
+        numer = int(bg.get('numerator', 4) or 4)
+        denom = int(bg.get('denominator', 4) or 4)
+        measures = int(bg.get('measure_amount', 1) or 1)
         measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
         for _ in range(int(max(0, measures))):
             barline_positions.append(float(cur_bar))
             cur_bar += measure_len
 
     def _log(msg: str) -> None:
+        """No-op logger placeholder to keep call sites stable."""
         return
 
     def _normalize_hex_color(value: str | None) -> str | None:
+        """Normalize hex color strings and allow special hand markers."""
         if value is None:
             return None
         txt = str(value).strip()
@@ -128,11 +125,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return f"#{hex_part}"
 
     def _hex_to_rgba01(hex_color: str, alpha: float = 1.0) -> tuple[float, float, float, float]:
+        """Convert a hex color into RGBA floats in the 0..1 range."""
         rgba = hex_to_rgba(hex_color, alpha)
         r, g, b, a = rgba
         return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a))
 
     def _header_entry(key: str) -> dict:
+        """Return a normalized header entry dict for title/composer/footer data."""
         value = header.get(key, {}) if isinstance(header, dict) else {}
         if isinstance(value, dict):
             return value
@@ -141,6 +140,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return {}
 
     def _resolve_font_family(family: str) -> str:
+        """Resolve a font family name with the font registry if available."""
         try:
             from fonts import resolve_font_family
             return str(resolve_font_family(family))
@@ -148,11 +148,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             return family
 
     def _header_text(key: str, fallback: str) -> str:
+        """Fetch header text with a fallback, always returning a string."""
         entry = _header_entry(key)
         txt = entry.get('text', fallback)
         return str(txt) if txt is not None else str(fallback)
 
     def _header_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool, float, float]:
+        """Fetch header font settings (family, size, style, offsets)."""
         entry = _header_entry(key)
         family = _resolve_font_family(str(entry.get('family', fallback_family) or fallback_family))
         size_pt = float(entry.get('size_pt', fallback_size) or fallback_size)
@@ -163,6 +165,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return family, size_pt, bold, italic, x_off, y_off
 
     def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
+        """Assign notes to time windows by overlap and preserve start-time order."""
         if not notes_sorted or not windows:
             return []
         starts = [float(n.get('time', 0.0) or 0.0) for n in notes_sorted]
@@ -198,6 +201,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return result
 
     def _build_grid_windows(a: float, b: float) -> list[tuple[float, float]]:
+        """Build time windows using base grid beat grouping between a and b."""
         windows: list[tuple[float, float]] = []
         cur = 0.0
         for bg in base_grid:
@@ -241,6 +245,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return windows
 
     def _build_duration_windows(start: float, end: float, dur: float) -> list[tuple[float, float]]:
+        """Build consecutive windows of fixed duration between start and end."""
         if dur <= 0:
             return [(start, end)]
         windows: list[tuple[float, float]] = []
@@ -252,6 +257,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return windows
 
     def _group_by_beam_markers(notes: list[dict], markers: list[dict], start: float, end: float) -> tuple[list[list[dict]], list[tuple[float, float]]]:
+        """Split notes into beam groups using marker- and grid-based windows."""
         notes_sorted = sorted(notes, key=lambda n: float(n.get('time', 0.0) or 0.0)) if notes else []
         windows: list[tuple[float, float]] = []
         markers_sorted = sorted(markers, key=lambda m: float(m.get('time', 0.0))) if markers else []
@@ -278,6 +284,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return groups, windows
 
     def _has_followed_rest(item: dict) -> bool:
+        """Return True when a note has no immediate following note in its hand."""
         hand_key = str(item.get('hand', '<') or '<')
         hand_list = notes_by_hand.get(hand_key, [])
         starts = starts_by_hand.get(hand_key, [])
@@ -307,6 +314,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         traceback.print_exc()
 
     def _total_score_ticks() -> float:
+        """Compute total score duration in ticks from base grid segments."""
         total = 0.0
         for bg in base_grid:
             try:
@@ -321,6 +329,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return float(total)
 
     def _line_break_defaults() -> dict:
+        """Return default line break settings used when none exist."""
         return {
             'time': 0.0,
             'margin_mm': [10.0, 10.0],
@@ -329,6 +338,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         }
 
     def _sanitize_range(rng) -> list[int]:
+        """Clamp and normalize a stave range to valid piano keys."""
         if not isinstance(rng, list) or len(rng) < 2:
             return [1, PIANO_KEY_AMOUNT]
         try:
@@ -344,6 +354,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return [lo, hi]
 
     def _pc_char(key: int) -> str:
+        """Map a piano key number to a pitch-class character for grouping."""
         pc = (int(key) - 1) % 12
         if pc in (0, 2, 3, 5, 7, 8, 10):
             return {0: 'a', 2: 'b', 3: 'c', 5: 'd', 7: 'e', 8: 'f', 10: 'g'}[pc]
@@ -352,10 +363,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     line_keys = sorted(key_class_filter('ACDFG'))
 
     def _build_line_groups() -> list[dict]:
+        """Build clef-related line groups and their key ranges."""
         groups: list[dict] = []
         used: set[int] = set()
 
         def _next_index(start: int, pc_target: str) -> int | None:
+            """Find the next unused key index matching a pitch-class target."""
             for j in range(start + 1, len(line_keys)):
                 if j in used:
                     continue
@@ -425,6 +438,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             break
 
     def _group_index_for_key(key: int) -> int:
+        """Return the line group index for a key using precomputed ranges."""
         if not line_groups:
             return 0
         for i, grp in enumerate(line_groups):
@@ -433,6 +447,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return 0 if key <= line_groups[0]['range_low'] else len(line_groups) - 1
 
     def _note_range_for_window(t0: float, t1: float) -> tuple[int | None, int | None]:
+        """Find the lowest and highest pitches overlapping a time window."""
         lo = None
         hi = None
         for n in notes:
@@ -452,6 +467,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return lo, hi
 
     def _visible_line_groups_for_range(lo: int, hi: int) -> list[dict]:
+        """Return line groups that cover a pitch range, including clef group."""
         lo = int(max(1, min(PIANO_KEY_AMOUNT, lo)))
         hi = int(max(1, min(PIANO_KEY_AMOUNT, hi)))
         if hi < lo:
@@ -467,6 +483,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return [line_groups[gi] for gi in range(min_group, max_group + 1)]
 
     def _auto_line_keys_and_bounds(t0: float, t1: float) -> tuple[list[dict], list[int], int, int, bool, str]:
+        """Choose stave keys and bounds automatically for a time window."""
         lo, hi = _note_range_for_window(t0, t1)
         if lo is None or hi is None:
             grp = line_groups[clef_group_index]
@@ -485,6 +502,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return groups, keys, int(keys[0]), int(keys[-1]), False, ' '.join(patterns)
 
     def _notes_in_window_stats(t0: float, t1: float) -> tuple[int, int | None, int | None]:
+        """Return note count and pitch bounds overlapping a time window."""
         count = 0
         lo = None
         hi = None
@@ -504,6 +522,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return count, lo, hi
 
     def _build_key_positions(start_key: int, end_key: int, semitone_mm: float) -> dict[int, float]:
+        """Build x positions for keys, adding extra spacing after B/E."""
         positions: dict[int, float] = {}
         x = 0.0
         prev = None
@@ -595,6 +614,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             bound_right = int(keys[-1])
             line['visible_keys'] = keys
             line['pattern'] = ' '.join(patterns)
+        # Special-case low register: use key 2 as the stave's left edge when keys 1-3 appear.
+        low_key_present = False
+        for item in norm_notes:
+            n_t = float(item.get('time', 0.0) or 0.0)
+            n_end = float(item.get('end', 0.0) or 0.0)
+            p = int(item.get('pitch', 0) or 0)
+            if op_time.ge(n_t, float(line['time_end'])) or op_time.le(n_end, float(line['time_start'])):
+                continue
+            if p in (1, 2, 3):
+                low_key_present = True
+                break
+        if low_key_present:
+            bound_left = 2
+        line['low_key_left'] = bool(low_key_present)
         line['range'] = [int(bound_left), int(bound_right)]
         min_pos = key_positions.get(bound_left, 0.0)
         max_pos = key_positions.get(bound_right, min_pos)
@@ -852,7 +885,25 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             visible_keys = list(line.get('visible_keys', []))
             if not visible_keys:
                 visible_keys = [k for k in range(int(line['range'][0]), int(line['range'][1]) + 1) if k in line_keys]
+            # Special-case low register: draw A#0 (key 2) line when keys 1-3 appear.
+            low_key_present = bool(line.get('low_key_left', False))
+            if low_key_present:
+                x_pos = _key_to_x(2)
+                width_mm = max(stave_three_w, semitone_mm / 3.0)
+                du.add_line(
+                    x_pos,
+                    y1,
+                    x_pos,
+                    y2,
+                    color=(0, 0, 0, 1),
+                    width_mm=width_mm,
+                    dash_pattern=None,
+                    id=0,
+                    tags=['stave'],
+                )
             for key in visible_keys:
+                if low_key_present and int(key) == 2:
+                    continue
                 x_pos = _key_to_x(key)
                 is_clef_line = key in (41, 43)
                 is_three_line = key in key_class_filter('FGA')
@@ -1261,17 +1312,42 @@ class Engraver(QtCore.QObject):
         self._pool = QtCore.QThreadPool.globalInstance()
         self._running: bool = False
         self._pending_score: dict | None = None
+        self._min_interval_ms: int = 500
+        self._last_start_ms: int = -500
+        self._elapsed = QtCore.QElapsedTimer()
+        self._elapsed.start()
+        self._delay_timer = QtCore.QTimer(self)
+        self._delay_timer.setSingleShot(True)
+        self._delay_timer.timeout.connect(self._maybe_start_pending)
 
     def engrave(self, score: dict) -> None:
         # If currently running, just replace the pending request
         if self._running:
             self._pending_score = dict(score or {})
             return
-        # Start immediately
-        self._start_task(dict(score or {}))
+        self._pending_score = dict(score or {})
+        self._maybe_start_pending()
+
+    def _maybe_start_pending(self) -> None:
+        if self._running:
+            return
+        if self._pending_score is None:
+            return
+        elapsed_ms = int(self._elapsed.elapsed())
+        since_last = elapsed_ms - int(self._last_start_ms)
+        if since_last >= self._min_interval_ms:
+            next_score = self._pending_score
+            self._pending_score = None
+            self._start_task(next_score)
+            return
+        delay_ms = max(1, int(self._min_interval_ms - since_last))
+        if self._delay_timer.isActive():
+            self._delay_timer.stop()
+        self._delay_timer.start(delay_ms)
 
     def _start_task(self, score: dict) -> None:
         self._running = True
+        self._last_start_ms = int(self._elapsed.elapsed())
         task = _EngraveTask(score, self._du, self._on_finished)
         self._pool.start(task)
 
@@ -1281,9 +1357,7 @@ class Engraver(QtCore.QObject):
         self._running = False
         if self._pending_score is not None:
             # Grab and clear the latest pending, then run it
-            next_score = self._pending_score
-            self._pending_score = None
-            self._start_task(next_score)
+            self._maybe_start_pending()
             return
         # No pending: notify listeners (e.g., to request render)
         try:

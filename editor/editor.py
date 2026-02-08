@@ -677,15 +677,6 @@ class Editor(QtCore.QObject,
             self.mm_cursor = abs_mm - float(self._view_y_mm_offset or 0.0)
             # Also track pitch under cursor (logical px → key number)
             self.pitch_cursor = self.x_to_pitch(x)
-            # Automatic hand switching for NoteTool at keyboard edges if enabled
-            if isinstance(self._tool, NoteTool):
-                pm = get_preferences_manager()
-                auto = bool(pm.get("note_tool_automatic_hand_switching", True))
-                if auto and self.pitch_cursor is not None:
-                    if int(self.pitch_cursor) == 1:
-                        self.hand_cursor = '<'
-                    elif int(self.pitch_cursor) == 88:
-                        self.hand_cursor = '>'
             self._tool.on_mouse_move(x, y)
 
     def mouse_release(self, button: int, x: float, y: float) -> None:
@@ -1521,6 +1512,8 @@ class Editor(QtCore.QObject,
             if isinstance(lst, list):
                 remain = [ev for ev in lst if ev not in sel[key]]
                 setattr(score.events, key, remain)
+        # Keep base grid length aligned to remaining notes.
+        self.update_score_length()
         # Snapshot change
         self._snapshot_if_changed(coalesce=True, label='cut_selection')
         return sel
@@ -1544,6 +1537,8 @@ class Editor(QtCore.QObject,
                         deleted_any = True
                     setattr(score.events, key, remain)
             if deleted_any:
+                # Keep base grid length aligned to remaining notes.
+                self.update_score_length()
                 self._snapshot_if_changed(coalesce=True, label='delete_selection')
         except Exception:
             pass
