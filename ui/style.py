@@ -17,35 +17,41 @@ class Style:
     """
 
     # Base palettes (RGB tuples) used for interpolation.
-    # The theme is driven by four colors:
+    # The theme is driven by six colors:
     # - bg_color: window/dialog/dropdown backgrounds
     # - text_color: all text color
-    # - color3: buttons and widget entry/list backgrounds
+    # - alternate_background_color: buttons and widget entry/list backgrounds
     # - accent_color: selection and emphasis highlights
+    # - paper_color: editor/print-view backgrounds
+    # - notation_color: notation/stroke color
     _LIGHT = {
         "bg_color": (240, 240, 240),
         "text_color": (0, 0, 0),
-        "color3": (245, 255, 255),
+        "alternate_background_color": (245, 255, 255),
         "accent_color": (0, 120, 215),
+        "paper_color": (255, 255, 255),
+        "notation_color": (0, 0, 0),
     }
 
     _DARK = {
         "bg_color": (60, 60, 70),
         "text_color": (250, 200, 210),
-        "color3": (53, 53, 63),
+        "alternate_background_color": (53, 53, 63),
         "accent_color": (42, 130, 218),
+        "paper_color": (200, 200, 200),
+        "notation_color": (0, 0, 0),
     }
 
     # Palette role → dict key mapping using the four-theme colors above.
     _ROLE_MAP = {
         QPalette.Window: "bg_color",
         QPalette.WindowText: "text_color",
-        QPalette.Base: "color3",
-        QPalette.AlternateBase: "color3",
+        QPalette.Base: "alternate_background_color",
+        QPalette.AlternateBase: "alternate_background_color",
         QPalette.ToolTipBase: "bg_color",
         QPalette.ToolTipText: "text_color",
         QPalette.Text: "text_color",
-        QPalette.Button: "color3",
+        QPalette.Button: "alternate_background_color",
         QPalette.ButtonText: "text_color",
         QPalette.BrightText: "text_color",
         QPalette.Link: "accent_color",
@@ -70,6 +76,8 @@ class Style:
         'text': (0, 0, 0),
         'alternate_background_color': (240, 240, 240),
         'accent': (0, 120, 215),
+        'paper': (255, 255, 255),
+        'notation': (0, 0, 0),
     }
 
     @classmethod
@@ -96,11 +104,16 @@ class Style:
             text = colors_by_key["text_color"]
             alternate_background_color = colors_by_key["alternate_background_color"]
             accent = colors_by_key["accent_color"]
+            paper = colors_by_key["paper_color"]
+            notation = colors_by_key["notation_color"]
             Style._NAMED['bg'] = (bg.red(), bg.green(), bg.blue())
             Style._NAMED['text'] = (text.red(), text.green(), text.blue())
             Style._NAMED['alternate_background_color'] = (alternate_background_color.red(), alternate_background_color.green(), alternate_background_color.blue())
             Style._NAMED['accent'] = (accent.red(), accent.green(), accent.blue())
-            Style._NAMED['editor'] = Style._NAMED['bg']
+            Style._NAMED['paper'] = (paper.red(), paper.green(), paper.blue())
+            Style._NAMED['notation'] = (notation.red(), notation.green(), notation.blue())
+            Style._NAMED['draw_util'] = Style._NAMED['paper']
+            Style._NAMED['editor'] = Style._NAMED['paper']
         except Exception:
             pass
 
@@ -191,6 +204,15 @@ class Style:
         self._apply_palette(colors)
         self._sync_editor_named_color()
 
-    def get_editor_background_color(self) -> tuple[int, int, int]:
+    @classmethod
+    def get_paper_color(cls) -> tuple[int, int, int]:
+        return cls._NAMED.get('paper', (255, 255, 255))
+
+    @classmethod
+    def get_notation_color(cls) -> tuple[int, int, int]:
+        return cls._NAMED.get('notation', (0, 0, 0))
+
+    @classmethod
+    def get_editor_background_color(cls) -> tuple[int, int, int]:
         """Get the appropriate editor background color based on current theme."""
-        return Style._NAMED.get('bg', (240, 240, 240))
+        return cls.get_paper_color()

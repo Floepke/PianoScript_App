@@ -29,16 +29,16 @@ class HeaderText(FontSpec):
 class Header:
     title: HeaderText = field(default_factory=lambda: HeaderText(
         text="title",
-        family="Times New Roman",
-        size_pt=12.0,
+        family="C059",
+        size_pt=25.0,
     ))
     composer: HeaderText = field(default_factory=lambda: HeaderText(
         text="composer",
-        family="Times New Roman",
-        size_pt=10.0,
+        family="C059",
+        size_pt=15.0,
     ))
     copyright: HeaderText = field(default_factory=lambda: HeaderText(
         text="copyright",
-        family="Times New Roman",
-        size_pt=8.0,
+        family="C059",
+        size_pt=10.0,
     ))

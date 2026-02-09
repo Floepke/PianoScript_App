@@ -223,6 +223,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.fxRequested.connect(self._open_fx_editor)
         # Contextual tool buttons should also force redraw
         self.splitter.contextButtonClicked.connect(lambda *_: self._force_redraw())
+        # Fit state tracking
+        self.is_fit = False
+        self.is_startup = True
+
         # Restore splitter sizes from last session if available; else fall back to fit
         adm = get_appdata_manager()
         saved_sizes = adm.get("splitter_sizes", None)
@@ -262,11 +266,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self._pending_scroll_restore = int(getattr(app_state, "editor_scroll_pos", 0) or 0)
         except Exception:
             self._pending_scroll_restore = 0
-
-        # Fit state tracking
-        self.is_fit = False
-
-        self.is_startup = True
 
         # Initialize player (MIDI or Synth)
         try:

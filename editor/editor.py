@@ -123,7 +123,13 @@ class Editor(QtCore.QObject,
         self.semitone_dist: float = None
 
         # colors
-        self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.2, 1.0)
+        notation_rgb = Style.get_named_rgb("notation", fallback=(0, 0, 0))
+        self.notation_color = (
+            float(notation_rgb[0]) / 255.0,
+            float(notation_rgb[1]) / 255.0,
+            float(notation_rgb[2]) / 255.0,
+            1.0,
+        )
         accent_rgb = Style.get_named_rgb("accent", fallback=(51, 153, 255))
         self.accent_color = (
             float(accent_rgb[0]) / 255.0,

@@ -360,8 +360,7 @@ class NoteDrawerMixin:
         to avoid side effects.
         """
         from ui.style import Style
-        # Call the unbound method with a dummy since it doesn't use self
-        rgb = Style.get_editor_background_color(None)
+        rgb = Style.get_editor_background_color()
         r, g, b = tuple(int(c) for c in rgb)
         return (r / 255.0, g / 255.0, b / 255.0, 1.0)
 
