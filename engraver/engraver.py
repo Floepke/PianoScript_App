@@ -105,6 +105,34 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             barline_positions.append(float(cur_bar))
             cur_bar += measure_len
 
+    ts_segments: list[dict[str, float | int | list[int] | bool]] = []
+    ts_cursor = 0.0
+    for bg in base_grid:
+        try:
+            numer = int(bg.get('numerator', 4) or 4)
+            denom = int(bg.get('denominator', 4) or 4)
+            measures = int(bg.get('measure_amount', 1) or 1)
+            beat_grouping = list(bg.get('beat_grouping', []) or [])
+            indicator_enabled = bool(bg.get('indicator_enabled', True))
+        except Exception:
+            traceback.print_exc()
+            continue
+        if measures <= 0:
+            continue
+        measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+        ts_segments.append(
+            {
+                'start': float(ts_cursor),
+                'measure_len': float(measure_len),
+                'numerator': int(numer),
+                'denominator': int(denom),
+                'measure_amount': int(measures),
+                'beat_grouping': beat_grouping,
+                'indicator_enabled': bool(indicator_enabled),
+            }
+        )
+        ts_cursor += measure_len * float(measures)
+
     # Precompute measure windows for numbering (start/end in ticks)
     measure_windows: list[dict[str, float | int]] = []
     m_idx = 1
@@ -176,6 +204,29 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             return str(resolve_font_family(family))
         except Exception:
             return family
+
+    def _layout_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool]:
+        """Fetch a layout font entry from the layout dict with fallback values."""
+        raw = layout.get(key, {}) if isinstance(layout, dict) else {}
+        if not isinstance(raw, dict):
+            raw = {}
+        family = str(raw.get('family', fallback_family) or fallback_family)
+        if family == 'C059' and _allow_font_registry():
+            try:
+                from fonts import register_font_from_bytes
+            except Exception:
+                register_font_from_bytes = None  # type: ignore
+            try:
+                reg = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
+                if reg:
+                    family = str(reg)
+            except Exception:
+                pass
+        family = _resolve_font_family(family)
+        size_pt = float(raw.get('size_pt', fallback_size) or fallback_size)
+        bold = bool(raw.get('bold', False))
+        italic = bool(raw.get('italic', False))
+        return family, size_pt, bold, italic
 
     def _header_text(key: str, fallback: str) -> str:
         """Fetch header text with a fallback, always returning a string."""
@@ -663,6 +714,42 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         max_pos = key_positions.get(bound_right, min_pos)
         stave_width = max(0.0, max_pos - min_pos)
         line['stave_width'] = float(stave_width)
+        base_margin_left = float(line.get('margin_left', 0.0) or 0.0)
+        ts_lane_width = 0.0
+        ts_lane_right_offset = 0.0
+        ts_segments_in_line = [
+            seg
+            for seg in ts_segments
+            if op_time.ge(float(seg.get('start', 0.0) or 0.0), float(line['time_start']))
+            and op_time.lt(float(seg.get('start', 0.0) or 0.0), float(line['time_end']))
+        ]
+        if ts_segments_in_line:
+            ts_lane_width = float(layout.get('time_signature_indicator_lane_width_mm', 22.0) or 22.0)
+            min_pitch = None
+            for seg in ts_segments_in_line:
+                win_start = float(seg.get('start', 0.0) or 0.0)
+                win_end = win_start + float(seg.get('measure_len', 0.0) or 0.0)
+                for item in norm_notes:
+                    n_t = float(item.get('time', 0.0) or 0.0)
+                    n_end = float(item.get('end', 0.0) or 0.0)
+                    if op_time.ge(n_t, float(line['time_end'])) or op_time.le(n_end, float(line['time_start'])):
+                        continue
+                    if op_time.lt(n_t, win_end) and op_time.gt(n_end, win_start):
+                        p = int(item.get('pitch', 0) or 0)
+                        if 1 <= p <= PIANO_KEY_AMOUNT:
+                            min_pitch = p if min_pitch is None else min(min_pitch, p)
+            if min_pitch is not None:
+                stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
+                stem_len_mm = stem_len_units * semitone_mm
+                origin = float(key_positions.get(bound_left, 0.0))
+                note_offset = float(key_positions.get(min_pitch, origin)) - origin
+                offset_left = note_offset - stem_len_mm
+                ts_lane_right_offset = min(0.0, float(offset_left))
+            extra_left = max(0.0, -ts_lane_right_offset)
+            line['margin_left'] = base_margin_left + ts_lane_width + extra_left
+        line['base_margin_left'] = base_margin_left
+        line['ts_lane_width'] = ts_lane_width
+        line['ts_lane_right_offset'] = ts_lane_right_offset
         line['total_width'] = float(line['margin_left'] + stave_width + line['margin_right'])
         line['bound_left'] = int(bound_left)
         line['bound_right'] = int(bound_right)
@@ -805,19 +892,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             mm_per_quarter = float(QUARTER_NOTE_UNIT) / max(1e-6, tick_per_mm)
 
             indicator_type = str(layout.get('time_signature_indicator_type', 'classical') or 'classical')
-            if _allow_font_registry():
-                try:
-                    from fonts import register_font_from_bytes
-                except Exception:
-                    register_font_from_bytes = None  # type: ignore
-            else:
-                register_font_from_bytes = None  # type: ignore
-            try:
-                ts_font_family = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
-                if not ts_font_family:
-                    ts_font_family = 'C059'
-            except Exception:
-                ts_font_family = 'C059'
+            classic_family, classic_size, classic_bold, classic_italic = _layout_font(
+                'time_signature_indicator_classic_font',
+                'C059',
+                35.0,
+            )
+            klav_family, klav_size, klav_bold, klav_italic = _layout_font(
+                'time_signature_indicator_klavarskribo_font',
+                'C059',
+                25.0,
+            )
+            guide_thickness = float(layout.get('time_signature_indicator_guide_thickness_mm', 0.5) or 0.5) * scale
+            divider_thickness = float(layout.get('time_signature_indicator_divide_guide_thickness_mm', 1.0) or 1.0) * scale
+            classic_size_pt = classic_size * scale
+            klav_size_pt = klav_size * scale
 
             def _ts_color(enabled: bool) -> tuple[float, float, float, float]:
                 return (0.0, 0.0, 0.0, 1.0) if enabled else (0.6, 0.6, 0.6, 1.0)
@@ -825,7 +913,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             def _draw_classical_ts(numerator: int, denominator: int, enabled: bool, y_mm: float) -> None:
                 color = _ts_color(enabled)
                 x = ts_x_right
-                size_pt = 35.0 * scale
+                size_pt = classic_size_pt
                 du.add_text(
                     x,
                     y_mm - (3.0 * scale),
@@ -835,7 +923,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     id=0,
                     tags=["time_signature"],
                     anchor='s',
-                    family=ts_font_family,
+                    family=classic_family,
+                    bold=classic_bold,
+                    italic=classic_italic,
                 )
                 du.add_line(
                     x - (3.0 * scale),
@@ -843,7 +933,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     x + (3.0 * scale),
                     y_mm,
                     color=color,
-                    width_mm=1.0 * scale,
+                    width_mm=divider_thickness,
                     id=0,
                     tags=["time_signature_line"],
                     dash_pattern=None,
@@ -857,7 +947,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     id=0,
                     tags=["time_signature"],
                     anchor='n',
-                    family=ts_font_family,
+                    family=classic_family,
+                    bold=classic_bold,
+                    italic=classic_italic,
                 )
 
             def _draw_klavars_ts(numerator: int, denominator: int, enabled: bool, y_mm: float, grid_positions: list[int]) -> None:
@@ -871,7 +963,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     seq = list(range(1, int(numerator) + 1))
 
                 guide_half_len = min(ts_col_w * 0.45, 3.0 * scale) if ts_col_w > 0.0 else (3.0 * scale)
-                guide_width_mm = 0.5 * scale
+                guide_width_mm = guide_thickness
                 for k, val in enumerate(seq, start=1):
                     y = y_mm + (k - 1) * beat_len_mm
                     du.add_line(
@@ -903,23 +995,27 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         ts_x_mid,
                         y,
                         str(val),
-                        size_pt=25.0 * scale,
+                        size_pt=klav_size_pt,
                         color=color,
                         id=0,
                         tags=["ts_klavars_mid"],
                         anchor='center',
-                        family=ts_font_family,
+                        family=klav_family,
+                        bold=klav_bold,
+                        italic=klav_italic,
                     )
                 du.add_text(
                     ts_x_mid,
                     y_mm + measure_len_mm,
                     "1",
-                    size_pt=25.0 * scale,
+                        size_pt=klav_size_pt,
                     color=color,
                     id=0,
                     tags=["ts_klavars_mid"],
                     anchor='center',
-                    family=ts_font_family,
+                        family=klav_family,
+                        bold=klav_bold,
+                        italic=klav_italic,
                 )
                 group_starts = [i for i, v in enumerate(seq, start=1) if v == 1]
                 if not group_starts or group_starts[0] != 1:
@@ -930,21 +1026,30 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         ts_x_left,
                         y,
                         str(gi),
-                        size_pt=25.0 * scale,
+                        size_pt=klav_size_pt,
                         color=color,
                         id=0,
                         tags=["ts_klavars_left"],
                         anchor='center',
-                        family=ts_font_family,
+                        family=klav_family,
+                        bold=klav_bold,
+                        italic=klav_italic,
                     )
 
             # Grid drawing based on base_grid (barlines and beat lines)
             grid_left = line_x_start
             grid_right = line_x_start + float(line['stave_width'])
             ts_right_margin = max(0.0, 1.5 * scale)
-            ts_indicator_width = max(0.0, float(line.get('margin_left', 0.0) or 0.0) - ts_right_margin)
-            ts_left_edge = grid_left - ts_right_margin - ts_indicator_width
-            ts_right_bound = (grid_left - ts_right_margin) - 5.0
+            ts_lane_width = float(line.get('ts_lane_width', 0.0) or 0.0)
+            if ts_lane_width > 0.0:
+                ts_lane_right = line_x_start + float(line.get('ts_lane_right_offset', 0.0) or 0.0)
+                ts_lane_left = ts_lane_right - ts_lane_width
+                ts_left_edge = ts_lane_left
+                ts_right_bound = ts_lane_right
+            else:
+                ts_indicator_width = max(0.0, float(line.get('margin_left', 0.0) or 0.0) - ts_right_margin)
+                ts_left_edge = grid_left - ts_right_margin - ts_indicator_width
+                ts_right_bound = (grid_left - ts_right_margin) - 5.0
             ts_usable = max(0.0, ts_right_bound - ts_left_edge)
             ts_col_w = ts_usable / 3.0 if ts_usable > 0.0 else 0.0
             ts_x_left = ts_left_edge + (ts_col_w * 0.5)
@@ -1095,7 +1200,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 beam_groups_by_hand[hand_norm] = (groups, windows)
 
             # Measure numbering with collision avoidance
-            size_pt = 10.0
+            mn_family, mn_size, mn_bold, mn_italic = _layout_font('measure_numbering_font', 'C059', 10.0)
+            size_pt = mn_size
             mm_per_pt = 25.4 / 72.0
             text_h_mm = size_pt * mm_per_pt
             measure_pad = 1.5
@@ -1210,7 +1316,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     id=0,
                     tags=['measure_number'],
                     anchor='nw',
-                    family=ts_font_family,
+                    family=mn_family,
+                    bold=mn_bold,
+                    italic=mn_italic,
                 )
 
             visible_keys = list(line.get('visible_keys', []))
@@ -1585,7 +1693,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     du.add_polyline(
                         points,
                         stroke_color=(0, 0, 0, 1),
-                        stroke_width_mm=0.4,
+                        stroke_width_mm=float(layout.get('note_stopsign_thickness_mm', 0.4) or 0.4) * scale,
                         id=0,
                         tags=['stop_sign'],
                     )

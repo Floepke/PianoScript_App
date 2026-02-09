@@ -18,7 +18,7 @@ from file_model.events.end_repeat import EndRepeat
 from file_model.events.count_line import CountLine
 from file_model.events.line_break import LineBreak
 from file_model.events.tempo import Tempo
-from file_model.layout import Layout
+from file_model.layout import Layout, LayoutFont
 from file_model.header import Header, HeaderText
 from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid

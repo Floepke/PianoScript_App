@@ -14,17 +14,30 @@ class TimeSignatureDrawerMixin:
             return
         # Read global indicator type from Layout
         indicator_type = getattr(score.layout, 'time_signature_indicator_type', 'classical')
-        # Ensure the custom C059 font is registered and get a usable family name
-        try:
-            from fonts import register_font_from_bytes
-        except Exception:
-            register_font_from_bytes = None  # type: ignore
-        try:
-            ts_font_family = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
-            if not ts_font_family:
-                ts_font_family = 'C059'
-        except Exception:
-            ts_font_family = 'C059'
+        layout = score.layout
+
+        def _resolve_font_family(font) -> str:
+            family = str(getattr(font, 'family', 'C059') or 'C059')
+            if family != 'C059':
+                return family
+            try:
+                from fonts import register_font_from_bytes
+            except Exception:
+                register_font_from_bytes = None  # type: ignore
+            try:
+                reg = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
+                return reg or 'C059'
+            except Exception:
+                return 'C059'
+
+        classic_font = getattr(layout, 'time_signature_indicator_classic_font', None)
+        klav_font = getattr(layout, 'time_signature_indicator_klavarskribo_font', None)
+        classic_family = _resolve_font_family(classic_font)
+        klav_family = _resolve_font_family(klav_font)
+        classic_size = 20.0
+        klav_size = 15.0
+        guide_width_mm = float(getattr(layout, 'time_signature_indicator_guide_thickness_mm', 0.5) or 0.5)
+        divider_width_mm = float(getattr(layout, 'time_signature_indicator_divide_guide_thickness_mm', 1.0) or 1.0)
 
         # Shared layout metrics
         margin = float(self.margin or 0.0)
@@ -41,12 +54,12 @@ class TimeSignatureDrawerMixin:
                 x,
                 y_mm - 3.0,
                 f"{int(numerator)}",
-                size_pt=28.0,
+                size_pt=classic_size,
                 color=color,
                 id=0,
                 tags=["time_signature"],
                 anchor='s',
-                family=ts_font_family,
+                family=classic_family,
             )
             # Divider line
             du.add_line(
@@ -55,7 +68,7 @@ class TimeSignatureDrawerMixin:
                 x + 3.0,
                 y_mm,
                 color=color,
-                width_mm=1.0,
+                width_mm=divider_width_mm,
                 id=0,
                 tags=["time_signature_line"],
                 dash_pattern=None,
@@ -65,12 +78,12 @@ class TimeSignatureDrawerMixin:
                 x,
                 y_mm + 3.0,
                 f"{int(denominator)}",
-                size_pt=28.0,
+                size_pt=classic_size,
                 color=color,
                 id=0,
                 tags=["time_signature"],
                 anchor='n',
-                family=ts_font_family,
+                family=classic_family,
             )
 
         # Helper: draw Klavarskribo-style three-column indicator at segment boundary
@@ -96,7 +109,6 @@ class TimeSignatureDrawerMixin:
             # Right column: draw short thick horizontal guide lines at group starts (value 1),
             # but draw all beats when grouping is a single full group (1..numer)
             guide_half_len = 3.0
-            guide_width_mm = .5
             #full_group = [int(v) for v in seq] == list(range(1, int(numerator) + 1))
             for k, val in enumerate(seq, start=1):
                 # if not full_group and val != 1:
@@ -112,16 +124,16 @@ class TimeSignatureDrawerMixin:
             # Middle column: show subgroup numbers per beat from sequence
             for k, val in enumerate(seq, start=1):
                 y = y_mm + (k - 1) * beat_len_mm
-                du.add_text(x_mid, y, str(val), size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
+                du.add_text(x_mid, y, str(val), size_pt=klav_size, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=klav_family)
             # Final 1 at next measure barline (start of next measure)
-            du.add_text(x_mid, y_mm + measure_len_mm, "1", size_pt=18.0, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=ts_font_family)
+            du.add_text(x_mid, y_mm + measure_len_mm, "1", size_pt=klav_size, color=color, id=0, tags=["ts_klavars_mid"], anchor='w', family=klav_family)
             # Left column: number the groups at their start positions
             group_starts = [i for i, v in enumerate(seq, start=1) if v == 1]
             if not group_starts or group_starts[0] != 1:
                 group_starts = [1] + group_starts
             for gi, s in enumerate(group_starts, start=1):
                 y = y_mm + (s - 1) * beat_len_mm
-                du.add_text(x_left - 2.0, y, str(gi), size_pt=18.0, color=color, id=0, tags=["ts_klavars_left"], anchor='w', family=ts_font_family)
+                du.add_text(x_left - 2.0, y, str(gi), size_pt=klav_size, color=color, id=0, tags=["ts_klavars_left"], anchor='w', family=klav_family)
 
         # Iterate BaseGrid segments and draw based on indicator_type
         for bg in list(getattr(score, 'base_grid', []) or []):

@@ -2,20 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from file_model.layout import LayoutFont
+
 
 @dataclass
-class FontSpec:
-    family: str = "Times New Roman"
-    size_pt: float = 12.0
-    bold: bool = False
-    italic: bool = False
-
-    def resolve_family(self) -> str:
-        try:
-            from fonts import resolve_font_family
-            return resolve_font_family(self.family)
-        except Exception:
-            return self.family
+@dataclass
+class FontSpec(LayoutFont):
+    pass
 
 
 @dataclass

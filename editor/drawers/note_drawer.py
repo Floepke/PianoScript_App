@@ -239,10 +239,11 @@ class NoteDrawerMixin:
         # For cursor/edit/selected, emphasize
         if draw_mode in ('cursor', 'edit', 'selected'):
             fill = self.accent_color
+        stroke_w = .5
         du.add_polyline(
             points,
             stroke_color=fill,
-            stroke_width_mm=0.4,
+            stroke_width_mm=stroke_w,
             id=0,
             tags=["stop_sign"],
         )

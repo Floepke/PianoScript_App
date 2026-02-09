@@ -4,7 +4,7 @@ from typing import Any, get_args, get_origin, get_type_hints, Literal, TYPE_CHEC
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from file_model.layout import LAYOUT_FLOAT_CONFIG
+from file_model.layout import LAYOUT_FLOAT_CONFIG, LayoutFont
 from appdata_manager import get_appdata_manager
 from file_model.header import Header, HeaderText, FontSpec
 from file_model.layout import Layout
@@ -185,8 +185,12 @@ class ColorPickerEdit(QtWidgets.QWidget):
 class FontPicker(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
 
-    def __init__(self, value: FontSpec, parent=None) -> None:
+    def __init__(self, value: FontSpec | LayoutFont | HeaderText, parent=None) -> None:
         super().__init__(parent)
+        if isinstance(value, HeaderText):
+            self._font_cls = FontSpec
+        else:
+            self._font_cls = type(value)
         self._combo = QtWidgets.QFontComboBox(self)
         self._size = QtWidgets.QSpinBox(self)
         self._size.setRange(1, 200)
@@ -207,7 +211,7 @@ class FontPicker(QtWidgets.QWidget):
         self._bold.stateChanged.connect(lambda _v: self.valueChanged.emit())
         self._italic.stateChanged.connect(lambda _v: self.valueChanged.emit())
 
-    def set_value(self, value: FontSpec) -> None:
+    def set_value(self, value: FontSpec | LayoutFont | HeaderText) -> None:
         try:
             self._combo.setCurrentFont(QtGui.QFont(str(value.family)))
         except Exception:
@@ -219,8 +223,9 @@ class FontPicker(QtWidgets.QWidget):
         self._bold.setChecked(bool(value.bold))
         self._italic.setChecked(bool(value.italic))
 
-    def value(self) -> FontSpec:
-        return FontSpec(
+    def value(self) -> FontSpec | LayoutFont:
+        font_cls = self._font_cls or FontSpec
+        return font_cls(
             family=str(self._combo.currentFont().family()),
             size_pt=float(self._size.value()),
             bold=bool(self._bold.isChecked()),
@@ -272,8 +277,9 @@ class StyleDialog(QtWidgets.QDialog):
         tab_order = [
             "Page",
             "Grid",
+            "Time signature",
             "Stave",
-            "Titles",
+            "Fonts",
             "Note",
             "Grace note",
             "Beam",
@@ -304,7 +310,7 @@ class StyleDialog(QtWidgets.QDialog):
 
         tab_forms: dict[str, QtWidgets.QFormLayout] = {t: _make_tab(t) for t in tab_order}
 
-        fonts_form = tab_forms.get("Titles")
+        fonts_form = tab_forms.get("Fonts")
         self._title_text = QtWidgets.QLineEdit(self)
         self._composer_text = QtWidgets.QLineEdit(self)
         self._copyright_text = QtWidgets.QLineEdit(self)
@@ -316,10 +322,10 @@ class StyleDialog(QtWidgets.QDialog):
         self._copyright_text.setText(str(self._header.copyright.text))
         if fonts_form is not None:
             fonts_form.addRow(QtWidgets.QLabel("Title text:", self), self._title_text)
-            fonts_form.addRow(QtWidgets.QLabel("Title font:", self), self._title_font)
             fonts_form.addRow(QtWidgets.QLabel("Composer text:", self), self._composer_text)
-            fonts_form.addRow(QtWidgets.QLabel("Composer font:", self), self._composer_font)
             fonts_form.addRow(QtWidgets.QLabel("Copyright text:", self), self._copyright_text)
+            fonts_form.addRow(QtWidgets.QLabel("Title font:", self), self._title_font)
+            fonts_form.addRow(QtWidgets.QLabel("Composer font:", self), self._composer_font)
             fonts_form.addRow(QtWidgets.QLabel("Copyright font:", self), self._copyright_font)
         self._wire_header_change(self._title_text)
         self._wire_header_change(self._composer_text)
@@ -345,6 +351,7 @@ class StyleDialog(QtWidgets.QDialog):
             'note_stem_visible': 'Note',
             'note_stem_length_semitone': 'Note',
             'note_stem_thickness_mm': 'Note',
+            'note_stopsign_thickness_mm': 'Note',
             'note_leftdot_visible': 'Note',
             'note_midinote_visible': 'Note',
             'note_midinote_left_color': 'Note',
@@ -373,13 +380,21 @@ class StyleDialog(QtWidgets.QDialog):
             'grid_barline_thickness_mm': 'Grid',
             'grid_gridline_thickness_mm': 'Grid',
             'grid_gridline_dash_pattern_mm': 'Grid',
-            'time_signature_indicator_type': 'Grid',
             'repeat_start_visible': 'Grid',
             'repeat_end_visible': 'Grid',
+            # Time signature
+            'time_signature_indicator_type': 'Time signature',
+            'time_signature_indicator_lane_width_mm': 'Time signature',
+            'time_signature_indicator_guide_thickness_mm': 'Time signature',
+            'time_signature_indicator_divide_guide_thickness_mm': 'Time signature',
             # Stave
             'stave_two_line_thickness_mm': 'Stave',
             'stave_three_line_thickness_mm': 'Stave',
             'stave_clef_line_dash_pattern_mm': 'Stave',
+            # Fonts
+            'time_signature_indicator_classic_font': 'Fonts',
+            'time_signature_indicator_klavarskribo_font': 'Fonts',
+            'measure_numbering_font': 'Fonts',
         }
 
         type_hints = {}
@@ -545,7 +560,7 @@ class StyleDialog(QtWidgets.QDialog):
             is_mm = field_name.endswith('_mm')
             is_pt = field_name.endswith('_pt')
             if is_mm:
-                return FloatSliderEdit(float(value), 0.0, 1000.0, 0.5, self)
+                return FloatSliderEdit(float(value), 0.0, 1000.0, 0.25, self)
             if is_pt:
                 return FloatSliderEdit(float(value), 1.0, 200.0, 0.5, self)
             return FloatSliderEdit(float(value), -1000.0, 1000.0, 0.01, self)
@@ -557,6 +572,14 @@ class StyleDialog(QtWidgets.QDialog):
             le = QtWidgets.QLineEdit(self)
             le.setText(str(value) if value is not None else "")
             return le
+
+        if field_type is LayoutFont:
+            if isinstance(value, dict):
+                try:
+                    value = LayoutFont(**value)
+                except Exception:
+                    value = LayoutFont()
+            return FontPicker(value, self)
 
         if origin is list and args and args[0] is float:
             le = QtWidgets.QLineEdit(self)
@@ -576,6 +599,8 @@ class StyleDialog(QtWidgets.QDialog):
                 editor.valueChanged.connect(lambda _v: self.values_changed.emit())
             elif isinstance(editor, FloatSliderEdit):
                 editor.valueChanged.connect(lambda _v: self.values_changed.emit())
+            elif isinstance(editor, FontPicker):
+                editor.valueChanged.connect(lambda: self.values_changed.emit())
             elif isinstance(editor, QtWidgets.QComboBox):
                 editor.currentTextChanged.connect(lambda _v: self.values_changed.emit())
             elif isinstance(editor, QtWidgets.QLineEdit):
@@ -617,6 +642,11 @@ class StyleDialog(QtWidgets.QDialog):
         elif isinstance(editor, FloatSliderEdit):
             try:
                 editor.set_value(float(value))
+            except Exception:
+                pass
+        elif isinstance(editor, FontPicker):
+            try:
+                editor.set_value(value)
             except Exception:
                 pass
         elif isinstance(editor, ColorPickerEdit):
@@ -779,6 +809,8 @@ class StyleDialog(QtWidgets.QDialog):
                 data[name] = int(editor.value())
             elif isinstance(editor, FloatSliderEdit):
                 data[name] = float(editor.value())
+            elif isinstance(editor, FontPicker):
+                data[name] = editor.value()
             elif isinstance(editor, ColorPickerEdit):
                 data[name] = str(editor.value())
             elif origin is list and args and args[0] is float and isinstance(editor, QtWidgets.QLineEdit):

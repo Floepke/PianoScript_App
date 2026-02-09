@@ -63,6 +63,12 @@ class GridDrawerMixin:
         base_grid = score.base_grid
         measure_numbering_cursor = 1
         time_cursor = margin
+        meas_font = getattr(score.layout, 'measure_numbering_font', None)
+        if meas_font is not None and callable(getattr(meas_font, 'resolve_family', None)):
+            meas_family = str(meas_font.resolve_family())
+        else:
+            meas_family = getattr(meas_font, 'family', 'Courier New') if meas_font is not None else 'Courier New'
+        meas_size = float(getattr(meas_font, 'size_pt', 16.0) or 16.0)
         
         for bg in base_grid:
             numerator = bg.numerator
@@ -88,12 +94,12 @@ class GridDrawerMixin:
                     self.margin + self.stave_width + self.margin - 1.0,
                     time_cursor + 1.0,
                     measure_number_str,
-                    size_pt=16.0,
+                    size_pt=meas_size,
                     color=color,
                     id=0,
                     tags=["measure_number"],
                     anchor='ne',
-                    family="Courier New"
+                    family=meas_family,
                 )
                 
                 # following the 1 == grid system:
