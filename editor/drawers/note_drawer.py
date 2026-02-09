@@ -109,7 +109,7 @@ class NoteDrawerMixin:
 
     def _midinote_color(self, n, draw_mode: str) -> tuple[float, float, float, float]:
         if draw_mode in ('cursor', 'edit', 'selected'):
-            return (0.2, 0.6, 1.0, 1.0)  # accent
+            return self.accent_color
         return (0.6, 0.7, 0.8, 1.0) if (getattr(n, 'hand', '<') in ('l', '<')) else (0.8, 0.7, 0.6, 1.0)
 
     def _draw_midinote(self, du: DrawUtil, n, x: float, y1: float, y2: float, draw_mode: str) -> None:

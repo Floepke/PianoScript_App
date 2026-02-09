@@ -1,12 +1,19 @@
 from PySide6 import QtCore
 from datetime import datetime
 import bisect
+import multiprocessing as mp
+import queue
 import traceback
 from ui.widgets.draw_util import DrawUtil
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT, PIANO_KEY_AMOUNT, SHORTEST_DURATION, hex_to_rgba, BLACK_KEYS
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
+
+try:
+    _MP_CONTEXT = mp.get_context("spawn")
+except Exception:
+    _MP_CONTEXT = mp.get_context()
 
 def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = False) -> None:
     """Compute the full page drawing from the score dict into DrawUtil.
@@ -153,8 +160,17 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             return {'text': value}
         return {}
 
+    def _allow_font_registry() -> bool:
+        """Return True when it is safe to access QFontDatabase (GUI process only)."""
+        try:
+            return mp.current_process().name == "MainProcess"
+        except Exception:
+            return False
+
     def _resolve_font_family(family: str) -> str:
         """Resolve a font family name with the font registry if available."""
+        if not _allow_font_registry():
+            return family
         try:
             from fonts import resolve_font_family
             return str(resolve_font_family(family))
@@ -789,9 +805,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             mm_per_quarter = float(QUARTER_NOTE_UNIT) / max(1e-6, tick_per_mm)
 
             indicator_type = str(layout.get('time_signature_indicator_type', 'classical') or 'classical')
-            try:
-                from fonts import register_font_from_bytes
-            except Exception:
+            if _allow_font_registry():
+                try:
+                    from fonts import register_font_from_bytes
+                except Exception:
+                    register_font_from_bytes = None  # type: ignore
+            else:
                 register_font_from_bytes = None  # type: ignore
             try:
                 ts_font_family = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
@@ -1578,24 +1597,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         traceback.print_exc()
 
 
-class _EngraveTask(QtCore.QRunnable):
-    def __init__(self, score: dict, request_id: int, finished_cb):
-        super().__init__()
-        self.setAutoDelete(True)
-        self._score = score
-        self._request_id = int(request_id)
-        self._finished_cb = finished_cb
-
-    def run(self) -> None:
-        local_du = DrawUtil()
-        try:
-            do_engrave(self._score, local_du)
-        finally:
-            # Notify completion back to Engraver (GUI thread via signal)
-            try:
-                self._finished_cb(self._request_id, local_du)
-            except Exception:
-                traceback.print_exc()
+def _engrave_worker(score: dict, request_id: int, out_queue) -> None:
+    local_du = DrawUtil()
+    try:
+        do_engrave(score, local_du)
+    except Exception:
+        traceback.print_exc()
+    try:
+        out_queue.put((int(request_id), local_du))
+    except Exception:
+        traceback.print_exc()
 
 
 class Engraver(QtCore.QObject):
@@ -1611,7 +1622,12 @@ class Engraver(QtCore.QObject):
     def __init__(self, draw_util: DrawUtil, parent=None):
         super().__init__(parent)
         self._du = draw_util
-        self._pool = QtCore.QThreadPool.globalInstance()
+        self._mp_ctx = _MP_CONTEXT
+        self._result_queue = self._mp_ctx.Queue()
+        self._proc: mp.Process | None = None
+        self._poll_timer = QtCore.QTimer(self)
+        self._poll_timer.setInterval(50)
+        self._poll_timer.timeout.connect(self._poll_results)
         self._running: bool = False
         self._pending_score: dict | None = None
         self._pending_request_id: int | None = None
@@ -1660,8 +1676,64 @@ class Engraver(QtCore.QObject):
     def _start_task(self, score: dict, request_id: int) -> None:
         self._running = True
         self._last_start_ms = int(self._elapsed.elapsed())
-        task = _EngraveTask(score, request_id, self._on_finished)
-        self._pool.start(task)
+        if self._proc is not None:
+            try:
+                if self._proc.is_alive():
+                    self._proc.terminate()
+            except Exception:
+                pass
+        self._proc = self._mp_ctx.Process(
+            target=_engrave_worker,
+            args=(score, request_id, self._result_queue),
+            daemon=True,
+        )
+        self._proc.start()
+        if not self._poll_timer.isActive():
+            self._poll_timer.start()
+
+    def _poll_results(self) -> None:
+        got_result = False
+        while True:
+            try:
+                req_id, result_du = self._result_queue.get_nowait()
+            except queue.Empty:
+                break
+            got_result = True
+            self._on_finished(req_id, result_du)
+
+        if self._proc is not None and not self._proc.is_alive():
+            try:
+                self._proc.join(timeout=0)
+            except Exception:
+                pass
+            self._proc = None
+            if self._running and not got_result:
+                self._running = False
+                if self._pending_score is not None:
+                    self._maybe_start_pending()
+            if not self._running:
+                try:
+                    self._poll_timer.stop()
+                except Exception:
+                    pass
+
+    def shutdown(self) -> None:
+        try:
+            if self._poll_timer.isActive():
+                self._poll_timer.stop()
+        except Exception:
+            pass
+        if self._proc is not None:
+            try:
+                if self._proc.is_alive():
+                    self._proc.terminate()
+            except Exception:
+                pass
+            try:
+                self._proc.join(timeout=0.1)
+            except Exception:
+                pass
+            self._proc = None
 
     @QtCore.Slot(int, object)
     def _on_finished(self, request_id: int, result_du: DrawUtil) -> None:

@@ -671,10 +671,7 @@ class StyleDialog(QtWidgets.QDialog):
 
     def _save_style_default(self) -> None:
         try:
-            layout = self.get_values()
-            template = {k: getattr(layout, k) for k in layout.__dataclass_fields__.keys()}
             adm = get_appdata_manager()
-            adm.set("layout_template", template)
             adm.set("score_template", self._build_style_template())
             adm.save()
             self.msg_label.setText("Saved style defaults.")
@@ -733,15 +730,7 @@ class StyleDialog(QtWidgets.QDialog):
                 except Exception:
                     pass
 
-            if not applied:
-                layout_template = adm.get("layout_template", {})
-                if isinstance(layout_template, dict) and layout_template:
-                    try:
-                        self._apply_layout_to_editors(Layout(**layout_template))
-                        applied = True
-                    except Exception:
-                        pass
-
+            
             if applied:
                 try:
                     self.values_changed.emit()
@@ -755,7 +744,6 @@ class StyleDialog(QtWidgets.QDialog):
         try:
             try:
                 adm = get_appdata_manager()
-                adm.remove("layout_template")
                 adm.remove("score_template")
                 adm.save()
             except Exception:

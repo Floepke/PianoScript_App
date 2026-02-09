@@ -17,58 +17,40 @@ class Style:
     """
 
     # Base palettes (RGB tuples) used for interpolation.
+    # The theme is driven by four colors:
+    # - bg_color: window/dialog/dropdown backgrounds
+    # - text_color: all text color
+    # - color3: buttons and widget entry/list backgrounds
+    # - accent_color: selection and emphasis highlights
     _LIGHT = {
-        "window": (240, 240, 240),
-        "window_text": (0, 0, 0),
-        "base": (245, 255, 255),
-        "alternate_base": (245, 245, 245),
-        "tooltip_base": (255, 255, 220),
-        "tooltip_text": (0, 0, 0),
-        "text": (0, 0, 0),
-        "button": (240, 240, 240),
-        "button_text": (0, 0, 0),
-        "bright_text": (255, 255, 255),
-        "link": (0, 0, 255),
-        "highlight": (0, 120, 215),
-        "highlighted_text": (255, 255, 255),
+        "bg_color": (240, 240, 240),
+        "text_color": (0, 0, 0),
+        "color3": (245, 255, 255),
+        "accent_color": (0, 120, 215),
     }
 
     _DARK = {
-        "window": (60, 60, 70),
-        "window_text": (245, 245, 255),
-        # Match print view grey (#7a7a7a) for editor and listbox backgrounds only
-        "base": (53, 53, 63),
-        "alternate_base": (53, 53, 63),
-        "tooltip_base": (0, 0, 0),
-        "tooltip_text": (245, 245, 255),
-        "text": (200, 200, 210),
-        "button": (100, 100, 110),
-        "button_text": (245, 245, 255),
-        "bright_text": (255, 255, 255),
-        "link": (42, 130, 218),
-        "highlight": (42, 130, 218),
-        "highlighted_text": (0, 0, 0),
+        "bg_color": (60, 60, 70),
+        "text_color": (250, 200, 210),
+        "color3": (53, 53, 63),
+        "accent_color": (42, 130, 218),
     }
 
-    # Palette role → dict key mapping. To set all app text colors from a single
-    # dictionary entry, most text-related roles are unified to the key "text".
-    # You can override per-role colors by changing the mapping below to point to
-    # distinct keys (e.g., "window_text", "button_text") and adding those keys
-    # to the _LIGHT/_DARK dictionaries.
+    # Palette role → dict key mapping using the four-theme colors above.
     _ROLE_MAP = {
-        QPalette.Window: "window",
-        QPalette.WindowText: "text",          # unify to global text color
-        QPalette.Base: "base",
-        QPalette.AlternateBase: "alternate_base",
-        QPalette.ToolTipBase: "tooltip_base",
-        QPalette.ToolTipText: "text",         # unify to global text color
-        QPalette.Text: "text",
-        QPalette.Button: "button",
-        QPalette.ButtonText: "text",          # unify to global text color
-        QPalette.BrightText: "text",          # unify to global text color
-        QPalette.Link: "link",
-        QPalette.Highlight: "highlight",
-        QPalette.HighlightedText: "text",     # unify to global text color
+        QPalette.Window: "bg_color",
+        QPalette.WindowText: "text_color",
+        QPalette.Base: "color3",
+        QPalette.AlternateBase: "color3",
+        QPalette.ToolTipBase: "bg_color",
+        QPalette.ToolTipText: "text_color",
+        QPalette.Text: "text_color",
+        QPalette.Button: "color3",
+        QPalette.ButtonText: "text_color",
+        QPalette.BrightText: "text_color",
+        QPalette.Link: "accent_color",
+        QPalette.Highlight: "accent_color",
+        QPalette.HighlightedText: "text_color",
     }
 
     def __init__(self):
@@ -83,6 +65,11 @@ class Style:
         'draw_util': (255, 255, 255),
         # Editor background: initialized/synced at runtime
         'editor': (255, 255, 255),
+        # Theme colors (synced at runtime)
+        'bg': (240, 240, 240),
+        'text': (0, 0, 0),
+        'alternate_background_color': (240, 240, 240),
+        'accent': (0, 120, 215),
     }
 
     @classmethod
@@ -94,10 +81,28 @@ class Style:
         rgb = cls._NAMED.get(name, fallback)
         return QColor(*rgb)
 
+    @classmethod
+    def get_named_rgb(cls, name: str, fallback: tuple[int, int, int] = (240, 240, 240)) -> tuple[int, int, int]:
+        return cls._NAMED.get(name, fallback)
+
     def _sync_editor_named_color(self) -> None:
         rgb = self.get_editor_background_color()
         self.editor_background_color = rgb
         Style._NAMED['editor'] = tuple(int(c) for c in rgb)
+
+    def _sync_named_theme_colors(self, colors_by_key) -> None:
+        try:
+            bg = colors_by_key["bg_color"]
+            text = colors_by_key["text_color"]
+            alternate_background_color = colors_by_key["alternate_background_color"]
+            accent = colors_by_key["accent_color"]
+            Style._NAMED['bg'] = (bg.red(), bg.green(), bg.blue())
+            Style._NAMED['text'] = (text.red(), text.green(), text.blue())
+            Style._NAMED['alternate_background_color'] = (alternate_background_color.red(), alternate_background_color.green(), alternate_background_color.blue())
+            Style._NAMED['accent'] = (accent.red(), accent.green(), accent.blue())
+            Style._NAMED['editor'] = Style._NAMED['bg']
+        except Exception:
+            pass
 
     def _lerp_channel(self, a: int, b: int, t: float) -> int:
         return int(round(b + (a - b) * t))
@@ -135,15 +140,16 @@ class Style:
             pal.setColor(role, colors_by_key[key])
         app.setPalette(pal)
 
+        self._sync_named_theme_colors(colors_by_key)
+
         # Windows-specific fix: ensure QMenu background matches the window color
         # Some Windows themes/hardware drivers render menus with mismatched dark backgrounds.
         if sys.platform == 'win32':
             try:
-                window_hex = colors_by_key["window"].name()
-                text_hex = colors_by_key["text"].name()
-                highlight_hex = colors_by_key["highlight"].name()
-                # Prefer explicit highlighted_text color if provided, else fall back to text
-                highlighted_text_hex = (colors_by_key.get("highlighted_text", colors_by_key["text"]).name())
+                window_hex = colors_by_key["bg_color"].name()
+                text_hex = colors_by_key["text_color"].name()
+                highlight_hex = colors_by_key["accent_color"].name()
+                highlighted_text_hex = text_hex
 
                 win_menu_css = f"""
                 QMenu {{
@@ -187,8 +193,4 @@ class Style:
 
     def get_editor_background_color(self) -> tuple[int, int, int]:
         """Get the appropriate editor background color based on current theme."""
-        theme = get_preferences().get('theme')
-        if theme == 'dark':
-            return (200, 200, 200)
-        else:
-            return (240, 240, 240)
+        return Style._NAMED.get('bg', (240, 240, 240))

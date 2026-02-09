@@ -18,13 +18,13 @@ class Layout:
 
     # Global drawing options
     scale: float = 0.38
-    black_note_rule: Literal['above_stem','below_stem'] = 'below_stem'
+    black_note_rule: Literal['above_stem','below_stem', 'below_stem_but_centered_if_collision'] = 'below_stem'
 
     # Note appearance
     note_head_visible: bool = True
     note_stem_visible: bool = True
-    note_stem_length_semitone: int = 3
-    note_stem_thickness_mm: float = 0.5 # Thickness of the stem as well the notehead outline
+    note_stem_length_semitone: int = 7
+    note_stem_thickness_mm: float = 1 # Thickness of the stem as well the notehead outline
     note_leftdot_visible: bool = True
     note_midinote_visible: bool = True
     note_midinote_left_color: str = '#cccccc'
@@ -32,7 +32,7 @@ class Layout:
 
     # Beam appearance
     beam_visible: bool = True
-    beam_thickness_mm: float = 1.0
+    beam_thickness_mm: float = 2.5
 
     # Grace note appearance
     grace_note_visible: bool = True

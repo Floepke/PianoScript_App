@@ -25,6 +25,7 @@ from editor.tool.tempo_tool import TempoTool
 from editor.ctlz import CtlZ
 from file_model.base_grid import BaseGrid
 from settings_manager import get_preferences_manager
+from ui.style import Style
 from file_model.SCORE import SCORE
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT
 from editor.drawers.stave_drawer import StaveDrawerMixin
@@ -123,8 +124,19 @@ class Editor(QtCore.QObject,
 
         # colors
         self.notation_color: Tuple[float, float, float, float] = (0.0, 0.0, 0.2, 1.0)
-        self.accent_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.7, 1.0)
-        self.selection_color: Tuple[float, float, float, float] = (0.2, 0.6, 1.0, 0.3)
+        accent_rgb = Style.get_named_rgb("accent", fallback=(51, 153, 255))
+        self.accent_color = (
+            float(accent_rgb[0]) / 255.0,
+            float(accent_rgb[1]) / 255.0,
+            float(accent_rgb[2]) / 255.0,
+            1.0,
+        )
+        self.selection_color = (
+            float(accent_rgb[0]) / 255.0,
+            float(accent_rgb[1]) / 255.0,
+            float(accent_rgb[2]) / 255.0,
+            0.3,
+        )
 
         # snap size in time units (default matches SnapSizeSelector: base=8, divide=1 -> 128)
         self.snap_size_units: float = (QUARTER_NOTE_UNIT * 4.0) / 8.0

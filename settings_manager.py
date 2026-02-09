@@ -55,6 +55,9 @@ class PreferencesManager:
         if key not in self._values:
             self._values[key] = default
 
+    def iter_schema(self) -> list[tuple[str, _PrefDef]]:
+        return list(self._schema.items())
+
     def get(self, key: str, default: Optional[object] = None) -> object:
         return self._values.get(key, default)
 
@@ -288,11 +291,11 @@ def get_preferences_manager() -> PreferencesManager:
         pm.register("editor_fps_limit", 30, "Max mouse-move dispatch rate (FPS). Set 0 to disable throttling.")
         pm.register("auto_save", True, "Auto save project on every edit; also save a session copy in appdata.")
         pm.register("audition_during_note_input", True, "Play a short note on input when placing notes.")
-        pm.register(
-            "note_tool_mouse_gesture_hand_switching",
-            True,
-            "Note tool: automatically switch hand at keyboard edges (pitch 1 → switch to left hand, pitch 88 → switch to right hand).",
-        )
+        # pm.register(
+        #     "note_tool_mouse_gesture_hand_switching",
+        #     True,
+        #     "Note tool: automatically switch hand at keyboard edges (pitch 1 → switch to left hand, pitch 88 → switch to right hand).",
+        # )
         pm.load()
         _prefs_manager = pm
     return _prefs_manager
@@ -302,5 +305,10 @@ def get_preferences() -> Dict:
     return get_preferences_manager()._values
 
 
-def open_preferences() -> None:
-    get_preferences_manager().open_in_editor()
+def open_preferences(parent=None) -> None:
+    try:
+        from ui.widgets.preferences_dialog import PreferencesDialog
+        dlg = PreferencesDialog(parent=parent)
+        dlg.exec()
+    except Exception:
+        get_preferences_manager().open_in_editor()

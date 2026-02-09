@@ -66,28 +66,11 @@ class FileManager:
             template = adm.get("score_template", {})
             if isinstance(template, dict) and template:
                 self._apply_score_template(template)
-            else:
-                template = adm.get("layout_template", {})
-                if isinstance(template, dict) and template:
-                    self._apply_layout_template(template)
         except Exception:
             pass
         self._path = None
         self._dirty = False
         return self._current
-
-    def _apply_layout_template(self, template: dict) -> None:
-        layout = getattr(self._current, 'layout', None)
-        if layout is None:
-            return
-        valid_fields = {f.name for f in getattr(Layout, '__dataclass_fields__', {}).values()}
-        for key, value in template.items():
-            if key not in valid_fields:
-                continue
-            try:
-                setattr(layout, key, value)
-            except Exception:
-                continue
 
     def _apply_score_template(self, template: dict) -> None:
         if not isinstance(template, dict):

@@ -934,7 +934,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _open_preferences(self) -> None:
         # Ensure preferences file exists and open in system editor
-        open_preferences()
+        open_preferences(self)
 
     def _file_new(self) -> None:
         # If there are unsaved changes, confirm save before starting a new project
@@ -951,6 +951,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor_controller.set_score(self.file_manager.current())
             # Reset undo stack for new project
             self.editor_controller.reset_undo_stack()
+        except Exception:
+            pass
+        try:
+            if hasattr(self.editor_controller, 'force_redraw_from_model'):
+                self.editor_controller.force_redraw_from_model()
         except Exception:
             pass
         # Reset editor scroll to top for a fresh project
@@ -1210,28 +1215,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
         self._refresh_recent_files_menu()
-
-    def _set_layout_template(self) -> None:
-        try:
-            layout = getattr(self.file_manager.current(), 'layout', None)
-            if layout is None:
-                return
-            template = {k: getattr(layout, k) for k in layout.__dataclass_fields__.keys()}
-            adm = get_appdata_manager()
-            adm.set("layout_template", template)
-            adm.save()
-            self._status("Saved layout defaults.", 3000)
-        except Exception:
-            pass
-
-    def _reset_layout_template(self) -> None:
-        try:
-            adm = get_appdata_manager()
-            adm.remove("layout_template")
-            adm.save()
-            self._status("Layout defaults reset.", 3000)
-        except Exception:
-            pass
 
     @QtCore.Slot(int, int, float, float)
     def _on_editor_metrics(self, content_px: int, viewport_px: int, px_per_mm: float, dpr: float) -> None:
@@ -2026,6 +2009,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(self, "print_view") and self.print_view is not None:
             try:
                 self.print_view.shutdown()
+            except Exception:
+                pass
+        if hasattr(self, "engraver") and self.engraver is not None:
+            try:
+                self.engraver.shutdown()
             except Exception:
                 pass
 

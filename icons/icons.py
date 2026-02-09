@@ -131,8 +131,14 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
         if (theme == "dark"):
             try:
                 # Create a white image and apply the original alpha via composition
+                tint_rgb = (250, 200, 210)
+                try:
+                    from ui.style import Style  # type: ignore
+                    tint_rgb = Style.get_named_rgb("text", fallback=tint_rgb)
+                except Exception:
+                    pass
                 white = QtGui.QImage(img.size(), QtGui.QImage.Format_ARGB32_Premultiplied)
-                white.fill(QtGui.QColor(200, 200, 200, 255))
+                white.fill(QtGui.QColor(tint_rgb[0], tint_rgb[1], tint_rgb[2], 255))
                 alpha = img.convertToFormat(QtGui.QImage.Format_Alpha8)
                 painter = QtGui.QPainter(white)
                 painter.setCompositionMode(QtGui.QPainter.CompositionMode_DestinationIn)
