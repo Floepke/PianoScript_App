@@ -805,12 +805,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             def _draw_classical_ts(numerator: int, denominator: int, enabled: bool, y_mm: float) -> None:
                 color = _ts_color(enabled)
-                x = grid_left - 17.5
+                x = ts_x_right
+                size_pt = 28.0 * scale
                 du.add_text(
                     x,
-                    y_mm - 3.0,
+                    y_mm - (3.0 * scale),
                     f"{int(numerator)}",
-                    size_pt=28.0,
+                    size_pt=size_pt,
                     color=color,
                     id=0,
                     tags=["time_signature"],
@@ -818,21 +819,21 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     family=ts_font_family,
                 )
                 du.add_line(
-                    x - 3.0,
+                    x - (3.0 * scale),
                     y_mm,
-                    x + 3.0,
+                    x + (3.0 * scale),
                     y_mm,
                     color=color,
-                    width_mm=1.0,
+                    width_mm=1.0 * scale,
                     id=0,
                     tags=["time_signature_line"],
                     dash_pattern=None,
                 )
                 du.add_text(
                     x,
-                    y_mm + 3.0,
+                    y_mm + (3.0 * scale),
                     f"{int(denominator)}",
-                    size_pt=28.0,
+                    size_pt=size_pt,
                     color=color,
                     id=0,
                     tags=["time_signature"],
@@ -846,24 +847,18 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 measure_len_mm = quarters_per_measure * mm_per_quarter
                 beat_len_mm = measure_len_mm / max(1, int(numerator))
 
-                base_x = grid_left - float(line['margin_left']) + 7.5
-                col_gap = 5.0
-                x_right = base_x + 10.0
-                x_mid = base_x
-                x_left = base_x - col_gap
-
                 seq = [int(p) for p in (grid_positions or []) if 1 <= int(p) <= 9]
                 if len(seq) != int(numerator):
                     seq = list(range(1, int(numerator) + 1))
 
-                guide_half_len = 3.0
-                guide_width_mm = 0.5
+                guide_half_len = min(ts_col_w * 0.45, 3.0 * scale) if ts_col_w > 0.0 else (3.0 * scale)
+                guide_width_mm = 0.5 * scale
                 for k, val in enumerate(seq, start=1):
                     y = y_mm + (k - 1) * beat_len_mm
                     du.add_line(
-                        x_right - guide_half_len,
+                        ts_x_right - guide_half_len,
                         y,
-                        x_right + guide_half_len,
+                        ts_x_right + guide_half_len,
                         y,
                         color=color,
                         width_mm=guide_width_mm,
@@ -872,9 +867,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         dash_pattern=None,
                     )
                 du.add_line(
-                    x_right - guide_half_len,
+                    ts_x_right - guide_half_len,
                     y_mm + measure_len_mm,
-                    x_right + guide_half_len,
+                    ts_x_right + guide_half_len,
                     y_mm + measure_len_mm,
                     color=color,
                     width_mm=guide_width_mm,
@@ -886,10 +881,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 for k, val in enumerate(seq, start=1):
                     y = y_mm + (k - 1) * beat_len_mm
                     du.add_text(
-                        x_mid,
+                        ts_x_mid,
                         y,
                         str(val),
-                        size_pt=18.0,
+                        size_pt=18.0 * scale,
                         color=color,
                         id=0,
                         tags=["ts_klavars_mid"],
@@ -897,10 +892,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         family=ts_font_family,
                     )
                 du.add_text(
-                    x_mid,
+                    ts_x_mid,
                     y_mm + measure_len_mm,
                     "1",
-                    size_pt=18.0,
+                    size_pt=18.0 * scale,
                     color=color,
                     id=0,
                     tags=["ts_klavars_mid"],
@@ -913,10 +908,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 for gi, s in enumerate(group_starts, start=1):
                     y = y_mm + (s - 1) * beat_len_mm
                     du.add_text(
-                        x_left - 2.0,
+                        ts_x_left,
                         y,
                         str(gi),
-                        size_pt=18.0,
+                        size_pt=18.0 * scale,
                         color=color,
                         id=0,
                         tags=["ts_klavars_left"],
@@ -927,6 +922,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             # Grid drawing based on base_grid (barlines and beat lines)
             grid_left = line_x_start
             grid_right = line_x_start + float(line['stave_width'])
+            ts_right_margin = max(0.0, 1.5 * scale)
+            ts_indicator_width = max(0.0, float(line.get('margin_left', 0.0) or 0.0) - ts_right_margin)
+            ts_left_edge = grid_left - ts_right_margin - ts_indicator_width
+            ts_right_bound = (grid_left - ts_right_margin) - 5.0
+            ts_usable = max(0.0, ts_right_bound - ts_left_edge)
+            ts_col_w = ts_usable / 3.0 if ts_usable > 0.0 else 0.0
+            ts_x_left = ts_left_edge + (ts_col_w * 0.5)
+            ts_x_mid = ts_left_edge + (ts_col_w * 1.5)
+            ts_x_right = ts_left_edge + (ts_col_w * 2.5)
             grid_color = (0, 0, 0, 1)
             bar_width_mm = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale
             grid_width_mm = float(layout.get('grid_gridline_thickness_mm', 0.15) or 0.15) * scale
