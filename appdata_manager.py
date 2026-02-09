@@ -257,6 +257,7 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("window_maximized", True, "Start maximized; updated on exit")
         adm.register("window_geometry", "", "Base64-encoded Qt window geometry for normal state")
         adm.register("layout_template", {}, "Default layout template for new scores (dict of layout fields)")
+        adm.register("score_template", {}, "Default score template for new scores (dict of score fields except events)")
         # Removed window_state persistence to avoid saving/restoring dock/toolbar layout
         adm.load()
         # Strip any legacy 'window_state' key from stored values

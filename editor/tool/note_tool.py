@@ -216,21 +216,23 @@ class NoteTool(BaseTool):
                     target = n
                     break
 
+        deleted_any = False
         if target is not None:
             notes_list = getattr(score.events, 'note', None)
             if isinstance(notes_list, list):
                 if target in notes_list:
                     notes_list.remove(target)
+                    deleted_any = True
                 else:
                     tid = int(getattr(target, '_id', -1) or -1)
                     new_list = [m for m in notes_list if int(getattr(m, '_id', -2) or -2) != tid]
                     if len(new_list) != len(notes_list):
                         score.events.note = new_list
-        # Explicitly build a frame for immediate feedback (cache + hit rects)
-            if hasattr(self._editor, 'force_redraw_from_model'):
-                self._editor.force_redraw_from_model()
-            else:
-                self._editor.draw_frame()
+                        deleted_any = True
+        if deleted_any:
+            # Keep base_grid in sync and trigger engrave via snapshot.
+            self._editor.update_score_length()
+            self._editor._snapshot_if_changed(coalesce=True, label='note_delete')
 
     def _latest_measure_has_notes(self, score: SCORE) -> bool:
         """Return True if there is at least one note in the score's latest measure window.

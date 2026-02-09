@@ -35,7 +35,7 @@ class GridDrawerMixin:
             family = str(score.header.title.resolve_family())
         else:
             family = getattr(score.header.title, 'family', 'Courier New')
-        size_pt = float(getattr(score.header.title, 'size_pt', 12.0) or 12.0)
+        size_pt = 12.0
         x_off = float(getattr(score.header.title, 'x_offset_mm', 0.0) or 0.0)
         y_off = float(getattr(score.header.title, 'y_offset_mm', 0.0) or 0.0)
         du.add_text(

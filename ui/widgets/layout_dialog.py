@@ -1,12 +1,14 @@
 from __future__ import annotations
-from dataclasses import fields
-from typing import Any, get_args, get_origin, get_type_hints, Literal
+from dataclasses import asdict, fields
+from typing import Any, get_args, get_origin, get_type_hints, Literal, TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from file_model.layout import LAYOUT_FLOAT_CONFIG
-
+from appdata_manager import get_appdata_manager
+from file_model.header import Header, HeaderText, FontSpec
 from file_model.layout import Layout
+from file_model.SCORE import SCORE
 
 
 class ClickSlider(QtWidgets.QSlider):
@@ -180,50 +182,194 @@ class ColorPickerEdit(QtWidgets.QWidget):
         self.valueChanged.emit(txt)
 
 
-class LayoutDialog(QtWidgets.QDialog):
+class FontPicker(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal()
+
+    def __init__(self, value: FontSpec, parent=None) -> None:
+        super().__init__(parent)
+        self._combo = QtWidgets.QFontComboBox(self)
+        self._size = QtWidgets.QSpinBox(self)
+        self._size.setRange(1, 200)
+        self._bold = QtWidgets.QCheckBox("Bold", self)
+        self._italic = QtWidgets.QCheckBox("Italic", self)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(self._combo, 1)
+        layout.addWidget(self._size, 0)
+        layout.addWidget(self._bold, 0)
+        layout.addWidget(self._italic, 0)
+
+        self.set_value(value)
+        self._combo.currentFontChanged.connect(lambda _f: self.valueChanged.emit())
+        self._size.valueChanged.connect(lambda _v: self.valueChanged.emit())
+        self._bold.stateChanged.connect(lambda _v: self.valueChanged.emit())
+        self._italic.stateChanged.connect(lambda _v: self.valueChanged.emit())
+
+    def set_value(self, value: FontSpec) -> None:
+        try:
+            self._combo.setCurrentFont(QtGui.QFont(str(value.family)))
+        except Exception:
+            pass
+        try:
+            self._size.setValue(int(value.size_pt))
+        except Exception:
+            self._size.setValue(10)
+        self._bold.setChecked(bool(value.bold))
+        self._italic.setChecked(bool(value.italic))
+
+    def value(self) -> FontSpec:
+        return FontSpec(
+            family=str(self._combo.currentFont().family()),
+            size_pt=float(self._size.value()),
+            bold=bool(self._bold.isChecked()),
+            italic=bool(self._italic.isChecked()),
+        )
+
+
+class StyleDialog(QtWidgets.QDialog):
     values_changed = QtCore.Signal()
 
-    def __init__(self, parent=None, layout: Layout | None = None) -> None:
+    def __init__(self, parent=None, layout: Layout | None = None, header: Header | None = None, score: SCORE | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Layout")
+        self.setWindowTitle("Style")
         self.setModal(True)
         self.setWindowModality(QtCore.Qt.NonModal)
         try:
             screen = QtWidgets.QApplication.primaryScreen()
             if screen is not None:
-                max_h = int(screen.availableGeometry().height() / 3 * 2)
-                if max_h > 0:
-                    self.setMaximumHeight(max_h)
-                    self.setFixedHeight(max_h)
+                max_h = int(screen.availableGeometry().height() / 3)
         except Exception:
             pass
         try:
-            self.setMinimumWidth(900)
-            self.resize(900, self.height())
+            self.setMinimumWidth(600)
+            self.resize(750, 400)
         except Exception:
             pass
 
         self._layout = layout or Layout()
+        self._header = header or Header()
         self._editors: dict[str, QtWidgets.QWidget] = {}
+        self._score: SCORE | None = score
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
-        content = QtWidgets.QWidget(self)
-        content_layout = QtWidgets.QVBoxLayout(content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(6)
+        tabs = QtWidgets.QTabWidget(self)
+        lay.addWidget(tabs, 1)
 
-        form = QtWidgets.QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setSpacing(6)
-        content_layout.addLayout(form)
+        tab_order = [
+            "Fonts",
+            "Page",
+            "Note",
+            "Beam",
+            "Pedal",
+            "Grace note",
+            "Text",
+            "Slur",
+            "Countline",
+            "Grid",
+            "Stave",
+        ]
 
-        scroll = QtWidgets.QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(content)
-        lay.addWidget(scroll, 1)
+        def _make_tab(title: str) -> QtWidgets.QFormLayout:
+            tab = QtWidgets.QWidget(self)
+            tab_layout = QtWidgets.QVBoxLayout(tab)
+            tab_layout.setContentsMargins(0, 0, 0, 0)
+            tab_layout.setSpacing(6)
+            scroll = QtWidgets.QScrollArea(tab)
+            scroll.setWidgetResizable(True)
+            content = QtWidgets.QWidget(scroll)
+            form = QtWidgets.QFormLayout(content)
+            form.setContentsMargins(8, 8, 8, 8)
+            form.setSpacing(6)
+            content.setLayout(form)
+            scroll.setWidget(content)
+            tab_layout.addWidget(scroll, 1)
+            tabs.addTab(tab, title)
+            return form
+
+        tab_forms: dict[str, QtWidgets.QFormLayout] = {t: _make_tab(t) for t in tab_order}
+
+        fonts_form = tab_forms.get("Fonts")
+        self._title_text = QtWidgets.QLineEdit(self)
+        self._composer_text = QtWidgets.QLineEdit(self)
+        self._copyright_text = QtWidgets.QLineEdit(self)
+        self._title_font = FontPicker(self._header.title, self)
+        self._composer_font = FontPicker(self._header.composer, self)
+        self._copyright_font = FontPicker(self._header.copyright, self)
+        self._title_text.setText(str(self._header.title.text))
+        self._composer_text.setText(str(self._header.composer.text))
+        self._copyright_text.setText(str(self._header.copyright.text))
+        if fonts_form is not None:
+            fonts_form.addRow(QtWidgets.QLabel("Title text:", self), self._title_text)
+            fonts_form.addRow(QtWidgets.QLabel("Title font:", self), self._title_font)
+            fonts_form.addRow(QtWidgets.QLabel("Composer text:", self), self._composer_text)
+            fonts_form.addRow(QtWidgets.QLabel("Composer font:", self), self._composer_font)
+            fonts_form.addRow(QtWidgets.QLabel("Copyright text:", self), self._copyright_text)
+            fonts_form.addRow(QtWidgets.QLabel("Copyright font:", self), self._copyright_font)
+        self._wire_header_change(self._title_text)
+        self._wire_header_change(self._composer_text)
+        self._wire_header_change(self._copyright_text)
+        self._wire_header_change(self._title_font)
+        self._wire_header_change(self._composer_font)
+        self._wire_header_change(self._copyright_font)
+
+        field_tabs: dict[str, str] = {
+            # Page
+            'page_width_mm': 'Page',
+            'page_height_mm': 'Page',
+            'page_top_margin_mm': 'Page',
+            'page_bottom_margin_mm': 'Page',
+            'page_left_margin_mm': 'Page',
+            'page_right_margin_mm': 'Page',
+            'header_height_mm': 'Page',
+            'footer_height_mm': 'Page',
+            'scale': 'Page',
+            # Note
+            'black_note_rule': 'Note',
+            'note_head_visible': 'Note',
+            'note_stem_visible': 'Note',
+            'note_stem_length_semitone': 'Note',
+            'note_stem_thickness_mm': 'Note',
+            'note_leftdot_visible': 'Note',
+            'note_midinote_visible': 'Note',
+            'note_midinote_left_color': 'Note',
+            'note_midinote_right_color': 'Note',
+            # Beam
+            'beam_visible': 'Beam',
+            'beam_thickness_mm': 'Beam',
+            # Pedal
+            'pedal_lane_enabled': 'Pedal',
+            'pedal_lane_width_mm': 'Pedal',
+            # Grace note
+            'grace_note_visible': 'Grace note',
+            # Text
+            'text_visible': 'Text',
+            'text_font_family': 'Text',
+            'text_font_size_pt': 'Text',
+            # Slur
+            'slur_visible': 'Slur',
+            'slur_width_sides_mm': 'Slur',
+            'slur_width_middle_mm': 'Slur',
+            # Countline
+            'countline_visible': 'Countline',
+            'countline_dash_pattern': 'Countline',
+            'countline_thickness_mm': 'Countline',
+            # Grid
+            'grid_barline_thickness_mm': 'Grid',
+            'grid_gridline_thickness_mm': 'Grid',
+            'grid_gridline_dash_pattern_mm': 'Grid',
+            'time_signature_indicator_type': 'Grid',
+            'repeat_start_visible': 'Grid',
+            'repeat_end_visible': 'Grid',
+            # Stave
+            'stave_two_line_thickness_mm': 'Stave',
+            'stave_three_line_thickness_mm': 'Stave',
+            'stave_clef_line_dash_pattern_mm': 'Stave',
+        }
 
         type_hints = {}
         try:
@@ -240,8 +386,20 @@ class LayoutDialog(QtWidgets.QDialog):
             if editor is None:
                 continue
             self._editors[name] = editor
+            tab_name = field_tabs.get(name, 'Page')
+            form = tab_forms.get(tab_name, tab_forms['Page'])
             form.addRow(QtWidgets.QLabel(label, self), editor)
             self._wire_editor_change(editor)
+
+        action_row = QtWidgets.QHBoxLayout()
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(8)
+        self.save_default_btn = QtWidgets.QPushButton("Save Style as Default", self)
+        self.reset_default_btn = QtWidgets.QPushButton("Reset Factory Defaults", self)
+        action_row.addWidget(self.save_default_btn, 0)
+        action_row.addWidget(self.reset_default_btn, 0)
+        action_row.addStretch(1)
+        lay.addLayout(action_row)
 
         self.msg_label = QtWidgets.QLabel("", self)
         pal = self.msg_label.palette()
@@ -256,6 +414,9 @@ class LayoutDialog(QtWidgets.QDialog):
         self.btns.accepted.connect(self._on_accept_clicked)
         self.btns.rejected.connect(self.reject)
         lay.addWidget(self.btns)
+
+        self.save_default_btn.clicked.connect(self._save_style_default)
+        self.reset_default_btn.clicked.connect(self._reset_factory_defaults)
 
     def _make_editor(self, field_type: Any, value: Any, field_name: str) -> QtWidgets.QWidget | None:
         origin = get_origin(field_type)
@@ -329,6 +490,109 @@ class LayoutDialog(QtWidgets.QDialog):
         except Exception:
             pass
 
+    def _wire_header_change(self, widget: QtWidgets.QWidget) -> None:
+        try:
+            if isinstance(widget, QtWidgets.QLineEdit):
+                widget.textChanged.connect(lambda _v: self.values_changed.emit())
+            elif isinstance(widget, FontPicker):
+                widget.valueChanged.connect(lambda: self.values_changed.emit())
+        except Exception:
+            pass
+
+    def _apply_header_to_editors(self, header_obj: Header) -> None:
+        self._header = header_obj
+        self._title_text.setText(str(header_obj.title.text))
+        self._composer_text.setText(str(header_obj.composer.text))
+        self._copyright_text.setText(str(header_obj.copyright.text))
+        self._title_font.set_value(header_obj.title)
+        self._composer_font.set_value(header_obj.composer)
+        self._copyright_font.set_value(header_obj.copyright)
+        self.values_changed.emit()
+
+    def _set_editor_value(self, editor: QtWidgets.QWidget, field_type: Any, value: Any) -> None:
+        origin = get_origin(field_type)
+        args = get_args(field_type)
+        if isinstance(editor, QtWidgets.QCheckBox):
+            editor.setChecked(bool(value))
+        elif isinstance(editor, QtWidgets.QSpinBox):
+            try:
+                editor.setValue(int(value))
+            except Exception:
+                pass
+        elif isinstance(editor, FloatSliderEdit):
+            try:
+                editor.set_value(float(value))
+            except Exception:
+                pass
+        elif isinstance(editor, ColorPickerEdit):
+            editor.set_value(str(value or ''))
+        elif origin is list and args and args[0] is float and isinstance(editor, QtWidgets.QLineEdit):
+            editor.setText(self._format_float_list(value))
+        elif isinstance(editor, QtWidgets.QComboBox):
+            try:
+                editor.setCurrentText(str(value))
+            except Exception:
+                pass
+        elif isinstance(editor, QtWidgets.QLineEdit):
+            editor.setText(str(value) if value is not None else "")
+
+    def _apply_layout_to_editors(self, layout_obj: Layout) -> None:
+        for f in fields(Layout):
+            name = f.name
+            editor = self._editors.get(name)
+            if editor is None:
+                continue
+            field_type = self._type_hints.get(name, f.type)
+            value = getattr(layout_obj, name, None)
+            self._set_editor_value(editor, field_type, value)
+        self.values_changed.emit()
+
+    def _build_style_template(self) -> dict:
+        base: dict = {}
+        try:
+            if self._score is not None:
+                base = dict(self._score.get_dict() or {})
+        except Exception:
+            base = {}
+        base.pop('events', None)
+        try:
+            base['layout'] = asdict(self.get_values())
+        except Exception:
+            base['layout'] = self.get_values().__dict__
+        try:
+            header = self.get_header_values()
+            base['header'] = asdict(header)
+        except Exception:
+            pass
+        return base
+
+    def _save_style_default(self) -> None:
+        try:
+            layout = self.get_values()
+            template = {k: getattr(layout, k) for k in layout.__dataclass_fields__.keys()}
+            adm = get_appdata_manager()
+            adm.set("layout_template", template)
+            adm.set("score_template", self._build_style_template())
+            adm.save()
+            self.msg_label.setText("Saved style defaults.")
+        except Exception:
+            self.msg_label.setText("Failed to save defaults.")
+
+    def _reset_factory_defaults(self) -> None:
+        try:
+            try:
+                adm = get_appdata_manager()
+                adm.remove("layout_template")
+                adm.remove("score_template")
+                adm.save()
+            except Exception:
+                pass
+            self._apply_layout_to_editors(Layout())
+            self._apply_header_to_editors(Header())
+            self.msg_label.setText("")
+        except Exception:
+            self.msg_label.setText("Failed to reset defaults.")
+
     def _on_accept_clicked(self) -> None:
         try:
             _ = self.get_values()
@@ -363,6 +627,39 @@ class LayoutDialog(QtWidgets.QDialog):
             elif isinstance(editor, QtWidgets.QLineEdit):
                 data[name] = str(editor.text())
         return Layout(**data)
+
+    def get_header_values(self) -> Header:
+        title_font = self._title_font.value()
+        composer_font = self._composer_font.value()
+        copyright_font = self._copyright_font.value()
+        title = HeaderText(
+            text=str(self._title_text.text()),
+            family=title_font.family,
+            size_pt=title_font.size_pt,
+            bold=title_font.bold,
+            italic=title_font.italic,
+            x_offset_mm=float(getattr(self._header.title, 'x_offset_mm', 0.0) or 0.0),
+            y_offset_mm=float(getattr(self._header.title, 'y_offset_mm', 0.0) or 0.0),
+        )
+        composer = HeaderText(
+            text=str(self._composer_text.text()),
+            family=composer_font.family,
+            size_pt=composer_font.size_pt,
+            bold=composer_font.bold,
+            italic=composer_font.italic,
+            x_offset_mm=float(getattr(self._header.composer, 'x_offset_mm', 0.0) or 0.0),
+            y_offset_mm=float(getattr(self._header.composer, 'y_offset_mm', 0.0) or 0.0),
+        )
+        copyright_text = HeaderText(
+            text=str(self._copyright_text.text()),
+            family=copyright_font.family,
+            size_pt=copyright_font.size_pt,
+            bold=copyright_font.bold,
+            italic=copyright_font.italic,
+            x_offset_mm=float(getattr(self._header.copyright, 'x_offset_mm', 0.0) or 0.0),
+            y_offset_mm=float(getattr(self._header.copyright, 'y_offset_mm', 0.0) or 0.0),
+        )
+        return Header(title=title, composer=composer, copyright=copyright_text)
 
     def _format_float_list(self, value: Any) -> str:
         if not isinstance(value, list):

@@ -8,7 +8,10 @@ from datetime import datetime
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
-from file_model.SCORE import SCORE
+from file_model.SCORE import SCORE, EditorSettings, MetaData
+from file_model.header import Header, HeaderText
+from file_model.base_grid import BaseGrid
+from file_model.appstate import AppState
 from file_model.layout import Layout
 from utils.CONSTANT import UTILS_SAVE_DIR
 from settings_manager import get_preferences_manager
@@ -60,9 +63,13 @@ class FileManager:
         self._current = SCORE().new()
         try:
             adm = get_appdata_manager()
-            template = adm.get("layout_template", {})
+            template = adm.get("score_template", {})
             if isinstance(template, dict) and template:
-                self._apply_layout_template(template)
+                self._apply_score_template(template)
+            else:
+                template = adm.get("layout_template", {})
+                if isinstance(template, dict) and template:
+                    self._apply_layout_template(template)
         except Exception:
             pass
         self._path = None
@@ -81,6 +88,69 @@ class FileManager:
                 setattr(layout, key, value)
             except Exception:
                 continue
+
+    def _apply_score_template(self, template: dict) -> None:
+        if not isinstance(template, dict):
+            return
+        score = self._current
+        data = dict(template or {})
+        data.pop('events', None)
+
+        def _build_header(entry: dict) -> Header:
+            base = Header()
+            if not isinstance(entry, dict):
+                return base
+            def _text_from(d: dict | None, fallback: HeaderText) -> HeaderText:
+                if not isinstance(d, dict):
+                    return fallback
+                return HeaderText(
+                    text=str(d.get('text', fallback.text)),
+                    family=str(d.get('family', fallback.family)),
+                    size_pt=float(d.get('size_pt', fallback.size_pt)),
+                    bold=bool(d.get('bold', fallback.bold)),
+                    italic=bool(d.get('italic', fallback.italic)),
+                    x_offset_mm=float(d.get('x_offset_mm', fallback.x_offset_mm)),
+                    y_offset_mm=float(d.get('y_offset_mm', fallback.y_offset_mm)),
+                )
+            title = _text_from(data.get('header', {}).get('title') if isinstance(data.get('header', {}), dict) else None, base.title)
+            composer = _text_from(data.get('header', {}).get('composer') if isinstance(data.get('header', {}), dict) else None, base.composer)
+            copyright_text = _text_from(data.get('header', {}).get('copyright') if isinstance(data.get('header', {}), dict) else None, base.copyright)
+            return Header(title=title, composer=composer, copyright=copyright_text)
+
+        try:
+            layout_data = data.get('layout')
+            if isinstance(layout_data, dict):
+                score.layout = Layout(**layout_data)
+        except Exception:
+            pass
+        try:
+            score.header = _build_header(data.get('header', {}) if isinstance(data.get('header', {}), dict) else {})
+        except Exception:
+            pass
+        try:
+            editor_data = data.get('editor')
+            if isinstance(editor_data, dict):
+                score.editor = EditorSettings(**editor_data)
+        except Exception:
+            pass
+        try:
+            app_state_data = data.get('app_state')
+            if isinstance(app_state_data, dict):
+                score.app_state = AppState(**app_state_data)
+        except Exception:
+            pass
+        try:
+            meta_data = data.get('meta_data')
+            if isinstance(meta_data, dict):
+                score.meta_data = MetaData(**meta_data)
+        except Exception:
+            pass
+        try:
+            base_grid = data.get('base_grid')
+            if isinstance(base_grid, list):
+                score.base_grid = [BaseGrid(**bg) if isinstance(bg, dict) else BaseGrid() for bg in base_grid]
+        except Exception:
+            pass
 
     def replace_current(self, new_score: SCORE) -> None:
         """Replace the current SCORE instance (used by undo/redo)."""
@@ -124,6 +194,7 @@ class FileManager:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(fname))
                     adm.save()
+                    self._push_recent_file(str(fname))
                 except Exception:
                     pass
                 return self._current
@@ -144,6 +215,7 @@ class FileManager:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(self._path))
                     adm.save()
+                    self._push_recent_file(str(self._path))
                 except Exception:
                     pass
                 return self._current
@@ -168,6 +240,7 @@ class FileManager:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(path))
                     adm.save()
+                    self._push_recent_file(str(path))
                 except Exception:
                     pass
                 return self._current
@@ -180,6 +253,7 @@ class FileManager:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(self._path))
                     adm.save()
+                    self._push_recent_file(str(self._path))
                 except Exception:
                     pass
                 return self._current
@@ -240,7 +314,7 @@ class FileManager:
             return False
 
     # Confirmation helpers for destructive actions
-    def confirm_save_for_action(self, action_description: str) -> bool:
+    def confirm_save_for_action(self, action_description: str, force_prompt: bool = False) -> bool:
         """If dirty, ask to save before proceeding with an action.
 
         Returns True to proceed, False to cancel the action.
@@ -255,14 +329,15 @@ class FileManager:
         except Exception:
             pass
 
-        # If auto-save is enabled, skip prompting and proceed
-        try:
-            pm = get_preferences_manager()
-            if bool(pm.get("auto_save", True)):
+        # If auto-save is enabled, skip prompting and proceed unless forced
+        if not force_prompt:
+            try:
+                pm = get_preferences_manager()
+                if bool(pm.get("auto_save", True)):
+                    return True
+            except Exception:
+                # Default to enabled behavior on errors
                 return True
-        except Exception:
-            # Default to enabled behavior on errors
-            return True
 
         if not self.is_dirty():
             return True
@@ -307,6 +382,24 @@ class FileManager:
         target = Path(UTILS_SAVE_DIR) / "session.piano"
         try:
             self._current.save(str(target))
+        except Exception:
+            pass
+
+    def _push_recent_file(self, path: str) -> None:
+        try:
+            p = str(path or "").strip()
+            if not p:
+                return
+            adm = get_appdata_manager()
+            recent = adm.get("recent_files", []) or []
+            if not isinstance(recent, list):
+                recent = []
+            recent = [str(x) for x in recent if str(x).strip()]
+            recent = [x for x in recent if x != p]
+            recent.insert(0, p)
+            recent = recent[:100]
+            adm.set("recent_files", recent)
+            adm.save()
         except Exception:
             pass
 

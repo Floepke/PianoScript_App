@@ -67,10 +67,10 @@ EDITOR_LAYERING = [
 ]
 
 ENGRAVER_LAYERING = [
-    # Stave lines first
     'midi_note',
     'left_dot',
     'grid_line',
+    'measure_number',
     'hand_split',
     'stave',
     'beam',

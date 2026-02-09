@@ -98,6 +98,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             barline_positions.append(float(cur_bar))
             cur_bar += measure_len
 
+    # Precompute measure windows for numbering (start/end in ticks)
+    measure_windows: list[dict[str, float | int]] = []
+    m_idx = 1
+    cur_m = 0.0
+    for bg in base_grid:
+        numer = int(bg.get('numerator', 4) or 4)
+        denom = int(bg.get('denominator', 4) or 4)
+        measures = int(bg.get('measure_amount', 1) or 1)
+        measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+        for _ in range(int(max(0, measures))):
+            measure_windows.append({'start': float(cur_m), 'end': float(cur_m + measure_len), 'number': int(m_idx)})
+            m_idx += 1
+            cur_m += measure_len
+
     def _log(msg: str) -> None:
         """No-op logger placeholder to keep call sites stable."""
         return
@@ -771,6 +785,145 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 rel = max(0.0, min(1.0, rel))
                 return y1 + (y2 - y1) * rel
 
+            tick_per_mm = (float(line['time_end'] - line['time_start'])) / max(1e-6, (y2 - y1))
+            mm_per_quarter = float(QUARTER_NOTE_UNIT) / max(1e-6, tick_per_mm)
+
+            indicator_type = str(layout.get('time_signature_indicator_type', 'classical') or 'classical')
+            try:
+                from fonts import register_font_from_bytes
+            except Exception:
+                register_font_from_bytes = None  # type: ignore
+            try:
+                ts_font_family = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
+                if not ts_font_family:
+                    ts_font_family = 'C059'
+            except Exception:
+                ts_font_family = 'C059'
+
+            def _ts_color(enabled: bool) -> tuple[float, float, float, float]:
+                return (0.0, 0.0, 0.0, 1.0) if enabled else (0.6, 0.6, 0.6, 1.0)
+
+            def _draw_classical_ts(numerator: int, denominator: int, enabled: bool, y_mm: float) -> None:
+                color = _ts_color(enabled)
+                x = grid_left - 17.5
+                du.add_text(
+                    x,
+                    y_mm - 3.0,
+                    f"{int(numerator)}",
+                    size_pt=28.0,
+                    color=color,
+                    id=0,
+                    tags=["time_signature"],
+                    anchor='s',
+                    family=ts_font_family,
+                )
+                du.add_line(
+                    x - 3.0,
+                    y_mm,
+                    x + 3.0,
+                    y_mm,
+                    color=color,
+                    width_mm=1.0,
+                    id=0,
+                    tags=["time_signature_line"],
+                    dash_pattern=None,
+                )
+                du.add_text(
+                    x,
+                    y_mm + 3.0,
+                    f"{int(denominator)}",
+                    size_pt=28.0,
+                    color=color,
+                    id=0,
+                    tags=["time_signature"],
+                    anchor='n',
+                    family=ts_font_family,
+                )
+
+            def _draw_klavars_ts(numerator: int, denominator: int, enabled: bool, y_mm: float, grid_positions: list[int]) -> None:
+                color = _ts_color(enabled)
+                quarters_per_measure = float(numerator) * (4.0 / max(1.0, float(denominator)))
+                measure_len_mm = quarters_per_measure * mm_per_quarter
+                beat_len_mm = measure_len_mm / max(1, int(numerator))
+
+                base_x = grid_left - float(line['margin_left']) + 7.5
+                col_gap = 5.0
+                x_right = base_x + 10.0
+                x_mid = base_x
+                x_left = base_x - col_gap
+
+                seq = [int(p) for p in (grid_positions or []) if 1 <= int(p) <= 9]
+                if len(seq) != int(numerator):
+                    seq = list(range(1, int(numerator) + 1))
+
+                guide_half_len = 3.0
+                guide_width_mm = 0.5
+                for k, val in enumerate(seq, start=1):
+                    y = y_mm + (k - 1) * beat_len_mm
+                    du.add_line(
+                        x_right - guide_half_len,
+                        y,
+                        x_right + guide_half_len,
+                        y,
+                        color=color,
+                        width_mm=guide_width_mm,
+                        id=0,
+                        tags=["ts_klavars_guide"],
+                        dash_pattern=None,
+                    )
+                du.add_line(
+                    x_right - guide_half_len,
+                    y_mm + measure_len_mm,
+                    x_right + guide_half_len,
+                    y_mm + measure_len_mm,
+                    color=color,
+                    width_mm=guide_width_mm,
+                    id=0,
+                    tags=["ts_klavars_guide"],
+                    dash_pattern=None,
+                )
+
+                for k, val in enumerate(seq, start=1):
+                    y = y_mm + (k - 1) * beat_len_mm
+                    du.add_text(
+                        x_mid,
+                        y,
+                        str(val),
+                        size_pt=18.0,
+                        color=color,
+                        id=0,
+                        tags=["ts_klavars_mid"],
+                        anchor='w',
+                        family=ts_font_family,
+                    )
+                du.add_text(
+                    x_mid,
+                    y_mm + measure_len_mm,
+                    "1",
+                    size_pt=18.0,
+                    color=color,
+                    id=0,
+                    tags=["ts_klavars_mid"],
+                    anchor='w',
+                    family=ts_font_family,
+                )
+                group_starts = [i for i, v in enumerate(seq, start=1) if v == 1]
+                if not group_starts or group_starts[0] != 1:
+                    group_starts = [1] + group_starts
+                for gi, s in enumerate(group_starts, start=1):
+                    y = y_mm + (s - 1) * beat_len_mm
+                    du.add_text(
+                        x_left - 2.0,
+                        y,
+                        str(gi),
+                        size_pt=18.0,
+                        color=color,
+                        id=0,
+                        tags=["ts_klavars_left"],
+                        anchor='w',
+                        family=ts_font_family,
+                    )
+
             # Grid drawing based on base_grid (barlines and beat lines)
             grid_left = line_x_start
             grid_right = line_x_start + float(line['stave_width'])
@@ -787,6 +940,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     denominator = int(bg.get('denominator', 4) or 4)
                     measure_amount = int(bg.get('measure_amount', 1) or 1)
                     beat_grouping = list(bg.get('beat_grouping', []) or [])
+                    indicator_enabled = bool(bg.get('indicator_enabled', True))
                 except Exception:
                     traceback.print_exc()
                     continue
@@ -794,6 +948,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     continue
                 measure_len = float(numerator) * (4.0 / float(max(1, denominator))) * float(QUARTER_NOTE_UNIT)
                 beat_len = measure_len / max(1, int(numerator))
+                if op_time.ge(float(time_cursor), float(line['time_start'])) and op_time.lt(float(time_cursor), float(line['time_end'])):
+                    y_ts = _time_to_y(float(time_cursor))
+                    if indicator_type == 'classical':
+                        _draw_classical_ts(numerator, denominator, indicator_enabled, y_ts)
+                    elif indicator_type == 'klavarskribo':
+                        _draw_klavars_ts(numerator, denominator, indicator_enabled, y_ts, beat_grouping)
+                    elif indicator_type == 'both':
+                        _draw_classical_ts(numerator, denominator, indicator_enabled, y_ts)
+                        _draw_klavars_ts(numerator, denominator, indicator_enabled, y_ts, beat_grouping)
                 for _ in range(measure_amount):
                     if op_time.gt(time_cursor, float(line['time_end'])):
                         break
@@ -882,6 +1045,112 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['count_line'],
                     )
 
+            line_notes: list[dict] = []
+            for item in norm_notes:
+                n_t = float(item.get('time', 0.0) or 0.0)
+                n_end = float(item.get('end', 0.0) or 0.0)
+                p = int(item.get('pitch', 0) or 0)
+                if op_time.ge(n_t, float(line['time_end'])) or op_time.le(n_end, float(line['time_start'])):
+                    continue
+                if p < 1 or p > PIANO_KEY_AMOUNT:
+                    continue
+                line_notes.append(item)
+
+            # Measure numbering with collision avoidance
+            size_pt = 10.0
+            mm_per_pt = 25.4 / 72.0
+            text_h_mm = size_pt * mm_per_pt
+            measure_pad = 1.5
+            stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
+            stem_len_mm = stem_len_units * semitone_mm
+
+            def _note_x_range(it: dict) -> tuple[float, float]:
+                p = int(it.get('pitch', 0) or 0)
+                x = _key_to_x(p)
+                w = semitone_mm
+                hand_key = str(it.get('hand', '<') or '<')
+                beam_ext = semitone_mm
+                if hand_key in ('l', '<'):
+                    x_min = x - max(w, stem_len_mm + beam_ext)
+                    x_max = x + w
+                else:
+                    x_min = x - w
+                    x_max = x + max(w, stem_len_mm + beam_ext)
+                return (x_min, x_max)
+
+            def _right_extent(t0: float, t1: float) -> float:
+                max_x = grid_right
+                for it in line_notes:
+                    nt = float(it.get('time', 0.0) or 0.0)
+                    ne = float(it.get('end', 0.0) or 0.0)
+                    if op_time.ge(nt, float(t1)) or op_time.le(ne, float(t0)):
+                        continue
+                    _x0, x1 = _note_x_range(it)
+                    if x1 > max_x:
+                        max_x = x1
+                return max_x
+
+            def _collides(x0: float, x1: float, t0: float, t1: float) -> bool:
+                for it in line_notes:
+                    nt = float(it.get('time', 0.0) or 0.0)
+                    ne = float(it.get('end', 0.0) or 0.0)
+                    if op_time.ge(nt, float(t1)) or op_time.le(ne, float(t0)):
+                        continue
+                    nx0, nx1 = _note_x_range(it)
+                    if (nx1 >= x0) and (nx0 <= x1):
+                        return True
+                return False
+
+            for mw in measure_windows:
+                m_start = float(mw.get('start', 0.0))
+                m_end = float(mw.get('end', 0.0))
+                if op_time.ge(m_start, float(line['time_end'])) or op_time.le(m_end, float(line['time_start'])):
+                    continue
+                num_txt = str(int(mw.get('number', 0) or 0))
+                if not num_txt:
+                    continue
+                text_w_mm = max(1.0, text_h_mm * 0.6 * len(num_txt))
+                t0 = m_start
+                t1 = min(float(line['time_end']), m_start + (text_h_mm * tick_per_mm))
+                y_text = _time_to_y(t0) + 1.0
+
+                # Default outside-right; only move further right on collision
+                base_right = grid_right + measure_pad
+                needed_right = _right_extent(t0, t1) + measure_pad
+                x_pos = max(base_right, needed_right)
+                x0 = x_pos
+                x1 = x_pos + text_w_mm
+                step = text_w_mm + measure_pad
+                tries = 0
+                while _collides(x0, x1, t0, t1) and tries < 6:
+                    x_pos += step
+                    x0 = x_pos
+                    x1 = x_pos + text_w_mm
+                    tries += 1
+                guide_y = _time_to_y(t0)
+                du.add_line(
+                    grid_right,
+                    guide_y,
+                    x_pos + text_w_mm,
+                    guide_y,
+                    color=(0, 0, 0, 1),
+                    width_mm=max(0.12, 0.15 * scale),
+                    id=0,
+                    tags=['measure_number_guide'],
+                    dash_pattern=[0.8 * scale, 0.8 * scale],
+                )
+                du.add_text(
+                    x_pos,
+                    y_text,
+                    num_txt,
+                    size_pt=size_pt,
+                    color=(0, 0, 0, 1),
+                    id=0,
+                    tags=['measure_number'],
+                    anchor='nw',
+                    family='Courier',
+                )
+
             visible_keys = list(line.get('visible_keys', []))
             if not visible_keys:
                 visible_keys = [k for k in range(int(line['range'][0]), int(line['range'][1]) + 1) if k in line_keys]
@@ -918,17 +1187,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     dash = None
                 _log(f"Drawing line key={key} x={x_pos:.2f}mm w={width_mm:.2f}mm")
                 du.add_line(x_pos, y1, x_pos, y2, color=(0, 0, 0, 1), width_mm=width_mm, dash_pattern=dash, id=0, tags=['stave'])
-
-            line_notes: list[dict] = []
-            for item in norm_notes:
-                n_t = float(item.get('time', 0.0) or 0.0)
-                n_end = float(item.get('end', 0.0) or 0.0)
-                p = int(item.get('pitch', 0) or 0)
-                if op_time.ge(n_t, float(line['time_end'])) or op_time.le(n_end, float(line['time_start'])):
-                    continue
-                if p < 1 or p > PIANO_KEY_AMOUNT:
-                    continue
-                line_notes.append(item)
 
             # ---- Beam drawing per line ----
             if bool(layout.get('beam_visible', True)):

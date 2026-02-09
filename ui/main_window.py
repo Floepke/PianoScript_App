@@ -351,6 +351,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         except Exception:
             pass
+        # 'S' opens Style dialog when focus is not on a text input
+        try:
+            if ev.key() == QtCore.Qt.Key_S and ev.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
+                fw = QtWidgets.QApplication.focusWidget()
+                if isinstance(fw, (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit)):
+                    pass
+                else:
+                    self._open_style_dialog()
+                    ev.accept()
+                    return
+        except Exception:
+            pass
         # Hitting Escape should trigger app close (with save prompt)
         try:
             if ev.key() == QtCore.Qt.Key_Escape:
@@ -406,27 +418,20 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addAction(open_act)
         file_menu.addAction(save_act)
         file_menu.addAction(save_as_act)
+        self._recent_menu = file_menu.addMenu("Recent Files")
+        file_menu.addSeparator()
+
+        style_act = QtGui.QAction("Style...", self)
+        style_act.triggered.connect(self._open_style_dialog)
+        file_menu.addAction(style_act)
         file_menu.addSeparator()
 
         export_pdf_act = QtGui.QAction("Export PDF...", self)
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
+        file_menu.addSeparator()
 
-        layout_act = QtGui.QAction("Layout", self)
-        layout_act.triggered.connect(self._open_layout_dialog)
-        file_menu.addAction(layout_act)
-
-        set_layout_default_act = QtGui.QAction("Set current layout settings as default", self)
-        set_layout_default_act.triggered.connect(self._set_layout_template)
-        file_menu.addAction(set_layout_default_act)
-
-        reset_layout_default_act = QtGui.QAction("Reset default template", self)
-        reset_layout_default_act.triggered.connect(self._reset_layout_template)
-        file_menu.addAction(reset_layout_default_act)
-
-        header_act = QtGui.QAction("Titles, Composer & Copyright...", self)
-        header_act.triggered.connect(self._open_header_dialog)
-        file_menu.addAction(header_act)
+        file_menu.addAction(exit_act)
 
         # MIDI Output port chooser (under Playback menu)
         midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
@@ -468,6 +473,11 @@ class MainWindow(QtWidgets.QMainWindow):
         act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
         self._act_midi = act_midi
         self._act_synth = act_synth
+
+        try:
+            self._refresh_recent_files_menu()
+        except Exception:
+            pass
 
         # Audio output device chooser for internal synth (under Playback menu)
         audio_dev_act = QtGui.QAction("Set Audio Output Device...", self)
@@ -916,7 +926,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _file_new(self) -> None:
         # If there are unsaved changes, confirm save before starting a new project
-        if not self.file_manager.confirm_save_for_action("creating a new project"):
+        if not self.file_manager.confirm_save_for_action("creating a new project", force_prompt=True):
             return
         self.file_manager.new()
         self._refresh_views_from_score()
@@ -942,10 +952,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _file_open(self) -> None:
         # If there are unsaved changes, confirm save before opening another project
-        if not self.file_manager.confirm_save_for_action("opening another project"):
+        if not self.file_manager.confirm_save_for_action("opening another project", force_prompt=True):
             return
         sc = self.file_manager.load()
         if sc:
+            try:
+                self._refresh_recent_files_menu()
+            except Exception:
+                pass
             self._refresh_views_from_score()
             try:
                 self.editor_controller.set_score(self.file_manager.current())
@@ -1001,25 +1015,54 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _open_layout_dialog(self) -> None:
+    def _open_style_dialog(self) -> None:
         try:
-            from ui.widgets.layout_dialog import LayoutDialog
+            from ui.widgets.layout_dialog import StyleDialog
+            from file_model.header import Header, HeaderText
             sc = self.file_manager.current()
             layout = getattr(sc, 'layout', None)
+            header = getattr(sc, 'header', None)
             try:
                 from dataclasses import asdict
                 original_layout = asdict(layout) if layout is not None else None
             except Exception:
                 original_layout = None
-            dlg = LayoutDialog(parent=self, layout=layout)
+            try:
+                from dataclasses import asdict
+                original_header = asdict(header) if header is not None else None
+            except Exception:
+                original_header = None
+            dlg = StyleDialog(parent=self, layout=layout, header=header, score=sc)
 
             previewing = {'active': True}
+
+            def _header_from_dict(data: dict) -> Header:
+                base = Header()
+                if not isinstance(data, dict):
+                    return base
+                def _build(entry: dict | None, fallback: HeaderText) -> HeaderText:
+                    if not isinstance(entry, dict):
+                        return fallback
+                    return HeaderText(
+                        text=str(entry.get('text', fallback.text)),
+                        family=str(entry.get('family', fallback.family)),
+                        size_pt=float(entry.get('size_pt', fallback.size_pt)),
+                        bold=bool(entry.get('bold', fallback.bold)),
+                        italic=bool(entry.get('italic', fallback.italic)),
+                        x_offset_mm=float(entry.get('x_offset_mm', fallback.x_offset_mm)),
+                        y_offset_mm=float(entry.get('y_offset_mm', fallback.y_offset_mm)),
+                    )
+                title = _build(data.get('title'), base.title)
+                composer = _build(data.get('composer'), base.composer)
+                copyright_text = _build(data.get('copyright'), base.copyright)
+                return Header(title=title, composer=composer, copyright=copyright_text)
 
             def _apply_preview() -> None:
                 if not previewing.get('active', True):
                     return
                 try:
                     sc.layout = dlg.get_values()
+                    sc.header = dlg.get_header_values()
                 except Exception:
                     return
                 try:
@@ -1041,6 +1084,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 new_layout = dlg.get_values()
                 try:
                     sc.layout = new_layout
+                    sc.header = dlg.get_header_values()
                 except Exception:
                     return
                 self._refresh_views_from_score()
@@ -1054,6 +1098,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     sc.layout = Layout(**original_layout)
                 except Exception:
                     return
+                if original_header is not None:
+                    try:
+                        sc.header = _header_from_dict(original_header)
+                    except Exception:
+                        pass
                 self._refresh_views_from_score()
 
             dlg.rejected.connect(_restore_original)
@@ -1061,30 +1110,67 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _open_header_dialog(self) -> None:
+    def _refresh_recent_files_menu(self) -> None:
+        menu = getattr(self, '_recent_menu', None)
+        if menu is None:
+            return
+        menu.clear()
         try:
-            from ui.widgets.header_dialog import HeaderDialog
-            sc = self.file_manager.current()
-            header = getattr(sc, 'header', None)
-            dlg = HeaderDialog(parent=self, header=header)
+            adm = get_appdata_manager()
+            recent = adm.get("recent_files", []) or []
+        except Exception:
+            recent = []
+        if not isinstance(recent, list):
+            recent = []
+        recent = [str(p) for p in recent if str(p).strip()]
+        if not recent:
+            empty_act = QtGui.QAction("No recent files", self)
+            empty_act.setEnabled(False)
+            menu.addAction(empty_act)
+        else:
+            for path in recent[:100]:
+                act = QtGui.QAction(path, self)
+                act.triggered.connect(lambda _c=False, p=path: self._open_recent_file(p))
+                menu.addAction(act)
+        menu.addSeparator()
+        clear_act = QtGui.QAction("Clear Recent Files", self)
+        clear_act.triggered.connect(self._clear_recent_files)
+        menu.addAction(clear_act)
 
-            def _apply(result: int) -> None:
-                if result != QtWidgets.QDialog.Accepted:
-                    return
-                new_header = dlg.get_values()
-                try:
-                    sc.header = new_header
-                except Exception:
-                    return
-                self._refresh_views_from_score()
-
-            dlg.finished.connect(_apply)
-            dlg.show()
-        except Exception as exc:
+    def _open_recent_file(self, path: str) -> None:
+        if not self.file_manager.confirm_save_for_action("opening another project", force_prompt=True):
+            return
+        sc = self.file_manager.open_path(str(path))
+        if sc:
             try:
-                QtWidgets.QMessageBox.critical(self, "Header Dialog Error", str(exc))
+                self._refresh_recent_files_menu()
             except Exception:
                 pass
+            self._refresh_views_from_score()
+            try:
+                self.editor_controller.set_score(self.file_manager.current())
+                self.editor_controller.reset_undo_stack()
+            except Exception:
+                pass
+            try:
+                if hasattr(self.editor_controller, 'force_redraw_from_model'):
+                    self.editor_controller.force_redraw_from_model()
+            except Exception:
+                pass
+            try:
+                self._restore_app_state_from_score()
+            except Exception:
+                pass
+            self._update_title()
+
+    def _clear_recent_files(self) -> None:
+        try:
+            adm = get_appdata_manager()
+            adm.set("recent_files", [])
+            adm.save()
+        except Exception:
+            pass
+        self._refresh_recent_files_menu()
 
     def _set_layout_template(self) -> None:
         try:
