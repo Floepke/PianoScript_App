@@ -744,7 +744,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 origin = float(key_positions.get(bound_left, 0.0))
                 note_offset = float(key_positions.get(min_pitch, origin)) - origin
                 offset_left = note_offset - stem_len_mm
-                ts_lane_right_offset = min(0.0, float(offset_left))
+                ts_lane_gap_mm = 1.0
+                ts_lane_right_offset = min(0.0, float(offset_left - ts_lane_gap_mm))
             extra_left = max(0.0, -ts_lane_right_offset)
             line['margin_left'] = base_margin_left + ts_lane_width + extra_left
         line['base_margin_left'] = base_margin_left
@@ -1201,7 +1202,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             # Measure numbering with collision avoidance
             mn_family, mn_size, mn_bold, mn_italic = _layout_font('measure_numbering_font', 'C059', 10.0)
-            size_pt = mn_size
+            size_pt = mn_size * scale
             mm_per_pt = 25.4 / 72.0
             text_h_mm = size_pt * mm_per_pt
             measure_pad = 1.5
