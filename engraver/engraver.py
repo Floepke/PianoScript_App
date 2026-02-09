@@ -1536,15 +1536,19 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         dot_times.append(s)
                     if op_time.gt(e, n_t) and op_time.lt(e, n_end):
                         dot_times.append(e)
+                for bt in barline_positions:
+                    bt = float(bt)
+                    if op_time.gt(bt, n_t) and op_time.lt(bt, n_end):
+                        dot_times.append(bt)
                 if dot_times:
                     dot_d = w * 0.8
                     for t in sorted(set(dot_times)):
-                        y = _time_to_y(float(t))
+                        y_center = _time_to_y(float(t)) + w
                         du.add_oval(
                             x - dot_d / 2.0,
-                            y - dot_d / 2.0 + w,
+                            y_center - dot_d / 2.0,
                             x + dot_d / 2.0,
-                            y + dot_d / 2.0 + w,
+                            y_center + dot_d / 2.0,
                             fill_color=(0, 0, 0, 1),
                             stroke_color=None,
                             id=0,

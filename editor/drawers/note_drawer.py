@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast, Iterable
 import bisect
 from file_model.SCORE import SCORE
-from utils.CONSTANT import BLACK_KEYS, QUARTER_NOTE_UNIT, BE_KEYS
+from utils.CONSTANT import BLACK_KEYS, QUARTER_NOTE_UNIT, BE_KEYS, SHORTEST_DURATION
 from ui.widgets.draw_util import DrawUtil
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
@@ -288,18 +288,25 @@ class NoteDrawerMixin:
                 dot_times.append(s)
             if self._time_op.gt(e, start) and self._time_op.lt(e, end):
                 dot_times.append(e)
+
+        # Add a continuation dot at any crossed barline.
+        barlines = self._cached_barline_positions or self._get_barline_positions()
+        for bt in barlines:
+            bt = float(bt)
+            if self._time_op.gt(bt, start) and self._time_op.lt(bt, end):
+                dot_times.append(bt)
         if not dot_times:
             return
 
-        # Draw dots
+        # Draw dots using notehead center for consistent positioning
         dot_d = w * 0.8
         for t in sorted(set(dot_times)):
-            y = float(self.time_to_mm(t))
+            y_center = float(self.time_to_mm(t)) + w
             du.add_oval(
                 x - dot_d / 2.0,
-                y - dot_d / 2.0 + w,
+                y_center - dot_d / 2.0,
                 x + dot_d / 2.0,
-                y + dot_d / 2.0 + w,
+                y_center + dot_d / 2.0,
                 fill_color=self.notation_color,
                 stroke_color=None,
                 id=0,
