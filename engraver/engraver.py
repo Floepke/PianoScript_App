@@ -1060,6 +1060,21 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     continue
                 line_notes.append(item)
 
+            notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
+            for item in line_notes:
+                hk = str(item.get('hand', '<') or '<')
+                hand_norm = 'l' if hk in ('<', 'l') else 'r'
+                notes_by_hand_line[hand_norm].append(item)
+
+            beam_groups_by_hand: dict[str, tuple[list[list[dict]], list[tuple[float, float]]]] = {}
+            line_start = float(line.get('time_start', 0.0) or 0.0)
+            line_end = float(line.get('time_end', 0.0) or 0.0)
+            for hand_norm in ('r', 'l'):
+                notes_for_hand = notes_by_hand_line.get(hand_norm, [])
+                markers_for_hand = beam_by_hand.get(hand_norm, [])
+                groups, windows = _group_by_beam_markers(notes_for_hand, markers_for_hand, line_start, line_end)
+                beam_groups_by_hand[hand_norm] = (groups, windows)
+
             # Measure numbering with collision avoidance
             size_pt = 10.0
             mm_per_pt = 25.4 / 72.0
@@ -1094,6 +1109,27 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         max_x = x1
                 return max_x
 
+            def _beam_group_right_extent(t0: float) -> float | None:
+                max_x = None
+                for hand_norm, payload in beam_groups_by_hand.items():
+                    groups, windows = payload
+                    for idx, grp in enumerate(groups):
+                        if not grp or idx >= len(windows):
+                            continue
+                        w0, w1 = windows[idx]
+                        if op_time.ge(float(t0), float(w1)) or op_time.lt(float(t0), float(w0)):
+                            continue
+                        highest = max(grp, key=lambda n: int(n.get('pitch', 0) or 0))
+                        p = int(highest.get('pitch', 0) or 0)
+                        base_x = _key_to_x(p)
+                        if hand_norm == 'r':
+                            x = base_x + stem_len_mm
+                        else:
+                            x = base_x + semitone_mm
+                        if max_x is None or x > max_x:
+                            max_x = x
+                return max_x
+
             def _collides(x0: float, x1: float, t0: float, t1: float) -> bool:
                 for it in line_notes:
                     nt = float(it.get('time', 0.0) or 0.0)
@@ -1120,7 +1156,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
                 # Default outside-right; only move further right on collision
                 base_right = grid_right + measure_pad
+                beam_right = _beam_group_right_extent(t0)
                 needed_right = _right_extent(t0, t1) + measure_pad
+                if beam_right is not None:
+                    needed_right = max(needed_right, float(beam_right) + measure_pad)
                 x_pos = max(base_right, needed_right)
                 x0 = x_pos
                 x1 = x_pos + text_w_mm
