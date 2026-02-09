@@ -651,6 +651,14 @@ class StyleDialog(QtWidgets.QDialog):
             base = {}
         base.pop('events', None)
         try:
+            bg_list = base.get('base_grid')
+            if isinstance(bg_list, list):
+                for bg in bg_list:
+                    if isinstance(bg, dict):
+                        bg['measure_amount'] = 1
+        except Exception:
+            pass
+        try:
             base['layout'] = asdict(self.get_values())
         except Exception:
             base['layout'] = self.get_values().__dict__
@@ -714,6 +722,17 @@ class StyleDialog(QtWidgets.QDialog):
                     self._apply_header_to_editors(header_obj)
                     applied = True
 
+                try:
+                    if self._score is not None:
+                        bg_list = getattr(self._score, 'base_grid', None)
+                        if isinstance(bg_list, list):
+                            for bg in bg_list:
+                                if hasattr(bg, 'measure_amount'):
+                                    bg.measure_amount = 1
+                    applied = True if applied else bool(self._score is not None)
+                except Exception:
+                    pass
+
             if not applied:
                 layout_template = adm.get("layout_template", {})
                 if isinstance(layout_template, dict) and layout_template:
@@ -723,6 +742,11 @@ class StyleDialog(QtWidgets.QDialog):
                     except Exception:
                         pass
 
+            if applied:
+                try:
+                    self.values_changed.emit()
+                except Exception:
+                    pass
             self.msg_label.setText("Applied default style." if applied else "No default style found.")
         except Exception:
             self.msg_label.setText("Failed to apply defaults.")

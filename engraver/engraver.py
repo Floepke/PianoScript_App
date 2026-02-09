@@ -806,7 +806,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             def _draw_classical_ts(numerator: int, denominator: int, enabled: bool, y_mm: float) -> None:
                 color = _ts_color(enabled)
                 x = ts_x_right
-                size_pt = 28.0 * scale
+                size_pt = 35.0 * scale
                 du.add_text(
                     x,
                     y_mm - (3.0 * scale),
@@ -884,22 +884,22 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         ts_x_mid,
                         y,
                         str(val),
-                        size_pt=18.0 * scale,
+                        size_pt=25.0 * scale,
                         color=color,
                         id=0,
                         tags=["ts_klavars_mid"],
-                        anchor='w',
+                        anchor='center',
                         family=ts_font_family,
                     )
                 du.add_text(
                     ts_x_mid,
                     y_mm + measure_len_mm,
                     "1",
-                    size_pt=18.0 * scale,
+                    size_pt=25.0 * scale,
                     color=color,
                     id=0,
                     tags=["ts_klavars_mid"],
-                    anchor='w',
+                    anchor='center',
                     family=ts_font_family,
                 )
                 group_starts = [i for i, v in enumerate(seq, start=1) if v == 1]
@@ -911,11 +911,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         ts_x_left,
                         y,
                         str(gi),
-                        size_pt=18.0 * scale,
+                        size_pt=25.0 * scale,
                         color=color,
                         id=0,
                         tags=["ts_klavars_left"],
-                        anchor='w',
+                        anchor='center',
                         family=ts_font_family,
                     )
 
@@ -1191,7 +1191,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     id=0,
                     tags=['measure_number'],
                     anchor='nw',
-                    family='Courier',
+                    family=ts_font_family,
                 )
 
             visible_keys = list(line.get('visible_keys', []))
