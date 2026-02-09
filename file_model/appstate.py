@@ -25,3 +25,4 @@ class AppState:
     synth_gain: float = 0.35
     synth_humanize_cents: float = 3.0
     synth_humanize_interval_s: float = 1.0
+    style_dialog_tab_index: int = 0

@@ -414,6 +414,11 @@ class MainWindow(QtWidgets.QMainWindow):
         exit_act = QtGui.QAction("Exit", self)
         exit_act.triggered.connect(self.close)
 
+        new_act.setShortcut(QtGui.QKeySequence.StandardKey.New)
+        open_act.setShortcut(QtGui.QKeySequence.StandardKey.Open)
+        save_act.setShortcut(QtGui.QKeySequence.StandardKey.Save)
+        save_as_act.setShortcut(QtGui.QKeySequence.StandardKey.SaveAs)
+
         file_menu.addAction(new_act)
         file_menu.addAction(open_act)
         file_menu.addAction(save_act)
@@ -422,21 +427,18 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addSeparator()
 
         style_act = QtGui.QAction("Style...", self)
+        style_act.setShortcut(QtGui.QKeySequence("S"))
         style_act.triggered.connect(self._open_style_dialog)
         file_menu.addAction(style_act)
         file_menu.addSeparator()
 
         export_pdf_act = QtGui.QAction("Export PDF...", self)
+        export_pdf_act.setShortcut(QtGui.QKeySequence("Ctrl+E"))
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
         file_menu.addSeparator()
 
         file_menu.addAction(exit_act)
-
-        # MIDI Output port chooser (under Playback menu)
-        midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
-        midi_port_act.triggered.connect(self._choose_midi_port)
-        playback_menu.addAction(midi_port_act)
 
         app_state = self._resolve_app_state_defaults()
 
@@ -447,7 +449,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             transport_act.setChecked(True)
         transport_act.triggered.connect(lambda: self._set_send_midi_transport(transport_act.isChecked()))
-        playback_menu.addAction(transport_act)
         self._transport_act = transport_act
 
         # Playback Mode submenu (under Playback menu)
@@ -474,6 +475,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._act_midi = act_midi
         self._act_synth = act_synth
 
+        playback_menu.addSeparator()
+
+        # MIDI Output port chooser (under Playback menu)
+        midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
+        midi_port_act.triggered.connect(self._choose_midi_port)
+        playback_menu.addAction(midi_port_act)
+        playback_menu.addAction(transport_act)
+
+        playback_menu.addSeparator()
+
         try:
             self._refresh_recent_files_menu()
         except Exception:
@@ -484,10 +495,16 @@ class MainWindow(QtWidgets.QMainWindow):
         audio_dev_act.triggered.connect(self._choose_audio_device)
         playback_menu.addAction(audio_dev_act)
 
+        playback_menu.addSeparator()
+
         # System audio test tone (under Playback menu)
         sys_tone_act = QtGui.QAction("Play System Audio Test Tone", self)
         sys_tone_act.triggered.connect(self._play_system_test_tone)
         playback_menu.addAction(sys_tone_act)
+
+        test_tone_act = QtGui.QAction("Play Synth Test Tone", self)
+        test_tone_act.triggered.connect(self._play_test_tone)
+        playback_menu.addAction(test_tone_act)
 
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
@@ -533,11 +550,6 @@ class MainWindow(QtWidgets.QMainWindow):
         prefs_act = QtGui.QAction("Preferences…", self)
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
-        # Quick synth test tone for troubleshooting (under Playback menu)
-        test_tone_act = QtGui.QAction("Play Synth Test Tone", self)
-        test_tone_act.triggered.connect(self._play_test_tone)
-        playback_menu.addAction(test_tone_act)
-
         # View actions
         view_menu.addAction(QtGui.QAction("Zoom In", self))
         view_menu.addAction(QtGui.QAction("Zoom Out", self))
@@ -930,6 +942,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         self.file_manager.new()
         self._refresh_views_from_score()
+        try:
+            QtCore.QTimer.singleShot(1000, lambda: self.engraver.engrave(self._current_score_dict()))
+        except Exception:
+            pass
         # Provide current score to editor for drawers needing direct access
         try:
             self.editor_controller.set_score(self.file_manager.current())
@@ -1017,7 +1033,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _open_style_dialog(self) -> None:
         try:
-            from ui.widgets.layout_dialog import StyleDialog
+            from ui.widgets.style_dialog import StyleDialog
             from file_model.header import Header, HeaderText
             sc = self.file_manager.current()
             layout = getattr(sc, 'layout', None)
@@ -1033,6 +1049,12 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 original_header = None
             dlg = StyleDialog(parent=self, layout=layout, header=header, score=sc)
+
+            try:
+                app_state = self._current_app_state()
+                dlg.set_current_tab(int(getattr(app_state, 'style_dialog_tab_index', 0) or 0))
+            except Exception:
+                pass
 
             previewing = {'active': True}
 
@@ -1077,6 +1099,17 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
 
+            def _persist_tab_index() -> None:
+                try:
+                    app_state = self._current_app_state()
+                    app_state.style_dialog_tab_index = int(dlg.current_tab_index())
+                except Exception:
+                    return
+                try:
+                    self._flush_app_state_save()
+                except Exception:
+                    pass
+
             def _apply(result: int) -> None:
                 if result != QtWidgets.QDialog.Accepted:
                     return
@@ -1088,7 +1121,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 except Exception:
                     return
                 self._refresh_views_from_score()
+                try:
+                    if self.file_manager.path() is not None:
+                        self.file_manager.save()
+                except Exception:
+                    pass
             dlg.finished.connect(_apply)
+            dlg.finished.connect(lambda _res: _persist_tab_index())
 
             def _restore_original() -> None:
                 if original_layout is None:
@@ -1238,12 +1277,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor_controller.set_score(self.file_manager.current())
         except Exception:
             pass
+        try:
+            self.editor_controller.force_redraw_from_model()
+        except Exception:
+            pass
 
     def _edit_redo(self) -> None:
         self.editor_controller.redo()
         self._refresh_views_from_score()
         try:
             self.editor_controller.set_score(self.file_manager.current())
+        except Exception:
+            pass
+        try:
+            self.editor_controller.force_redraw_from_model()
         except Exception:
             pass
 
@@ -1262,6 +1309,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.editor_controller.set_score(self.file_manager.current())
             except Exception:
                 pass
+            try:
+                self.editor_controller.force_redraw_from_model()
+            except Exception:
+                pass
             self._status("Cut selection", 1200)
         except Exception:
             pass
@@ -1272,6 +1323,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self._refresh_views_from_score()
             try:
                 self.editor_controller.set_score(self.file_manager.current())
+            except Exception:
+                pass
+            try:
+                self.editor_controller.force_redraw_from_model()
             except Exception:
                 pass
             self._status("Pasted selection", 1200)
@@ -1287,6 +1342,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if deleted:
                 try:
                     self.editor_controller.set_score(self.file_manager.current())
+                except Exception:
+                    pass
+                try:
+                    self.editor_controller.force_redraw_from_model()
                 except Exception:
                     pass
                 self._status("Deleted selection", 1200)

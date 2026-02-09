@@ -1579,20 +1579,21 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
 
 class _EngraveTask(QtCore.QRunnable):
-    def __init__(self, score: dict, du: DrawUtil, finished_cb):
+    def __init__(self, score: dict, request_id: int, finished_cb):
         super().__init__()
         self.setAutoDelete(True)
         self._score = score
-        self._du = du
+        self._request_id = int(request_id)
         self._finished_cb = finished_cb
 
     def run(self) -> None:
+        local_du = DrawUtil()
         try:
-            do_engrave(self._score, self._du)
+            do_engrave(self._score, local_du)
         finally:
             # Notify completion back to Engraver (GUI thread via signal)
             try:
-                self._finished_cb()
+                self._finished_cb(self._request_id, local_du)
             except Exception:
                 traceback.print_exc()
 
@@ -1613,6 +1614,8 @@ class Engraver(QtCore.QObject):
         self._pool = QtCore.QThreadPool.globalInstance()
         self._running: bool = False
         self._pending_score: dict | None = None
+        self._pending_request_id: int | None = None
+        self._latest_request_id: int = 0
         self._min_interval_ms: int = 500
         self._last_start_ms: int = -500
         self._elapsed = QtCore.QElapsedTimer()
@@ -1622,11 +1625,15 @@ class Engraver(QtCore.QObject):
         self._delay_timer.timeout.connect(self._maybe_start_pending)
 
     def engrave(self, score: dict) -> None:
+        self._latest_request_id += 1
+        req_id = int(self._latest_request_id)
         # If currently running, just replace the pending request
         if self._running:
             self._pending_score = dict(score or {})
+            self._pending_request_id = req_id
             return
         self._pending_score = dict(score or {})
+        self._pending_request_id = req_id
         self._maybe_start_pending()
 
     def _maybe_start_pending(self) -> None:
@@ -1634,26 +1641,30 @@ class Engraver(QtCore.QObject):
             return
         if self._pending_score is None:
             return
+        if self._pending_request_id is None:
+            return
         elapsed_ms = int(self._elapsed.elapsed())
         since_last = elapsed_ms - int(self._last_start_ms)
         if since_last >= self._min_interval_ms:
             next_score = self._pending_score
+            next_req_id = int(self._pending_request_id)
             self._pending_score = None
-            self._start_task(next_score)
+            self._pending_request_id = None
+            self._start_task(next_score, next_req_id)
             return
         delay_ms = max(1, int(self._min_interval_ms - since_last))
         if self._delay_timer.isActive():
             self._delay_timer.stop()
         self._delay_timer.start(delay_ms)
 
-    def _start_task(self, score: dict) -> None:
+    def _start_task(self, score: dict, request_id: int) -> None:
         self._running = True
         self._last_start_ms = int(self._elapsed.elapsed())
-        task = _EngraveTask(score, self._du, self._on_finished)
+        task = _EngraveTask(score, request_id, self._on_finished)
         self._pool.start(task)
 
-    @QtCore.Slot()
-    def _on_finished(self) -> None:
+    @QtCore.Slot(int, object)
+    def _on_finished(self, request_id: int, result_du: DrawUtil) -> None:
         # Called on worker completion; schedule next or emit signal
         self._running = False
         if self._pending_score is not None:
@@ -1662,6 +1673,12 @@ class Engraver(QtCore.QObject):
             return
         # No pending: notify listeners (e.g., to request render)
         try:
-            self.engraved.emit()
+            if int(request_id) == int(self._latest_request_id):
+                try:
+                    self._du._pages = list(result_du._pages)
+                    self._du._current_index = int(result_du._current_index)
+                except Exception:
+                    pass
+                self.engraved.emit()
         except Exception:
             traceback.print_exc()

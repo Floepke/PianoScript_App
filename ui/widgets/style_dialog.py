@@ -230,6 +230,7 @@ class FontPicker(QtWidgets.QWidget):
 
 class StyleDialog(QtWidgets.QDialog):
     values_changed = QtCore.Signal()
+    tab_changed = QtCore.Signal(int)
 
     def __init__(self, parent=None, layout: Layout | None = None, header: Header | None = None, score: SCORE | None = None) -> None:
         super().__init__(parent)
@@ -252,26 +253,34 @@ class StyleDialog(QtWidgets.QDialog):
         self._header = header or Header()
         self._editors: dict[str, QtWidgets.QWidget] = {}
         self._score: SCORE | None = score
+        self._tab_scrolls: list[QtWidgets.QScrollArea] = []
+        self._tab_contents: list[QtWidgets.QWidget] = []
+        self._tabs: QtWidgets.QTabWidget | None = None
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
         tabs = QtWidgets.QTabWidget(self)
+        self._tabs = tabs
         lay.addWidget(tabs, 1)
+        try:
+            tabs.currentChanged.connect(self.tab_changed.emit)
+        except Exception:
+            pass
 
         tab_order = [
-            "Fonts",
             "Page",
-            "Note",
-            "Beam",
-            "Pedal",
-            "Grace note",
-            "Text",
-            "Slur",
-            "Countline",
             "Grid",
             "Stave",
+            "Titles",
+            "Note",
+            "Grace note",
+            "Beam",
+            "Slur",
+            "Text",
+            "Countline",
+            "Pedal",
         ]
 
         def _make_tab(title: str) -> QtWidgets.QFormLayout:
@@ -289,11 +298,13 @@ class StyleDialog(QtWidgets.QDialog):
             scroll.setWidget(content)
             tab_layout.addWidget(scroll, 1)
             tabs.addTab(tab, title)
+            self._tab_scrolls.append(scroll)
+            self._tab_contents.append(content)
             return form
 
         tab_forms: dict[str, QtWidgets.QFormLayout] = {t: _make_tab(t) for t in tab_order}
 
-        fonts_form = tab_forms.get("Fonts")
+        fonts_form = tab_forms.get("Titles")
         self._title_text = QtWidgets.QLineEdit(self)
         self._composer_text = QtWidgets.QLineEdit(self)
         self._copyright_text = QtWidgets.QLineEdit(self)
@@ -392,10 +403,13 @@ class StyleDialog(QtWidgets.QDialog):
             self._wire_editor_change(editor)
 
         action_row = QtWidgets.QHBoxLayout()
+        self._action_row = action_row
         action_row.setContentsMargins(0, 0, 0, 0)
         action_row.setSpacing(8)
+        self.apply_default_btn = QtWidgets.QPushButton("Apply Default Style", self)
         self.save_default_btn = QtWidgets.QPushButton("Save Style as Default", self)
         self.reset_default_btn = QtWidgets.QPushButton("Reset Factory Defaults", self)
+        action_row.addWidget(self.apply_default_btn, 0)
         action_row.addWidget(self.save_default_btn, 0)
         action_row.addWidget(self.reset_default_btn, 0)
         action_row.addStretch(1)
@@ -403,7 +417,7 @@ class StyleDialog(QtWidgets.QDialog):
 
         self.msg_label = QtWidgets.QLabel("", self)
         pal = self.msg_label.palette()
-        pal.setColor(self.msg_label.foregroundRole(), QtCore.Qt.GlobalColor.red)
+        pal.setColor(self.msg_label.foregroundRole(), QtCore.Qt.GlobalColor.darkGreen)
         self.msg_label.setPalette(pal)
         lay.addWidget(self.msg_label)
 
@@ -417,6 +431,87 @@ class StyleDialog(QtWidgets.QDialog):
 
         self.save_default_btn.clicked.connect(self._save_style_default)
         self.reset_default_btn.clicked.connect(self._reset_factory_defaults)
+        self.apply_default_btn.clicked.connect(self._apply_default_style)
+        QtCore.QTimer.singleShot(0, self._fit_to_contents)
+
+    def _fit_to_contents(self) -> None:
+        tabs = self._tabs
+        if tabs is None or not self._tab_scrolls or not self._tab_contents:
+            return
+        try:
+            screen = QtWidgets.QApplication.primaryScreen()
+            max_h = int(screen.availableGeometry().height()) if screen is not None else 800
+            max_w = int(screen.availableGeometry().width()) if screen is not None else 1200
+        except Exception:
+            max_h = 800
+            max_w = 1200
+
+        max_content_h = 0
+        max_content_w = 0
+        for content in self._tab_contents:
+            try:
+                max_content_h = max(max_content_h, int(content.sizeHint().height()))
+                max_content_w = max(max_content_w, int(content.sizeHint().width()))
+            except Exception:
+                continue
+
+        tab_bar_h = int(tabs.tabBar().sizeHint().height())
+        tab_bar_w = int(tabs.tabBar().sizeHint().width())
+        action_h = int(self._action_row.sizeHint().height()) if hasattr(self, '_action_row') else 0
+        action_w = int(self._action_row.sizeHint().width()) if hasattr(self, '_action_row') else 0
+        msg_h = int(self.msg_label.sizeHint().height())
+        msg_w = int(self.msg_label.sizeHint().width())
+        btns_h = int(self.btns.sizeHint().height())
+        btns_w = int(self.btns.sizeHint().width())
+
+        lay = self.layout()
+        margins = lay.contentsMargins() if lay is not None else QtCore.QMargins()
+        spacing = int(lay.spacing()) if lay is not None else 0
+        gaps = 3
+
+        non_scroll_h = margins.top() + margins.bottom() + tab_bar_h + action_h + msg_h + btns_h + (spacing * gaps)
+        desired_scroll_h = max_content_h
+        max_scroll_h = max(1, max_h - non_scroll_h)
+        scroll_h = min(desired_scroll_h, max_scroll_h)
+
+        non_scroll_w = margins.left() + margins.right()
+        desired_w = max(tab_bar_w, max_content_w, action_w, msg_w, btns_w) + non_scroll_w
+        total_w = min(desired_w, max_w)
+
+        for scroll in self._tab_scrolls:
+            frame = int(scroll.frameWidth()) * 2
+            scroll.setMinimumHeight(scroll_h + frame)
+            scroll.setMaximumHeight(scroll_h + frame)
+            scroll.setMinimumWidth(total_w - non_scroll_w + frame)
+            scroll.setMaximumWidth(total_w - non_scroll_w + frame)
+
+        total_h = non_scroll_h + scroll_h
+        if total_h > max_h:
+            total_h = max_h
+        self.setMinimumHeight(total_h)
+        self.setMaximumHeight(total_h)
+        self.setMinimumWidth(total_w)
+        self.setMaximumWidth(total_w)
+        self.resize(total_w, total_h)
+
+    def set_current_tab(self, index: int) -> None:
+        tabs = self._tabs
+        if tabs is None:
+            return
+        try:
+            safe = max(0, min(int(index), tabs.count() - 1))
+            tabs.setCurrentIndex(safe)
+        except Exception:
+            pass
+
+    def current_tab_index(self) -> int:
+        tabs = self._tabs
+        if tabs is None:
+            return 0
+        try:
+            return int(tabs.currentIndex())
+        except Exception:
+            return 0
 
     def _make_editor(self, field_type: Any, value: Any, field_name: str) -> QtWidgets.QWidget | None:
         origin = get_origin(field_type)
@@ -577,6 +672,60 @@ class StyleDialog(QtWidgets.QDialog):
             self.msg_label.setText("Saved style defaults.")
         except Exception:
             self.msg_label.setText("Failed to save defaults.")
+
+    def _apply_default_style(self) -> None:
+        try:
+            adm = get_appdata_manager()
+            template = adm.get("score_template", {})
+            applied = False
+            if isinstance(template, dict) and template:
+                data = dict(template)
+                data.pop('events', None)
+                data.pop('base_grid', None)
+
+                layout_data = data.get('layout')
+                if isinstance(layout_data, dict):
+                    try:
+                        self._apply_layout_to_editors(Layout(**layout_data))
+                        applied = True
+                    except Exception:
+                        pass
+
+                header_data = data.get('header')
+                if isinstance(header_data, dict):
+                    def _text_from(d: dict | None, fallback: HeaderText) -> HeaderText:
+                        if not isinstance(d, dict):
+                            return fallback
+                        return HeaderText(
+                            text=str(d.get('text', fallback.text)),
+                            family=str(d.get('family', fallback.family)),
+                            size_pt=float(d.get('size_pt', fallback.size_pt)),
+                            bold=bool(d.get('bold', fallback.bold)),
+                            italic=bool(d.get('italic', fallback.italic)),
+                            x_offset_mm=float(d.get('x_offset_mm', fallback.x_offset_mm)),
+                            y_offset_mm=float(d.get('y_offset_mm', fallback.y_offset_mm)),
+                        )
+                    base = Header()
+                    header_obj = Header(
+                        title=_text_from(header_data.get('title') if isinstance(header_data, dict) else None, base.title),
+                        composer=_text_from(header_data.get('composer') if isinstance(header_data, dict) else None, base.composer),
+                        copyright=_text_from(header_data.get('copyright') if isinstance(header_data, dict) else None, base.copyright),
+                    )
+                    self._apply_header_to_editors(header_obj)
+                    applied = True
+
+            if not applied:
+                layout_template = adm.get("layout_template", {})
+                if isinstance(layout_template, dict) and layout_template:
+                    try:
+                        self._apply_layout_to_editors(Layout(**layout_template))
+                        applied = True
+                    except Exception:
+                        pass
+
+            self.msg_label.setText("Applied default style." if applied else "No default style found.")
+        except Exception:
+            self.msg_label.setText("Failed to apply defaults.")
 
     def _reset_factory_defaults(self) -> None:
         try:

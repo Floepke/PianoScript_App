@@ -530,6 +530,10 @@ class Editor(QtCore.QObject,
                 self._file_manager.mark_dirty()
             except Exception:
                 pass
+            try:
+                self.score_changed.emit()
+            except Exception:
+                pass
 
     def redo(self) -> None:
         if self._file_manager is None:
@@ -544,6 +548,10 @@ class Editor(QtCore.QObject,
             self._file_manager.replace_current(snap)
             try:
                 self._file_manager.mark_dirty()
+            except Exception:
+                pass
+            try:
+                self.score_changed.emit()
             except Exception:
                 pass
 
@@ -793,7 +801,6 @@ class Editor(QtCore.QObject,
         # reset to 1 measure if < 1 to prevent zero-measure segments
         if last_bg.measure_amount < 1:
             last_bg.measure_amount = 1
-        
         return
 
     # ---- Shared render cache ----
@@ -1516,6 +1523,10 @@ class Editor(QtCore.QObject,
         self.update_score_length()
         # Snapshot change
         self._snapshot_if_changed(coalesce=True, label='cut_selection')
+        try:
+            self.score_changed.emit()
+        except Exception:
+            pass
         return sel
 
     def delete_selection(self) -> bool:
@@ -1540,6 +1551,10 @@ class Editor(QtCore.QObject,
                 # Keep base grid length aligned to remaining notes.
                 self.update_score_length()
                 self._snapshot_if_changed(coalesce=True, label='delete_selection')
+                try:
+                    self.score_changed.emit()
+                except Exception:
+                    pass
         except Exception:
             pass
         # Clear selection window and clipboard after delete
@@ -1604,8 +1619,16 @@ class Editor(QtCore.QObject,
                 measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
                 extra_measures = int(max(1, math.ceil((furthest_end - cur_end) / max(1e-6, measure_len))))
                 last_bg.measure_amount = int(getattr(last_bg, 'measure_amount', 1) or 1) + extra_measures
+        try:
+            self.update_score_length()
+        except Exception:
+            pass
         # Snapshot change
         self._snapshot_if_changed(coalesce=True, label='paste_selection')
+        try:
+            self.score_changed.emit()
+        except Exception:
+            pass
         # Stop drawing selection overlay after paste (clipboard stays)
         self._selection_active = False
 
