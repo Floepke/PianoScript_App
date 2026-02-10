@@ -6,7 +6,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from file_model.layout import LAYOUT_FLOAT_CONFIG, LayoutFont
 from appdata_manager import get_appdata_manager
-from file_model.header import Header, HeaderText, FontSpec
 from file_model.layout import Layout
 from file_model.SCORE import SCORE
 
@@ -185,12 +184,9 @@ class ColorPickerEdit(QtWidgets.QWidget):
 class FontPicker(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
 
-    def __init__(self, value: FontSpec | LayoutFont | HeaderText, parent=None) -> None:
+    def __init__(self, value: LayoutFont, parent=None) -> None:
         super().__init__(parent)
-        if isinstance(value, HeaderText):
-            self._font_cls = FontSpec
-        else:
-            self._font_cls = type(value)
+        self._font_cls = type(value)
         self._combo = QtWidgets.QFontComboBox(self)
         self._size = QtWidgets.QSpinBox(self)
         self._size.setRange(1, 200)
@@ -211,7 +207,7 @@ class FontPicker(QtWidgets.QWidget):
         self._bold.stateChanged.connect(lambda _v: self.valueChanged.emit())
         self._italic.stateChanged.connect(lambda _v: self.valueChanged.emit())
 
-    def set_value(self, value: FontSpec | LayoutFont | HeaderText) -> None:
+    def set_value(self, value: LayoutFont) -> None:
         try:
             self._combo.setCurrentFont(QtGui.QFont(str(value.family)))
         except Exception:
@@ -223,8 +219,8 @@ class FontPicker(QtWidgets.QWidget):
         self._bold.setChecked(bool(value.bold))
         self._italic.setChecked(bool(value.italic))
 
-    def value(self) -> FontSpec | LayoutFont:
-        font_cls = self._font_cls or FontSpec
+    def value(self) -> LayoutFont:
+        font_cls = self._font_cls or LayoutFont
         return font_cls(
             family=str(self._combo.currentFont().family()),
             size_pt=float(self._size.value()),
@@ -237,7 +233,7 @@ class StyleDialog(QtWidgets.QDialog):
     values_changed = QtCore.Signal()
     tab_changed = QtCore.Signal(int)
 
-    def __init__(self, parent=None, layout: Layout | None = None, header: Header | None = None, score: SCORE | None = None) -> None:
+    def __init__(self, parent=None, layout: Layout | None = None, score: SCORE | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Style")
         self.setModal(True)
@@ -255,7 +251,6 @@ class StyleDialog(QtWidgets.QDialog):
             pass
 
         self._layout = layout or Layout()
-        self._header = header or Header()
         self._editors: dict[str, QtWidgets.QWidget] = {}
         self._score: SCORE | None = score
         self._tab_scrolls: list[QtWidgets.QScrollArea] = []
@@ -309,30 +304,6 @@ class StyleDialog(QtWidgets.QDialog):
             return form
 
         tab_forms: dict[str, QtWidgets.QFormLayout] = {t: _make_tab(t) for t in tab_order}
-
-        fonts_form = tab_forms.get("Fonts")
-        self._title_text = QtWidgets.QLineEdit(self)
-        self._composer_text = QtWidgets.QLineEdit(self)
-        self._copyright_text = QtWidgets.QLineEdit(self)
-        self._title_font = FontPicker(self._header.title, self)
-        self._composer_font = FontPicker(self._header.composer, self)
-        self._copyright_font = FontPicker(self._header.copyright, self)
-        self._title_text.setText(str(self._header.title.text))
-        self._composer_text.setText(str(self._header.composer.text))
-        self._copyright_text.setText(str(self._header.copyright.text))
-        if fonts_form is not None:
-            fonts_form.addRow(QtWidgets.QLabel("Title text:", self), self._title_text)
-            fonts_form.addRow(QtWidgets.QLabel("Composer text:", self), self._composer_text)
-            fonts_form.addRow(QtWidgets.QLabel("Copyright text:", self), self._copyright_text)
-            fonts_form.addRow(QtWidgets.QLabel("Title font:", self), self._title_font)
-            fonts_form.addRow(QtWidgets.QLabel("Composer font:", self), self._composer_font)
-            fonts_form.addRow(QtWidgets.QLabel("Copyright font:", self), self._copyright_font)
-        self._wire_header_change(self._title_text)
-        self._wire_header_change(self._composer_text)
-        self._wire_header_change(self._copyright_text)
-        self._wire_header_change(self._title_font)
-        self._wire_header_change(self._composer_font)
-        self._wire_header_change(self._copyright_font)
 
         field_tabs: dict[str, str] = {
             # Page
@@ -392,6 +363,11 @@ class StyleDialog(QtWidgets.QDialog):
             'stave_three_line_thickness_mm': 'Stave',
             'stave_clef_line_dash_pattern_mm': 'Stave',
             # Fonts
+            'font_title': 'Fonts',
+            'font_composer': 'Fonts',
+            'font_copyright': 'Fonts',
+            'font_arranger': 'Fonts',
+            'font_lyricist': 'Fonts',
             'time_signature_indicator_classic_font': 'Fonts',
             'time_signature_indicator_klavarskribo_font': 'Fonts',
             'measure_numbering_font': 'Fonts',
@@ -610,25 +586,6 @@ class StyleDialog(QtWidgets.QDialog):
         except Exception:
             pass
 
-    def _wire_header_change(self, widget: QtWidgets.QWidget) -> None:
-        try:
-            if isinstance(widget, QtWidgets.QLineEdit):
-                widget.textChanged.connect(lambda _v: self.values_changed.emit())
-            elif isinstance(widget, FontPicker):
-                widget.valueChanged.connect(lambda: self.values_changed.emit())
-        except Exception:
-            pass
-
-    def _apply_header_to_editors(self, header_obj: Header) -> None:
-        self._header = header_obj
-        self._title_text.setText(str(header_obj.title.text))
-        self._composer_text.setText(str(header_obj.composer.text))
-        self._copyright_text.setText(str(header_obj.copyright.text))
-        self._title_font.set_value(header_obj.title)
-        self._composer_font.set_value(header_obj.composer)
-        self._copyright_font.set_value(header_obj.copyright)
-        self.values_changed.emit()
-
     def _set_editor_value(self, editor: QtWidgets.QWidget, field_type: Any, value: Any) -> None:
         origin = get_origin(field_type)
         args = get_args(field_type)
@@ -692,11 +649,6 @@ class StyleDialog(QtWidgets.QDialog):
             base['layout'] = asdict(self.get_values())
         except Exception:
             base['layout'] = self.get_values().__dict__
-        try:
-            header = self.get_header_values()
-            base['header'] = asdict(header)
-        except Exception:
-            pass
         return base
 
     def _save_style_default(self) -> None:
@@ -725,29 +677,6 @@ class StyleDialog(QtWidgets.QDialog):
                         applied = True
                     except Exception:
                         pass
-
-                header_data = data.get('header')
-                if isinstance(header_data, dict):
-                    def _text_from(d: dict | None, fallback: HeaderText) -> HeaderText:
-                        if not isinstance(d, dict):
-                            return fallback
-                        return HeaderText(
-                            text=str(d.get('text', fallback.text)),
-                            family=str(d.get('family', fallback.family)),
-                            size_pt=float(d.get('size_pt', fallback.size_pt)),
-                            bold=bool(d.get('bold', fallback.bold)),
-                            italic=bool(d.get('italic', fallback.italic)),
-                            x_offset_mm=float(d.get('x_offset_mm', fallback.x_offset_mm)),
-                            y_offset_mm=float(d.get('y_offset_mm', fallback.y_offset_mm)),
-                        )
-                    base = Header()
-                    header_obj = Header(
-                        title=_text_from(header_data.get('title') if isinstance(header_data, dict) else None, base.title),
-                        composer=_text_from(header_data.get('composer') if isinstance(header_data, dict) else None, base.composer),
-                        copyright=_text_from(header_data.get('copyright') if isinstance(header_data, dict) else None, base.copyright),
-                    )
-                    self._apply_header_to_editors(header_obj)
-                    applied = True
 
                 try:
                     if self._score is not None:
@@ -779,7 +708,6 @@ class StyleDialog(QtWidgets.QDialog):
             except Exception:
                 pass
             self._apply_layout_to_editors(Layout())
-            self._apply_header_to_editors(Header())
             self.msg_label.setText("")
         except Exception:
             self.msg_label.setText("Failed to reset defaults.")
@@ -820,39 +748,6 @@ class StyleDialog(QtWidgets.QDialog):
             elif isinstance(editor, QtWidgets.QLineEdit):
                 data[name] = str(editor.text())
         return Layout(**data)
-
-    def get_header_values(self) -> Header:
-        title_font = self._title_font.value()
-        composer_font = self._composer_font.value()
-        copyright_font = self._copyright_font.value()
-        title = HeaderText(
-            text=str(self._title_text.text()),
-            family=title_font.family,
-            size_pt=title_font.size_pt,
-            bold=title_font.bold,
-            italic=title_font.italic,
-            x_offset_mm=float(getattr(self._header.title, 'x_offset_mm', 0.0) or 0.0),
-            y_offset_mm=float(getattr(self._header.title, 'y_offset_mm', 0.0) or 0.0),
-        )
-        composer = HeaderText(
-            text=str(self._composer_text.text()),
-            family=composer_font.family,
-            size_pt=composer_font.size_pt,
-            bold=composer_font.bold,
-            italic=composer_font.italic,
-            x_offset_mm=float(getattr(self._header.composer, 'x_offset_mm', 0.0) or 0.0),
-            y_offset_mm=float(getattr(self._header.composer, 'y_offset_mm', 0.0) or 0.0),
-        )
-        copyright_text = HeaderText(
-            text=str(self._copyright_text.text()),
-            family=copyright_font.family,
-            size_pt=copyright_font.size_pt,
-            bold=copyright_font.bold,
-            italic=copyright_font.italic,
-            x_offset_mm=float(getattr(self._header.copyright, 'x_offset_mm', 0.0) or 0.0),
-            y_offset_mm=float(getattr(self._header.copyright, 'y_offset_mm', 0.0) or 0.0),
-        )
-        return Header(title=title, composer=composer, copyright=copyright_text)
 
     def _format_float_list(self, value: Any) -> str:
         if not isinstance(value, list):

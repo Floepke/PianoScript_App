@@ -9,12 +9,11 @@ from datetime import datetime
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from file_model.SCORE import SCORE, EditorSettings, MetaData
-from file_model.header import Header, HeaderText
+from file_model.info import Info
 from file_model.base_grid import BaseGrid
 from file_model.appstate import AppState
 from file_model.layout import Layout
 from utils.CONSTANT import UTILS_SAVE_DIR
-from settings_manager import get_preferences_manager
 from appdata_manager import get_appdata_manager
 
 
@@ -79,26 +78,25 @@ class FileManager:
         data = dict(template or {})
         data.pop('events', None)
 
-        def _build_header(entry: dict) -> Header:
-            base = Header()
+        def _build_info(entry: dict) -> Info:
+            base = Info()
             if not isinstance(entry, dict):
                 return base
-            def _text_from(d: dict | None, fallback: HeaderText) -> HeaderText:
-                if not isinstance(d, dict):
-                    return fallback
-                return HeaderText(
-                    text=str(d.get('text', fallback.text)),
-                    family=str(d.get('family', fallback.family)),
-                    size_pt=float(d.get('size_pt', fallback.size_pt)),
-                    bold=bool(d.get('bold', fallback.bold)),
-                    italic=bool(d.get('italic', fallback.italic)),
-                    x_offset_mm=float(d.get('x_offset_mm', fallback.x_offset_mm)),
-                    y_offset_mm=float(d.get('y_offset_mm', fallback.y_offset_mm)),
-                )
-            title = _text_from(data.get('header', {}).get('title') if isinstance(data.get('header', {}), dict) else None, base.title)
-            composer = _text_from(data.get('header', {}).get('composer') if isinstance(data.get('header', {}), dict) else None, base.composer)
-            copyright_text = _text_from(data.get('header', {}).get('copyright') if isinstance(data.get('header', {}), dict) else None, base.copyright)
-            return Header(title=title, composer=composer, copyright=copyright_text)
+            info_block = data.get('info', {}) if isinstance(data.get('info', {}), dict) else {}
+            title = str(info_block.get('title', base.title) or base.title)
+            composer = str(info_block.get('composer', base.composer) or base.composer)
+            copyright_text = str(info_block.get('copyright', base.copyright) or base.copyright)
+            arranger = str(info_block.get('arranger', base.arranger) or base.arranger)
+            lyricist = str(info_block.get('lyricist', base.lyricist) or base.lyricist)
+            comment = str(info_block.get('comment', base.comment) or base.comment)
+            return Info(
+                title=title,
+                composer=composer,
+                copyright=copyright_text,
+                arranger=arranger,
+                lyricist=lyricist,
+                comment=comment,
+            )
 
         try:
             layout_data = data.get('layout')
@@ -107,7 +105,7 @@ class FileManager:
         except Exception:
             pass
         try:
-            score.header = _build_header(data.get('header', {}) if isinstance(data.get('header', {}), dict) else {})
+            score.info = _build_info(data.get('info', {}) if isinstance(data.get('info', {}), dict) else {})
         except Exception:
             pass
         try:
@@ -312,16 +310,6 @@ class FileManager:
         except Exception:
             pass
 
-        # If auto-save is enabled, skip prompting and proceed unless forced
-        if not force_prompt:
-            try:
-                pm = get_preferences_manager()
-                if bool(pm.get("auto_save", True)):
-                    return True
-            except Exception:
-                # Default to enabled behavior on errors
-                return True
-
         if not self.is_dirty():
             return True
         if self._parent is None:
@@ -390,26 +378,16 @@ class FileManager:
         """Handle model change: autosave to project and session based on settings."""
         # Always write a session copy so we can restore work
         self.autosave_current()
-        auto_save_enabled = False
-        try:
-            pm = get_preferences_manager()
-            auto_save_enabled = bool(pm.get("auto_save", True))
-        except Exception:
-            auto_save_enabled = True
-        if auto_save_enabled:
-            # Save to project file if we have a path
-            if self._path is not None:
-                ok = self.save()
-                if not ok:
-                    # if saving failed, keep dirty flag so user is warned on exit
-                    self._dirty = True
-                else:
-                    self._dirty = False
-            else:
-                # No project path yet; keep dirty but session is saved
+        # Save to project file if we have a path; always keep session updated.
+        if self._path is not None:
+            ok = self.save()
+            if not ok:
+                # If saving failed, keep dirty flag so user is warned on exit
                 self._dirty = True
+            else:
+                self._dirty = False
         else:
-            # Only mark dirty without saving project file
+            # No project path yet; keep dirty but session is saved
             self._dirty = True
 
     def install_error_backup_hook(self) -> None:
@@ -465,14 +443,6 @@ class FileManager:
             self.autosave_current()
         except Exception:
             pass
-
-        # If auto-save is enabled, no prompt; project has been saved on edits
-        try:
-            pm = get_preferences_manager()
-            if bool(pm.get("auto_save", True)):
-                return True
-        except Exception:
-            return True
 
         if self._parent is None:
             return True

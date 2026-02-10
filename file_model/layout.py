@@ -100,6 +100,28 @@ class Layout:
         size_pt=10.0,
     ))
 
+    # Info fonts
+    font_title: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="C059",
+        size_pt=25.0,
+    ))
+    font_composer: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="C059",
+        size_pt=15.0,
+    ))
+    font_copyright: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="C059",
+        size_pt=10.0,
+    ))
+    font_arranger: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="C059",
+        size_pt=12.0,
+    ))
+    font_lyricist: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="C059",
+        size_pt=12.0,
+    ))
+
     # Stave appearence
     stave_two_line_thickness_mm: float = 0.5
     stave_three_line_thickness_mm: float = 1.25

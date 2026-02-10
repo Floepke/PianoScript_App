@@ -19,7 +19,7 @@ from file_model.events.count_line import CountLine
 from file_model.events.line_break import LineBreak
 from file_model.events.tempo import Tempo
 from file_model.layout import Layout, LayoutFont
-from file_model.header import Header, HeaderText
+from file_model.info import Info
 from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid
 from file_model.appstate import AppState
@@ -38,7 +38,7 @@ class EditorSettings:
 @dataclass
 class MetaData:
 	description: str = 'This is a .piano score file created with keyTAB.'
-	creator: str = 'keyTAB Team'
+	app_author: str = 'Philip Bergwerf'
 	version: int = 1
 	extension: str = '.piano'
 	format: str = 'json'
@@ -64,7 +64,7 @@ class Events:
 @dataclass
 class SCORE:
 	meta_data: MetaData = field(default_factory=MetaData)
-	header: Header = field(default_factory=Header)
+	info: Info = field(default_factory=Info)
 	base_grid: List[BaseGrid] = field(default_factory=list)
 	events: Events = field(default_factory=Events)
 	layout: Layout = field(default_factory=Layout)
@@ -240,15 +240,6 @@ class SCORE:
 						merged[name] = raw_value
 						continue
 					if isinstance(raw_value, dict):
-						if field_type is HeaderText and 'font' in raw_value:
-							font_data = raw_value.get('font', {})
-							if isinstance(font_data, dict):
-								merged_raw = dict(raw_value)
-								merged_raw.pop('font', None)
-								merged_raw.update(font_data)
-								raw_value = merged_raw
-							if 'size' in raw_value and 'size_pt' not in raw_value:
-								raw_value['size_pt'] = raw_value.get('size')
 						child = _merge_with_defaults(field_type, raw_value, f"{context}.{name}")
 						merged[name] = field_type(**child)
 					else:
@@ -256,11 +247,11 @@ class SCORE:
 					continue
 				merged[name] = raw_value
 			return merged
-		# Meta/Header
+		# Meta/Info
 		md = data.get('meta_data', {})
 		self.meta_data = MetaData(**_merge_with_defaults(MetaData, md, 'meta_data'))
-		hd = data.get('header', {})
-		self.header = Header(**_merge_with_defaults(Header, hd, 'header'))
+		info_data = data.get('info', {})
+		self.info = Info(**_merge_with_defaults(Info, info_data, 'info'))
 		# Base grid: at least one
 		bg_list = data.get('base_grid', [])
 		if isinstance(bg_list, list) and bg_list:
@@ -431,15 +422,6 @@ class SCORE:
 						merged[name] = raw_value
 						continue
 					if isinstance(raw_value, dict):
-						if field_type is HeaderText and 'font' in raw_value:
-							font_data = raw_value.get('font', {})
-							if isinstance(font_data, dict):
-								merged_raw = dict(raw_value)
-								merged_raw.pop('font', None)
-								merged_raw.update(font_data)
-								raw_value = merged_raw
-							if 'size' in raw_value and 'size_pt' not in raw_value:
-								raw_value['size_pt'] = raw_value.get('size')
 						child = _merge_with_defaults(field_type, raw_value, f"{context}.{name}")
 						merged[name] = field_type(**child)
 					else:
@@ -448,11 +430,11 @@ class SCORE:
 				merged[name] = raw_value
 			return merged
 
-		# Meta/Header
+		# Meta/Info
 		md = (data or {}).get('meta_data', {})
 		self.meta_data = MetaData(**_merge_with_defaults(MetaData, md, 'meta_data'))
-		hd = (data or {}).get('header', {})
-		self.header = Header(**_merge_with_defaults(Header, hd, 'header'))
+		info_data = (data or {}).get('info', {})
+		self.info = Info(**_merge_with_defaults(Info, info_data, 'info'))
 
 		# Base grid
 		bg_list = (data or {}).get('base_grid', [])
@@ -560,10 +542,10 @@ class SCORE:
 		self.meta_data = MetaData()
 		# Set creation timestamp in format dd-mm-YYYY_HH:MM:SS
 		self.meta_data.creation_timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-		self.header = Header()
+		self.info = Info()
 		try:
 			year = datetime.now().year
-			self.header.copyright.text = f"keyTAB all copyrights reserved {year}"
+			self.info.copyright = f"keyTAB all copyrights reserved {year}"
 		except Exception:
 			pass
 		self.base_grid = [BaseGrid()]

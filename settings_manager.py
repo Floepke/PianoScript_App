@@ -289,7 +289,6 @@ def get_preferences_manager() -> PreferencesManager:
         pm.register("ui_scale", 1.0, "Global UI scale: (0.5 .. 3.0)")
         pm.register("theme", "light", "UI theme: ('light' | 'dark')")
         pm.register("editor_fps_limit", 30, "Max mouse-move dispatch rate (FPS). Set 0 to disable throttling.")
-        pm.register("auto_save", True, "Auto save project on every edit; also save a session copy in appdata.")
         pm.register("audition_during_note_input", True, "Play a short note on input when placing notes.")
         # pm.register(
         #     "note_tool_mouse_gesture_hand_switching",

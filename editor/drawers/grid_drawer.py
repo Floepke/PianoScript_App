@@ -28,16 +28,16 @@ class GridDrawerMixin:
         score: SCORE = self.current_score()
 
         # draw title and composer at top-left
-        title_text = getattr(score.header.title, 'text', 'title')
-        composer_text = getattr(score.header.composer, 'text', 'composer')
-        title_font = getattr(score.header.title, 'resolve_family', None)
-        if callable(title_font):
-            family = str(score.header.title.resolve_family())
+        title_text = score.info.title
+        composer_text = score.info.composer
+        title_font = score.layout.font_title
+        if title_font is not None and callable(getattr(title_font, 'resolve_family', None)):
+            family = str(title_font.resolve_family())
         else:
-            family = getattr(score.header.title, 'family', 'Courier New')
-        size_pt = 12.0
-        x_off = float(getattr(score.header.title, 'x_offset_mm', 0.0) or 0.0)
-        y_off = float(getattr(score.header.title, 'y_offset_mm', 0.0) or 0.0)
+            family = getattr(title_font, 'family', 'Courier New') if title_font is not None else 'Courier New'
+        size_pt = 12
+        x_off = 0.0
+        y_off = 0.0
         du.add_text(
             1 + x_off,
             1 + y_off,

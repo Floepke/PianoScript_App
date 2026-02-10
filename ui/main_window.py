@@ -362,6 +362,18 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
         except Exception:
             pass
+        # 'T' opens Titles dialog when focus is not on a text input
+        try:
+            if ev.key() == QtCore.Qt.Key_T and ev.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
+                fw = QtWidgets.QApplication.focusWidget()
+                if isinstance(fw, (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit)):
+                    pass
+                else:
+                    self._open_titles_dialog()
+                    ev.accept()
+                    return
+        except Exception:
+            pass
         # Hitting Escape should trigger app close (with save prompt)
         try:
             if ev.key() == QtCore.Qt.Key_Escape:
@@ -429,6 +441,10 @@ class MainWindow(QtWidgets.QMainWindow):
         style_act.setShortcut(QtGui.QKeySequence("S"))
         style_act.triggered.connect(self._open_style_dialog)
         file_menu.addAction(style_act)
+        titles_act = QtGui.QAction("Titles...", self)
+        titles_act.setShortcut(QtGui.QKeySequence("T"))
+        titles_act.triggered.connect(self._open_titles_dialog)
+        file_menu.addAction(titles_act)
         file_menu.addSeparator()
 
         export_pdf_act = QtGui.QAction("Export PDF...", self)
@@ -1038,21 +1054,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def _open_style_dialog(self) -> None:
         try:
             from ui.widgets.style_dialog import StyleDialog
-            from file_model.header import Header, HeaderText
             sc = self.file_manager.current()
             layout = getattr(sc, 'layout', None)
-            header = getattr(sc, 'header', None)
             try:
                 from dataclasses import asdict
                 original_layout = asdict(layout) if layout is not None else None
             except Exception:
                 original_layout = None
-            try:
-                from dataclasses import asdict
-                original_header = asdict(header) if header is not None else None
-            except Exception:
-                original_header = None
-            dlg = StyleDialog(parent=self, layout=layout, header=header, score=sc)
+            dlg = StyleDialog(parent=self, layout=layout, score=sc)
 
             try:
                 app_state = self._current_app_state()
@@ -1062,33 +1071,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
             previewing = {'active': True}
 
-            def _header_from_dict(data: dict) -> Header:
-                base = Header()
-                if not isinstance(data, dict):
-                    return base
-                def _build(entry: dict | None, fallback: HeaderText) -> HeaderText:
-                    if not isinstance(entry, dict):
-                        return fallback
-                    return HeaderText(
-                        text=str(entry.get('text', fallback.text)),
-                        family=str(entry.get('family', fallback.family)),
-                        size_pt=float(entry.get('size_pt', fallback.size_pt)),
-                        bold=bool(entry.get('bold', fallback.bold)),
-                        italic=bool(entry.get('italic', fallback.italic)),
-                        x_offset_mm=float(entry.get('x_offset_mm', fallback.x_offset_mm)),
-                        y_offset_mm=float(entry.get('y_offset_mm', fallback.y_offset_mm)),
-                    )
-                title = _build(data.get('title'), base.title)
-                composer = _build(data.get('composer'), base.composer)
-                copyright_text = _build(data.get('copyright'), base.copyright)
-                return Header(title=title, composer=composer, copyright=copyright_text)
-
             def _apply_preview() -> None:
                 if not previewing.get('active', True):
                     return
                 try:
                     sc.layout = dlg.get_values()
-                    sc.header = dlg.get_header_values()
                 except Exception:
                     return
                 try:
@@ -1121,7 +1108,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 new_layout = dlg.get_values()
                 try:
                     sc.layout = new_layout
-                    sc.header = dlg.get_header_values()
                 except Exception:
                     return
                 self._refresh_views_from_score()
@@ -1141,15 +1127,25 @@ class MainWindow(QtWidgets.QMainWindow):
                     sc.layout = Layout(**original_layout)
                 except Exception:
                     return
-                if original_header is not None:
-                    try:
-                        sc.header = _header_from_dict(original_header)
-                    except Exception:
-                        pass
                 self._refresh_views_from_score()
 
             dlg.rejected.connect(_restore_original)
             dlg.show()
+        except Exception:
+            pass
+
+    def _open_titles_dialog(self) -> None:
+        try:
+            from ui.widgets.info_dialog import InfoDialog
+            sc = self.file_manager.current()
+            dlg = InfoDialog(sc, self)
+            if dlg.exec() == QtWidgets.QDialog.Accepted:
+                dlg.apply_to_score()
+                try:
+                    self.file_manager.on_model_changed()
+                except Exception:
+                    pass
+                self._refresh_views_from_score()
         except Exception:
             pass
 

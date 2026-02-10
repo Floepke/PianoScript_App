@@ -23,7 +23,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     """
     score: SCORE = score or {}
     layout = (score.get('layout', {}) or {})
-    header = (score.get('header', {}) or {})
+    info = (score.get('info', {}) or {})
     editor = (score.get('editor', {}) or {})
     events = (score.get('events', {}) or {})
     base_grid = list(score.get('base_grid', []) or [])
@@ -179,9 +179,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         r, g, b, a = rgba
         return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a))
 
-    def _header_entry(key: str) -> dict:
-        """Return a normalized header entry dict for title/composer/footer data."""
-        value = header.get(key, {}) if isinstance(header, dict) else {}
+    def _info_entry(key: str) -> dict:
+        """Return a normalized info entry dict for title/composer/footer data."""
+        value = info.get(key, {}) if isinstance(info, dict) else {}
         if isinstance(value, dict):
             return value
         if isinstance(value, str):
@@ -228,22 +228,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         italic = bool(raw.get('italic', False))
         return family, size_pt, bold, italic
 
-    def _header_text(key: str, fallback: str) -> str:
-        """Fetch header text with a fallback, always returning a string."""
-        entry = _header_entry(key)
-        txt = entry.get('text', fallback)
-        return str(txt) if txt is not None else str(fallback)
+    def _info_text(key: str, fallback: str) -> str:
+        """Fetch info text with a fallback, always returning a string."""
+        if isinstance(info, dict):
+            raw = info.get(key, fallback)
+        else:
+            raw = fallback
+        if isinstance(raw, dict):
+            raw = raw.get('text', fallback)
+        return str(raw) if raw is not None else str(fallback)
 
-    def _header_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool, float, float]:
-        """Fetch header font settings (family, size, style, offsets)."""
-        entry = _header_entry(key)
-        family = _resolve_font_family(str(entry.get('family', fallback_family) or fallback_family))
-        size_pt = float(entry.get('size_pt', fallback_size) or fallback_size)
-        bold = bool(entry.get('bold', False))
-        italic = bool(entry.get('italic', False))
-        x_off = float(entry.get('x_offset_mm', 0.0) or 0.0)
-        y_off = float(entry.get('y_offset_mm', 0.0) or 0.0)
-        return family, size_pt, bold, italic, x_off, y_off
+    def _info_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool, float, float]:
+        """Fetch info font settings from layout (family, size, style, offsets)."""
+        family, size_pt, bold, italic = _layout_font(key, fallback_family, fallback_size)
+        return family, size_pt, bold, italic, 0.0, 0.0
 
     def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
         """Assign notes to time windows by overlap and preserve start-time order."""
@@ -785,15 +783,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         footer_height = float(layout.get('footer_height_mm', 0.0) or 0.0)
         footer_height = max(0.0, footer_height)
         if page_index == 0:
-            title_text = _header_text('title', 'title')
-            composer_text = _header_text('composer', 'composer')
-            title_family, title_size, title_bold, title_italic, title_x_off, title_y_off = _header_font(
-                'title',
+            title_text = _info_text('title', 'title')
+            composer_text = _info_text('composer', 'composer')
+            title_family, title_size, title_bold, title_italic, title_x_off, title_y_off = _info_font(
+                'font_title',
                 'Times New Roman',
                 12.0,
             )
-            composer_family, composer_size, composer_bold, composer_italic, composer_x_off, composer_y_off = _header_font(
-                'composer',
+            composer_family, composer_size, composer_bold, composer_italic, composer_x_off, composer_y_off = _info_font(
+                'font_composer',
                 'Times New Roman',
                 10.0,
             )
@@ -824,9 +822,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 anchor='ne',
             )
         if footer_height > 0.0:
-            footer_text = _header_text('copyright', f"keyTAB all copyrights reserved {datetime.now().year}")
-            footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _header_font(
-                'copyright',
+            footer_text = _info_text('copyright', f"keyTAB all copyrights reserved {datetime.now().year}")
+            footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _info_font(
+                'font_copyright',
                 'Times New Roman',
                 8.0,
             )
