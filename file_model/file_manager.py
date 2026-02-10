@@ -69,6 +69,11 @@ class FileManager:
             pass
         self._path = None
         self._dirty = False
+        # Snapshot a fresh session immediately so restore works even before edits.
+        try:
+            self.autosave_current()
+        except Exception:
+            pass
         return self._current
 
     def _apply_score_template(self, template: dict) -> None:
@@ -172,6 +177,10 @@ class FileManager:
                 # Imported from external format; mark dirty until explicitly saved
                 self._dirty = True
                 try:
+                    self.autosave_current()
+                except Exception:
+                    pass
+                try:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(fname))
                     adm.save()
@@ -191,6 +200,10 @@ class FileManager:
                 except Exception:
                     pass
                 self._dirty = False
+                try:
+                    self.autosave_current()
+                except Exception:
+                    pass
                 # Track last opened file in appdata
                 try:
                     adm = get_appdata_manager()
@@ -218,6 +231,10 @@ class FileManager:
                 self._last_dir = Path(path).parent
                 self._dirty = True
                 try:
+                    self.autosave_current()
+                except Exception:
+                    pass
+                try:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(path))
                     adm.save()
@@ -230,6 +247,10 @@ class FileManager:
                 self._path = Path(path)
                 self._last_dir = self._path.parent
                 self._dirty = False
+                try:
+                    self.autosave_current()
+                except Exception:
+                    pass
                 try:
                     adm = get_appdata_manager()
                     adm.set("last_opened_file", str(self._path))

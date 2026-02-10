@@ -374,7 +374,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
         except Exception:
             pass
-        # Hitting Escape should trigger app close (with save prompt)
+        # Hitting Escape should trigger app close (session already autosaved)
         try:
             if ev.key() == QtCore.Qt.Key_Escape:
                 self.close()
@@ -385,22 +385,19 @@ class MainWindow(QtWidgets.QMainWindow):
         super().keyPressEvent(ev)
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
-        # Ask FileManager for Yes/No/Cancel before quitting
+        # Always save the session snapshot and close without prompting.
         try:
-            proceed = self.file_manager.confirm_close()
+            self.file_manager.autosave_current()
         except Exception:
-            proceed = True
-        if proceed:
-            # Persist splitter sizes for next run
-            try:
-                sizes = self.splitter.sizes()
-                adm = get_appdata_manager()
-                adm.set("splitter_sizes", sizes)
-            except Exception:
-                pass
-            ev.accept()
-        else:
-            ev.ignore()
+            pass
+        # Persist splitter sizes for next run
+        try:
+            sizes = self.splitter.sizes()
+            adm = get_appdata_manager()
+            adm.set("splitter_sizes", sizes)
+        except Exception:
+            pass
+        ev.accept()
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
@@ -2013,17 +2010,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 pass
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
-        # Unified close handling: confirm save, then prepare and accept
+        # Unified close handling: save session and close without prompting.
         try:
-            proceed = self.file_manager.confirm_close()
+            self.file_manager.autosave_current()
         except Exception:
-            proceed = True
-        if proceed:
-            # Persist sizes via prepare_close
-            try:
-                self.prepare_close()
-            except Exception:
-                pass
-            ev.accept()
-        else:
-            ev.ignore()
+            pass
+        # Persist sizes via prepare_close
+        try:
+            self.prepare_close()
+        except Exception:
+            pass
+        ev.accept()
