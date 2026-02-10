@@ -297,22 +297,51 @@ class LineBreakTool(BaseTool):
             page_break=bool(getattr(lb, 'page_break', False)),
         )
 
+        original_margin = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+        original_range = dialog_range
+        original_page_break = bool(getattr(lb, 'page_break', False))
+
+        def _apply_dialog_values() -> None:
+            try:
+                margin_mm, stave_range, page_break = dlg.get_values()
+            except Exception:
+                return
+            lb.margin_mm = list(margin_mm)
+            lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
+            lb.page_break = bool(page_break)
+            if hasattr(self._editor, 'force_redraw_from_model'):
+                self._editor.force_redraw_from_model()
+            else:
+                self._editor.draw_frame()
+            try:
+                self._editor.score_changed.emit()
+            except Exception:
+                pass
+
         def _finalize_dialog(result: int) -> None:
             try:
-                if result != QtWidgets.QDialog.Accepted:
-                    return
-                margin_mm, stave_range, page_break = dlg.get_values()
-                lb.margin_mm = list(margin_mm)
-                lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
-                lb.page_break = bool(page_break)
-                self._editor._snapshot_if_changed(coalesce=False, label='line_break_edit')
-                if hasattr(self._editor, 'force_redraw_from_model'):
-                    self._editor.force_redraw_from_model()
+                if result == QtWidgets.QDialog.Accepted:
+                    self._editor._snapshot_if_changed(coalesce=False, label='line_break_edit')
+                    if hasattr(self._editor, 'force_redraw_from_model'):
+                        self._editor.force_redraw_from_model()
+                    else:
+                        self._editor.draw_frame()
                 else:
-                    self._editor.draw_frame()
+                    lb.margin_mm = list(original_margin)
+                    lb.stave_range = 'auto' if original_range == 'auto' else list(original_range)
+                    lb.page_break = bool(original_page_break)
+                    if hasattr(self._editor, 'force_redraw_from_model'):
+                        self._editor.force_redraw_from_model()
+                    else:
+                        self._editor.draw_frame()
+                    try:
+                        self._editor.score_changed.emit()
+                    except Exception:
+                        pass
             finally:
                 self._dialog_open = False
 
+        dlg.valuesChanged.connect(_apply_dialog_values)
         dlg.finished.connect(_finalize_dialog)
         dlg.show()
 

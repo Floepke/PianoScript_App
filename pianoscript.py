@@ -1,5 +1,6 @@
 import os
 import sys
+import multiprocessing as mp
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.main_window import MainWindow
 from ui.style import Style
@@ -85,4 +86,5 @@ def main():
 
 
 if __name__ == "__main__":
+    mp.freeze_support()
     main()

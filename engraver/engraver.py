@@ -545,8 +545,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 hi = p if hi is None else max(hi, p)
         return lo, hi
 
-    def _visible_line_groups_for_range(lo: int, hi: int) -> list[dict]:
-        """Return line groups that cover a pitch range, including clef group."""
+    def _visible_line_groups_for_range(lo: int, hi: int, include_clef: bool = True) -> list[dict]:
+        """Return line groups that cover a pitch range; optionally include clef group."""
         lo = int(max(1, min(PIANO_KEY_AMOUNT, lo)))
         hi = int(max(1, min(PIANO_KEY_AMOUNT, hi)))
         if hi < lo:
@@ -554,10 +554,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
         min_group = _group_index_for_key(lo)
         max_group = _group_index_for_key(hi)
-        if clef_group_index < min_group:
-            min_group = clef_group_index
-        if clef_group_index > max_group:
-            max_group = clef_group_index
+        if include_clef:
+            if clef_group_index < min_group:
+                min_group = clef_group_index
+            if clef_group_index > max_group:
+                max_group = clef_group_index
 
         return [line_groups[gi] for gi in range(min_group, max_group + 1)]
 
@@ -568,7 +569,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             grp = line_groups[clef_group_index]
             keys = list(grp['keys'])
             return [grp], keys, int(keys[0]), int(keys[-1]), True, grp.get('pattern', 'c')
-        groups = _visible_line_groups_for_range(lo, hi)
+        groups = _visible_line_groups_for_range(lo, hi, include_clef=True)
         if not groups:
             grp = line_groups[clef_group_index]
             keys = list(grp['keys'])
@@ -680,7 +681,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 _log(f"auto_range_empty window={line['time_start']:.2f}..{line['time_end']:.2f} count={count} lo={lo} hi={hi}")
         else:
             manual = _sanitize_range(line['stave_range'])
-            groups = _visible_line_groups_for_range(manual[0], manual[1])
+            groups = _visible_line_groups_for_range(manual[0], manual[1], include_clef=False)
             if not groups:
                 grp = line_groups[clef_group_index]
                 groups = [grp]
@@ -745,7 +746,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 ts_lane_gap_mm = 1.0
                 ts_lane_right_offset = min(0.0, float(offset_left - ts_lane_gap_mm))
             extra_left = max(0.0, -ts_lane_right_offset)
-            line['margin_left'] = base_margin_left + ts_lane_width + extra_left
+            lane_margin = ts_lane_width + extra_left
+            line['margin_left'] = max(base_margin_left, lane_margin)
         line['base_margin_left'] = base_margin_left
         line['ts_lane_width'] = ts_lane_width
         line['ts_lane_right_offset'] = ts_lane_right_offset
@@ -822,7 +824,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 anchor='ne',
             )
         if footer_height > 0.0:
-            footer_text = _info_text('copyright', f"keyTAB all copyrights reserved {datetime.now().year}")
+            footer_text = f"all copyrights reserved {datetime.now().year}"
             footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _info_font(
                 'font_copyright',
                 'Times New Roman',
@@ -831,7 +833,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             du.add_text(
                 page_left + footer_x_off,
                 (page_h - page_bottom) + footer_y_off,
-                f"Page {page_index + 1} of {len(pages)} | {footer_text}",
+                f"Page {page_index + 1} of {len(pages)} | {footer_text} | keyTAB sheet",
                 family=footer_family,
                 size_pt=footer_size,
                 bold=footer_bold,
