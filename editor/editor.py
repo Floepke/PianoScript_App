@@ -254,7 +254,6 @@ class Editor(QtCore.QObject,
         Useful for immediate feedback from tools (e.g., updating hit rects/cache) before
         the widget triggers a repaint.
         """
-        print("Editor.draw_frame: rebuilding frame")
         try:
             from ui.widgets.draw_util import DrawUtil
         except Exception:

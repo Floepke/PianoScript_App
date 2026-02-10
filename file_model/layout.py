@@ -33,7 +33,7 @@ class Layout:
 
     # Global drawing options
     scale: float = 0.38
-    black_note_rule: Literal['above_stem','below_stem', 'below_stem_but_centered_if_collision'] = 'below_stem'
+    black_note_rule: Literal['above_stem','below_stem', 'below_stem_but_above_if_collision'] = 'below_stem'
 
     # Note appearance
     note_head_visible: bool = True
@@ -111,7 +111,7 @@ class Layout:
     ))
     font_copyright: LayoutFont = field(default_factory=lambda: LayoutFont(
         family="C059",
-        size_pt=10.0,
+        size_pt=25.0,
     ))
     font_arranger: LayoutFont = field(default_factory=lambda: LayoutFont(
         family="C059",
@@ -125,7 +125,7 @@ class Layout:
     # Stave appearence
     stave_two_line_thickness_mm: float = 0.5
     stave_three_line_thickness_mm: float = 1.25
-    stave_clef_line_dash_pattern_mm: list[float] = field(default_factory=lambda: [5.0])  # Dash pattern for clef lines (e.g., [dash_length, gap_length])
+    stave_clef_line_dash_pattern_mm: list[float] = field(default_factory=lambda: [4.0])  # Dash pattern for clef lines (e.g., [dash_length, gap_length])
 
 
 LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {

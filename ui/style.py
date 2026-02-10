@@ -145,48 +145,23 @@ class Style:
         app = QApplication.instance()
         if app is None:
             return
+        # Use Fusion style across all platforms for consistent look
+        try:
+            QApplication.setStyle('Fusion')
+        except Exception:
+            pass
         # Clear any previous global stylesheet; we may set a Windows-specific one below
         app.setStyleSheet("")
 
         pal = QPalette()
         for role, key in self._ROLE_MAP.items():
             pal.setColor(role, colors_by_key[key])
+
         app.setPalette(pal)
 
         self._sync_named_theme_colors(colors_by_key)
 
-        # Windows-specific fix: ensure QMenu background matches the window color
-        # Some Windows themes/hardware drivers render menus with mismatched dark backgrounds.
-        if sys.platform == 'win32':
-            try:
-                window_hex = colors_by_key["bg_color"].name()
-                text_hex = colors_by_key["text_color"].name()
-                highlight_hex = colors_by_key["accent_color"].name()
-                highlighted_text_hex = text_hex
-
-                win_menu_css = f"""
-                QMenu {{
-                    background-color: {window_hex};
-                    color: {text_hex};
-                }}
-                QMenu::item {{
-                    background-color: transparent;
-                    color: {text_hex};
-                }}
-                QMenu::item:selected {{
-                    background-color: {highlight_hex};
-                    color: {highlighted_text_hex};
-                }}
-                QMenu::separator {{
-                    background-color: {highlight_hex};
-                    height: 1px;
-                    margin: 4px 6px;
-                }}
-                """
-                app.setStyleSheet(win_menu_css)
-            except Exception:
-                # Silently ignore stylesheet issues; palette is still applied
-                pass
+        # No platform-specific QSS injection; rely on Fusion + palette for consistency
 
     def set_dynamic_theme(self, tint: float = 0.75):
         """Blend between dark (0.0) and light (1.0)."""

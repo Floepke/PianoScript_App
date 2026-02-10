@@ -107,15 +107,15 @@
 	Q291bnQgMSAvS2lkcyBbIDEgMCBSIF0KPj4KZW5kb2JqCjkgMCBvYmoKPDwgL1R5cGUg
 	L0NhdGFsb2cgL1BhZ2VzIDIgMCBSID4+CmVuZG9iagoxMCAwIG9iago8PCAvUHJvZHVj
 	ZXIgKG1hY09TIFZlcnNpb24gMjYuMiBcKEJ1aWxkIDI1QzU2XCkgUXVhcnR6IFBERkNv
-	bnRleHQpIC9DcmVhdGlvbkRhdGUKKEQ6MjAyNjAxMzAxMjQyMDFaMDAnMDAnKSAvTW9k
-	RGF0ZSAoRDoyMDI2MDEzMDEyNDIwMVowMCcwMCcpID4+CmVuZG9iagp4cmVmCjAgMTEK
+	bnRleHQpIC9DcmVhdGlvbkRhdGUKKEQ6MjAyNjAxMzEwODE4MzZaMDAnMDAnKSAvTW9k
+	RGF0ZSAoRDoyMDI2MDEzMTA4MTgzNlowMCcwMCcpID4+CmVuZG9iagp4cmVmCjAgMTEK
 	MDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMzQ1IDAwMDAwIG4gCjAwMDAwMDQ1MzEg
 	MDAwMDAgbiAKMDAwMDAwMDAyMiAwMDAwMCBuIAowMDAwMDAwNDU5IDAwMDAwIG4gCjAw
 	MDAwMDQwMjQgMDAwMDAgbiAKMDAwMDAwNDQ5NiAwMDAwMCBuIAowMDAwMDAwNTM4IDAw
 	MDAwIG4gCjAwMDAwMDQwNTkgMDAwMDAgbiAKMDAwMDAwNDYyNCAwMDAwMCBuIAowMDAw
 	MDA0NjczIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMTEgL1Jvb3QgOSAwIFIgL0lu
-	Zm8gMTAgMCBSIC9JRCBbIDxiZTYwOWI3MzNhOGM4OGZhYmM3ZWExYTdmYWEzMDZmND4K
-	PGJlNjA5YjczM2E4Yzg4ZmFiYzdlYTFhN2ZhYTMwNmY0PiBdID4+CnN0YXJ0eHJlZgo0
+	Zm8gMTAgMCBSIC9JRCBbIDxmMjNkNDgwODZjMDcxMTIxY2QwMTQ5N2NjYmU0MmRlOT4K
+	PGYyM2Q0ODA4NmMwNzExMjFjZDAxNDk3Y2NiZTQyZGU5PiBdID4+CnN0YXJ0eHJlZgo0
 	ODM1CiUlRU9GCg==
 	</data>
 	<key>ArchiveMatchStore</key>
@@ -219,6 +219,15 @@
 									<string>19.1304347826</string>
 								</array>
 							</dict>
+							<dict>
+								<key>DashOn</key>
+								<string>YES</string>
+								<key>DashSequence</key>
+								<array>
+									<string>0.869565217391</string>
+									<string>19.1304347826</string>
+								</array>
+							</dict>
 						</array>
 					</dict>
 				</array>
@@ -228,7 +237,7 @@
 		</array>
 	</dict>
 	<key>DKDChangeTimeStamp</key>
-	<string>2026-01-30 18:41:38 +0600</string>
+	<string>2026-01-31 14:18:22 +0600</string>
 	<key>DKDCreateTimeStamp</key>
 	<string>2024-03-09 12:09:18 +0600</string>
 	<key>DKDDisplayGraphicDetails</key>
@@ -350,6 +359,8 @@
 		<key>RulerWidthVerticalRuler</key>
 		<string>18</string>
 	</dict>
+	<key>DKDDocumentTag</key>
+	<string>AD7AFEB9</string>
 	<key>DKDExportDoc</key>
 	<dict>
 		<key>BMPExporBackground</key>
@@ -565,7 +576,7 @@
 					<key>Class</key>
 					<string>DKDLine</string>
 					<key>DkBezDashPattern</key>
-					<string>0</string>
+					<string>16</string>
 					<key>GraphicID</key>
 					<string>B8E01368</string>
 					<key>GraphicStyle</key>
@@ -577,7 +588,7 @@
 					<key>Class</key>
 					<string>DKDLine</string>
 					<key>DkBezDashPattern</key>
-					<string>0</string>
+					<string>16</string>
 					<key>GraphicID</key>
 					<string>C21F6368</string>
 					<key>GraphicStyle</key>
@@ -777,7 +788,7 @@
 		<key>PrintScalingFactor</key>
 		<string>1</string>
 		<key>PrinterName</key>
-		<string>Brother HL-1110 series 7</string>
+		<string>Brother HL-1110 series</string>
 		<key>ReversePageOrder</key>
 		<string>NO</string>
 		<key>RightMargin</key>
@@ -794,7 +805,7 @@
 		<string>NO</string>
 	</dict>
 	<key>DKDSaveTimeStamp</key>
-	<string>2026-01-30 18:42:01 +0600</string>
+	<string>2026-01-31 14:18:36 +0600</string>
 	<key>DKDTablet</key>
 	<dict>
 		<key>BrushDynamic</key>
@@ -860,7 +871,7 @@
 		<key>CursorMode</key>
 		<string>Nothing</string>
 		<key>DocCenter</key>
-		<string>{425.196846929, 395.270100211}</string>
+		<string>{425.196846929, 307.267686596}</string>
 		<key>DocumentFileName</key>
 		<string>/Users/philipbergwerf/Documents/PianoScript_App/icons/icondesign/countline.ezdraw</string>
 		<key>DrawersOnMainView</key>
