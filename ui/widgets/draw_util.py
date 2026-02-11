@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 import os
 import cairo
+from PySide6 import QtGui
 from utils.CONSTANT import EDITOR_LAYERING
 
 MM_PER_INCH = 25.4
@@ -854,3 +855,24 @@ class DrawUtil:
         width_mm = te.width / PT_PER_MM
         height_mm = te.height / PT_PER_MM
         return (x_bearing_mm, y_bearing_mm, width_mm, height_mm)
+
+
+def make_image_surface(width_px: int, height_px: int):
+    """Create a QImage + cairo surface pair for rasterizing DrawUtil content."""
+    width = max(1, int(width_px))
+    height = max(1, int(height_px))
+    stride = width * 4
+    buf = bytearray(height * stride)
+    surface = cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_ARGB32, width, height, stride)
+    image = QtGui.QImage(buf, width, height, stride, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
+    return image, surface, buf
+
+
+def finalize_image_surface(image: QtGui.QImage, device_pixel_ratio: float = 1.0) -> QtGui.QImage:
+    """Detach a rasterized QImage from its temporary buffer and free the buffer."""
+    if image is None:
+        raise ValueError("finalize_image_surface() requires a valid QImage")
+    final = image.copy()
+    final.setDevicePixelRatio(float(device_pixel_ratio))
+    image.swap(QtGui.QImage())
+    return final

@@ -6,20 +6,10 @@ import cairo
 import math
 from typing import Optional
 from editor.editor import Editor
-from ui.widgets.draw_util import DrawUtil
+from ui.widgets.draw_util import DrawUtil, make_image_surface, finalize_image_surface
 from ui.style import Style
 from settings_manager import get_preferences
 # Stripped renderer, tile cache, and spatial index for static viewport simplicity
-
-
-def _make_image_and_surface(width: int, height: int):
-    width = max(1, int(width))
-    height = max(1, int(height))
-    stride = width * 4
-    buf = bytearray(height * stride)
-    surface = cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_ARGB32, width, height, stride)
-    image = QtGui.QImage(buf, width, height, stride, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
-    return image, surface, buf
 
 
 def _draw_editor_background(ctx: cairo.Context, w: int, h: int, color=(0.12, 0.12, 0.12)):
@@ -250,15 +240,15 @@ class CairoEditorWidget(QtWidgets.QWidget):
                     except Exception:
                         pass
                 # Offscreen buffer for overlays
-                ov_img, ov_surf, _ov_buf = _make_image_and_surface(vis_w_px, vis_h_px)
+                ov_img, ov_surf, _ov_buf = make_image_surface(vis_w_px, vis_h_px)
                 ov_ctx = cairo.Context(ov_surf)
                 try:
                     ov_ctx.set_antialias(cairo.ANTIALIAS_BEST)
                 except Exception:
                     pass
                 du_guides.render_to_cairo(ov_ctx, du_guides.current_page_index(), px_per_mm, clip_mm, overscan_mm=0.0)
-                ov_img.setDevicePixelRatio(dpr)
-                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), ov_img)
+                ov_img_detached = finalize_image_surface(ov_img, device_pixel_ratio=dpr)
+                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), ov_img_detached)
             else:
                 # Full path: rebuild content (without guides), cache it, then draw guides on top
                 du_content = DrawUtil()
@@ -266,18 +256,18 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 if self._editor is not None:
                     self._editor.draw_all(du_content)
                 # Rasterize content to cache image
-                c_img, c_surf, _c_buf = _make_image_and_surface(vis_w_px, vis_h_px)
+                c_img, c_surf, _c_buf = make_image_surface(vis_w_px, vis_h_px)
                 c_ctx = cairo.Context(c_surf)
                 try:
                     c_ctx.set_antialias(cairo.ANTIALIAS_BEST)
                 except Exception:
                     print('CairoEditorWidget.paintEvent: Warning: failed to set antialiasing mode')
                 du_content.render_to_cairo(c_ctx, du_content.current_page_index(), px_per_mm, clip_mm, overscan_mm=0.0)
-                c_img.setDevicePixelRatio(dpr)
+                c_img_detached = finalize_image_surface(c_img, device_pixel_ratio=dpr)
                 # Cache the content layer for overlay-only repaints
-                self._content_cache_image = c_img
+                self._content_cache_image = c_img_detached
                 self._content_cache_key = cache_key
-                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), c_img)
+                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), c_img_detached)
 
                 # Now render guides and composite
                 du_guides = DrawUtil()
@@ -287,15 +277,15 @@ class CairoEditorWidget(QtWidgets.QWidget):
                         self._editor.draw_guides(du_guides)
                     except Exception:
                         pass
-                g_img, g_surf, _g_buf = _make_image_and_surface(vis_w_px, vis_h_px)
+                g_img, g_surf, _g_buf = make_image_surface(vis_w_px, vis_h_px)
                 g_ctx = cairo.Context(g_surf)
                 try:
                     g_ctx.set_antialias(cairo.ANTIALIAS_BEST)
                 except Exception:
                     pass
                 du_guides.render_to_cairo(g_ctx, du_guides.current_page_index(), px_per_mm, clip_mm, overscan_mm=0.0)
-                g_img.setDevicePixelRatio(dpr)
-                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), g_img)
+                g_img_detached = finalize_image_surface(g_img, device_pixel_ratio=dpr)
+                painter.drawImage(QtCore.QRectF(0.0, 0.0, float(vp_w), float(vp_h)), g_img_detached)
 
             # Optional viewport debug overlay: draw a red border around viewport
             if os.getenv('PIANOSCRIPT_DEBUG_VIEWPORT', '0') in ('1', 'true', 'True'):

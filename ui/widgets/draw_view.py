@@ -1,20 +1,11 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 import cairo
-from ui.widgets.draw_util import DrawUtil
+from ui.widgets.draw_util import DrawUtil, make_image_surface, finalize_image_surface
 from ui.style import Style
 from utils.CONSTANT import ENGRAVER_LAYERING
 from engraver.engraver import do_engrave
 
-
-def _make_image_and_surface(width: int, height: int):
-    width = max(1, int(width))
-    height = max(1, int(height))
-    stride = width * 4
-    buf = bytearray(height * stride)
-    surface = cairo.ImageSurface.create_for_data(buf, cairo.FORMAT_ARGB32, width, height, stride)
-    image = QtGui.QImage(buf, width, height, stride, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
-    return image, surface, buf
 
 
 class RenderEmitter(QtCore.QObject):
@@ -43,12 +34,13 @@ class RenderTask(QtCore.QRunnable):
             except Exception as e:
                 # Fail engraving silently for now; could emit an error signal if desired.
                 print(f"Engrave error: {e}")
-        image, surface, _buf = _make_image_and_surface(self._w_px, self._h_px)
+        image, surface, _buf = make_image_surface(self._w_px, self._h_px)
         ctx = cairo.Context(surface)
         self._du.render_to_cairo(ctx, self._page_index, self._px_per_mm, layering=ENGRAVER_LAYERING)
-        image.setDevicePixelRatio(self._dpr)
+        # Detach the image from the temporary buffer so Python memory can be reclaimed
+        final = finalize_image_surface(image, device_pixel_ratio=self._dpr)
         # Emit back to the UI thread
-        self._emitter.rendered.emit(image.copy(), self._page_index)
+        self._emitter.rendered.emit(final, self._page_index)
 
 
 class DrawUtilView(QtWidgets.QWidget):

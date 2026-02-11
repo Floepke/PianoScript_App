@@ -247,16 +247,16 @@
 	Cj4+CmVuZG9iagoxMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIg
 	Pj4KZW5kb2JqCjEyIDAgb2JqCjw8IC9Qcm9kdWNlciAobWFjT1MgVmVyc2lvbiAyNi4y
 	IFwoQnVpbGQgMjVDNTZcKSBRdWFydHogUERGQ29udGV4dCkgL0NyZWF0aW9uRGF0ZQoo
-	RDoyMDI2MDIxMDE4NDEyMlowMCcwMCcpIC9Nb2REYXRlIChEOjIwMjYwMjEwMTg0MTIy
+	RDoyMDI2MDIxMTEwNTEwOFowMCcwMCcpIC9Nb2REYXRlIChEOjIwMjYwMjExMTA1MTA4
 	WjAwJzAwJykgPj4KZW5kb2JqCnhyZWYKMCAxMwowMDAwMDAwMDAwIDY1NTM1IGYgCjAw
 	MDAwMDQ3MDIgMDAwMDAgbiAKMDAwMDAxMTY0OCAwMDAwMCBuIAowMDAwMDAwMDIyIDAw
 	MDAwIG4gCjAwMDAwMDQ4MTYgMDAwMDAgbiAKMDAwMDAwODM5MiAwMDAwMCBuIAowMDAw
 	MDA4ODY0IDAwMDAwIG4gCjAwMDAwMTE2MTIgMDAwMDAgbiAKMDAwMDAwNDkwNiAwMDAw
 	MCBuIAowMDAwMDA4NDI3IDAwMDAwIG4gCjAwMDAwMDg4OTkgMDAwMDAgbiAKMDAwMDAx
 	MTc0MSAwMDAwMCBuIAowMDAwMDExNzkxIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUg
-	MTMgL1Jvb3QgMTEgMCBSIC9JbmZvIDEyIDAgUiAvSUQgWyA8ZDY5ZGE2NTQ0YWRjYzg3
-	ZGQ5MTVhZDBmMDViZjUzMWE+CjxkNjlkYTY1NDRhZGNjODdkZDkxNWFkMGYwNWJmNTMx
-	YT4gXSA+PgpzdGFydHhyZWYKMTE5NTMKJSVFT0YK
+	MTMgL1Jvb3QgMTEgMCBSIC9JbmZvIDEyIDAgUiAvSUQgWyA8OWRlMjEwM2NmMGYwZmQ5
+	OTNlODc5NDk5YzM1YmY1NzU+Cjw5ZGUyMTAzY2YwZjBmZDk5M2U4Nzk0OTljMzViZjU3
+	NT4gXSA+PgpzdGFydHhyZWYKMTE5NTMKJSVFT0YK
 	</data>
 	<key>ArchiveMatchStore</key>
 	<dict>
@@ -652,7 +652,7 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 		</array>
 	</dict>
 	<key>DKDChangeTimeStamp</key>
-	<string>2026-02-11 00:41:01 +0600</string>
+	<string>2026-02-11 16:50:40 +0600</string>
 	<key>DKDCreateTimeStamp</key>
 	<string>2024-03-09 12:19:49 +0600</string>
 	<key>DKDDisplayGraphicDetails</key>
@@ -838,7 +838,7 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 		<key>PNGColorSpace</key>
 		<string>sRGB_ColorSpace</string>
 		<key>PNGExporBackground</key>
-		<string>White Background</string>
+		<string>No (White) Background</string>
 		<key>PNGInterlace</key>
 		<string>NO</string>
 		<key>SVGCompress</key>
@@ -1094,6 +1094,21 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 					<string>DKDGroup</string>
 					<key>GraphicID</key>
 					<string>D631DB70</string>
+					<key>GraphicTransform</key>
+					<dict>
+						<key>coefficientM11</key>
+						<string>1</string>
+						<key>coefficientM12</key>
+						<string>0</string>
+						<key>coefficientM21</key>
+						<string>0</string>
+						<key>coefficientM22</key>
+						<string>1</string>
+						<key>coefficientTX</key>
+						<string>0</string>
+						<key>coefficientTY</key>
+						<string>0</string>
+					</dict>
 					<key>GroupGraphics</key>
 					<array>
 						<dict>
@@ -1150,6 +1165,21 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 					<string>DKDGroup</string>
 					<key>GraphicID</key>
 					<string>60580C70</string>
+					<key>GraphicTransform</key>
+					<dict>
+						<key>coefficientM11</key>
+						<string>1</string>
+						<key>coefficientM12</key>
+						<string>0</string>
+						<key>coefficientM21</key>
+						<string>0</string>
+						<key>coefficientM22</key>
+						<string>1</string>
+						<key>coefficientTX</key>
+						<string>0</string>
+						<key>coefficientTY</key>
+						<string>0</string>
+					</dict>
 					<key>GroupGraphics</key>
 					<array>
 						<dict>
@@ -1206,6 +1236,21 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 					<string>DKDGroup</string>
 					<key>GraphicID</key>
 					<string>6C06F5A0</string>
+					<key>GraphicTransform</key>
+					<dict>
+						<key>coefficientM11</key>
+						<string>1</string>
+						<key>coefficientM12</key>
+						<string>0</string>
+						<key>coefficientM21</key>
+						<string>0</string>
+						<key>coefficientM22</key>
+						<string>1</string>
+						<key>coefficientTX</key>
+						<string>0</string>
+						<key>coefficientTY</key>
+						<string>0</string>
+					</dict>
 					<key>GroupGraphics</key>
 					<array>
 						<dict>
@@ -1443,7 +1488,7 @@ C0.507893549842,0.608695652174 0.406856111863,0.608695652174 0.305818673884,0.60
 		<string>NO</string>
 	</dict>
 	<key>DKDSaveTimeStamp</key>
-	<string>2026-02-11 00:41:22 +0600</string>
+	<string>2026-02-11 16:51:08 +0600</string>
 	<key>DKDTablet</key>
 	<dict>
 		<key>BrushDynamic</key>
