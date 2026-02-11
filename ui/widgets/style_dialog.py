@@ -10,6 +10,15 @@ from file_model.layout import Layout
 from file_model.SCORE import SCORE
 
 
+FONT_OFFSET_FIELDS = {
+    'font_title',
+    'font_composer',
+    'font_copyright',
+    'font_arranger',
+    'font_lyricist',
+}
+
+
 class ClickSlider(QtWidgets.QSlider):
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -63,15 +72,28 @@ class FloatSliderEdit(QtWidgets.QWidget):
         self._edit.setMinimumWidth(70)
         self._edit.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
         self._edit.setValidator(QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9.]+"), self))
+        self._dec_btn = QtWidgets.QToolButton(self)
+        self._dec_btn.setText("-")
+        self._inc_btn = QtWidgets.QToolButton(self)
+        self._inc_btn.setText("+")
+        for btn in (self._dec_btn, self._inc_btn):
+            btn.setAutoRepeat(True)
+            btn.setAutoRepeatDelay(300)
+            btn.setAutoRepeatInterval(75)
+            btn.setFixedWidth(28)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         layout.addWidget(self._slider, 1)
         layout.addWidget(self._edit, 0)
+        layout.addWidget(self._dec_btn, 0)
+        layout.addWidget(self._inc_btn, 0)
         self._apply_range()
         self.set_value(value)
         self._slider.valueChanged.connect(self._on_slider_changed)
         self._edit.editingFinished.connect(self._on_edit_finished)
+        self._dec_btn.clicked.connect(lambda: self._nudge(-1))
+        self._inc_btn.clicked.connect(lambda: self._nudge(1))
 
     def _apply_range(self) -> None:
         steps = max(1, int(round((self._max - self._min) / max(1e-6, self._step))))
@@ -131,6 +153,12 @@ class FloatSliderEdit(QtWidgets.QWidget):
         self.valueChanged.emit(self.value())
         ev.accept()
 
+    def _nudge(self, direction: int) -> None:
+        base_step = self._step if self._step > 0 else max((self._max - self._min) / 200.0, 0.01)
+        new_val = self.value() + float(direction) * base_step
+        self.set_value(new_val)
+        self.valueChanged.emit(self.value())
+
 
 class ColorPickerEdit(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(str)
@@ -184,9 +212,10 @@ class ColorPickerEdit(QtWidgets.QWidget):
 class FontPicker(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
 
-    def __init__(self, value: LayoutFont, parent=None) -> None:
+    def __init__(self, value: LayoutFont, parent=None, show_offsets: bool = False) -> None:
         super().__init__(parent)
         self._font_cls = type(value)
+        self._show_offsets = bool(show_offsets)
         self._combo = QtWidgets.QFontComboBox(self)
         self._size = QtWidgets.QSpinBox(self)
         self._size.setRange(1, 200)
@@ -197,6 +226,18 @@ class FontPicker(QtWidgets.QWidget):
             pass
         self._bold = QtWidgets.QCheckBox("Bold", self)
         self._italic = QtWidgets.QCheckBox("Italic", self)
+        self._x_offset: QtWidgets.QDoubleSpinBox | None = None
+        self._y_offset: QtWidgets.QDoubleSpinBox | None = None
+        if self._show_offsets:
+            self._x_offset = QtWidgets.QDoubleSpinBox(self)
+            self._y_offset = QtWidgets.QDoubleSpinBox(self)
+            for spin, axis in ((self._x_offset, 'X'), (self._y_offset, 'Y')):
+                spin.setRange(-500.0, 500.0)
+                spin.setDecimals(2)
+                spin.setSingleStep(0.25)
+                spin.setMinimumWidth(70)
+                spin.setKeyboardTracking(True)
+                spin.setToolTip(f"{axis}-offset (mm)")
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -205,6 +246,9 @@ class FontPicker(QtWidgets.QWidget):
         layout.addWidget(self._size, 0)
         layout.addWidget(self._bold, 0)
         layout.addWidget(self._italic, 0)
+        if self._show_offsets and self._x_offset and self._y_offset:
+            layout.addWidget(self._x_offset, 0)
+            layout.addWidget(self._y_offset, 0)
 
         self.set_value(value)
         self._combo.currentFontChanged.connect(lambda _f: self.valueChanged.emit())
@@ -215,6 +259,9 @@ class FontPicker(QtWidgets.QWidget):
             pass
         self._bold.stateChanged.connect(lambda _v: self.valueChanged.emit())
         self._italic.stateChanged.connect(lambda _v: self.valueChanged.emit())
+        if self._show_offsets and self._x_offset and self._y_offset:
+            self._x_offset.valueChanged.connect(lambda _v: self.valueChanged.emit())
+            self._y_offset.valueChanged.connect(lambda _v: self.valueChanged.emit())
 
     def set_value(self, value: LayoutFont) -> None:
         try:
@@ -227,14 +274,25 @@ class FontPicker(QtWidgets.QWidget):
             self._size.setValue(10)
         self._bold.setChecked(bool(value.bold))
         self._italic.setChecked(bool(value.italic))
+        if self._show_offsets and self._x_offset and self._y_offset:
+            try:
+                self._x_offset.setValue(float(getattr(value, 'x_offset', 0.0) or 0.0))
+                self._y_offset.setValue(float(getattr(value, 'y_offset', 0.0) or 0.0))
+            except Exception:
+                self._x_offset.setValue(0.0)
+                self._y_offset.setValue(0.0)
 
     def value(self) -> LayoutFont:
         font_cls = self._font_cls or LayoutFont
+        x_off = float(self._x_offset.value()) if self._x_offset is not None else 0.0
+        y_off = float(self._y_offset.value()) if self._y_offset is not None else 0.0
         return font_cls(
             family=str(self._combo.currentFont().family()),
             size_pt=float(self._size.value()),
             bold=bool(self._bold.isChecked()),
             italic=bool(self._italic.isChecked()),
+            x_offset=x_off,
+            y_offset=y_off,
         )
 
 
@@ -615,7 +673,8 @@ class StyleDialog(QtWidgets.QDialog):
                     value = LayoutFont(**value)
                 except Exception:
                     value = LayoutFont()
-            return FontPicker(value, self)
+            show_offsets = field_name in FONT_OFFSET_FIELDS
+            return FontPicker(value, self, show_offsets=show_offsets)
 
         if origin is list and args and args[0] is float:
             le = QtWidgets.QLineEdit(self)

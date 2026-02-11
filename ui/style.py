@@ -25,21 +25,21 @@ class Style:
     # - paper_color: editor/print-view backgrounds
     # - notation_color: notation/stroke color
     _LIGHT = {
-        "bg_color": (240, 240, 240),
+        "bg_color": (250, 240, 240),
+        "alternate_background_color": (255, 245, 245),
         "text_color": (0, 0, 0),
-        "alternate_background_color": (245, 255, 255),
         "accent_color": (0, 120, 215),
         "paper_color": (255, 255, 255),
-        "notation_color": (0, 0, 0),
+        "notation_color": (0, 0, 16),
     }
 
     _DARK = {
-        "bg_color": (60, 60, 70),
-        "text_color": (250, 200, 210),
-        "alternate_background_color": (53, 53, 63),
+        "bg_color": (30, 30, 40),
+        "alternate_background_color": (20, 20, 30),
+        "text_color": (240, 240, 240),
         "accent_color": (42, 130, 218),
-        "paper_color": (200, 200, 200),
-        "notation_color": (0, 0, 0),
+        "paper_color": (150, 150, 150),
+        "notation_color": (0, 0, 16),
     }
 
     # Palette role → dict key mapping using the four-theme colors above.
@@ -74,11 +74,35 @@ class Style:
         # Theme colors (synced at runtime)
         'bg': (240, 240, 240),
         'text': (0, 0, 0),
-        'alternate_background_color': (240, 240, 240),
+        'alternate_background_color': (245, 245, 245),
         'accent': (0, 120, 215),
         'paper': (255, 255, 255),
-        'notation': (0, 0, 0),
+        'notation': (0, 0, 16),
     }
+    _THEME_SYNCED: bool = False
+
+    @classmethod
+    def _ensure_theme_seeded(cls) -> None:
+        if cls._THEME_SYNCED:
+            return
+        try:
+            prefs = get_preferences()
+            theme = str(prefs.get('theme', 'light')).lower()
+        except Exception:
+            theme = 'light'
+        palette = cls._DARK if theme == 'dark' else cls._LIGHT
+        def _set_named(key: str, rgb_key: str) -> None:
+            rgb = palette.get(rgb_key, (255, 255, 255))
+            cls._NAMED[key] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+        _set_named('bg', 'bg_color')
+        _set_named('text', 'text_color')
+        _set_named('alternate_background_color', 'alternate_background_color')
+        _set_named('accent', 'accent_color')
+        _set_named('paper', 'paper_color')
+        _set_named('notation', 'notation_color')
+        cls._NAMED['draw_util'] = cls._NAMED['paper']
+        cls._NAMED['editor'] = cls._NAMED['paper']
+        cls._THEME_SYNCED = True
 
     @classmethod
     def set_named_color(cls, name: str, rgb: tuple[int, int, int]) -> None:
@@ -114,6 +138,7 @@ class Style:
             Style._NAMED['notation'] = (notation.red(), notation.green(), notation.blue())
             Style._NAMED['draw_util'] = Style._NAMED['paper']
             Style._NAMED['editor'] = Style._NAMED['paper']
+            Style._THEME_SYNCED = True
         except Exception:
             pass
 
@@ -181,13 +206,21 @@ class Style:
 
     @classmethod
     def get_paper_color(cls) -> tuple[int, int, int]:
+        cls._ensure_theme_seeded()
         return cls._NAMED.get('paper', (255, 255, 255))
 
     @classmethod
     def get_notation_color(cls) -> tuple[int, int, int]:
-        return cls._NAMED.get('notation', (0, 0, 0))
+        cls._ensure_theme_seeded()
+        return cls._NAMED.get('notation', (0, 0, 14))
 
     @classmethod
     def get_editor_background_color(cls) -> tuple[int, int, int]:
         """Get the appropriate editor background color based on current theme."""
+        cls._ensure_theme_seeded()
         return cls.get_paper_color()
+
+    @classmethod
+    def paper_color_rgba(cls) -> tuple[float, float, float, float]:
+        r, g, b = cls.get_paper_color()
+        return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, 1.0)

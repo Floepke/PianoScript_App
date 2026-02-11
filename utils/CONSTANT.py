@@ -68,13 +68,23 @@ EDITOR_LAYERING = [
 
 ENGRAVER_LAYERING = [
     'midi_note',
-    'left_dot',
     'grid_line',
+    'count_line',
+    'measure_number_guide',
     'measure_number',
-    'hand_split',
     'stave',
-    'beam',
     'beam_stem',
+    'stop_sign',
+    'barline_white_space',
+    'chord_connect',
+    'stem',
+    'beam',
+    'notehead_white',
+    'notehead_black',
+    'left_dot',
+    'title',
+    'composer',
+    'copyright',
     'engrave_test',
 ]
 

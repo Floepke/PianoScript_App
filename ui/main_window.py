@@ -401,10 +401,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _create_menus(self) -> None:
         menubar = self.menuBar()
-        # Ensure macOS uses an in-window menubar (not the global system menubar)
+        # Ensure macOS uses the native system menubar
         try:
             if sys.platform == "darwin":
-                menubar.setNativeMenuBar(False)
+                menubar.setNativeMenuBar(True)
         except Exception:
             pass
 
@@ -463,15 +463,16 @@ class MainWindow(QtWidgets.QMainWindow):
         transport_act.triggered.connect(lambda: self._set_send_midi_transport(transport_act.isChecked()))
         self._transport_act = transport_act
 
-        # Playback Mode submenu (under Playback menu)
-        pm_submenu = playback_menu.addMenu("Playback Mode")
+        # Playback mode toggles at top of menu
         grp = QtGui.QActionGroup(self)
-        act_midi = QtGui.QAction("External MIDI Port", self, checkable=True)
-        act_synth = QtGui.QAction("Internal Synth", self, checkable=True)
+        grp.setExclusive(True)
+        act_midi = QtGui.QAction("Playback Using External MIDI Port", self, checkable=True)
+        act_synth = QtGui.QAction("Playback Using Internal Synth", self, checkable=True)
         grp.addAction(act_midi)
         grp.addAction(act_synth)
-        pm_submenu.addAction(act_midi)
-        pm_submenu.addAction(act_synth)
+        playback_menu.addAction(act_midi)
+        playback_menu.addAction(act_synth)
+        playback_menu.addSeparator()
         # Initialize from app state
         try:
             mode = str(getattr(app_state, "playback_type", "midi_port") or "midi_port")
@@ -486,8 +487,6 @@ class MainWindow(QtWidgets.QMainWindow):
         act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
         self._act_midi = act_midi
         self._act_synth = act_synth
-
-        playback_menu.addSeparator()
 
         # MIDI Output port chooser (under Playback menu)
         midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
@@ -1788,13 +1787,28 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Audio", "No audio output devices found.")
                 return
             names = [str(d.get('name', '')) for d in outputs]
-            # Preselect previously saved device if available
             pref = str(getattr(self._current_app_state(), "audio_output_device", "") or "")
             default_index = names.index(pref) if pref in names else 0
-            item, ok = QtWidgets.QInputDialog.getItem(self, "Select Audio Output", "Device:", names, default_index, False)
-            if not ok:
+            dlg = QtWidgets.QInputDialog(self)
+            dlg.setWindowTitle("Select Audio Output")
+            dlg.setLabelText("Device:")
+            dlg.setComboBoxItems(names)
+            dlg.setComboBoxEditable(False)
+            try:
+                combo = dlg.comboBox()
+                if combo is not None:
+                    combo.setCurrentIndex(default_index)
+                    dlg.setTextValue(combo.currentText())
+                else:
+                    dlg.setTextValue(names[default_index])
+            except Exception:
+                try:
+                    dlg.setTextValue(names[default_index])
+                except Exception:
+                    pass
+            if not dlg.exec():
                 return
-            name = str(item)
+            name = str(dlg.textValue())
             try:
                 app_state = self._current_app_state()
                 app_state.audio_output_device = name

@@ -241,7 +241,18 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     def _info_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool, float, float]:
         """Fetch info font settings from layout (family, size, style, offsets)."""
         family, size_pt, bold, italic = _layout_font(key, fallback_family, fallback_size)
-        return family, size_pt, bold, italic, 0.0, 0.0
+        raw_font = layout.get(key, {}) if isinstance(layout, dict) else {}
+        if not isinstance(raw_font, dict):
+            raw_font = {}
+        try:
+            x_off = float(raw_font.get('x_offset', 0.0) or 0.0)
+        except Exception:
+            x_off = 0.0
+        try:
+            y_off = float(raw_font.get('y_offset', 0.0) or 0.0)
+        except Exception:
+            y_off = 0.0
+        return family, size_pt, bold, italic, x_off, y_off
 
     def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
         """Assign notes to time windows by overlap and preserve start-time order."""
@@ -384,6 +395,18 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         if min_delta is None:
             return True
         return op_time.gt(float(min_delta), 0.0)
+
+    # Resolve paper color for erasing overlaps (barline whitespace, etc.)
+    def _paper_rgba() -> tuple[float, float, float, float]:
+        if pdf_export:
+            return (1.0, 1.0, 1.0, 1.0)
+        try:
+            from ui.style import Style
+            return Style.paper_color_rgba()
+        except Exception:
+            return (1.0, 1.0, 1.0, 1.0)
+
+    paper_color_rgba = _paper_rgba()
 
     # Reset pages
     try:
@@ -761,8 +784,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     cur_page: list[dict] = []
     cur_width = 0.0
     for line in lines:
-        if line.get('page_break', False) and cur_page:
-            pages.append(cur_page)
+        if line.get('page_break', False):
+            if cur_page:
+                pages.append(cur_page)
+            elif not pages:
+                pages.append([])
             cur_page = []
             cur_width = 0.0
         if cur_page and (cur_width + float(line['total_width'])) > available_width:
@@ -1194,6 +1220,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             beam_groups_by_hand: dict[str, tuple[list[list[dict]], list[tuple[float, float]]]] = {}
             line_start = float(line.get('time_start', 0.0) or 0.0)
             line_end = float(line.get('time_end', 0.0) or 0.0)
+
+            def _is_line_continuation(note_dict: dict) -> bool:
+                try:
+                    start_t = float(note_dict.get('time', 0.0) or 0.0)
+                    end_t = float(note_dict.get('end', 0.0) or 0.0)
+                except Exception:
+                    return False
+                return op_time.gt(float(line_start), start_t) and op_time.gt(end_t, float(line_start))
+            
             for hand_norm in ('r', 'l'):
                 notes_for_hand = notes_by_hand_line.get(hand_norm, [])
                 markers_for_hand = beam_by_hand.get(hand_norm, [])
@@ -1435,6 +1470,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                                 tags=['beam_stem'],
                             )
 
+            line_start = float(line.get('time_start', 0.0) or 0.0)
+            line_end = float(line.get('time_end', 0.0) or 0.0)
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
                 n_end = float(item.get('end', 0.0) or 0.0)
@@ -1482,6 +1519,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['midi_note'],
                     )
 
+                continues_from_prev_line = _is_line_continuation(item)
+
                 on_barline = False
                 for bt in barline_positions:
                     if op_time.eq(float(bt), n_t):
@@ -1490,40 +1529,29 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 if on_barline:
                     stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
                     stem_len = stem_len_units * semitone_mm
-                    thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale
+                    thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale + 0.1
                     if hand_key in ('l', '<'):
-                        x1 = x
-                        x2 = x + (w * 2.0)
-                        x3 = x - stem_len
+                        x1 = x + w
+                        x2 = x - w
                     else:
-                        x1 = x
-                        x2 = x - (w * 2.0)
-                        x3 = x + stem_len
-                    du.add_line(
-                        x1,
-                        y_start,
-                        x2,
-                        y_start,
-                        color=(1, 1, 1, 1),
-                        width_mm=thickness,
-                        line_cap="butt",
-                        id=0,
-                        tags=['hand_split'],
-                    )
-                    du.add_line(
-                        x3,
-                        y_start,
-                        x2,
-                        y_start,
-                        color=(1, 1, 1, 1),
-                        width_mm=thickness,
-                        line_cap="butt",
-                        id=0,
-                        tags=['hand_split'],
-                    )
+                        x1 = x - w
+                        x2 = x + w
+                    
+                    if not continues_from_prev_line:
+                        du.add_line(
+                            x1,
+                            y_start,
+                            x2,
+                            y_start,
+                            color=paper_color_rgba,
+                            width_mm=thickness,
+                            line_cap="butt",
+                            id=0,
+                            tags=['barline_white_space'],
+                        )
 
                 # Draw notehead
-                if bool(layout.get('note_head_visible', True)):
+                if not continues_from_prev_line and bool(layout.get('note_head_visible', True)):
                     outline_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                     if p in BLACK_KEYS:
                         du.add_oval(
@@ -1551,7 +1579,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         )
 
                 # Draw stem
-                if bool(layout.get('note_stem_visible', True)):
+                if not continues_from_prev_line and bool(layout.get('note_stem_visible', True)):
                     stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
                     stem_len = stem_len_units * semitone_mm
                     stem_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
@@ -1568,7 +1596,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     )
 
                 # Draw left-hand dot
-                if bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
+                if (not continues_from_prev_line) and bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
                     w2 = w * 2.0
                     dot_d = w2 * 0.35
                     cy = note_y + (w2 / 2.0)
@@ -1647,8 +1675,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         dot_times.append(e)
                 for bt in barline_positions:
                     bt = float(bt)
+                    if op_time.eq(bt, float(line_start)) or op_time.eq(bt, float(line_end)):
+                        continue
                     if op_time.gt(bt, n_t) and op_time.lt(bt, n_end):
                         dot_times.append(bt)
+                if continues_from_prev_line:
+                    dot_times.append(float(line_start))
                 if dot_times:
                     dot_d = w * 0.8
                     for t in sorted(set(dot_times)):
@@ -1665,7 +1697,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         )
 
                 # Draw chord connect stem
-                same_time = [m for m in line_notes if str(m.get('hand', '<') or '<') == hand_key and op_time.eq(float(m.get('time', 0.0) or 0.0), n_t)]
+                same_time = [
+                    m
+                    for m in line_notes
+                    if str(m.get('hand', '<') or '<') == hand_key
+                    and op_time.eq(float(m.get('time', 0.0) or 0.0), n_t)
+                    and not _is_line_continuation(m)
+                ]
                 if len(same_time) >= 2:
                     lowest = min(same_time, key=lambda m: int(m.get('pitch', 0) or 0))
                     highest = max(same_time, key=lambda m: int(m.get('pitch', 0) or 0))

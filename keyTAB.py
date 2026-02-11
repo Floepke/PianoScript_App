@@ -26,13 +26,9 @@ def main():
         os.environ["QT_SCALE_FACTOR"] = str(ui_scale)
     # On macOS, force menus to render inside the window instead of the global menu bar
     elif sys.platform == "darwin":
-        try:
-            QtCore.QCoreApplication.setAttribute(
-                QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, True
-            )
-        except Exception:
-            # Fallback will be applied per-window in MainWindow if this attribute is unavailable
-            pass
+        QtCore.QCoreApplication.setAttribute(
+            QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, False
+        )
     # Create QApplication with argv to ensure proper initialization paths on macOS
     app = QtWidgets.QApplication(sys.argv)
     
