@@ -1531,11 +1531,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     stem_len = stem_len_units * semitone_mm
                     thickness = float(layout.get('grid_barline_thickness_mm', 0.25) or 0.25) * scale + 0.1
                     if hand_key in ('l', '<'):
-                        x1 = x + w
-                        x2 = x - w
+                        x1 = x
+                        x2 = x + (w * 1.5)
                     else:
-                        x1 = x - w
-                        x2 = x + w
+                        x1 = x
+                        x2 = x - (w * 1.5)
                     
                     if not continues_from_prev_line:
                         du.add_line(
