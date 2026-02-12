@@ -12,10 +12,26 @@ from settings_manager import get_preferences
 from appdata_manager import get_appdata_manager
 from icons.icons import get_qicon
 from fonts import install_default_ui_font
+from utils.file_associations import extract_document_paths
 
 APP_NAME = "keyTAB"
 MIME_TYPE_PIANO = "application/x-pianoscript"
 MIME_TYPES_MIDI = ["audio/midi", "audio/x-midi"]
+
+
+class KeyTabApplication(QtWidgets.QApplication):
+    fileRequested = QtCore.Signal(str)
+
+    def event(self, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.Type.FileOpen:
+            try:
+                file_path = event.file()
+            except AttributeError:
+                file_path = None
+            if file_path:
+                self.fileRequested.emit(file_path)
+            return True
+        return super().event(event)
 
 
 def parse_args(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
@@ -178,6 +194,7 @@ def main(argv: list[str] | None = None):
         argv = sys.argv[1:]
 
     args, qt_args = parse_args(argv)
+    initial_documents = extract_document_paths(qt_args)
     if args.install:
         install_desktop_integration()
         return
@@ -201,7 +218,7 @@ def main(argv: list[str] | None = None):
             QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, False
         )
     # Create QApplication with argv to ensure proper initialization paths on macOS
-    app = QtWidgets.QApplication([sys.argv[0], *qt_args])
+    app = KeyTabApplication([sys.argv[0], *qt_args])
     
     # Enforce arrow cursor globally: app never changes the mouse pointer
     QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
@@ -228,6 +245,19 @@ def main(argv: list[str] | None = None):
         sty.set_dynamic_theme(0.75)
 
     win = MainWindow()
+
+    def _handle_file_request(path: str) -> None:
+        if not path:
+            return
+        win.open_documents_from_paths([path], confirm_dirty=True)
+
+    try:
+        app.fileRequested.connect(_handle_file_request)
+    except Exception:
+        pass
+
+    if initial_documents:
+        QtCore.QTimer.singleShot(0, lambda: win.open_documents_from_paths(initial_documents, confirm_dirty=False))
 
     prompt_install_if_needed()
     

@@ -1,6 +1,8 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from typing import Optional
 import sys, os
+from pathlib import Path
+from utils.file_associations import is_supported_document
 from datetime import datetime
 from file_model.appstate import AppState
 from file_model.file_manager import FileManager
@@ -22,6 +24,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle("keyTAB - new project (unsaved)")
         self.resize(1200, 800)
+        self.setAcceptDrops(True)
 
         # File management
         self.file_manager = FileManager(self)
@@ -188,6 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.editor_controller.score_changed.connect(self._on_score_changed)
         except Exception:
             pass
+
         # Wire tool selector to Editor controller
         self.tool_dock.selector.toolSelected.connect(self.editor_controller.set_tool_by_name)
         # Also persist tool selection to appdata
@@ -323,6 +327,36 @@ class MainWindow(QtWidgets.QMainWindow):
                     pass
         except Exception:
             pass
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if self._drop_paths_from_mime(event.mimeData()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent) -> None:
+        if self._drop_paths_from_mime(event.mimeData()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        paths = self._drop_paths_from_mime(event.mimeData())
+        if not paths:
+            event.ignore()
+            return
+        self.open_documents_from_paths(paths, confirm_dirty=True)
+        event.acceptProposedAction()
+
+    def _drop_paths_from_mime(self, mime: QtCore.QMimeData) -> list[str]:
+        if not mime.hasUrls():
+            return []
+        paths: list[str] = []
+        for url in mime.urls():
+            path = url.toLocalFile() if url.isLocalFile() else ""
+            if path and is_supported_document(path):
+                paths.append(path)
+        return paths
 
     def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
         # Space toggles play/stop from the editor's time cursor (with note chasing)
@@ -1000,27 +1034,54 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         sc = self.file_manager.load()
         if sc:
+            self._after_project_loaded()
+
+    def open_documents_from_paths(self, paths: list[str], confirm_dirty: bool = True) -> None:
+        candidates = [str(Path(p).expanduser()) for p in paths if str(p).strip()]
+        if not candidates:
+            return
+        was_fullscreen = self.isFullScreen()
+        was_minimized = self.isMinimized()
+        if confirm_dirty and not self.file_manager.confirm_save_for_action("opening another project", force_prompt=True):
+            return
+        opened_any = False
+        for candidate in candidates:
+            sc = self.file_manager.open_path(candidate)
+            if sc:
+                opened_any = True
+                self._after_project_loaded()
+        if opened_any:
             try:
-                self._refresh_recent_files_menu()
+                if was_minimized and not was_fullscreen:
+                    self.showNormal()
+                elif was_fullscreen:
+                    self.showFullScreen()
+                self.raise_()
+                self.activateWindow()
             except Exception:
                 pass
-            self._refresh_views_from_score()
-            try:
-                self.editor_controller.set_score(self.file_manager.current())
-                # Reset undo stack after opening existing project
-                self.editor_controller.reset_undo_stack()
-            except Exception:
-                pass
-            try:
-                if hasattr(self.editor_controller, 'force_redraw_from_model'):
-                    self.editor_controller.force_redraw_from_model()
-            except Exception:
-                pass
-            try:
-                self._restore_app_state_from_score()
-            except Exception:
-                pass
-            self._update_title()
+
+    def _after_project_loaded(self) -> None:
+        try:
+            self._refresh_recent_files_menu()
+        except Exception:
+            pass
+        self._refresh_views_from_score()
+        try:
+            self.editor_controller.set_score(self.file_manager.current())
+            self.editor_controller.reset_undo_stack()
+        except Exception:
+            pass
+        try:
+            if hasattr(self.editor_controller, 'force_redraw_from_model'):
+                self.editor_controller.force_redraw_from_model()
+        except Exception:
+            pass
+        try:
+            self._restore_app_state_from_score()
+        except Exception:
+            pass
+        self._update_title()
 
     def _file_save(self) -> None:
         if self.file_manager.save():

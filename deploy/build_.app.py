@@ -9,11 +9,13 @@ intermediate artifacts so only the resulting .app remains.
 from __future__ import annotations
 
 import argparse
+import ast
 import plistlib
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Iterator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENTRY = PROJECT_ROOT / "keyTAB.py"
@@ -23,6 +25,72 @@ PREFERRED_APP_CATEGORY = "public.app-category.music"
 PIANO_UTI = "org.philipbergwerf.keytab.piano"
 BUNDLE_IDENTIFIER = "org.philipbergwerf.keytab"
 AUTHOR_NAME = "Philip Bergwerf"
+DOCUMENT_ICON_FILENAME = "keyTABDocument.icns"
+
+EXCLUDABLE_QT_MODULES = [
+    "PySide6.QtWebEngine",
+    "PySide6.QtWebEngineCore",
+    "PySide6.QtWebEngineWidgets",
+    "PySide6.QtWebEngineQuick",
+    "PySide6.QtWebView",
+    "PySide6.QtPdf",
+    "PySide6.QtPdfWidgets",
+    "PySide6.QtMultimedia",
+    "PySide6.QtMultimediaWidgets",
+    "PySide6.Qt3DCore",
+    "PySide6.Qt3DRender",
+    "PySide6.QtQuick",
+    "PySide6.QtQuickWidgets",
+    "PySide6.QtNetworkAuth",
+    "PySide6.QtBluetooth",
+]
+
+SKIPPED_SCAN_DIRS = {
+    "build",
+    "dist",
+    "__pycache__",
+    ".git",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
+}
+
+
+def _iter_python_files(root: Path) -> Iterator[Path]:
+    for path in root.rglob("*.py"):
+        if any(part in SKIPPED_SCAN_DIRS for part in path.parts):
+            continue
+        yield path
+
+
+def detect_used_qt_modules(project_root: Path) -> set[str]:
+    modules: set[str] = set()
+    for py_file in _iter_python_files(project_root):
+        try:
+            source = py_file.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(py_file))
+        except (UnicodeDecodeError, SyntaxError):
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.name
+                    if name == "PySide6" or name.startswith("PySide6."):
+                        modules.add(name)
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if module == "PySide6":
+                    modules.add("PySide6")
+                    modules.update(f"PySide6.{alias.name}" for alias in node.names)
+                elif module.startswith("PySide6."):
+                    modules.add(module)
+    return modules
+
+
+def determine_unused_qt_modules(project_root: Path) -> list[str]:
+    used_modules = detect_used_qt_modules(project_root)
+    return [module for module in EXCLUDABLE_QT_MODULES if module not in used_modules]
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,7 +166,58 @@ def prepare_icon(icon_path: Path, work_dir: Path) -> tuple[Path, bool]:
     return icns_path, True
 
 
-def run_pyinstaller(entry: Path, name: str, work_dir: Path, icon: Path) -> Path:
+def find_bundle_icns(app_path: Path) -> Path | None:
+    resources_dir = app_path / "Contents" / "Resources"
+    if not resources_dir.is_dir():
+        return None
+    icns_files = sorted(resources_dir.glob("*.icns"))
+    return icns_files[0] if icns_files else None
+
+
+def apply_dmg_volume_icon(staging_dir: Path, icon_path: Path) -> None:
+    volume_icon = staging_dir / ".VolumeIcon.icns"
+    shutil.copy(icon_path, volume_icon)
+    setfile = shutil.which("SetFile")
+    if not setfile:
+        print("Warning: 'SetFile' not found; DMG will lack a custom icon.", file=sys.stderr)
+        return
+    subprocess.run([setfile, "-c", "icnC", str(volume_icon)], check=True)
+    subprocess.run([setfile, "-a", "C", str(staging_dir)], check=True)
+
+
+def ensure_document_icon(app_path: Path, work_dir: Path, icon_hint: Path | None = None) -> str | None:
+    resources_dir = app_path / "Contents" / "Resources"
+    resources_dir.mkdir(parents=True, exist_ok=True)
+    target = resources_dir / DOCUMENT_ICON_FILENAME
+    source = find_bundle_icns(app_path)
+    temp_icon: Path | None = None
+    if source is None and icon_hint is not None:
+        try:
+            source, generated = prepare_icon(icon_hint, work_dir)
+            temp_icon = source if generated else None
+        except Exception:
+            source = None
+            temp_icon = None
+    if source is None:
+        return None
+    try:
+        if source.resolve() != target.resolve():
+            shutil.copy(source, target)
+    except FileNotFoundError:
+        return None
+    finally:
+        if temp_icon is not None and temp_icon.exists():
+            temp_icon.unlink()
+    return target.name
+
+
+def run_pyinstaller(
+    entry: Path,
+    name: str,
+    work_dir: Path,
+    icon: Path,
+    exclude_modules: list[str],
+) -> Path:
     entry_path = entry.resolve()
     if not entry_path.exists():
         raise SystemExit(f"Entry file not found: {entry_path}")
@@ -113,13 +232,18 @@ def run_pyinstaller(entry: Path, name: str, work_dir: Path, icon: Path) -> Path:
         "PyInstaller",
         "--noconfirm",
         "--clean",
+        "--strip",
         "--windowed",
         "--name",
         name,
         "--icon",
         str(icon_to_use),
-        str(entry_path),
     ]
+
+    for module in exclude_modules:
+        cmd.extend(["--exclude-module", module])
+
+    cmd.append(str(entry_path))
 
     print(f"Running: {' '.join(cmd)} (cwd={work_dir})")
     try:
@@ -148,13 +272,15 @@ def clean_pyinstaller_artifacts(work_dir: Path, name: str) -> None:
         spec_file.unlink()
 
 
-def update_info_plist(app_path: Path, name: str) -> None:
+def update_info_plist(app_path: Path, name: str, doc_icon_file: str | None = None) -> None:
     plist_path = app_path / "Contents" / "Info.plist"
     if not plist_path.exists():
         raise SystemExit(f"Info.plist not found: {plist_path}")
 
     with plist_path.open("rb") as handle:
         info = plistlib.load(handle)
+
+    doc_icon_stem = Path(doc_icon_file).stem if doc_icon_file else None
 
     info.setdefault("CFBundleName", name)
     info.setdefault("CFBundleDisplayName", name)
@@ -174,40 +300,130 @@ def update_info_plist(app_path: Path, name: str) -> None:
         }
     ]
 
-    info["CFBundleDocumentTypes"] = [
-        {
-            "CFBundleTypeName": "keyTAB score",
-            "CFBundleTypeRole": "Editor",
-            "LSItemContentTypes": [PIANO_UTI],
-            "CFBundleTypeExtensions": ["piano"],
-        },
-        {
-            "CFBundleTypeName": "MIDI audio",
-            "CFBundleTypeRole": "Editor",
-            "LSItemContentTypes": ["public.midi"],
-            "CFBundleTypeExtensions": ["mid", "midi"],
-        },
-    ]
+    if doc_icon_stem:
+        info["UTExportedTypeDeclarations"][0]["UTTypeIconFiles"] = [doc_icon_stem]
+
+    piano_doc = {
+        "CFBundleTypeName": "keyTAB score",
+        "CFBundleTypeRole": "Editor",
+        "LSItemContentTypes": [PIANO_UTI],
+        "CFBundleTypeExtensions": ["piano"],
+        "LSHandlerRank": "Owner",
+    }
+    midi_doc = {
+        "CFBundleTypeName": "MIDI audio",
+        "CFBundleTypeRole": "Editor",
+        "LSItemContentTypes": ["public.midi"],
+        "CFBundleTypeExtensions": ["mid", "midi"],
+        "LSHandlerRank": "Alternate",
+    }
+    if doc_icon_stem:
+        piano_doc["CFBundleTypeIconFile"] = doc_icon_stem
+        midi_doc["CFBundleTypeIconFile"] = doc_icon_stem
+    info["CFBundleDocumentTypes"] = [piano_doc, midi_doc]
 
     with plist_path.open("wb") as handle:
         plistlib.dump(info, handle)
+
+
+def build_installer_dmg(app_path: Path, work_dir: Path, icon_hint: Path | None = None) -> Path:
+    """Create a drag-and-drop DMG containing the .app and Applications link."""
+    hdiutil = ensure_command("hdiutil")
+
+    staging_dir = work_dir / f"{app_path.stem}_dmg"
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir, ignore_errors=True)
+    staging_dir.mkdir(parents=True, exist_ok=True)
+
+    app_copy = staging_dir / app_path.name
+    shutil.copytree(app_path, app_copy)
+
+    applications_link = staging_dir / "Applications"
+    if applications_link.exists() or applications_link.is_symlink():
+        applications_link.unlink()
+    applications_link.symlink_to("/Applications")
+
+    icon_source = find_bundle_icns(app_path)
+    temp_icon: Path | None = None
+    if icon_source is None and icon_hint is not None:
+        try:
+            converted_icon, generated = prepare_icon(icon_hint, work_dir)
+            icon_source = converted_icon
+            temp_icon = converted_icon if generated else None
+        except Exception as exc:  # pragma: no cover - best-effort customization
+            print(f"Warning: Failed to prepare DMG icon ({exc}); continuing without it.", file=sys.stderr)
+
+    if icon_source is not None:
+        try:
+            apply_dmg_volume_icon(staging_dir, icon_source)
+        except Exception as exc:  # pragma: no cover - cosmetic feature only
+            print(f"Warning: Unable to apply DMG icon ({exc}).", file=sys.stderr)
+    if temp_icon is not None and temp_icon.exists():
+        temp_icon.unlink()
+
+    dmg_path = work_dir / f"{app_path.stem}.dmg"
+    if dmg_path.exists():
+        dmg_path.unlink()
+
+    cmd = [
+        hdiutil,
+        "create",
+        "-volname",
+        app_path.stem,
+        "-srcfolder",
+        str(staging_dir),
+        "-fs",
+        "HFS+",
+        "-format",
+        "UDZO",
+        "-ov",
+        str(dmg_path),
+    ]
+    print(f"Creating installer DMG: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+    shutil.rmtree(staging_dir, ignore_errors=True)
+    return dmg_path
 
 
 def main() -> None:
     args = parse_args()
     work_dir = args.output_dir.resolve()
 
+    unused_modules = determine_unused_qt_modules(PROJECT_ROOT)
+    if unused_modules:
+        print("Excluding unused PySide6 modules:")
+        for mod in sorted(unused_modules):
+            print(f"  - {mod}")
+    else:
+        print("No excludable PySide6 modules detected; keeping defaults.")
+
     result_path: Path | None = None
+    dmg_path: Path | None = None
     try:
-        result_path = run_pyinstaller(args.entry, args.name, work_dir, args.icon)
-        update_info_plist(result_path, args.name)
+        result_path = run_pyinstaller(
+            args.entry,
+            args.name,
+            work_dir,
+            args.icon,
+            exclude_modules=unused_modules,
+        )
+        doc_icon_file = ensure_document_icon(result_path, work_dir, args.icon)
+        update_info_plist(result_path, args.name, doc_icon_file)
         print(f"App bundle created at: {result_path}")
+        try:
+            dmg_path = build_installer_dmg(result_path, work_dir, args.icon)
+            print(f"Installer DMG created at: {dmg_path}")
+        except Exception as exc:
+            print(f"Warning: Failed to produce DMG: {exc}", file=sys.stderr)
     finally:
         clean_pyinstaller_artifacts(work_dir, args.name)
         print(f"Cleaned PyInstaller artifacts in {work_dir}.")
 
     if result_path is None or not result_path.exists():
         raise SystemExit("Build failed: .app bundle missing after cleanup.")
+    if dmg_path is None or not dmg_path.exists():
+        print("Installer DMG unavailable; .app bundle still produced.", file=sys.stderr)
 
 
 if __name__ == "__main__":
