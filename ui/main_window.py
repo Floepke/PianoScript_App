@@ -863,12 +863,13 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
             return
-        # If not in MIDI mode, inform user
+        # If not in MIDI mode, switch automatically
         try:
             app_state = self._current_app_state()
             if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") != "midi_port":
-                QtWidgets.QMessageBox.information(self, "Playback Mode", "Switch to 'External MIDI Port' mode to choose a port.")
-                return
+                self._set_playback_mode("midi_port")
+                if hasattr(self, "_act_midi") and self._act_midi is not None:
+                    self._act_midi.setChecked(True)
         except Exception:
             pass
         # Query ports

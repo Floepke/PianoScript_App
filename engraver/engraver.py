@@ -1513,7 +1513,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             y_start,
                             x2,
                             y_start,
-                            color=(0,0,0,1),
+                            color=(1,1,1,1),
                             width_mm=thickness,
                             line_cap="butt",
                             id=0,

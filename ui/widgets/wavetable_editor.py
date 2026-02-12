@@ -2,6 +2,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 import numpy as np
 from appdata_manager import get_appdata_manager
+from ui.style import Style
 
 
 # Settable sample count for wavetable canvases
@@ -49,7 +50,7 @@ class WaveCanvas(QtWidgets.QWidget):
         p.setPen(pen_mid)
         p.drawLine(rect.left(), mid_y, rect.right(), mid_y)
         # Waveform polyline
-        pen_wave = QtGui.QPen(self.palette().color(QtGui.QPalette.ColorRole.Highlight))
+        pen_wave = QtGui.QPen(Style.get_named_qcolor("accent", fallback=(0, 120, 215)))
         pen_wave.setWidth(2)
         p.setPen(pen_wave)
         if self._samples.size > 1:

@@ -1,4 +1,5 @@
 import sys
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 from settings_manager import get_preferences
@@ -55,7 +56,7 @@ class Style:
         QPalette.ButtonText: "text_color",
         QPalette.BrightText: "text_color",
         QPalette.Link: "accent_color",
-        QPalette.Highlight: "accent_color",
+        QPalette.Highlight: "bg_color",
         QPalette.HighlightedText: "text_color",
     }
 
@@ -175,7 +176,12 @@ class Style:
             QApplication.setStyle('Fusion')
         except Exception:
             pass
-        # Clear any previous global stylesheet; we may set a Windows-specific one below
+        try:
+            QApplication.setEffectEnabled(Qt.UI_AnimateMenu, False)
+            QApplication.setEffectEnabled(Qt.UI_FadeMenu, False)
+        except Exception:
+            pass
+        # Clear any previous global stylesheet; we may set a minimal one below
         app.setStyleSheet("")
 
         pal = QPalette()
@@ -186,7 +192,37 @@ class Style:
 
         self._sync_named_theme_colors(colors_by_key)
 
-        # No platform-specific QSS injection; rely on Fusion + palette for consistency
+        # Remove menu highlight while keeping text readable
+        bg = colors_by_key["bg_color"]
+        text = colors_by_key["text_color"]
+        app.setStyleSheet(
+            "QMenuBar {"
+            "padding: 0px;"
+            "}"
+            "QMenuBar::item {"
+            "padding: 4px 8px;"
+            "margin: 0px;"
+            "border: 0px;"
+            "}"
+            "QMenu::item:selected {"
+            "background-color: transparent;"
+            f"color: rgb({text.red()},{text.green()},{text.blue()});"
+            "}"
+            "QMenuBar::item:selected {"
+            "background-color: transparent;"
+            f"color: rgb({text.red()},{text.green()},{text.blue()});"
+            "padding: 4px 8px;"
+            "margin: 0px;"
+            "border: 0px;"
+            "}"
+            "QMenuBar::item:pressed {"
+            "background-color: transparent;"
+            f"color: rgb({text.red()},{text.green()},{text.blue()});"
+            "}"
+            "QMenu::item:disabled {"
+            "background-color: transparent;"
+            "}"
+        )
 
     def set_dynamic_theme(self, tint: float = 0.75):
         """Blend between dark (0.0) and light (1.0)."""
