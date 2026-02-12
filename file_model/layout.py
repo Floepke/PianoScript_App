@@ -30,11 +30,11 @@ class Layout:
     page_right_margin_mm: float = 5.0
     
     # header/footer area settings
-    header_height_mm: float = 20.0
+    header_height_mm: float = 17.5
     footer_height_mm: float = 10.0
 
     # Global drawing options
-    scale: float = 0.38
+    scale: float = 0.33
     black_note_rule: Literal['above_stem', 'below_stem', 'above_stem_if_collision', 'above_stem_if_chord_and_white_note', 'above_stem_if_chord_and_white_note_same_hand'] = 'above_stem_if_collision'
 
     # Note appearance
