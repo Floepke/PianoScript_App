@@ -25,12 +25,28 @@ LINUXDEPLOY_URL = (
     "linuxdeploy-x86_64.AppImage"
 )
 
+MIME_TYPE_PIANO = "application/x-pianoscript"
+MIME_TYPES_MIDI = "audio/midi;audio/x-midi"
+APPSTREAM_ID = "org.philipbergwerf.keytab"
+AUTHOR_NAME = "Philip Bergwerf"
+APP_SUMMARY = (
+    "A music engraver for clear and readable MIDI-file music notation."
+)
+APP_DESCRIPTION = (
+    "keyTAB is a professional engraver for engraving MIDI files as music notation. "
+    "It is based on the Klavarskribo notation system and revised by"
+    "Philip Bergwerf to be more clear and flexible.\n"
+    "\n"
+    "Import a .mid file and keyTAB converts it instantly into a readable MIDI notation sheet. "
+    "Use the mouse-centric editor to refine layout, design, and musical details."
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build keyTAB AppImage.")
     parser.add_argument(
         "--output",
-        required=True,
+        default=str(Path.home() / "Desktop"),
         help="Output directory for build files and final AppImage.",
     )
     parser.add_argument(
@@ -160,15 +176,60 @@ def write_desktop_file(appdir: Path, name: str) -> Path:
     desktop_path.write_text(
         "[Desktop Entry]\n"
         f"Name={name}\n"
-        "Comment=Create keyTAB MIDI music notation sheets by importing MIDI or writing with the mouse.\n"
+        f"Comment={APP_SUMMARY}\n"
         f"Exec={name}\n"
         f"Icon={name}\n"
         "Type=Application\n"
-        "Categories=Graphics;AudioVideo;Music;\n"
+        "Categories=AudioVideo;Audio;Music;\n"
+        f"MimeType={MIME_TYPE_PIANO};{MIME_TYPES_MIDI};\n"
         "Terminal=false\n",
         encoding="utf-8",
     )
     return desktop_path
+
+
+def write_appstream_metadata(appdir: Path, name: str) -> Path:
+    metainfo_dir = appdir / "usr" / "share" / "metainfo"
+    metainfo_dir.mkdir(parents=True, exist_ok=True)
+    metainfo_path = metainfo_dir / f"{APPSTREAM_ID}.metainfo.xml"
+    metainfo_path.write_text(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<component type=\"desktop\">\n"
+        f"  <id>{APPSTREAM_ID}</id>\n"
+        f"  <name>{name}</name>\n"
+        f"  <summary>{APP_SUMMARY}</summary>\n"
+        f"  <developer_name>{AUTHOR_NAME}</developer_name>\n"
+        "  <metadata_license>CC0-1.0</metadata_license>\n"
+        "  <project_license>LicenseRef-Proprietary</project_license>\n"
+        "  <description>\n"
+        "    <p>keyTAB is a professional MIDI engraver for music notation. "
+        "It is based on Klavarskribo notation and revised by Philip Bergwerf to be "
+        "clearer and more flexible.</p>\n"
+        "    <p>Import a .mid file and keyTAB converts it instantly into readable "
+        "notation. Use the mouse-centric editor to refine layout, design, and "
+        "musical details.</p>\n"
+        "  </description>\n"
+        "</component>\n",
+        encoding="utf-8",
+    )
+    return metainfo_path
+
+
+def write_mime_package(appdir: Path, name: str) -> Path:
+    mime_dir = appdir / "usr" / "share" / "mime" / "packages"
+    mime_dir.mkdir(parents=True, exist_ok=True)
+    mime_path = mime_dir / f"{name}.xml"
+    mime_path.write_text(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n"
+        f"  <mime-type type=\"{MIME_TYPE_PIANO}\">\n"
+        "    <comment>keyTAB score</comment>\n"
+        "    <glob pattern=\"*.piano\"/>\n"
+        "  </mime-type>\n"
+        "</mime-info>\n",
+        encoding="utf-8",
+    )
+    return mime_path
 
 
 def copy_png_icon(icon_path: Path, target_path: Path) -> None:
@@ -283,10 +344,12 @@ def main() -> int:
     if args.icon_path:
         icon_src = Path(args.icon_path).expanduser().resolve()
     else:
-        icon_src = project_root / "icons" / "pianoscript.png"
+        icon_src = project_root / "icons" / "keyTAB.png"
     copy_png_icon(icon_src, icon_path)
 
     desktop_file = write_desktop_file(appdir, exe_name)
+    write_mime_package(appdir, exe_name)
+    write_appstream_metadata(appdir, exe_name)
     write_apprun(appdir, exe_name)
 
     linuxdeploy = ensure_appimage_tools(tools_dir)

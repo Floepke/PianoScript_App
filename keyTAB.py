@@ -1,6 +1,10 @@
+import argparse
 import os
+import shutil
+import subprocess
 import sys
 import multiprocessing as mp
+from pathlib import Path
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.main_window import MainWindow
 from ui.style import Style
@@ -9,8 +13,175 @@ from appdata_manager import get_appdata_manager
 from icons.icons import get_qicon
 from fonts import install_default_ui_font
 
+APP_NAME = "keyTAB"
+MIME_TYPE_PIANO = "application/x-pianoscript"
+MIME_TYPES_MIDI = ["audio/midi", "audio/x-midi"]
 
-def main():
+
+def parse_args(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument(
+        "--install",
+        action="store_true",
+        help="Install desktop entry and MIME types (Linux only).",
+    )
+    return parser.parse_known_args(argv)
+
+
+def _write_desktop_entry(appimage_path: Path, icon_path: Path | None) -> None:
+    desktop_dir = Path.home() / ".local" / "share" / "applications"
+    desktop_dir.mkdir(parents=True, exist_ok=True)
+    desktop_path = desktop_dir / f"{APP_NAME}.desktop"
+
+    icon_value = APP_NAME
+    if icon_path and icon_path.exists():
+        icon_dir = Path.home() / ".local" / "share" / "icons" / "hicolor" / "256x256" / "apps"
+        icon_dir.mkdir(parents=True, exist_ok=True)
+        target_icon = icon_dir / f"{APP_NAME}.png"
+        shutil.copy2(icon_path, target_icon)
+        icon_value = str(target_icon)
+
+    desktop_path.write_text(
+        "[Desktop Entry]\n"
+        f"Name={APP_NAME}\n"
+        "Comment=Professional MIDI engraving to clear, readable Klavarskribo-style notation.\n"
+        f"Exec=\"{appimage_path}\" %f\n"
+        f"Icon={icon_value}\n"
+        "Type=Application\n"
+        "Categories=AudioVideo;Audio;Music;\n"
+        f"MimeType={MIME_TYPE_PIANO};audio/midi;audio/x-midi;\n"
+        "Terminal=false\n",
+        encoding="utf-8",
+    )
+
+
+def _write_mime_package() -> None:
+    mime_dir = Path.home() / ".local" / "share" / "mime" / "packages"
+    mime_dir.mkdir(parents=True, exist_ok=True)
+    mime_path = mime_dir / f"{APP_NAME}.xml"
+    mime_path.write_text(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n"
+        f"  <mime-type type=\"{MIME_TYPE_PIANO}\">\n"
+        "    <comment>keyTAB score</comment>\n"
+        "    <glob pattern=\"*.piano\"/>\n"
+        "  </mime-type>\n"
+        "</mime-info>\n",
+        encoding="utf-8",
+    )
+
+
+def _update_xdg_databases() -> None:
+    mime_db = Path.home() / ".local" / "share" / "mime"
+    apps_dir = Path.home() / ".local" / "share" / "applications"
+
+    update_mime = shutil.which("update-mime-database")
+    if update_mime:
+        subprocess.run([update_mime, str(mime_db)], check=False)
+
+    update_desktop = shutil.which("update-desktop-database")
+    if update_desktop:
+        subprocess.run([update_desktop, str(apps_dir)], check=False)
+
+
+def _find_appimage_icon() -> Path | None:
+    appdir = os.environ.get("APPDIR")
+    if not appdir:
+        return None
+    candidates = [
+        Path(appdir) / "usr" / "share" / "icons" / "hicolor" / "256x256" / "apps" / f"{APP_NAME}.png",
+        Path(appdir) / f"{APP_NAME}.png",
+        Path(appdir) / ".DirIcon",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def install_desktop_integration() -> None:
+    if not sys.platform.startswith("linux"):
+        print("--install is supported on Linux only.")
+        return
+
+    appimage_path = os.environ.get("APPIMAGE") or sys.argv[0]
+    appimage_path = Path(appimage_path).expanduser().resolve()
+    if not appimage_path.exists():
+        raise SystemExit(f"AppImage not found: {appimage_path}")
+
+    target_dir = Path.home() / ".local" / "share" / APP_NAME
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_appimage = target_dir / f"{APP_NAME}.AppImage"
+    if target_appimage != appimage_path:
+        shutil.copy2(appimage_path, target_appimage)
+        appimage_path = target_appimage
+
+    _write_desktop_entry(appimage_path, _find_appimage_icon())
+    _write_mime_package()
+    _update_xdg_databases()
+    print("Installed desktop entry and MIME types.")
+
+
+def prompt_install_if_needed() -> None:
+    if not sys.platform.startswith("linux"):
+        return
+    if not os.environ.get("APPIMAGE"):
+        return
+
+    adm = get_appdata_manager()
+    show_prompt = bool(adm.get("show_install_question", True))
+    if not show_prompt:
+        return
+
+    message = (
+        "<b>Install keyTAB for desktop integration?</b><br><br>"
+        "This will:<ul>"
+        "<li>Add keyTAB to your application menu</li>"
+        "<li>Associate .piano and .mid files with keyTAB</li>"
+        "<li>Copy this AppImage to a stable location in your home folder</li>"
+        "</ul>"
+        "You can remove the integration later by deleting the desktop entry in "
+        "~/.local/share/applications and the AppImage in ~/.local/share/keyTAB."
+    )
+
+    dialog = QtWidgets.QMessageBox()
+    dialog.setIcon(QtWidgets.QMessageBox.Icon.Question)
+    dialog.setWindowTitle("Install keyTAB")
+    dialog.setTextFormat(QtCore.Qt.TextFormat.RichText)
+    dialog.setText(message)
+    dont_show_checkbox = QtWidgets.QCheckBox("Don't show again")
+    dialog.setCheckBox(dont_show_checkbox)
+    install_button = dialog.addButton("Install", QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+    dialog.addButton("Not now", QtWidgets.QMessageBox.ButtonRole.RejectRole)
+    dialog.exec()
+
+    if dont_show_checkbox.isChecked():
+        adm.set("show_install_question", False)
+        adm.save()
+
+    if dialog.clickedButton() == install_button:
+        adm.set("show_install_question", False)
+        adm.save()
+        try:
+            install_desktop_integration()
+        except Exception as exc:
+            QtWidgets.QMessageBox.warning(
+                None,
+                "Install failed",
+                f"Install failed: {exc}",
+                "You can still use the AppImage without installing.",
+            )
+
+
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    args, qt_args = parse_args(argv)
+    if args.install:
+        install_desktop_integration()
+        return
+
     # Load settings and apply UI scale before creating QApplication
     preferences = get_preferences()
     ui_scale = float(preferences.get("ui_scale", 1.0))
@@ -30,7 +201,7 @@ def main():
             QtCore.Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, False
         )
     # Create QApplication with argv to ensure proper initialization paths on macOS
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication([sys.argv[0], *qt_args])
     
     # Enforce arrow cursor globally: app never changes the mouse pointer
     QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
@@ -57,6 +228,8 @@ def main():
         sty.set_dynamic_theme(0.75)
 
     win = MainWindow()
+
+    prompt_install_if_needed()
     
     # Ensure clean shutdown of background threads on app exit
     app.aboutToQuit.connect(win.prepare_close)

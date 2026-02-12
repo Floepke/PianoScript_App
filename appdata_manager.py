@@ -233,6 +233,11 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("selected_tool", "note", "Last selected tool name in the tool selector")
         adm.register("editor_scroll_pos", 0, "Last editor scroll position (logical px)")
         adm.register("center_playhead_enabled", True, "Center editor view on playhead during playback")
+        adm.register(
+            "show_install_question",
+            True,
+            "Ask once to install AppImage desktop integration on Linux",
+        )
         # MIDI output port preference
         adm.register("midi_out_port", "", "Last selected external MIDI output port name")
         # Playback backend selection
