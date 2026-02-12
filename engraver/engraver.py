@@ -396,18 +396,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             return True
         return op_time.gt(float(min_delta), 0.0)
 
-    # Resolve paper color for erasing overlaps (barline whitespace, etc.)
-    def _paper_rgba() -> tuple[float, float, float, float]:
-        if pdf_export:
-            return (1.0, 1.0, 1.0, 1.0)
-        try:
-            from ui.style import Style
-            return Style.paper_color_rgba()
-        except Exception:
-            return (1.0, 1.0, 1.0, 1.0)
-
-    paper_color_rgba = _paper_rgba()
-
     # Reset pages
     try:
         du._pages = []
@@ -1543,7 +1531,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             y_start,
                             x2,
                             y_start,
-                            color=paper_color_rgba,
+                            color=(0,0,0,1),
                             width_mm=thickness,
                             line_cap="butt",
                             id=0,

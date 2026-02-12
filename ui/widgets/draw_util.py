@@ -244,13 +244,13 @@ class DrawUtil:
         rw = abs(xb - xa)
         rh = abs(yb - ya)
         
-        # possible to inset the oval to account for stroke width
-        if stroke is not None:
-            inset = float(stroke.width_mm) / 4.0 #TODO: check if this is needed.
-            rx += inset
-            ry += inset
-            rw = max(0.0, rw - (2.0 * inset))
-            rh = max(0.0, rh - (2.0 * inset))
+        # # possible to inset the oval to account for stroke width
+        # if stroke is not None:
+        #     inset = float(stroke.width_mm) / 4.0 #TODO: check if this is needed.
+        #     rx += inset
+        #     ry += inset
+        #     rw = max(0.0, rw - (2.0 * inset))
+        #     rh = max(0.0, rh - (2.0 * inset))
         
         if hit_rect_mm is None:
             hit_rect_mm = (rx, ry, rw, rh)
@@ -711,7 +711,15 @@ class DrawUtil:
             if o.fill:
                 self._apply_fill(ctx, o.fill)
             if o.stroke:
-                self._apply_stroke(ctx, o.stroke)
+                scale = max(rx, ry)
+                adj = Stroke(
+                    color=o.stroke.color,
+                    width_mm=o.stroke.width_mm / scale if scale > 0 else o.stroke.width_mm,
+                    dash_pattern_mm=o.stroke.dash_pattern_mm,
+                    dash_offset_mm=o.stroke.dash_offset_mm,
+                    line_cap=o.stroke.line_cap,
+                )
+                self._apply_stroke(ctx, adj)
                 ctx.stroke()
             else:
                 ctx.new_path()

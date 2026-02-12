@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from typing import Optional
-import sys
+import sys, os
 from datetime import datetime
 from file_model.appstate import AppState
 from file_model.file_manager import FileManager
@@ -402,11 +402,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def _create_menus(self) -> None:
         menubar = self.menuBar()
         # Ensure macOS uses the native system menubar
-        try:
-            if sys.platform == "darwin":
-                menubar.setNativeMenuBar(True)
-        except Exception:
-            pass
+        if sys.platform == "darwin":
+            menubar.setNativeMenuBar(True)
 
         # Create menus in normal left-to-right order (File, Edit, View, Playback)
         file_menu = menubar.addMenu("&File")
@@ -907,8 +904,23 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptSave)
         dlg.setNameFilter("PDF Files (*.pdf)")
         dlg.setDefaultSuffix("pdf")
+        try:
+            adm = get_appdata_manager()
+            last_dir = str(adm.get("last_export_pdf_dir", "") or "")
+            if last_dir:
+                dlg.setDirectory(last_dir)
+        except Exception:
+            pass
         if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             out_path = dlg.selectedFiles()[0]
+            try:
+                out_dir = os.path.dirname(str(out_path))
+                if out_dir:
+                    adm = get_appdata_manager()
+                    adm.set("last_export_pdf_dir", out_dir)
+                    adm.save()
+            except Exception:
+                pass
             try:
                 from utils.CONSTANT import ENGRAVER_LAYERING
                 from engraver.engraver import do_engrave

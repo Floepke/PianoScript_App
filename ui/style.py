@@ -22,7 +22,7 @@ class Style:
     # - text_color: all text color
     # - alternate_background_color: buttons and widget entry/list backgrounds
     # - accent_color: selection and emphasis highlights
-    # - paper_color: editor/print-view backgrounds
+    # - paper_color: editor background (print view is forced white)
     # - notation_color: notation/stroke color
     _LIGHT = {
         "bg_color": (250, 240, 240),
@@ -67,7 +67,7 @@ class Style:
 
     # Named custom colors registry
     _NAMED: dict[str, tuple[int, int, int]] = {
-        # Print view (DrawUtilView): white by default
+        # Print view (DrawUtilView): always white
         'draw_util': (255, 255, 255),
         # Editor background: initialized/synced at runtime
         'editor': (255, 255, 255),
@@ -100,7 +100,7 @@ class Style:
         _set_named('accent', 'accent_color')
         _set_named('paper', 'paper_color')
         _set_named('notation', 'notation_color')
-        cls._NAMED['draw_util'] = cls._NAMED['paper']
+        cls._NAMED['draw_util'] = (255, 255, 255)
         cls._NAMED['editor'] = cls._NAMED['paper']
         cls._THEME_SYNCED = True
 
@@ -136,7 +136,7 @@ class Style:
             Style._NAMED['accent'] = (accent.red(), accent.green(), accent.blue())
             Style._NAMED['paper'] = (paper.red(), paper.green(), paper.blue())
             Style._NAMED['notation'] = (notation.red(), notation.green(), notation.blue())
-            Style._NAMED['draw_util'] = Style._NAMED['paper']
+            Style._NAMED['draw_util'] = (255, 255, 255)
             Style._NAMED['editor'] = Style._NAMED['paper']
             Style._THEME_SYNCED = True
         except Exception:
@@ -205,10 +205,6 @@ class Style:
         self._sync_editor_named_color()
 
     @classmethod
-    def get_paper_color(cls) -> tuple[int, int, int]:
-        cls._ensure_theme_seeded()
-        return cls._NAMED.get('paper', (255, 255, 255))
-
     @classmethod
     def get_notation_color(cls) -> tuple[int, int, int]:
         cls._ensure_theme_seeded()
@@ -218,9 +214,4 @@ class Style:
     def get_editor_background_color(cls) -> tuple[int, int, int]:
         """Get the appropriate editor background color based on current theme."""
         cls._ensure_theme_seeded()
-        return cls.get_paper_color()
-
-    @classmethod
-    def paper_color_rgba(cls) -> tuple[float, float, float, float]:
-        r, g, b = cls.get_paper_color()
-        return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, 1.0)
+        return cls._NAMED.get('paper', (255, 255, 255))

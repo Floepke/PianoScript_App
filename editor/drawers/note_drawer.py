@@ -209,8 +209,8 @@ class NoteDrawerMixin:
                 tags=["notehead_black"],
             )
         else:
-            # Use editor background color for white notehead fill
-            bg_fill = self._editor_background_rgba()
+            # Use explicit white for notehead fill to avoid theme bleed
+            bg_fill = (1.0, 1.0, 1.0, 1.0)
             du.add_oval(
                 x - w,
                 y1,
@@ -349,7 +349,7 @@ class NoteDrawerMixin:
         w = float(self.semitone_dist or 0.5) * 2.0
         dot_d = w * 0.35
         cy = y1 + (w / 2.0)
-        fill = self._editor_background_rgba() if (n.pitch in BLACK_KEYS) else self.notation_color
+        fill = (1.0, 1.0, 1.0, 1.0) if (n.pitch in BLACK_KEYS) else self.notation_color
         du.add_oval(
             x - dot_d / 3.0,
             cy - dot_d / 3.0,
