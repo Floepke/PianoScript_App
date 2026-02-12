@@ -36,6 +36,11 @@ class ToolManager(QtCore.QObject):
             self._tool.on_activate()
         name = getattr(tool, 'TOOL_NAME', 'unknown')
         self.toolChanged.emit(str(name))
+        if self._editor is not None:
+            if hasattr(self._editor, 'force_redraw_from_model'):
+                self._editor.force_redraw_from_model()
+            elif hasattr(self._editor, 'draw_frame'):
+                self._editor.draw_frame()
 
     def _on_context_button_clicked(self, name: str) -> None:
         if self._tool is not None:

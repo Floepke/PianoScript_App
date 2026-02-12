@@ -10,6 +10,9 @@ if TYPE_CHECKING:
 class TempoDrawerMixin:
     def draw_tempo(self, du: DrawUtil) -> None:
         self = cast("Editor", self)
+        tool_name = getattr(getattr(self, "_tool", None), "TOOL_NAME", "")
+        if tool_name != "tempo":
+            return
         score = self.current_score()
         if score is None:
             return

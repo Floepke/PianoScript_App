@@ -9,6 +9,9 @@ if TYPE_CHECKING:
 class LineBreakDrawerMixin:
     def draw_line_break(self, du: DrawUtil) -> None:
         self = cast("Editor", self)
+        tool_name = getattr(getattr(self, "_tool", None), "TOOL_NAME", "")
+        if tool_name != "line_break":
+            return
         score = self.current_score()
         if score is None:
             return
@@ -24,10 +27,7 @@ class LineBreakDrawerMixin:
         bleed_mm = max(2.0, float(getattr(score.editor, 'zoom_mm_per_quarter', 25.0)) * 0.25)
 
         # Layout anchors
-        page_w_mm, _ = du.current_page_size_mm()
-        margin = float(self.margin or 0.0)
-        semitone_dx = float(self.semitone_dist or 2.5)
-        editor_right = page_w_mm
+        editor_left = 0.0
 
         # Font setup
         try:
@@ -54,8 +54,8 @@ class LineBreakDrawerMixin:
                 w_mm, h_mm = (6.0, 6.0)
             rect_w = max(6.0, float(w_mm) + 4.0)
             rect_h = max(6.0, float(h_mm) + 4.0)
-            rect_x2 = editor_right
-            rect_x1 = rect_x2 - rect_w
+            rect_x1 = editor_left
+            rect_x2 = rect_x1 + rect_w
             marker_x = rect_x1 + (rect_w * 0.5)
             rect_y1 = y_mm
             rect_y2 = y_mm + rect_h
