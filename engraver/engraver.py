@@ -343,6 +343,46 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         groups = _assign_groups(notes_sorted, windows) if notes_sorted else []
         return groups, windows
 
+    def _black_note_above_stem(item: dict, rule: str, notes: list[dict], op: Operator) -> bool:
+        if rule == 'above_stem':
+            return True
+        p0 = int(item.get('pitch', 0) or 0)
+        t0 = float(item.get('time', 0.0) or 0.0)
+        idx0 = int(item.get('idx', -1) or -1)
+        if rule in ('above_stem_if_collision', 'only_above_stem_if_collision'):
+            for m in notes:
+                if int(m.get('idx', -2) or -2) == idx0:
+                    continue
+                if not op.eq(float(m.get('time', 0.0) or 0.0), t0):
+                    continue
+                if abs(int(m.get('pitch', 0) or 0) - p0) == 1:
+                    return True
+            return False
+        if rule == 'above_stem_if_chord_and_white_note':
+            for m in notes:
+                if int(m.get('idx', -2) or -2) == idx0:
+                    continue
+                if not op.eq(float(m.get('time', 0.0) or 0.0), t0):
+                    continue
+                mp = int(m.get('pitch', 0) or 0)
+                if mp not in BLACK_KEYS and mp != p0:
+                    return True
+            return False
+        if rule != 'above_stem_if_chord_and_white_note_same_hand':
+            return False
+        hand0 = str(item.get('hand', '<') or '<')
+        for m in notes:
+            if int(m.get('idx', -2) or -2) == idx0:
+                continue
+            if not op.eq(float(m.get('time', 0.0) or 0.0), t0):
+                continue
+            if str(m.get('hand', '<') or '<') != hand0:
+                continue
+            mp = int(m.get('pitch', 0) or 0)
+            if mp not in BLACK_KEYS and mp != p0:
+                return True
+        return False
+
     def _has_followed_rest(item: dict) -> bool:
         """Return True when a note has no immediate following note in its hand.
 
@@ -1400,6 +1440,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             line_start = float(line.get('time_start', 0.0) or 0.0)
             line_end = float(line.get('time_end', 0.0) or 0.0)
+            black_rule = str(layout.get('black_note_rule', 'below_stem') or 'below_stem')
             # Problem solved: render notes after grid, using precomputed positions.
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
@@ -1414,7 +1455,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     y_start, y_end = y_end, y_start
                 w = semitone_mm
                 note_y = y_start
-                if p in BLACK_KEYS and str(layout.get('black_note_rule', 'below_stem')) == 'above_stem':
+                if p in BLACK_KEYS and _black_note_above_stem(item, black_rule, line_notes, op_time):
                     note_y = y_start - (w * 2.0)
                 # Problem solved: draw the note body with per-hand colors or overrides.
                 raw_color = n.get('midinote_color', None)
@@ -1613,7 +1654,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 if continues_from_prev_line:
                     dot_times.append(float(line_start))
                 if dot_times:
-                    dot_d = w * 0.8
+                    dot_d = float(layout.get('note_continuation_dot_size_mm', 0.0) or 0.0)
+                    if dot_d <= 0.0:
+                        dot_d = w * 0.8
                     for t in sorted(set(dot_times)):
                         y_center = _time_to_y(float(t)) + w
                         du.add_oval(

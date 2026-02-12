@@ -423,6 +423,7 @@ class StyleDialog(QtWidgets.QDialog):
             'note_stem_length_semitone': 'Note',
             'note_stem_thickness_mm': 'Note',
             'note_stopsign_thickness_mm': 'Note',
+            'note_continuation_dot_size_mm': 'Note',
             'note_leftdot_visible': 'Note',
             'note_midinote_visible': 'Note',
             'note_midinote_left_color': 'Note',

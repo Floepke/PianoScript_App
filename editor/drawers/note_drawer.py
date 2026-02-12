@@ -192,9 +192,9 @@ class NoteDrawerMixin:
     def _draw_notehead(self, du: DrawUtil, n, x: float, y1: float, draw_mode: str) -> None:
         w = float(self.semitone_dist or 0.5)
         layout = cast("Editor", self).current_score().layout
-        outline_w = 0.4
-        # Adjust vertical for black-note rule 'above_stem'
-        if n.pitch in BLACK_KEYS and layout.black_note_rule == 'above_stem':
+        outline_w = 0.5
+        # Adjust vertical for black-note rule
+        if n.pitch in BLACK_KEYS and self._black_note_above_stem(n, layout):
             y1 = y1 - (w * 2.0)
         if n.pitch in BLACK_KEYS:
             du.add_oval(
@@ -344,7 +344,7 @@ class NoteDrawerMixin:
         if getattr(n, 'hand', '<') not in ('l', '<'):
             return
         layout = cast("Editor", self).current_score().layout
-        if n.pitch in BLACK_KEYS and layout.black_note_rule == 'above_stem':
+        if n.pitch in BLACK_KEYS and self._black_note_above_stem(n, layout):
             y1 = y1 - (float(self.semitone_dist or 0.5) * 2.0)
         w = float(self.semitone_dist or 0.5) * 2.0
         dot_d = w * 0.35
@@ -371,6 +371,51 @@ class NoteDrawerMixin:
         rgb = Style.get_editor_background_color()
         r, g, b = tuple(int(c) for c in rgb)
         return (r / 255.0, g / 255.0, b / 255.0, 1.0)
+
+    def _black_note_above_stem(self, n, layout) -> bool:
+        rule = str(getattr(layout, 'black_note_rule', 'below_stem') or 'below_stem')
+        if rule == 'above_stem':
+            return True
+        try:
+            cache = cast("Editor", self)._draw_cache or {}
+            notes_view = cache.get('notes_view') or (self._cached_notes_view or [])
+        except Exception:
+            notes_view = self._cached_notes_view or []
+        t0 = float(getattr(n, 'time', 0.0) or 0.0)
+        p0 = int(getattr(n, 'pitch', 0) or 0)
+        if rule in ('above_stem_if_collision', 'only_above_stem_if_collision'):
+            for m in notes_view:
+                if getattr(m, '_id', None) == getattr(n, '_id', None):
+                    continue
+                if not self._time_op.eq(float(getattr(m, 'time', 0.0) or 0.0), t0):
+                    continue
+                if abs(int(getattr(m, 'pitch', 0) or 0) - p0) == 1:
+                    return True
+            return False
+        if rule == 'above_stem_if_chord_and_white_note':
+            for m in notes_view:
+                if getattr(m, '_id', None) == getattr(n, '_id', None):
+                    continue
+                if not self._time_op.eq(float(getattr(m, 'time', 0.0) or 0.0), t0):
+                    continue
+                mp = int(getattr(m, 'pitch', 0) or 0)
+                if mp not in BLACK_KEYS and mp != p0:
+                    return True
+            return False
+        if rule != 'above_stem_if_chord_and_white_note_same_hand':
+            return False
+        hand0 = str(getattr(n, 'hand', '<') or '<')
+        for m in notes_view:
+            if getattr(m, '_id', None) == getattr(n, '_id', None):
+                continue
+            if not self._time_op.eq(float(getattr(m, 'time', 0.0) or 0.0), t0):
+                continue
+            if str(getattr(m, 'hand', '<') or '<') != hand0:
+                continue
+            mp = int(getattr(m, 'pitch', 0) or 0)
+            if mp not in BLACK_KEYS and mp != p0:
+                return True
+        return False
 
     # ---- Helpers ----
     def _get_barline_positions(self) -> list[float]:

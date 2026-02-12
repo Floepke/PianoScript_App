@@ -35,7 +35,7 @@ class Layout:
 
     # Global drawing options
     scale: float = 0.38
-    black_note_rule: Literal['above_stem','below_stem', 'only_above_stem_if_collision'] = 'below_stem'
+    black_note_rule: Literal['above_stem', 'below_stem', 'above_stem_if_collision', 'above_stem_if_chord_and_white_note', 'above_stem_if_chord_and_white_note_same_hand'] = 'above_stem_if_collision'
 
     # Note appearance
     note_head_visible: bool = True
@@ -44,6 +44,7 @@ class Layout:
     note_stem_thickness_mm: float = 1 # Thickness of the stem as well the notehead outline
     note_stopsign_thickness_mm: float = 1.0
     note_leftdot_visible: bool = True
+    note_continuation_dot_size_mm: float = 1.0
     note_midinote_visible: bool = True
     note_midinote_left_color: str = '#cccccc'
     note_midinote_right_color: str = '#cccccc'
@@ -143,6 +144,7 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'note_stem_length_semitone': {'min': 0.0, 'max': 20.0, 'step': 1.0},
     'note_stem_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.5},
     'note_stopsign_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.5},
+    'note_continuation_dot_size_mm': {'min': 0.0, 'max': 10.0, 'step': 0.25},
     'beam_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.5},
     'pedal_lane_width_mm': {'min': 0.0, 'max': 20.0, 'step': 0.5},
     'text_font_size_pt': {'min': 4.0, 'max': 94.0, 'step': 1},

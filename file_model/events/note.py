@@ -16,7 +16,8 @@ class Note:
         in default mode:
             - white notes (abcdefg) use white noteheads
             - black notes (sharps/flats) use black noteheads 80% the width of white noteheads
-            - the notehead follows the black_note_rule ('below_stem' or 'above_stem')
+                        - the notehead follows the black_note_rule ('below_stem', 'above_stem',
+                            or 'above_stem_if_collision')
                 in the layout section.
     '''
     notehead: Literal['default',
