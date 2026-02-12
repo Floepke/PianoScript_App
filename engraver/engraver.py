@@ -3,23 +3,20 @@ from datetime import datetime
 import bisect
 import multiprocessing as mp
 import queue
-import traceback
 from ui.widgets.draw_util import DrawUtil
 from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT, PIANO_KEY_AMOUNT, SHORTEST_DURATION, hex_to_rgba, BLACK_KEYS
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
 
-try:
-    _MP_CONTEXT = mp.get_context("spawn")
-except Exception:
-    _MP_CONTEXT = mp.get_context()
+_MP_CONTEXT = mp.get_context("spawn")
 
 def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = False) -> None:
-    """Compute the full page drawing from the score dict into DrawUtil.
+    """Compute a full print layout and draw commands into DrawUtil.
 
-    This function runs off-thread. It should rebuild pages deterministically
-    from the input score. Keep Cairo usage confined to DrawUtil rendering.
+    Problem solved: the engraver must be deterministic and thread-safe.
+    It converts the score model into page/line geometry without any Qt
+    rendering calls, then records only DrawUtil primitives.
     """
     score: SCORE = score or {}
     layout = (score.get('layout', {}) or {})
@@ -32,36 +29,30 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     count_lines = list(events.get('count_line', []) or [])
     beam_markers = list(events.get('beam', []) or [])
 
+    # Problem solved: beam markers are organized per hand for fast grouping later.
     beam_by_hand: dict[str, list[dict]] = {'l': [], 'r': []}
     for b in beam_markers:
         if not isinstance(b, dict):
             continue
-        try:
-            bt = float(b.get('time', 0.0) or 0.0)
-            bd = float(b.get('duration', 0.0) or 0.0)
-        except Exception:
-            traceback.print_exc()
-            continue
+        bt = float(b.get('time', 0.0) or 0.0)
+        bd = float(b.get('duration', 0.0) or 0.0)
         hand_raw = str(b.get('hand', '<') or '<')
         hand_key = 'l' if hand_raw in ('<', 'l') else 'r'
         beam_by_hand[hand_key].append({'time': bt, 'duration': bd})
     for hk in beam_by_hand:
         beam_by_hand[hk] = sorted(beam_by_hand[hk], key=lambda m: float(m.get('time', 0.0)))
 
+    # Problem solved: normalize notes once to avoid repeated dict parsing in loops.
     norm_notes: list[dict] = []
     notes_by_hand: dict[str, list[dict]] = {'<': [], '>': []}
     starts_by_hand: dict[str, list[float]] = {'<': [], '>': []}
     for idx, n in enumerate(notes):
         if not isinstance(n, dict):
             continue
-        try:
-            n_t = float(n.get('time', 0.0) or 0.0)
-            n_d = float(n.get('duration', 0.0) or 0.0)
-            n_end = n_t + n_d
-            p = int(n.get('pitch', 0) or 0)
-        except Exception:
-            traceback.print_exc()
-            continue
+        n_t = float(n.get('time', 0.0) or 0.0)
+        n_d = float(n.get('duration', 0.0) or 0.0)
+        n_end = n_t + n_d
+        p = int(n.get('pitch', 0) or 0)
         hand_raw = str(n.get('hand', '<') or '<')
         hand_key = '<' if hand_raw in ('l', '<') else '>'
         item = {
@@ -81,6 +72,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         items.sort(key=lambda it: (float(it['time']), int(it['pitch']), int(it['id'])))
         starts_by_hand[hand_key] = [float(it['time']) for it in items]
 
+    # Problem solved: materialize layout values early to keep math predictable.
     page_w = float(layout.get('page_width_mm', 210.0) or 210.0)
     page_h = float(layout.get('page_height_mm', 297.0) or 297.0)
     page_left = float(layout.get('page_left_margin_mm', 5.0) or 5.0)
@@ -105,18 +97,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             barline_positions.append(float(cur_bar))
             cur_bar += measure_len
 
+    # Problem solved: precompute time signature segments for lane rendering.
     ts_segments: list[dict[str, float | int | list[int] | bool]] = []
     ts_cursor = 0.0
     for bg in base_grid:
-        try:
-            numer = int(bg.get('numerator', 4) or 4)
-            denom = int(bg.get('denominator', 4) or 4)
-            measures = int(bg.get('measure_amount', 1) or 1)
-            beat_grouping = list(bg.get('beat_grouping', []) or [])
-            indicator_enabled = bool(bg.get('indicator_enabled', True))
-        except Exception:
-            traceback.print_exc()
-            continue
+        numer = int(bg.get('numerator', 4) or 4)
+        denom = int(bg.get('denominator', 4) or 4)
+        measures = int(bg.get('measure_amount', 1) or 1)
+        beat_grouping = list(bg.get('beat_grouping', []) or [])
+        indicator_enabled = bool(bg.get('indicator_enabled', True))
         if measures <= 0:
             continue
         measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
@@ -133,7 +122,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         )
         ts_cursor += measure_len * float(measures)
 
-    # Precompute measure windows for numbering (start/end in ticks)
+    # Problem solved: precompute measure windows to number measures consistently.
     measure_windows: list[dict[str, float | int]] = []
     m_idx = 1
     cur_m = 0.0
@@ -146,10 +135,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             measure_windows.append({'start': float(cur_m), 'end': float(cur_m + measure_len), 'number': int(m_idx)})
             m_idx += 1
             cur_m += measure_len
-
-    def _log(msg: str) -> None:
-        """No-op logger placeholder to keep call sites stable."""
-        return
 
     def _normalize_hex_color(value: str | None) -> str | None:
         """Normalize hex color strings and allow special hand markers."""
@@ -190,20 +175,14 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
     def _allow_font_registry() -> bool:
         """Return True when it is safe to access QFontDatabase (GUI process only)."""
-        try:
-            return mp.current_process().name == "MainProcess"
-        except Exception:
-            return False
+        return mp.current_process().name == "MainProcess"
 
     def _resolve_font_family(family: str) -> str:
         """Resolve a font family name with the font registry if available."""
         if not _allow_font_registry():
             return family
-        try:
-            from fonts import resolve_font_family
-            return str(resolve_font_family(family))
-        except Exception:
-            return family
+        from fonts import resolve_font_family
+        return str(resolve_font_family(family))
 
     def _layout_font(key: str, fallback_family: str, fallback_size: float) -> tuple[str, float, bool, bool]:
         """Fetch a layout font entry from the layout dict with fallback values."""
@@ -212,16 +191,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             raw = {}
         family = str(raw.get('family', fallback_family) or fallback_family)
         if family == 'C059' and _allow_font_registry():
-            try:
-                from fonts import register_font_from_bytes
-            except Exception:
-                register_font_from_bytes = None  # type: ignore
-            try:
-                reg = register_font_from_bytes('C059') if register_font_from_bytes else 'C059'
-                if reg:
-                    family = str(reg)
-            except Exception:
-                pass
+            from fonts import register_font_from_bytes
+            reg = register_font_from_bytes('C059')
+            if reg:
+                family = str(reg)
         family = _resolve_font_family(family)
         size_pt = float(raw.get('size_pt', fallback_size) or fallback_size)
         bold = bool(raw.get('bold', False))
@@ -244,18 +217,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         raw_font = layout.get(key, {}) if isinstance(layout, dict) else {}
         if not isinstance(raw_font, dict):
             raw_font = {}
-        try:
-            x_off = float(raw_font.get('x_offset', 0.0) or 0.0)
-        except Exception:
-            x_off = 0.0
-        try:
-            y_off = float(raw_font.get('y_offset', 0.0) or 0.0)
-        except Exception:
-            y_off = 0.0
+        x_off = float(raw_font.get('x_offset', 0.0) or 0.0)
+        y_off = float(raw_font.get('y_offset', 0.0) or 0.0)
         return family, size_pt, bold, italic, x_off, y_off
 
     def _assign_groups(notes_sorted: list[dict], windows: list[tuple[float, float]]) -> list[list[dict]]:
-        """Assign notes to time windows by overlap and preserve start-time order."""
+        """Assign notes to time windows by overlap and preserve start-time order.
+
+        Problem solved: beam grouping must be stable even when notes straddle
+        a window boundary; this uses overlap tests plus de-duplication.
+        """
         if not notes_sorted or not windows:
             return []
         starts = [float(n.get('time', 0.0) or 0.0) for n in notes_sorted]
@@ -291,18 +262,18 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return result
 
     def _build_grid_windows(a: float, b: float) -> list[tuple[float, float]]:
-        """Build time windows using base grid beat grouping between a and b."""
+        """Build time windows using base grid beat grouping between a and b.
+
+        Problem solved: derive beam groups from musical beat grouping, not
+        from raw timestamps, so the visual grouping matches the score grid.
+        """
         windows: list[tuple[float, float]] = []
         cur = 0.0
         for bg in base_grid:
-            try:
-                numer = int(bg.get('numerator', 4) or 4)
-                denom = int(bg.get('denominator', 4) or 4)
-                measures = int(bg.get('measure_amount', 1) or 1)
-                seq = list(bg.get('beat_grouping', []) or [])
-            except Exception:
-                traceback.print_exc()
-                continue
+            numer = int(bg.get('numerator', 4) or 4)
+            denom = int(bg.get('denominator', 4) or 4)
+            measures = int(bg.get('measure_amount', 1) or 1)
+            seq = list(bg.get('beat_grouping', []) or [])
             measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
             beat_len = measure_len / max(1, int(numer))
             full_group = len(seq) == numer and [int(v) for v in seq] == list(range(1, numer + 1))
@@ -335,7 +306,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return windows
 
     def _build_duration_windows(start: float, end: float, dur: float) -> list[tuple[float, float]]:
-        """Build consecutive windows of fixed duration between start and end."""
+        """Build consecutive windows of fixed duration between start and end.
+
+        Problem solved: marker-defined windows can override grid grouping with
+        explicit durations, enabling custom beam spans.
+        """
         if dur <= 0:
             return [(start, end)]
         windows: list[tuple[float, float]] = []
@@ -347,7 +322,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return windows
 
     def _group_by_beam_markers(notes: list[dict], markers: list[dict], start: float, end: float) -> tuple[list[list[dict]], list[tuple[float, float]]]:
-        """Split notes into beam groups using marker- and grid-based windows."""
+        """Split notes into beam groups using marker- and grid-based windows.
+
+        Problem solved: combine explicit beam markers with grid windows so we
+        honor manual beam spans without losing default grouping elsewhere.
+        """
         notes_sorted = sorted(notes, key=lambda n: float(n.get('time', 0.0) or 0.0)) if notes else []
         windows: list[tuple[float, float]] = []
         markers_sorted = sorted(markers, key=lambda m: float(m.get('time', 0.0))) if markers else []
@@ -374,7 +353,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return groups, windows
 
     def _has_followed_rest(item: dict) -> bool:
-        """Return True when a note has no immediate following note in its hand."""
+        """Return True when a note has no immediate following note in its hand.
+
+        Problem solved: stop-signs should mark a gap in the same hand, not
+        simply the end of a note.
+        """
         hand_key = str(item.get('hand', '<') or '<')
         hand_list = notes_by_hand.get(hand_key, [])
         starts = starts_by_hand.get(hand_key, [])
@@ -396,24 +379,17 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             return True
         return op_time.gt(float(min_delta), 0.0)
 
-    # Reset pages
-    try:
-        du._pages = []
-        du._current_index = -1
-    except Exception:
-        traceback.print_exc()
+    # Problem solved: reset DrawUtil pages so the engrave output is fresh.
+    du._pages = []
+    du._current_index = -1
 
     def _total_score_ticks() -> float:
         """Compute total score duration in ticks from base grid segments."""
         total = 0.0
         for bg in base_grid:
-            try:
-                numer = int(bg.get('numerator', 4) or 4)
-                denom = int(bg.get('denominator', 4) or 4)
-                measures = int(bg.get('measure_amount', 1) or 1)
-            except Exception:
-                traceback.print_exc()
-                continue
+            numer = int(bg.get('numerator', 4) or 4)
+            denom = int(bg.get('denominator', 4) or 4)
+            measures = int(bg.get('measure_amount', 1) or 1)
             measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
             total += measure_len * float(max(0, measures))
         return float(total)
@@ -431,12 +407,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         """Clamp and normalize a stave range to valid piano keys."""
         if not isinstance(rng, list) or len(rng) < 2:
             return [1, PIANO_KEY_AMOUNT]
-        try:
-            lo = int(rng[0])
-            hi = int(rng[1])
-        except Exception:
-            traceback.print_exc()
-            return [1, PIANO_KEY_AMOUNT]
+        lo = int(rng[0])
+        hi = int(rng[1])
         lo = max(1, min(PIANO_KEY_AMOUNT, lo))
         hi = max(1, min(PIANO_KEY_AMOUNT, hi))
         if hi < lo:
@@ -453,7 +425,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     line_keys = sorted(key_class_filter('ACDFG'))
 
     def _build_line_groups() -> list[dict]:
-        """Build clef-related line groups and their key ranges."""
+        """Build clef-related line groups and their key ranges.
+
+        Problem solved: map piano keys into vertical stave groups so ledger
+        lines can be shown or suppressed predictably.
+        """
         groups: list[dict] = []
         used: set[int] = set()
 
@@ -537,18 +513,17 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return 0 if key <= line_groups[0]['range_low'] else len(line_groups) - 1
 
     def _note_range_for_window(t0: float, t1: float) -> tuple[int | None, int | None]:
-        """Find the lowest and highest pitches overlapping a time window."""
+        """Find the lowest and highest pitches overlapping a time window.
+
+        Problem solved: auto range must reflect actual notes in the window.
+        """
         lo = None
         hi = None
         for n in notes:
-            try:
-                n_t = float(n.get('time', 0.0) or 0.0)
-                n_d = float(n.get('duration', 0.0) or 0.0)
-                n_end = n_t + n_d
-                p = int(n.get('pitch', 0) or 0)
-            except Exception:
-                traceback.print_exc()
-                continue
+            n_t = float(n.get('time', 0.0) or 0.0)
+            n_d = float(n.get('duration', 0.0) or 0.0)
+            n_end = n_t + n_d
+            p = int(n.get('pitch', 0) or 0)
             if op_time.lt(n_t, t1) and op_time.gt(n_end, t0):
                 if p < 1 or p > PIANO_KEY_AMOUNT:
                     continue
@@ -557,7 +532,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return lo, hi
 
     def _visible_line_groups_for_range(lo: int, hi: int, include_clef: bool = True) -> list[dict]:
-        """Return line groups that cover a pitch range; optionally include clef group."""
+        """Return line groups that cover a pitch range; optionally include clef group.
+
+        Problem solved: when manual ranges omit the clef, we still allow
+        precise, minimal stave groups.
+        """
         lo = int(max(1, min(PIANO_KEY_AMOUNT, lo)))
         hi = int(max(1, min(PIANO_KEY_AMOUNT, hi)))
         if hi < lo:
@@ -574,7 +553,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return [line_groups[gi] for gi in range(min_group, max_group + 1)]
 
     def _auto_line_keys_and_bounds(t0: float, t1: float) -> tuple[list[dict], list[int], int, int, bool, str]:
-        """Choose stave keys and bounds automatically for a time window."""
+        """Choose stave keys and bounds automatically for a time window.
+
+        Problem solved: auto range must include the clef group and handle
+        empty windows without crashing.
+        """
         lo, hi = _note_range_for_window(t0, t1)
         if lo is None or hi is None:
             grp = line_groups[clef_group_index]
@@ -598,14 +581,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         lo = None
         hi = None
         for n in notes:
-            try:
-                n_t = float(n.get('time', 0.0) or 0.0)
-                n_d = float(n.get('duration', 0.0) or 0.0)
-                n_end = n_t + n_d
-                p = int(n.get('pitch', 0) or 0)
-            except Exception:
-                traceback.print_exc()
-                continue
+            n_t = float(n.get('time', 0.0) or 0.0)
+            n_d = float(n.get('duration', 0.0) or 0.0)
+            n_end = n_t + n_d
+            p = int(n.get('pitch', 0) or 0)
             if op_time.lt(n_t, t1) and op_time.gt(n_end, t0) and 1 <= p <= PIANO_KEY_AMOUNT:
                 count += 1
                 lo = p if lo is None else min(lo, p)
@@ -613,7 +592,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         return count, lo, hi
 
     def _build_key_positions(start_key: int, end_key: int, semitone_mm: float) -> dict[int, float]:
-        """Build x positions for keys, adding extra spacing after B/E."""
+        """Build x positions for keys, adding extra spacing after B/E.
+
+        Problem solved: klavarskribo spacing needs extra gaps after B and E
+        to keep black key groups visually balanced.
+        """
         positions: dict[int, float] = {}
         x = 0.0
         prev = None
@@ -625,28 +608,15 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             prev = key
         return positions
 
-    _log(f"-- do_engrave start pdf_export={bool(pdf_export)} --")
-    try:
-        pitches = [int(n.get('pitch', 0) or 0) for n in notes if isinstance(n, dict)]
-        if pitches:
-            _log(f"note_pitch_min={min(pitches)} max={max(pitches)}")
-        else:
-            _log("note_pitch_min=NA max=NA")
-    except Exception:
-        traceback.print_exc()
-    _log(f"PIANO_KEY_AMOUNT={PIANO_KEY_AMOUNT}")
     total_ticks = _total_score_ticks()
     if total_ticks <= 0.0:
         total_ticks = float(QUARTER_NOTE_UNIT) * 4.0
     if not line_breaks:
         line_breaks = [_line_break_defaults()]
 
-    try:
-        line_breaks = sorted(line_breaks, key=lambda lb: float(lb.get('time', 0.0) or 0.0))
-    except Exception:
-        traceback.print_exc()
+    line_breaks = sorted(line_breaks, key=lambda lb: float(lb.get('time', 0.0) or 0.0))
 
-    # Build lines from line breaks
+    # Problem solved: convert line break events into contiguous line windows.
     lines = []
     for i, lb in enumerate(line_breaks):
         lb_time = float(lb.get('time', 0.0) or 0.0)
@@ -660,13 +630,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         if stave_range is True:
             stave_range = 'auto'
         if isinstance(stave_range, list) and len(stave_range) >= 2:
-            try:
-                r0 = int(stave_range[0])
-                r1 = int(stave_range[1])
-                if (r0 == 0 and r1 == 0) or (r0 == 1 and r1 == 1):
-                    stave_range = 'auto'
-            except Exception:
-                traceback.print_exc()
+            r0 = int(stave_range[0])
+            r1 = int(stave_range[1])
+            if (r0 == 0 and r1 == 0) or (r0 == 1 and r1 == 1):
+                stave_range = 'auto'
         line = {
             'time_start': lb_time,
             'time_end': next_time,
@@ -677,9 +644,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         }
         lines.append(line)
 
-    _log(f"lines={len(lines)} total_ticks={total_ticks:.2f} notes={len(notes)} base_grid={len(base_grid)}")
 
-    # Calculate ranges and widths
+    # Problem solved: compute per-line horizontal geometry (margins, ranges).
     semitone_mm = 2.5 * scale
     key_positions = _build_key_positions(1, PIANO_KEY_AMOUNT, semitone_mm)
     for line in lines:
@@ -689,7 +655,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             line['pattern'] = pattern
             if empty:
                 count, lo, hi = _notes_in_window_stats(line['time_start'], line['time_end'])
-                _log(f"auto_range_empty window={line['time_start']:.2f}..{line['time_end']:.2f} count={count} lo={lo} hi={hi}")
         else:
             manual = _sanitize_range(line['stave_range'])
             groups = _visible_line_groups_for_range(manual[0], manual[1], include_clef=False)
@@ -705,7 +670,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             bound_right = int(keys[-1])
             line['visible_keys'] = keys
             line['pattern'] = ' '.join(patterns)
-        # Special-case low register: use key 2 as the stave's left edge when keys 1-3 appear.
+        # Problem solved: avoid clipping A#0 ledger by forcing left edge to key 2.
         low_key_present = False
         for item in norm_notes:
             n_t = float(item.get('time', 0.0) or 0.0)
@@ -727,10 +692,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         base_margin_left = float(line.get('margin_left', 0.0) or 0.0)
         ts_lane_width = 0.0
         ts_lane_right_offset = 0.0
+        # Problem solved: if time-signature indicators would collide with notes,
+        # expand left margin to reserve a lane.
         ts_segments_in_line = [
             seg
             for seg in ts_segments
-            if op_time.ge(float(seg.get('start', 0.0) or 0.0), float(line['time_start']))
+            if bool(seg.get('indicator_enabled', True))
+            and op_time.ge(float(seg.get('start', 0.0) or 0.0), float(line['time_start']))
             and op_time.lt(float(seg.get('start', 0.0) or 0.0), float(line['time_end']))
         ]
         if ts_segments_in_line:
@@ -766,7 +734,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         line['bound_left'] = int(bound_left)
         line['bound_right'] = int(bound_right)
 
-    # Assign lines to pages
+    # Problem solved: paginate lines to fit available width with explicit breaks.
     available_width = max(1e-6, page_w - page_left - page_right)
     pages: list[list[dict]] = []
     cur_page: list[dict] = []
@@ -788,14 +756,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     if cur_page:
         pages.append(cur_page)
 
-    _log(f"pages={len(pages)} available_width={available_width:.2f}")
 
-    # Draw staves per page
+    # Problem solved: render each page with header/footer and justified spacing.
     if not pages:
         pages = [[]]
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
-        _log(f"page_lines={len(page)}")
         footer_height = float(layout.get('footer_height_mm', 0.0) or 0.0)
         footer_height = max(0.0, footer_height)
         if page_index == 0:
@@ -864,16 +830,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         gap = leftover / float(len(page) + 1)
         x_cursor = page_left + gap
         for line in page:
-            _log(
-                "line time=%.2f..%.2f range=%s total_w=%.2f pattern=%s"
-                % (
-                    float(line.get('time_start', 0.0)),
-                    float(line.get('time_end', 0.0)),
-                    str(line.get('range', None)),
-                    float(line.get('total_width', 0.0)),
-                    str(line.get('pattern', '')),
-                )
-            )
             line_x_start = x_cursor + float(line['margin_left'])
             line_x_end = line_x_start + float(line['stave_width'])
             header_offset = 0.0
@@ -895,9 +851,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             ledger_drawn: set[tuple[int, int]] = set()
 
             def _key_to_x(key: int) -> float:
+                # Problem solved: convert key index to page X using line origin.
                 return line_x_start + (float(key_positions.get(key, 0.0)) - origin)
 
             def _time_to_y(ticks: float) -> float:
+                # Problem solved: normalize time to line height for vertical layout.
                 total = max(1e-6, float(line['time_end'] - line['time_start']))
                 rel = (float(ticks) - float(line['time_start'])) / total
                 rel = max(0.0, min(1.0, rel))
@@ -1051,7 +1009,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         italic=klav_italic,
                     )
 
-            # Grid drawing based on base_grid (barlines and beat lines)
+            # Problem solved: draw barlines and beat lines from the base grid.
             grid_left = line_x_start
             grid_right = line_x_start + float(line['stave_width'])
             ts_right_margin = max(0.0, 1.5 * scale)
@@ -1078,20 +1036,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 dash_pattern = [float(v) * scale for v in dash_pattern]
             time_cursor = 0.0
             for bg in base_grid:
-                try:
-                    numerator = int(bg.get('numerator', 4) or 4)
-                    denominator = int(bg.get('denominator', 4) or 4)
-                    measure_amount = int(bg.get('measure_amount', 1) or 1)
-                    beat_grouping = list(bg.get('beat_grouping', []) or [])
-                    indicator_enabled = bool(bg.get('indicator_enabled', True))
-                except Exception:
-                    traceback.print_exc()
-                    continue
+                numerator = int(bg.get('numerator', 4) or 4)
+                denominator = int(bg.get('denominator', 4) or 4)
+                measure_amount = int(bg.get('measure_amount', 1) or 1)
+                beat_grouping = list(bg.get('beat_grouping', []) or [])
+                indicator_enabled = bool(bg.get('indicator_enabled', True))
                 if measure_amount <= 0:
                     continue
                 measure_len = float(numerator) * (4.0 / float(max(1, denominator))) * float(QUARTER_NOTE_UNIT)
                 beat_len = measure_len / max(1, int(numerator))
-                if op_time.ge(float(time_cursor), float(line['time_start'])) and op_time.lt(float(time_cursor), float(line['time_end'])):
+                if op_time.ge(float(time_cursor), float(line['time_start'])) and op_time.lt(float(time_cursor), float(line['time_end'])) and indicator_enabled:
                     y_ts = _time_to_y(float(time_cursor))
                     if indicator_type == 'classical':
                         _draw_classical_ts(numerator, denominator, indicator_enabled, y_ts)
@@ -1155,20 +1109,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     dash_pattern=None,
                 )
 
-            # Count line drawing (no handles)
+            # Problem solved: render count lines as lightweight guides.
             if bool(layout.get('countline_visible', True)) and count_lines:
                 dash_pattern = list(layout.get('countline_dash_pattern', []) or [])
                 if dash_pattern:
                     dash_pattern = [float(v) * scale for v in dash_pattern]
                 countline_w = float(layout.get('countline_thickness_mm', 0.5) or 0.5) * scale
                 for ev in count_lines:
-                    try:
-                        t0 = float(ev.get('time', 0.0) or 0.0)
-                        p1 = int(ev.get('pitch1', 40) or 40)
-                        p2 = int(ev.get('pitch2', 44) or 44)
-                    except Exception:
-                        traceback.print_exc()
-                        continue
+                    t0 = float(ev.get('time', 0.0) or 0.0)
+                    p1 = int(ev.get('pitch1', 40) or 40)
+                    p2 = int(ev.get('pitch2', 44) or 44)
                     if op_time.lt(t0, float(line['time_start'])) or op_time.gt(t0, float(line['time_end'])):
                         continue
                     x1 = _key_to_x(p1)
@@ -1188,6 +1138,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['count_line'],
                     )
 
+            # Problem solved: pre-filter notes once per line for later passes.
             line_notes: list[dict] = []
             for item in norm_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
@@ -1210,11 +1161,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             line_end = float(line.get('time_end', 0.0) or 0.0)
 
             def _is_line_continuation(note_dict: dict) -> bool:
-                try:
-                    start_t = float(note_dict.get('time', 0.0) or 0.0)
-                    end_t = float(note_dict.get('end', 0.0) or 0.0)
-                except Exception:
-                    return False
+                # Problem solved: avoid redrawing heads/stems when a note ties
+                # across a line break; only continuation dots should appear.
+                start_t = float(note_dict.get('time', 0.0) or 0.0)
+                end_t = float(note_dict.get('end', 0.0) or 0.0)
                 return op_time.gt(float(line_start), start_t) and op_time.gt(end_t, float(line_start))
             
             for hand_norm in ('r', 'l'):
@@ -1223,7 +1173,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 groups, windows = _group_by_beam_markers(notes_for_hand, markers_for_hand, line_start, line_end)
                 beam_groups_by_hand[hand_norm] = (groups, windows)
 
-            # Measure numbering with collision avoidance
+            # Problem solved: measure numbers must avoid colliding with notes/beams.
             mn_family, mn_size, mn_bold, mn_italic = _layout_font('measure_numbering_font', 'C059', 10.0)
             size_pt = mn_size * scale
             mm_per_pt = 25.4 / 72.0
@@ -1379,7 +1329,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 else:
                     width_mm = max(stave_two_w, semitone_mm / 10.0)
                     dash = None
-                _log(f"Drawing line key={key} x={x_pos:.2f}mm w={width_mm:.2f}mm")
                 du.add_line(x_pos, y1, x_pos, y2, color=(0, 0, 0, 1), width_mm=width_mm, dash_pattern=dash, id=0, tags=['stave'])
 
             # ---- Beam drawing per line ----
@@ -1460,6 +1409,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             line_start = float(line.get('time_start', 0.0) or 0.0)
             line_end = float(line.get('time_end', 0.0) or 0.0)
+            # Problem solved: render notes after grid, using precomputed positions.
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)
                 n_end = float(item.get('end', 0.0) or 0.0)
@@ -1475,7 +1425,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 note_y = y_start
                 if p in BLACK_KEYS and str(layout.get('black_note_rule', 'below_stem')) == 'above_stem':
                     note_y = y_start - (w * 2.0)
-                # Draw midi-note body
+                # Problem solved: draw the note body with per-hand colors or overrides.
                 raw_color = n.get('midinote_color', None)
                 if raw_color in (None, ''):
                     raw_color = n.get('hand', '<')
@@ -1538,7 +1488,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             tags=['barline_white_space'],
                         )
 
-                # Draw notehead
+                # Problem solved: avoid duplicated heads on continuations.
                 if not continues_from_prev_line and bool(layout.get('note_head_visible', True)):
                     outline_w = float(layout.get('note_stem_thickness_mm', 0.5) or 0.5) * scale
                     if p in BLACK_KEYS:
@@ -1566,7 +1516,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             tags=['notehead_white'],
                         )
 
-                # Draw stem
+                # Problem solved: attach stems only to non-continuation heads.
                 if not continues_from_prev_line and bool(layout.get('note_stem_visible', True)):
                     stem_len_units = float(layout.get('note_stem_length_semitone', 3) or 3)
                     stem_len = stem_len_units * semitone_mm
@@ -1583,7 +1533,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['stem'],
                     )
 
-                # Draw left-hand dot
+                # Problem solved: left-hand dot uses inverse fill on black keys.
                 if (not continues_from_prev_line) and bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
                     w2 = w * 2.0
                     dot_d = w2 * 0.35
@@ -1600,7 +1550,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['left_dot'],
                     )
 
-                # Draw ledger lines when manual range trims the stave
+                # Problem solved: show ledger lines only when manual ranges
+                # would otherwise hide them.
                 if manual_range:
                     ledger_groups: list[dict] = []
                     if p < bound_left:
@@ -1648,7 +1599,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                                     tags=['stave'],
                                 )
 
-                # Draw note continuation dots (same rules as editor; uses scaled semitone size).
+                # Problem solved: continuation dots indicate overlapped starts/ends
+                # and line crossings for the same hand.
                 dot_times: list[float] = []
                 for m in line_notes:
                     if int(m.get('idx', -1) or -1) == int(item.get('idx', -2) or -2):
@@ -1684,7 +1636,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             tags=['left_dot'],
                         )
 
-                # Draw chord connect stem
+                # Problem solved: draw a horizontal connector for same-time chords.
                 same_time = [
                     m
                     for m in line_notes
@@ -1709,7 +1661,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             tags=['chord_connect'],
                         )
 
-                # Draw stop sign if followed by rest
+                # Problem solved: stop sign marks a rest gap after a note.
                 if _has_followed_rest(item):
                     w_stop = w * 1.8
                     points = [
@@ -1729,23 +1681,18 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
 
     # Ensure a valid current page index
-    try:
-        if du.page_count() > 0:
-            du.set_current_page(0)
-    except Exception:
-        traceback.print_exc()
+    if du.page_count() > 0:
+        du.set_current_page(0)
 
 
 def _engrave_worker(score: dict, request_id: int, out_queue) -> None:
+    """Worker entry point to build DrawUtil in a separate process.
+
+    Problem solved: isolate heavy engraving work from the UI thread.
+    """
     local_du = DrawUtil()
-    try:
-        do_engrave(score, local_du)
-    except Exception:
-        traceback.print_exc()
-    try:
-        out_queue.put((int(request_id), local_du))
-    except Exception:
-        traceback.print_exc()
+    do_engrave(score, local_du)
+    out_queue.put((int(request_id), local_du))
 
 
 class Engraver(QtCore.QObject):
@@ -1780,6 +1727,10 @@ class Engraver(QtCore.QObject):
         self._delay_timer.timeout.connect(self._maybe_start_pending)
 
     def engrave(self, score: dict) -> None:
+        """Request an engraving; coalesce to the most recent request.
+
+        Problem solved: avoid a backlog of obsolete renders during edits.
+        """
         self._latest_request_id += 1
         req_id = int(self._latest_request_id)
         # If currently running, just replace the pending request
@@ -1792,6 +1743,11 @@ class Engraver(QtCore.QObject):
         self._maybe_start_pending()
 
     def _maybe_start_pending(self) -> None:
+        """Start a pending request if throttling allows it.
+
+        Problem solved: rate-limit engraving so rapid edits do not spawn too
+        many processes.
+        """
         if self._running:
             return
         if self._pending_score is None:
@@ -1813,14 +1769,15 @@ class Engraver(QtCore.QObject):
         self._delay_timer.start(delay_ms)
 
     def _start_task(self, score: dict, request_id: int) -> None:
+        """Start a new process to engrave the given score.
+
+        Problem solved: terminate stale workers before launching a new one.
+        """
         self._running = True
         self._last_start_ms = int(self._elapsed.elapsed())
         if self._proc is not None:
-            try:
-                if self._proc.is_alive():
-                    self._proc.terminate()
-            except Exception:
-                pass
+            if self._proc.is_alive():
+                self._proc.terminate()
         self._proc = self._mp_ctx.Process(
             target=_engrave_worker,
             args=(score, request_id, self._result_queue),
@@ -1831,6 +1788,11 @@ class Engraver(QtCore.QObject):
             self._poll_timer.start()
 
     def _poll_results(self) -> None:
+        """Drain worker results and advance the queue.
+
+        Problem solved: process can exit without a result; this keeps the
+        state machine moving and restarts pending work.
+        """
         got_result = False
         while True:
             try:
@@ -1841,37 +1803,26 @@ class Engraver(QtCore.QObject):
             self._on_finished(req_id, result_du)
 
         if self._proc is not None and not self._proc.is_alive():
-            try:
-                self._proc.join(timeout=0)
-            except Exception:
-                pass
+            self._proc.join(timeout=0)
             self._proc = None
             if self._running and not got_result:
                 self._running = False
                 if self._pending_score is not None:
                     self._maybe_start_pending()
             if not self._running:
-                try:
-                    self._poll_timer.stop()
-                except Exception:
-                    pass
+                self._poll_timer.stop()
 
     def shutdown(self) -> None:
-        try:
-            if self._poll_timer.isActive():
-                self._poll_timer.stop()
-        except Exception:
-            pass
+        """Stop timers and terminate the worker process if it is still running.
+
+        Problem solved: prevent orphan processes on app shutdown.
+        """
+        if self._poll_timer.isActive():
+            self._poll_timer.stop()
         if self._proc is not None:
-            try:
-                if self._proc.is_alive():
-                    self._proc.terminate()
-            except Exception:
-                pass
-            try:
-                self._proc.join(timeout=0.1)
-            except Exception:
-                pass
+            if self._proc.is_alive():
+                self._proc.terminate()
+            self._proc.join(timeout=0.1)
             self._proc = None
 
     @QtCore.Slot(int, object)
@@ -1883,13 +1834,7 @@ class Engraver(QtCore.QObject):
             self._maybe_start_pending()
             return
         # No pending: notify listeners (e.g., to request render)
-        try:
-            if int(request_id) == int(self._latest_request_id):
-                try:
-                    self._du._pages = list(result_du._pages)
-                    self._du._current_index = int(result_du._current_index)
-                except Exception:
-                    pass
-                self.engraved.emit()
-        except Exception:
-            traceback.print_exc()
+        if int(request_id) == int(self._latest_request_id):
+            self._du._pages = list(result_du._pages)
+            self._du._current_index = int(result_du._current_index)
+            self.engraved.emit()
