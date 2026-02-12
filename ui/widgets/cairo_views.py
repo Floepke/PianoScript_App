@@ -492,25 +492,33 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 pass
             if key in (QtCore.Qt.Key_BracketLeft, QtCore.Qt.Key_BracketRight):
                 try:
-                    tool_name = str(getattr(getattr(self._editor, '_tool', None), 'TOOL_NAME', '') or '')
-                    if tool_name == 'note':
-                        hand = '<' if key == QtCore.Qt.Key_BracketLeft else '>'
-                        if self._editor.set_selected_notes_hand(hand):
-                            # Force full redraw (not overlay-only) so note styling updates immediately
-                            self._content_cache_image = None
-                            self._content_cache_key = None
-                            self.update()
+                    hand = '<' if key == QtCore.Qt.Key_BracketLeft else '>'
+                    if self._editor.set_selected_notes_hand(hand):
+                        # Force full redraw (not overlay-only) so note styling updates immediately
+                        self._content_cache_image = None
+                        self._content_cache_key = None
+                        self.update()
                         ev.accept()
                         return
                 except Exception:
                     pass
             if key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
                 try:
-                    tool_name = str(getattr(getattr(self._editor, '_tool', None), 'TOOL_NAME', '') or '')
-                    if tool_name == 'note':
-                        delta = -1 if key == QtCore.Qt.Key_Left else 1
-                        if self._editor.transpose_selected_notes(delta):
-                            self.update()
+                    delta = -1 if key == QtCore.Qt.Key_Left else 1
+                    if self._editor.transpose_selected_notes(delta):
+                        self.update()
+                        ev.accept()
+                        return
+                except Exception:
+                    pass
+            if key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
+                try:
+                    units = float(getattr(self._editor, 'snap_size_units', 0.0) or 0.0)
+                    if units <= 0.0:
+                        units = 1.0
+                    delta = -units if key == QtCore.Qt.Key_Up else units
+                    if self._editor.shift_selected_notes_time(delta):
+                        self.update()
                         ev.accept()
                         return
                 except Exception:

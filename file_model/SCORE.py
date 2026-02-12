@@ -586,5 +586,78 @@ class SCORE:
 			self.events.line_break.sort(key=lambda lb: float(getattr(lb, 'time', 0.0) or 0.0))
 		except Exception:
 			pass
+
+	def apply_quick_line_breaks(self, groups: List[int]) -> bool:
+		"""Distribute line breaks in repeating measure groups across the score.
+
+		- Uses existing line break margin/stave_range as a template when available.
+		- Always inserts a line break at time 0, then repeats the provided group sizes.
+		"""
+		try:
+			group_list = [int(g) for g in groups if int(g) > 0]
+		except Exception:
+			group_list = []
+		if not group_list:
+			return False
+
+		# Build absolute measure start times from the base grid
+		starts: List[float] = [0.0]
+		cursor = 0.0
+		for bg in list(getattr(self, 'base_grid', []) or []):
+			try:
+				numer = int(getattr(bg, 'numerator', 4) or 4)
+				denom = int(getattr(bg, 'denominator', 4) or 4)
+				measures = int(getattr(bg, 'measure_amount', 1) or 1)
+			except Exception:
+				continue
+			if measures <= 0:
+				continue
+			measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+			for _ in range(measures):
+				cursor += measure_len
+				starts.append(float(cursor))
+		if len(starts) < 2:
+			return False
+
+		# Preserve styling from the first existing line break if present
+		try:
+			existing = list(getattr(self.events, 'line_break', []) or [])
+		except Exception:
+			existing = []
+		template = existing[0] if existing else None
+		defaults = LineBreak()
+		margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
+		templ_range = getattr(template, 'stave_range', defaults.stave_range) if template else defaults.stave_range
+		if templ_range == 'auto' or templ_range is True:
+			stave_range = 'auto'
+		else:
+			fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
+			stave_range = list(templ_range or fallback)
+
+		# Clear and rebuild line breaks following the requested grouping
+		self.events.line_break = []
+		total_measures = len(starts) - 1
+		index = 0
+		group_idx = 0
+		last_group = int(group_list[-1])
+		while index < total_measures:
+			if index == 0:
+				self.new_line_break(time=0.0, margin_mm=margin_mm, stave_range=stave_range, page_break=False)
+			else:
+				self.new_line_break(time=float(starts[index]), margin_mm=margin_mm, stave_range=stave_range, page_break=False)
+			if group_idx < len(group_list):
+				group_len = int(group_list[group_idx])
+				group_idx += 1
+			else:
+				group_len = last_group
+			if group_len <= 0:
+				break
+			index += group_len
+
+		try:
+			self.events.line_break.sort(key=lambda lb: float(getattr(lb, 'time', 0.0) or 0.0))
+		except Exception:
+			pass
+		return True
 	
 	# ---- Convenience methods ----

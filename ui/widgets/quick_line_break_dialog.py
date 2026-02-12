@@ -7,7 +7,7 @@ from PySide6 import QtCore, QtWidgets
 class QuickLineBreaksDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, initial_text: str = "") -> None:
         super().__init__(parent)
-        self.setWindowTitle("Set Quick Line Breaks Tool")
+        self.setWindowTitle("Line Break Grouping Tool")
         self.setModal(True)
         self.setWindowModality(QtCore.Qt.NonModal)
 

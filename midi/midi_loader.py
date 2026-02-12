@@ -140,6 +140,12 @@ def midi_load(path: str) -> SCORE:
     # Apply
     score.base_grid = base_grid_list
 
+    # Distribute initial line breaks in groups of six measures across the import
+    try:
+        score.apply_quick_line_breaks([6])
+    except Exception:
+        pass
+
     return score
 
 

@@ -87,7 +87,7 @@ class LineBreakDialog(QtWidgets.QDialog):
         quick_row = QtWidgets.QHBoxLayout()
         quick_row.setContentsMargins(0, 0, 0, 0)
         quick_row.setSpacing(6)
-        self.apply_quick_btn = QtWidgets.QPushButton("Apply Measure Grouping for each Line", self)
+        self.apply_quick_btn = QtWidgets.QPushButton("Line Break Grouping Tool", self)
         self.apply_quick_btn.clicked.connect(self._on_apply_quick_clicked)
         quick_row.addWidget(self.apply_quick_btn)
         quick_row.addStretch(1)

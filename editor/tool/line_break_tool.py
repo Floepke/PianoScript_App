@@ -19,7 +19,7 @@ class LineBreakTool(BaseTool):
 
     def toolbar_spec(self) -> list[dict]:
         return [
-            {'name': 'quick_line_breaks', 'icon': 'line_break', 'tooltip': 'Set Quick Line Breaks Tool'},
+            {'name': 'quick_line_breaks', 'icon': 'line_break', 'tooltip': 'Open Line Break Editor'},
         ]
 
     def on_toolbar_button(self, name: str) -> None:
@@ -76,46 +76,10 @@ class LineBreakTool(BaseTool):
         if self._editor is None:
             return False
         score = self._editor.current_score()
-        if not groups:
+        if score is None:
             return False
-        starts = self._build_measure_starts()
-        if len(starts) < 2:
+        if not score.apply_quick_line_breaks(groups):
             return False
-
-        total_measures = len(starts) - 1
-        index = 0
-        group_idx = 0
-        last_group = int(groups[-1])
-
-        defaults = LineBreak()
-        template = None
-        try:
-            template = list(getattr(score.events, 'line_break', []) or [None])[0]
-        except Exception:
-            template = None
-        margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
-        templ_range = getattr(template, 'stave_range', defaults.stave_range) if template else defaults.stave_range
-        if templ_range == 'auto' or templ_range is True:
-            stave_range = 'auto'
-        else:
-            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-            stave_range = list(templ_range or fallback)
-
-        score.events.line_break = []
-        while index < total_measures:
-            if index == 0:
-                score.new_line_break(time=0.0, margin_mm=margin_mm, stave_range=stave_range, page_break=False)
-            else:
-                score.new_line_break(time=float(starts[index]), margin_mm=margin_mm, stave_range=stave_range, page_break=False)
-            if group_idx < len(groups):
-                group_len = int(groups[group_idx])
-                group_idx += 1
-            else:
-                group_len = int(last_group)
-            if group_len <= 0:
-                break
-            index += group_len
-
         self._sort_line_breaks()
         try:
             self._editor._snapshot_if_changed(coalesce=False, label='line_break_quick_set')

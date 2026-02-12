@@ -176,6 +176,7 @@ class Editor(QtCore.QObject,
             self._transpose_timer.timeout.connect(self._finalize_transpose_snapshot)
         except Exception:
             pass
+        self._pending_snapshot_label: str = 'transpose_notes'
 
         # Per-frame shared render cache (built at draw_all)
         self._draw_cache: dict | None = None
@@ -314,22 +315,25 @@ class Editor(QtCore.QObject,
         except Exception:
             pass
 
-    def _queue_transpose_snapshot(self, delay_ms: int = 200) -> None:
+    def _queue_transpose_snapshot(self, delay_ms: int = 200, label: str = 'transpose_notes') -> None:
         """Debounce transpose snapshots to avoid heavy work on every keypress."""
         try:
             if self._transpose_timer.isActive():
                 self._transpose_timer.stop()
+            self._pending_snapshot_label = str(label or 'transpose_notes')
             self._transpose_timer.start(int(max(1, delay_ms)))
         except Exception:
             # Fallback: snapshot immediately if timer is unavailable
             try:
+                self._pending_snapshot_label = str(label or 'transpose_notes')
                 self._finalize_transpose_snapshot()
             except Exception:
                 pass
 
     def _finalize_transpose_snapshot(self) -> None:
         try:
-            self._snapshot_if_changed(coalesce=True, label='transpose_notes')
+            label = getattr(self, '_pending_snapshot_label', 'transpose_notes')
+            self._snapshot_if_changed(coalesce=True, label=str(label or 'transpose_notes'))
         except Exception:
             pass
 
@@ -1351,6 +1355,65 @@ class Editor(QtCore.QObject,
         except Exception:
             pass
         self._queue_transpose_snapshot()
+        return True
+
+    def shift_selected_notes_time(self, delta_units: float) -> bool:
+        """Shift selected notes in time by `delta_units` ticks and move the selection window."""
+        score: SCORE | None = self.current_score()
+        if score is None or not self._selection_active:
+            return False
+        try:
+            delta = float(delta_units)
+        except Exception:
+            return False
+        if abs(delta) < 1e-9:
+            return False
+        sel = self.detect_events_from_time_window(self._sel_start_units, self._sel_end_units - 0.1)
+        notes = sel.get('note', []) if isinstance(sel, dict) else []
+        if not notes:
+            return False
+        try:
+            min_time = min(float(getattr(n, 'time', 0.0) or 0.0) for n in notes)
+        except Exception:
+            min_time = 0.0
+        delta_clamped = delta
+        if delta < 0.0:
+            # Prevent shifting before time zero
+            limit = min_time + delta
+            if limit < 0.0:
+                delta_clamped = -min_time
+        if abs(delta_clamped) < 1e-9:
+            return False
+        updated = False
+        for n in notes:
+            try:
+                t = float(getattr(n, 'time', 0.0) or 0.0)
+                new_t = max(0.0, t + delta_clamped)
+                if not math.isclose(new_t, t):
+                    setattr(n, 'time', new_t)
+                    updated = True
+            except Exception:
+                continue
+        if not updated:
+            return False
+        try:
+            self._sel_start_units = max(0.0, float(self._sel_start_units) + delta_clamped)
+            self._sel_end_units = max(0.0, float(self._sel_end_units) + delta_clamped)
+            self._sel_anchor_units = max(0.0, float(self._sel_anchor_units) + delta_clamped)
+        except Exception:
+            pass
+        try:
+            self.update_score_length()
+        except Exception:
+            pass
+        self._reuse_draw_cache_once = True
+        try:
+            w = getattr(self, 'widget', None)
+            if w is not None and hasattr(w, 'force_full_redraw'):
+                w.force_full_redraw()
+        except Exception:
+            pass
+        self._queue_transpose_snapshot(label='shift_selected_notes_time')
         return True
 
     def set_selected_notes_hand(self, hand: str) -> bool:
