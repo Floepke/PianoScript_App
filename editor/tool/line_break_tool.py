@@ -24,7 +24,7 @@ class LineBreakTool(BaseTool):
 
     def on_toolbar_button(self, name: str) -> None:
         if name == 'quick_line_breaks':
-            self._open_quick_line_breaks_dialog()
+            self._open_line_break_dialog(None)
             return
 
     def _time_tol_ticks(self, tol_mm: float = 5.0) -> float:
@@ -127,7 +127,7 @@ class LineBreakTool(BaseTool):
             self._editor.draw_frame()
         return True
 
-    def _open_quick_line_breaks_dialog(self) -> None:
+    def _open_quick_line_breaks_dialog(self, on_applied=None) -> None:
         if self._editor is None:
             return
         from ui.widgets.quick_line_break_dialog import QuickLineBreaksDialog
@@ -139,6 +139,8 @@ class LineBreakTool(BaseTool):
                 return
             groups = dlg.get_values()
             self._apply_quick_line_breaks(groups)
+            if callable(on_applied):
+                on_applied()
 
         dlg.finished.connect(_finalize_dialog)
         dlg.show()
@@ -199,8 +201,8 @@ class LineBreakTool(BaseTool):
             except Exception:
                 w_mm, h_mm = (6.0, 6.0)
             rect_w = max(6.0, float(w_mm) + 4.0)
-            rect_x2 = float(page_w_mm)
-            rect_x1 = rect_x2 - rect_w
+            rect_x1 = 0.0
+            rect_x2 = rect_x1 + rect_w
             if rect_x1 <= x_mm <= rect_x2:
                 dt = abs(click_time - t0)
                 if best is None or dt < best_dt:
@@ -275,7 +277,7 @@ class LineBreakTool(BaseTool):
         except Exception:
             pass
 
-    def _open_line_break_dialog(self, lb: LineBreak) -> None:
+    def _open_line_break_dialog(self, lb: LineBreak | None) -> None:
         if self._editor is None:
             return
         if self._dialog_open:
@@ -284,31 +286,20 @@ class LineBreakTool(BaseTool):
         from ui.widgets.line_break_dialog import LineBreakDialog
         parent_w = QtWidgets.QApplication.activeWindow() if hasattr(QtWidgets, 'QApplication') else None
         defaults = LineBreak()
-        lb_range = getattr(lb, 'stave_range', defaults.stave_range)
-        if lb_range == 'auto' or lb_range is True:
-            dialog_range = 'auto'
-        else:
-            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-            dialog_range = list(lb_range or fallback)
+        score = self._editor.current_score()
+        line_breaks = list(getattr(score.events, 'line_break', []) or []) if score is not None else []
         dlg = LineBreakDialog(
             parent=parent_w,
-            margin_mm=list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm),
-            stave_range=dialog_range,
-            page_break=bool(getattr(lb, 'page_break', False)),
+            line_breaks=line_breaks,
+            selected_line_break=lb,
+            apply_quick_cb=self._open_quick_line_breaks_dialog,
+            reload_cb=lambda: list(getattr(score.events, 'line_break', []) or []) if score is not None else [],
+            margin_mm=list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if lb is not None else None,
+            stave_range=getattr(lb, 'stave_range', defaults.stave_range) if lb is not None else None,
+            page_break=bool(getattr(lb, 'page_break', False)) if lb is not None else False,
         )
 
-        original_margin = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
-        original_range = dialog_range
-        original_page_break = bool(getattr(lb, 'page_break', False))
-
         def _apply_dialog_values() -> None:
-            try:
-                margin_mm, stave_range, page_break = dlg.get_values()
-            except Exception:
-                return
-            lb.margin_mm = list(margin_mm)
-            lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
-            lb.page_break = bool(page_break)
             if hasattr(self._editor, 'force_redraw_from_model'):
                 self._editor.force_redraw_from_model()
             else:
@@ -327,9 +318,7 @@ class LineBreakTool(BaseTool):
                     else:
                         self._editor.draw_frame()
                 else:
-                    lb.margin_mm = list(original_margin)
-                    lb.stave_range = 'auto' if original_range == 'auto' else list(original_range)
-                    lb.page_break = bool(original_page_break)
+                    dlg.restore_original_state()
                     if hasattr(self._editor, 'force_redraw_from_model'):
                         self._editor.force_redraw_from_model()
                     else:

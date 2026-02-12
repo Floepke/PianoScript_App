@@ -1,73 +1,6 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Literal
+from typing import Callable, Optional, Tuple, Literal
 from PySide6 import QtCore, QtGui, QtWidgets
-
-from ui.widgets.style_dialog import ClickSlider
-
-
-class LimitedSliderEdit(QtWidgets.QWidget):
-    valueChanged = QtCore.Signal(float)
-
-    def __init__(self, value: float, min_value: float, max_value: float, step: float, parent=None) -> None:
-        super().__init__(parent)
-        self._min = float(min_value)
-        self._max = float(max_value)
-        self._step = float(step)
-        self._value = float(value)
-        self._slider = ClickSlider(QtCore.Qt.Orientation.Horizontal, self)
-        self._edit = QtWidgets.QLineEdit(self)
-        self._edit.setMinimumWidth(70)
-        self._edit.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-        self._edit.setValidator(QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9.]+"), self))
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        layout.addWidget(self._slider, 1)
-        layout.addWidget(self._edit, 0)
-        self._apply_range()
-        self.set_value(value)
-        self._slider.valueChanged.connect(self._on_slider_changed)
-        self._edit.editingFinished.connect(self._on_edit_finished)
-
-    def _apply_range(self) -> None:
-        steps = max(1, int(round((self._max - self._min) / max(1e-6, self._step))))
-        self._slider.setRange(0, steps)
-        self._slider.setSingleStep(1)
-        self._slider.setPageStep(max(1, int(round(steps / 10.0))))
-
-    def _slider_to_value(self, sv: int) -> float:
-        return self._min + float(sv) * self._step
-
-    def _value_to_slider(self, val: float) -> int:
-        return int(round((val - self._min) / self._step))
-
-    def set_value(self, value: float) -> None:
-        val = max(self._min, float(value))
-        self._value = val
-        slider_val = min(self._max, val)
-        self._slider.blockSignals(True)
-        self._slider.setValue(self._value_to_slider(slider_val))
-        self._slider.blockSignals(False)
-        self._edit.setText(f"{val:.2f}")
-
-    def value(self) -> float:
-        return float(self._value)
-
-    def _on_slider_changed(self, _v: int) -> None:
-        val = self._slider_to_value(self._slider.value())
-        self._value = val
-        self._edit.setText(f"{val:.2f}")
-        self.valueChanged.emit(val)
-
-    def _on_edit_finished(self) -> None:
-        text = self._edit.text().strip()
-        try:
-            val = float(text)
-        except Exception:
-            val = self._value
-        val = max(self._min, val)
-        self.set_value(val)
-        self.valueChanged.emit(val)
 
 from file_model.events.line_break import LineBreak
 
@@ -76,6 +9,10 @@ class LineBreakDialog(QtWidgets.QDialog):
     valuesChanged = QtCore.Signal()
     def __init__(self,
                  parent=None,
+                 line_breaks: Optional[list[LineBreak]] = None,
+                 selected_line_break: Optional[LineBreak] = None,
+                 apply_quick_cb: Optional[Callable[..., None]] = None,
+                 reload_cb: Optional[Callable[[], list[LineBreak]]] = None,
                  margin_mm: Optional[list[float]] = None,
                  stave_range: Optional[list[int] | Literal['auto'] | bool] = None,
                  page_break: bool = False) -> None:
@@ -88,64 +25,41 @@ class LineBreakDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
-        # Page break toggle
-        self.page_break_cb = QtWidgets.QCheckBox("Is Page Break", self)
-        self.page_break_cb.toggled.connect(self._sync_page_break_indicator)
-        self.page_break_cb.toggled.connect(lambda _v: self.valuesChanged.emit())
+        self._line_breaks: list[LineBreak] = list(line_breaks or [])
+        self._selected_line_break: Optional[LineBreak] = selected_line_break
+        self._apply_quick_cb = apply_quick_cb
+        self._reload_cb = reload_cb
+        self._original_state: dict[int, tuple[list[float], list[int] | Literal['auto'], bool]] = {}
 
-        form = QtWidgets.QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setSpacing(6)
+        list_label = QtWidgets.QLabel("Line breaks:", self)
+        self.break_table = QtWidgets.QTableWidget(self)
+        self.break_table.setColumnCount(4)
+        self.break_table.setHorizontalHeaderLabels([
+            " Type ",
+            " Left margin " ,
+            " Right margin ",
+            " Key range ",
+        ])
+        self.break_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.break_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.break_table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.break_table.verticalHeader().setVisible(False)
+        self.break_table.horizontalHeader().setStretchLastSection(True)
+        self.break_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.break_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.break_table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.break_table.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        lay.addWidget(list_label)
+        lay.addWidget(self.break_table)
 
-        self.margin_left = LimitedSliderEdit(0.0, 0.0, 50.0, 0.1, self)
-        self.margin_right = LimitedSliderEdit(0.0, 0.0, 50.0, 0.1, self)
-        form.addRow(QtWidgets.QLabel("Stave Margin Left:", self), self.margin_left)
-        form.addRow(QtWidgets.QLabel("Stave Margin Right:", self), self.margin_right)
-
-        self.auto_range_cb = QtWidgets.QCheckBox("Auto Calculate Stave Width", self)
-        self.auto_range_cb.toggled.connect(self._sync_range_enabled)
-        self.auto_range_cb.toggled.connect(lambda _v: self.valuesChanged.emit())
-
-        form.addRow(self.auto_range_cb)
-
-        self.range_low_label = QtWidgets.QLabel("Stave range from key:", self)
-        self.range_high_label = QtWidgets.QLabel("Stave range to key:", self)
-        self.range_low = QtWidgets.QSpinBox(self)
-        self.range_high = QtWidgets.QSpinBox(self)
-        self.range_low.setRange(1, 88)
-        self.range_high.setRange(1, 88)
-        self.range_low.valueChanged.connect(lambda _v: self.valuesChanged.emit())
-        self.range_high.valueChanged.connect(lambda _v: self.valuesChanged.emit())
-        form.addRow(self.range_low_label, self.range_low)
-        form.addRow(self.range_high_label, self.range_high)
-
-        options_row = QtWidgets.QHBoxLayout()
-        options_row.setContentsMargins(0, 0, 0, 0)
-        options_row.setSpacing(6)
-        options_col = QtWidgets.QVBoxLayout()
-        options_col.setContentsMargins(0, 0, 0, 0)
-        options_col.setSpacing(4)
-        options_col.addWidget(self.page_break_cb)
-        options_row.addLayout(options_col)
-        options_row.addStretch(1)
-        self.break_marker = QtWidgets.QLabel("L", self)
-        try:
-            from fonts import register_font_from_bytes
-            marker_family = register_font_from_bytes('C059') or 'C059'
-        except Exception:
-            marker_family = 'C059'
-        marker_font = self.break_marker.font()
-        marker_font.setFamily(marker_family)
-        marker_font.setPointSize(18)
-        marker_font.setBold(True)
-        self.break_marker.setFont(marker_font)
-        self.break_marker.setFixedSize(22, 22)
-        self.break_marker.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.break_marker.setStyleSheet("QLabel { background: #000000; color: #ffffff; border-radius: 0px; }")
-        options_row.addWidget(self.break_marker)
-        lay.addLayout(options_row)
-
-        lay.addLayout(form)
+        quick_row = QtWidgets.QHBoxLayout()
+        quick_row.setContentsMargins(0, 0, 0, 0)
+        quick_row.setSpacing(6)
+        self.apply_quick_btn = QtWidgets.QPushButton("Apply Measure Grouping for each Line", self)
+        self.apply_quick_btn.clicked.connect(self._on_apply_quick_clicked)
+        quick_row.addWidget(self.apply_quick_btn)
+        quick_row.addStretch(1)
+        lay.addLayout(quick_row)
 
         # Validation message
         self.msg_label = QtWidgets.QLabel("", self)
@@ -161,75 +75,238 @@ class LineBreakDialog(QtWidgets.QDialog):
         lay.addWidget(self.btns)
 
         # Initialize
-        defaults = LineBreak()
-        default_range = list(defaults.stave_range) if isinstance(defaults.stave_range, list) else [40, 44]
-        m = margin_mm if margin_mm is not None else list(defaults.margin_mm)
-        is_auto = bool(stave_range == 'auto' or stave_range is True)
-        r = [] if is_auto else (stave_range if isinstance(stave_range, list) else list(default_range))
-        self.margin_left.set_value(float(m[0] if len(m) > 0 else defaults.margin_mm[0]))
-        self.margin_right.set_value(float(m[1] if len(m) > 1 else defaults.margin_mm[1]))
-        self.range_low.setValue(int(r[0] if len(r) > 0 else default_range[0]))
-        self.range_high.setValue(int(r[1] if len(r) > 1 else default_range[1]))
-        self.auto_range_cb.setChecked(is_auto)
-        self._sync_range_enabled()
-        self.page_break_cb.setChecked(bool(page_break))
-        self._sync_page_break_indicator()
+        self._populate_break_list()
+        if self._selected_line_break is None and self._line_breaks:
+            self._selected_line_break = self._line_breaks[0]
+        self._select_line_break(self._selected_line_break)
+        self._capture_original_state()
 
-        self.margin_left.valueChanged.connect(lambda _v: self.valuesChanged.emit())
-        self.margin_right.valueChanged.connect(lambda _v: self.valuesChanged.emit())
+        self.break_table.currentCellChanged.connect(lambda _r, _c, _pr, _pc: self._on_break_selected())
 
         QtCore.QTimer.singleShot(0, self._focus_first)
 
     def _focus_first(self) -> None:
         try:
-            if hasattr(self.margin_left, "_edit"):
-                self.margin_left._edit.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
-                self.margin_left._edit.selectAll()
-            else:
-                self.margin_left.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+            self.break_table.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
         except Exception:
             pass
 
-    def _parse_float(self, text: str) -> Optional[float]:
+    def _create_type_badge(self, is_page: bool) -> QtWidgets.QToolButton:
+        btn = QtWidgets.QToolButton(self)
+        btn.setText("P" if is_page else "L")
+        btn.setAutoRaise(True)
+        btn.setFixedSize(22, 22)
         try:
-            return float(text.strip())
+            from fonts import register_font_from_bytes
+            marker_family = register_font_from_bytes('C059') or 'C059'
         except Exception:
-            return None
+            marker_family = 'C059'
+        marker_font = btn.font()
+        marker_font.setFamily(marker_family)
+        marker_font.setPointSize(18)
+        marker_font.setBold(True)
+        btn.setFont(marker_font)
+        btn.setStyleSheet("QToolButton { background: #000000; color: #ffffff; border-radius: 0px; }")
+        btn.setToolTip("Page" if is_page else "Line")
+        return btn
 
-    def _parse_int(self, text: str) -> Optional[int]:
+    def _create_margin_spin(self, value: float) -> QtWidgets.QDoubleSpinBox:
+        spin = QtWidgets.QDoubleSpinBox(self)
+        spin.setRange(0.0, 200.0)
+        spin.setDecimals(2)
+        spin.setSingleStep(0.5)
+        spin.setValue(float(value))
+        spin.setKeyboardTracking(True)
+        spin.setMinimumWidth(80)
+        return spin
+
+    def _create_range_widget(self, lb: LineBreak) -> QtWidgets.QWidget:
+        defaults = LineBreak()
+        lb_range = getattr(lb, 'stave_range', defaults.stave_range)
+        is_auto = bool(lb_range == 'auto' or lb_range is True)
+        fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
+        rng = list(lb_range or fallback) if not is_auto else [1, 88]
+
+        wrapper = QtWidgets.QWidget(self)
+        layout = QtWidgets.QHBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        auto_label = QtWidgets.QLabel("(automatic range)", wrapper)
+        auto_label.setVisible(is_auto)
+
+        manual_cb = QtWidgets.QCheckBox("Manual", wrapper)
+        manual_cb.setChecked(not is_auto)
+
+        low_spin = QtWidgets.QSpinBox(wrapper)
+        high_spin = QtWidgets.QSpinBox(wrapper)
+        low_spin.setRange(1, 88)
+        high_spin.setRange(1, 88)
+        low_spin.setValue(int(rng[0]))
+        high_spin.setValue(int(rng[1]))
+        low_spin.setVisible(not is_auto)
+        high_spin.setVisible(not is_auto)
+
+        layout.addWidget(manual_cb)
+        layout.addWidget(auto_label)
+        layout.addWidget(low_spin)
+        layout.addWidget(high_spin)
+        layout.addStretch(1)
+
+        def _apply_range_state() -> None:
+            is_manual = bool(manual_cb.isChecked())
+            auto_label.setVisible(not is_manual)
+            low_spin.setVisible(is_manual)
+            high_spin.setVisible(is_manual)
+            if is_manual:
+                lb.stave_range = [int(low_spin.value()), int(high_spin.value())]
+            else:
+                lb.stave_range = 'auto'
+            self.valuesChanged.emit()
+
+        def _range_changed(_v: int) -> None:
+            if manual_cb.isChecked():
+                lb.stave_range = [int(low_spin.value()), int(high_spin.value())]
+                self.valuesChanged.emit()
+
+        manual_cb.toggled.connect(lambda _v: _apply_range_state())
+        low_spin.valueChanged.connect(_range_changed)
+        high_spin.valueChanged.connect(_range_changed)
+
+        return wrapper
+
+    def _populate_break_list(self) -> None:
+        self.break_table.blockSignals(True)
+        self.break_table.setRowCount(0)
+        for lb in self._line_breaks:
+            row = self.break_table.rowCount()
+            self.break_table.insertRow(row)
+            self._set_break_row(row, lb)
+        self.break_table.blockSignals(False)
+
+    def _set_break_row(self, row: int, lb: LineBreak) -> None:
+        type_item = QtWidgets.QTableWidgetItem("")
+        type_item.setData(QtCore.Qt.ItemDataRole.UserRole, lb)
+        self.break_table.setItem(row, 0, type_item)
+
+        defaults = LineBreak()
+        margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+        left_margin = float(margin_mm[0] if len(margin_mm) > 0 else defaults.margin_mm[0])
+        right_margin = float(margin_mm[1] if len(margin_mm) > 1 else defaults.margin_mm[1])
+
+        type_btn = self._create_type_badge(bool(getattr(lb, 'page_break', False)))
+        left_spin = self._create_margin_spin(left_margin)
+        right_spin = self._create_margin_spin(right_margin)
+        range_widget = self._create_range_widget(lb)
+
+        def _toggle_type() -> None:
+            lb.page_break = not bool(getattr(lb, 'page_break', False))
+            type_btn.setText("P" if lb.page_break else "L")
+            type_btn.setToolTip("Page" if lb.page_break else "Line")
+            self.valuesChanged.emit()
+
+        def _left_changed(val: float) -> None:
+            cur = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+            if len(cur) < 2:
+                cur = [float(cur[0]) if cur else 0.0, 0.0]
+            cur[0] = float(val)
+            lb.margin_mm = list(cur)
+            self.valuesChanged.emit()
+
+        def _right_changed(val: float) -> None:
+            cur = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+            if len(cur) < 2:
+                cur = [float(cur[0]) if cur else 0.0, 0.0]
+            cur[1] = float(val)
+            lb.margin_mm = list(cur)
+            self.valuesChanged.emit()
+
+        type_btn.clicked.connect(_toggle_type)
+        left_spin.valueChanged.connect(_left_changed)
+        right_spin.valueChanged.connect(_right_changed)
+
+        self.break_table.setCellWidget(row, 0, type_btn)
+        self.break_table.setCellWidget(row, 1, left_spin)
+        self.break_table.setCellWidget(row, 2, right_spin)
+        self.break_table.setCellWidget(row, 3, range_widget)
+
+    def _select_line_break(self, lb: Optional[LineBreak]) -> None:
+        if lb is None:
+            self.break_table.clearSelection()
+            return
+        for row in range(self.break_table.rowCount()):
+            item = self.break_table.item(row, 0)
+            if item is not None and item.data(QtCore.Qt.ItemDataRole.UserRole) is lb:
+                self.break_table.setCurrentCell(row, 0)
+                return
+
+    def _current_line_break(self) -> Optional[LineBreak]:
+        row = self.break_table.currentRow()
+        if row < 0:
+            return None
+        item = self.break_table.item(row, 0)
+        if item is None:
+            return None
+        return item.data(QtCore.Qt.ItemDataRole.UserRole)
+
+    def _on_break_selected(self) -> None:
+        lb = self._current_line_break()
+        if lb is None:
+            return
+        self._selected_line_break = lb
+
+    def _reload_line_breaks(self) -> None:
+        if self._reload_cb is not None:
+            self._line_breaks = list(self._reload_cb() or [])
+        self._populate_break_list()
+        if self._line_breaks:
+            self._selected_line_break = self._line_breaks[0]
+        else:
+            self._selected_line_break = None
+        self._select_line_break(self._selected_line_break)
+        self._capture_original_state()
+
+    def _on_apply_quick_clicked(self) -> None:
+        if self._apply_quick_cb is None:
+            return
+
+        def _refresh() -> None:
+            self._reload_line_breaks()
+
         try:
-            return int(text.strip())
-        except Exception:
-            return None
+            self._apply_quick_cb(_refresh)
+        except TypeError:
+            self._apply_quick_cb()
+            _refresh()
 
-    def _sync_range_enabled(self) -> None:
-        enabled = not self.auto_range_cb.isChecked()
-        self.range_low.setVisible(enabled)
-        self.range_high.setVisible(enabled)
-        self.range_low_label.setVisible(enabled)
-        self.range_high_label.setVisible(enabled)
+    def _capture_original_state(self) -> None:
+        self._original_state = {}
+        for lb in self._line_breaks:
+            margin_mm, stave_range, page_break = self._values_from_line_break(lb)
+            self._original_state[id(lb)] = (margin_mm, stave_range, page_break)
 
-    def _sync_page_break_indicator(self) -> None:
-        self.break_marker.setText("P" if self.page_break_cb.isChecked() else "L")
+    def _values_from_line_break(self, lb: LineBreak) -> Tuple[list[float], list[int] | Literal['auto'], bool]:
+        defaults = LineBreak()
+        margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+        lb_range = getattr(lb, 'stave_range', defaults.stave_range)
+        if lb_range == 'auto' or lb_range is True:
+            dialog_range: list[int] | Literal['auto'] = 'auto'
+        else:
+            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
+            dialog_range = list(lb_range or fallback)
+        return margin_mm, dialog_range, bool(getattr(lb, 'page_break', False))
+
+    def restore_original_state(self) -> None:
+        for lb in self._line_breaks:
+            key = id(lb)
+            if key not in self._original_state:
+                continue
+            margin_mm, stave_range, page_break = self._original_state[key]
+            lb.margin_mm = list(margin_mm)
+            lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
+            lb.page_break = bool(page_break)
+        self.valuesChanged.emit()
 
     def _on_accept_clicked(self) -> None:
-        ml = float(self.margin_left.value())
-        mr = float(self.margin_right.value())
-        if self.auto_range_cb.isChecked():
-            rl = 0
-            rh = 0
-        else:
-            rl = int(self.range_low.value())
-            rh = int(self.range_high.value())
-
         self.msg_label.setText("")
         self.accept()
-
-    def get_values(self) -> Tuple[list[float], list[int] | Literal['auto'], bool]:
-        ml = float(self.margin_left.value())
-        mr = float(self.margin_right.value())
-        if self.auto_range_cb.isChecked():
-            return [ml, mr], 'auto', bool(self.page_break_cb.isChecked())
-        rl = int(self.range_low.value())
-        rh = int(self.range_high.value())
-        return [ml, mr], [rl, rh], bool(self.page_break_cb.isChecked())
