@@ -35,7 +35,7 @@ class Layout:
 
     # Global drawing options
     scale: float = 0.38
-    black_note_rule: Literal['above_stem','below_stem', 'below_stem_but_above_if_collision'] = 'below_stem'
+    black_note_rule: Literal['above_stem','below_stem', 'only_above_stem_if_collision'] = 'below_stem'
 
     # Note appearance
     note_head_visible: bool = True

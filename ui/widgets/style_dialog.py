@@ -71,7 +71,7 @@ class FloatSliderEdit(QtWidgets.QWidget):
         self._edit = QtWidgets.QLineEdit(self)
         self._edit.setMinimumWidth(70)
         self._edit.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-        self._edit.setValidator(QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9.]+"), self))
+        self._edit.setValidator(QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9.,]+"), self))
         self._dec_btn = QtWidgets.QToolButton(self)
         self._dec_btn.setText("-")
         self._inc_btn = QtWidgets.QToolButton(self)
@@ -135,7 +135,7 @@ class FloatSliderEdit(QtWidgets.QWidget):
     def _on_edit_finished(self) -> None:
         text = self._edit.text().strip()
         try:
-            val = float(text)
+            val = float(text.replace(',', '.'))
         except Exception:
             val = self.value()
         val = self._snap(self._clamp(val))
@@ -209,6 +209,34 @@ class ColorPickerEdit(QtWidgets.QWidget):
         self.valueChanged.emit(txt)
 
 
+class FlexibleDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        try:
+            self.setLocale(QtCore.QLocale.c())
+        except Exception:
+            pass
+
+    def _normalize_text(self, text: str) -> str:
+        return text.replace(',', '.')
+
+    def validate(self, text: str, pos: int) -> QtGui.QValidator.State:
+        normalized = self._normalize_text(text)
+        return super().validate(normalized, pos)
+
+    def valueFromText(self, text: str) -> float:
+        normalized = self._normalize_text(text)
+        return super().valueFromText(normalized)
+
+    def fixup(self, text: str) -> str:
+        return self._normalize_text(text)
+
+    def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
+        if ev.text() == ',':
+            ev = QtGui.QKeyEvent(ev.type(), ev.key(), ev.modifiers(), '.')
+        super().keyPressEvent(ev)
+
+
 class FontPicker(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
 
@@ -226,11 +254,11 @@ class FontPicker(QtWidgets.QWidget):
             pass
         self._bold = QtWidgets.QCheckBox("Bold", self)
         self._italic = QtWidgets.QCheckBox("Italic", self)
-        self._x_offset: QtWidgets.QDoubleSpinBox | None = None
-        self._y_offset: QtWidgets.QDoubleSpinBox | None = None
+        self._x_offset: FlexibleDoubleSpinBox | None = None
+        self._y_offset: FlexibleDoubleSpinBox | None = None
         if self._show_offsets:
-            self._x_offset = QtWidgets.QDoubleSpinBox(self)
-            self._y_offset = QtWidgets.QDoubleSpinBox(self)
+            self._x_offset = FlexibleDoubleSpinBox(self)
+            self._y_offset = FlexibleDoubleSpinBox(self)
             for spin, axis in ((self._x_offset, 'X'), (self._y_offset, 'Y')):
                 spin.setRange(-500.0, 500.0)
                 spin.setDecimals(2)
@@ -686,7 +714,7 @@ class StyleDialog(QtWidgets.QDialog):
             le = QtWidgets.QLineEdit(self)
             le.setText(self._format_float_list(value))
             le.setValidator(
-                QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9. ]*"), self)
+                QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"[0-9., ]*"), self)
             )
             return le
 

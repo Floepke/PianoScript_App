@@ -5,6 +5,34 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from file_model.events.line_break import LineBreak
 
 
+class FlexibleDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        try:
+            self.setLocale(QtCore.QLocale.c())
+        except Exception:
+            pass
+
+    def _normalize_text(self, text: str) -> str:
+        return text.replace(',', '.')
+
+    def validate(self, text: str, pos: int) -> QtGui.QValidator.State:
+        normalized = self._normalize_text(text)
+        return super().validate(normalized, pos)
+
+    def valueFromText(self, text: str) -> float:
+        normalized = self._normalize_text(text)
+        return super().valueFromText(normalized)
+
+    def fixup(self, text: str) -> str:
+        return self._normalize_text(text)
+
+    def keyPressEvent(self, ev: QtGui.QKeyEvent) -> None:
+        if ev.text() == ',':
+            ev = QtGui.QKeyEvent(ev.type(), ev.key(), ev.modifiers(), '.')
+        super().keyPressEvent(ev)
+
+
 class LineBreakDialog(QtWidgets.QDialog):
     valuesChanged = QtCore.Signal()
     def __init__(self,
@@ -20,6 +48,10 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.setWindowTitle("Line Break")
         self.setModal(True)
         self.setWindowModality(QtCore.Qt.NonModal)
+        try:
+            self.resize(900, 600)
+        except Exception:
+            pass
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -60,6 +92,18 @@ class LineBreakDialog(QtWidgets.QDialog):
         quick_row.addWidget(self.apply_quick_btn)
         quick_row.addStretch(1)
         lay.addLayout(quick_row)
+
+        bulk_row = QtWidgets.QHBoxLayout()
+        bulk_row.setContentsMargins(0, 0, 0, 0)
+        bulk_row.setSpacing(6)
+        self.edit_all_left_btn = QtWidgets.QPushButton("Edit All Left Margins", self)
+        self.edit_all_right_btn = QtWidgets.QPushButton("Edit All Right Margins", self)
+        self.edit_all_left_btn.clicked.connect(lambda: self._edit_all_margins(side="left"))
+        self.edit_all_right_btn.clicked.connect(lambda: self._edit_all_margins(side="right"))
+        bulk_row.addWidget(self.edit_all_left_btn)
+        bulk_row.addWidget(self.edit_all_right_btn)
+        bulk_row.addStretch(1)
+        lay.addLayout(bulk_row)
 
         # Validation message
         self.msg_label = QtWidgets.QLabel("", self)
@@ -110,8 +154,8 @@ class LineBreakDialog(QtWidgets.QDialog):
         btn.setToolTip("Page" if is_page else "Line")
         return btn
 
-    def _create_margin_spin(self, value: float) -> QtWidgets.QDoubleSpinBox:
-        spin = QtWidgets.QDoubleSpinBox(self)
+    def _create_margin_spin(self, value: float) -> FlexibleDoubleSpinBox:
+        spin = FlexibleDoubleSpinBox(self)
         spin.setRange(0.0, 200.0)
         spin.setDecimals(2)
         spin.setSingleStep(0.5)
@@ -278,6 +322,58 @@ class LineBreakDialog(QtWidgets.QDialog):
         except TypeError:
             self._apply_quick_cb()
             _refresh()
+
+    def _edit_all_margins(self, side: str) -> None:
+        if side not in ("left", "right"):
+            return
+        title = "Edit All Left Margins" if side == "left" else "Edit All Right Margins"
+        label = "Left margin (mm):" if side == "left" else "Right margin (mm):"
+        val = self._prompt_margin_value(title, label, 5.0)
+        if val is None:
+            return
+        defaults = LineBreak()
+        for lb in self._line_breaks:
+            margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
+            if len(margin_mm) < 2:
+                margin_mm = [float(margin_mm[0]) if margin_mm else 0.0, 0.0]
+            if side == "left":
+                margin_mm[0] = float(val)
+            else:
+                margin_mm[1] = float(val)
+            lb.margin_mm = list(margin_mm)
+        self._populate_break_list()
+        self.valuesChanged.emit()
+
+    def _prompt_margin_value(self, title: str, label: str, initial_value: float) -> Optional[float]:
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle(title)
+        dlg.setModal(True)
+        layout = QtWidgets.QVBoxLayout(dlg)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        text = QtWidgets.QLabel(label, dlg)
+        layout.addWidget(text)
+
+        spin = FlexibleDoubleSpinBox(dlg)
+        spin.setRange(0.0, 200.0)
+        spin.setDecimals(2)
+        spin.setSingleStep(0.5)
+        spin.setValue(float(initial_value))
+        spin.setKeyboardTracking(True)
+        layout.addWidget(spin)
+
+        btns = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            parent=dlg,
+        )
+        btns.accepted.connect(dlg.accept)
+        btns.rejected.connect(dlg.reject)
+        layout.addWidget(btns)
+
+        if dlg.exec() != QtWidgets.QDialog.Accepted:
+            return None
+        return float(spin.value())
 
     def _capture_original_state(self) -> None:
         self._original_state = {}
