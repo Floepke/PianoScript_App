@@ -38,7 +38,7 @@ class Style:
         "bg_color": (30, 30, 40),
         "alternate_background_color": (20, 20, 30),
         "text_color": (240, 240, 240),
-        "accent_color": (42, 130, 218),
+        "accent_color": (0, 30, 68),
         "paper_color": (150, 150, 150),
         "notation_color": (0, 0, 16),
     }
@@ -56,7 +56,7 @@ class Style:
         QPalette.ButtonText: "text_color",
         QPalette.BrightText: "text_color",
         QPalette.Link: "accent_color",
-        QPalette.Highlight: "bg_color",
+        QPalette.Highlight: "accent_color",
         QPalette.HighlightedText: "text_color",
     }
 
@@ -205,18 +205,18 @@ class Style:
             "border: 0px;"
             "}"
             "QMenu::item:selected {"
-            "background-color: transparent;"
+            f"background-color: rgb({bg.red()},{bg.green()},{bg.blue()});"
             f"color: rgb({text.red()},{text.green()},{text.blue()});"
             "}"
             "QMenuBar::item:selected {"
-            "background-color: transparent;"
+            f"background-color: rgb({bg.red()},{bg.green()},{bg.blue()});"
             f"color: rgb({text.red()},{text.green()},{text.blue()});"
             "padding: 4px 8px;"
             "margin: 0px;"
             "border: 0px;"
             "}"
             "QMenuBar::item:pressed {"
-            "background-color: transparent;"
+            f"background-color: rgb({bg.red()},{bg.green()},{bg.blue()});"
             f"color: rgb({text.red()},{text.green()},{text.blue()});"
             "}"
             "QMenu::item:disabled {"

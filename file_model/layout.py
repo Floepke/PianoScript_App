@@ -5,7 +5,7 @@ from typing import Literal
 
 @dataclass
 class LayoutFont:
-    family: str = "Times New Roman"
+    family: str = "Edwin"
     size_pt: float = 12.0
     bold: bool = False
     italic: bool = False
@@ -40,11 +40,11 @@ class Layout:
     # Note appearance
     note_head_visible: bool = True
     note_stem_visible: bool = True
-    note_stem_length_semitone: int = 7
-    note_stem_thickness_mm: float = 1 # Thickness of the stem as well the notehead outline
+    note_stem_length_semitone: int = 5
+    note_stem_thickness_mm: float = 1.0 # Thickness of the stem as well the notehead outline
     note_stopsign_thickness_mm: float = 1.0
     note_leftdot_visible: bool = True
-    note_continuation_dot_size_mm: float = 1.0
+    note_continuation_dot_size_mm: float = 2.5
     note_midinote_visible: bool = True
     note_midinote_left_color: str = '#cccccc'
     note_midinote_right_color: str = '#cccccc'
@@ -62,8 +62,8 @@ class Layout:
 
     # Text appearance
     text_visible: bool = True
-    text_font_family: str = 'Courier New'
-    text_font_size_pt: float = 10.0
+    text_font_family: str = 'Edwin'
+    text_font_size_pt: float = 12.0
 
     # Slur appearance
     slur_visible: bool = True
@@ -77,11 +77,11 @@ class Layout:
     # Count line
     countline_visible: bool = True
     countline_dash_pattern: list[float] = field(default_factory=lambda: [0.0, 3.0])  # Dash pattern for count lines (e.g., [dash_length, gap_length])
-    countline_thickness_mm: float = 1
+    countline_thickness_mm: float = 1.0
 
     # Grid lines
-    grid_barline_thickness_mm: float = 1
-    grid_gridline_thickness_mm: float = .5
+    grid_barline_thickness_mm: float = 1.0
+    grid_gridline_thickness_mm: float = 0.5
     grid_gridline_dash_pattern_mm: list[float] = field(default_factory=lambda: [5.0])
 
     # Time signature indicator type (global)
@@ -91,37 +91,41 @@ class Layout:
     time_signature_indicator_guide_thickness_mm: float = 0.5
     time_signature_indicator_divide_guide_thickness_mm: float = 1.0
     time_signature_indicator_classic_font: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
-        size_pt=35.0,
+        family="Edwin",
+        size_pt=40.0,
+        bold=True,
     ))
     time_signature_indicator_klavarskribo_font: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
+        family="Edwin",
         size_pt=25.0,
     ))
     measure_numbering_font: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
-        size_pt=10.0,
+        family="Edwin",
+        size_pt=25.0,
+        italic=True,
     ))
 
     # Info fonts
     font_title: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
+        family="Edwin",
         size_pt=25.0,
+        bold=True,
     ))
     font_composer: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
+        family="Edwin",
         size_pt=15.0,
     ))
     font_copyright: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
-        size_pt=25.0,
+        family="Edwin",
+        size_pt=11.0,
+        italic=True,
     ))
     font_arranger: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
+        family="Edwin",
         size_pt=12.0,
     ))
     font_lyricist: LayoutFont = field(default_factory=lambda: LayoutFont(
-        family="C059",
+        family="Edwin",
         size_pt=12.0,
     ))
 

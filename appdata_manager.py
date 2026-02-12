@@ -265,6 +265,8 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("user_styles", [], "List of user styles: [{name: str, layout: dict}]")
         adm.register("selected_style_name", "keyTAB", "Currently selected style name in the Style dialog")
         adm.register("user_styles_version", 1, "Schema version for user style storage")
+        adm.register("edwin_font_installed", False, "True when Edwin font was installed to the user font directory")
+        adm.register("edwin_install_prompt_dismissed", False, "User declined the Edwin font installation prompt")
         # Removed window_state persistence to avoid saving/restoring dock/toolbar layout
         adm.load()
         # Strip any legacy keys from stored values

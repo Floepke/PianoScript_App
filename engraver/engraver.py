@@ -8,6 +8,7 @@ from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT, PIANO_KEY_AMOUNT, SHORTES
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
+from file_model.info import Info
 
 _MP_CONTEXT = mp.get_context("spawn")
 
@@ -21,6 +22,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     score: SCORE = score or {}
     layout = (score.get('layout', {}) or {})
     info = (score.get('info', {}) or {})
+    default_info = Info()
     editor = (score.get('editor', {}) or {})
     events = (score.get('events', {}) or {})
     base_grid = list(score.get('base_grid', []) or [])
@@ -181,9 +183,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         if not isinstance(raw, dict):
             raw = {}
         family = str(raw.get('family', fallback_family) or fallback_family)
-        if family == 'C059' and _allow_font_registry():
+        if family == 'Edwin' and _allow_font_registry():
             from fonts import register_font_from_bytes
-            reg = register_font_from_bytes('C059')
+            reg = register_font_from_bytes('Edwin')
             if reg:
                 family = str(reg)
         family = _resolve_font_family(family)
@@ -835,7 +837,10 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 anchor='ne',
             )
         if footer_height > 0.0:
-            footer_text = f"all copyrights reserved {datetime.now().year}"
+            default_copyright = getattr(default_info, 'copyright', f"© all rights reserved {datetime.now().year}")
+            footer_text = _info_text('copyright', default_copyright).strip()
+            if not footer_text:
+                footer_text = default_copyright
             footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _info_font(
                 'font_copyright',
                 'Times New Roman',
@@ -898,12 +903,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             indicator_type = str(layout.get('time_signature_indicator_type', 'classical') or 'classical')
             classic_family, classic_size, classic_bold, classic_italic = _layout_font(
                 'time_signature_indicator_classic_font',
-                'C059',
+                'Edwin',
                 35.0,
             )
             klav_family, klav_size, klav_bold, klav_italic = _layout_font(
                 'time_signature_indicator_klavarskribo_font',
-                'C059',
+                'Edwin',
                 25.0,
             )
             guide_thickness = float(layout.get('time_signature_indicator_guide_thickness_mm', 0.5) or 0.5) * scale
@@ -1205,7 +1210,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 beam_groups_by_hand[hand_norm] = (groups, windows)
 
             # Problem solved: measure numbers must avoid colliding with notes/beams.
-            mn_family, mn_size, mn_bold, mn_italic = _layout_font('measure_numbering_font', 'C059', 10.0)
+            mn_family, mn_size, mn_bold, mn_italic = _layout_font('measure_numbering_font', 'Edwin', 10.0)
             size_pt = mn_size * scale
             mm_per_pt = 25.4 / 72.0
             text_h_mm = size_pt * mm_per_pt
@@ -1655,7 +1660,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     dot_times.append(float(line_start))
                 if dot_times:
                     dot_d = float(layout.get('note_continuation_dot_size_mm', 0.0) or 0.0)
-                    if dot_d <= 0.0:
+                    if dot_d > 0.0:
+                        dot_d *= scale
+                    else:
                         dot_d = w * 0.8
                     for t in sorted(set(dot_times)):
                         y_center = _time_to_y(float(t)) + w

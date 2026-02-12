@@ -199,6 +199,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tool_dock.selector.toolSelected.connect(self._on_tool_selected)
         except Exception:
             pass
+
+        QtCore.QTimer.singleShot(150, self._maybe_prompt_edwin_install)
         # Persist snap changes and update editor
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # Restore tool and snap size from project app state (fallback to appdata defaults)
@@ -2006,9 +2008,73 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _demo_add_rect(self) -> None:
-        # Removed test drawing logic
-        pass
+    def _maybe_prompt_edwin_install(self) -> None:
+        font_name = "Edwin"
+        try:
+            adm = get_appdata_manager()
+        except Exception:
+            return
+        try:
+            from fonts import has_system_font, install_embedded_font_to_system
+        except Exception:
+            return
+        try:
+            if bool(adm.get("edwin_font_installed", False)) and has_system_font(font_name):
+                return
+            if has_system_font(font_name):
+                adm.set("edwin_font_installed", True)
+                adm.save()
+                return
+            if bool(adm.get("edwin_install_prompt_dismissed", False)):
+                return
+            msg = QtWidgets.QMessageBox(self)
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Information)
+            msg.setWindowTitle("Install Edwin font")
+            msg.setText(
+                "keyTAB uses the Edwin font for headers and engraving."
+                "\nInstall it to your user font folder so prints and PDFs match the preview?"
+            )
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            msg.setDefaultButton(QtWidgets.QMessageBox.StandardButton.Yes)
+            result = msg.exec()
+            if result != QtWidgets.QMessageBox.StandardButton.Yes:
+                adm.set("edwin_install_prompt_dismissed", True)
+                adm.save()
+                return
+            success, detail = install_embedded_font_to_system(font_name)
+            if success:
+                adm.set("edwin_font_installed", True)
+                adm.save()
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Edwin font installed",
+                    "Edwin was installed successfully. keyTAB will now restart to apply the font.",
+                )
+                QtCore.QTimer.singleShot(100, self._request_app_restart)
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Edwin font installation failed",
+                    f"keyTAB could not install Edwin automatically:\n{detail}",
+                )
+        except Exception:
+            pass
+
+    def _request_app_restart(self) -> None:
+        try:
+            exe = sys.executable
+            args = list(sys.argv)
+            if exe and args:
+                QtCore.QProcess.startDetached(exe, args)
+        except Exception:
+            pass
+        try:
+            self.prepare_close()
+        except Exception:
+            pass
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            app.quit()
 
     def _center_on_primary(self) -> None:
         # Move window to the center of the primary screen
