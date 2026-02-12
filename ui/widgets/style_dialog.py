@@ -282,6 +282,9 @@ class FontPicker(QtWidgets.QWidget):
                 self._x_offset.setValue(0.0)
                 self._y_offset.setValue(0.0)
 
+    def set_family(self, family: str) -> None:
+        self._combo.setCurrentFont(QtGui.QFont(str(family)))
+
     def value(self) -> LayoutFont:
         font_cls = self._font_cls or LayoutFont
         x_off = float(self._x_offset.value()) if self._x_offset is not None else 0.0
@@ -324,6 +327,7 @@ class StyleDialog(QtWidgets.QDialog):
         self._tab_contents: list[QtWidgets.QWidget] = []
         self._tabs: QtWidgets.QTabWidget | None = None
         self._applying_style: bool = False
+        self._all_fonts_combo: QtWidgets.QFontComboBox | None = None
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -460,6 +464,8 @@ class StyleDialog(QtWidgets.QDialog):
             form = tab_forms.get(tab_name, tab_forms['Page'])
             form.addRow(QtWidgets.QLabel(label, self), editor)
             self._wire_editor_change(editor)
+
+        self._add_all_fonts_control(tab_forms.get('Fonts'))
 
         action_row = QtWidgets.QHBoxLayout()
         self._action_row = action_row
@@ -709,6 +715,33 @@ class StyleDialog(QtWidgets.QDialog):
         except Exception:
             pass
 
+    def _add_all_fonts_control(self, form: QtWidgets.QFormLayout | None) -> None:
+        if form is None:
+            return
+        label = QtWidgets.QLabel("Apply family to all fonts:", self)
+        combo = QtWidgets.QFontComboBox(self)
+        self._all_fonts_combo = combo
+        try:
+            font_title = getattr(self._layout, 'font_title', LayoutFont())
+            combo.setCurrentFont(QtGui.QFont(str(font_title.family)))
+        except Exception:
+            pass
+        combo.currentFontChanged.connect(lambda f: self._set_all_font_families(f.family()))
+        try:
+            form.insertRow(0, label, combo)
+        except Exception:
+            form.addRow(label, combo)
+
+    def _set_all_font_families(self, family: str) -> None:
+        if not family:
+            return
+        for editor in self._editors.values():
+            if isinstance(editor, FontPicker):
+                editor.blockSignals(True)
+                editor.set_family(family)
+                editor.blockSignals(False)
+        self.values_changed.emit()
+
     def _set_editor_value(self, editor: QtWidgets.QWidget, field_type: Any, value: Any) -> None:
         origin = get_origin(field_type)
         args = get_args(field_type)
@@ -756,6 +789,13 @@ class StyleDialog(QtWidgets.QDialog):
             field_type = self._type_hints.get(name, f.type)
             value = getattr(layout_obj, name, None)
             self._set_editor_value(editor, field_type, value)
+        if self._all_fonts_combo is not None:
+            try:
+                self._all_fonts_combo.blockSignals(True)
+                font_title = getattr(layout_obj, 'font_title', LayoutFont())
+                self._all_fonts_combo.setCurrentFont(QtGui.QFont(str(font_title.family)))
+            finally:
+                self._all_fonts_combo.blockSignals(False)
         self.values_changed.emit()
 
     def _build_style_template(self) -> dict:

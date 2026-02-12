@@ -164,15 +164,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         r, g, b, a = rgba
         return (float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a))
 
-    def _info_entry(key: str) -> dict:
-        """Return a normalized info entry dict for title/composer/footer data."""
-        value = info.get(key, {}) if isinstance(info, dict) else {}
-        if isinstance(value, dict):
-            return value
-        if isinstance(value, str):
-            return {'text': value}
-        return {}
-
     def _allow_font_registry() -> bool:
         """Return True when it is safe to access QFontDatabase (GUI process only)."""
         return mp.current_process().name == "MainProcess"
