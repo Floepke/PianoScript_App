@@ -77,11 +77,12 @@ ENGRAVER_LAYERING = [
     'stop_sign',
     'barline_white_space',
     'chord_connect',
+    'continuation_dot',
+    'left_dot',
     'stem',
     'beam',
     'notehead_white',
     'notehead_black',
-    'left_dot',
     'title',
     'composer',
     'copyright',
@@ -112,3 +113,5 @@ SHORTEST_DURATION: float = 8.0  # shortest note duration in time units (128th) (
 # Threshold for interpreting very short notes as grace notes on load/import.
 # Defaults to SHORTEST_DURATION so one edit can adjust both behaviors.
 GRACENOTE_THRESHOLD: float = SHORTEST_DURATION
+
+ENGRAVER_VERSION: str = '1.0'

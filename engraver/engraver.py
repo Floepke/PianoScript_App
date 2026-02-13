@@ -804,30 +804,30 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
         if not pdf_export:
-            edge_thickness = max(0.05, float(layout.get('paper_edge_guide_thickness_mm', 0.2) or 0.2) * scale)
-            edge_dash = [max(0.5, 1.2 * scale), max(0.5, 1.2 * scale)]
-            edge_color = (0.0, 0.0, 0.0, 0.35)
+            edge_thickness = .5
+            edge_dash = [2]
+            edge_color = (0.0, 0.0, 0.0, 1.0)
             du.add_line(
                 0.0,
-                page_top,
+                0.0,
                 page_w,
-                page_top,
+                0.0,
                 color=edge_color,
                 width_mm=edge_thickness,
                 dash_pattern=edge_dash,
-                line_cap='butt',
+                line_cap='round',
                 id=0,
                 tags=['paper_edge_guide', 'paper_edge_guide_top'],
             )
             du.add_line(
                 0.0,
-                page_h - page_bottom,
+                page_h,
                 page_w,
-                page_h - page_bottom,
+                page_h,
                 color=edge_color,
                 width_mm=edge_thickness,
                 dash_pattern=edge_dash,
-                line_cap='butt',
+                line_cap='round',
                 id=0,
                 tags=['paper_edge_guide', 'paper_edge_guide_bottom'],
             )
@@ -897,20 +897,22 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 tags=['copyright'],
                 anchor='sw',
             )
-            # place a default keyTAB credit on the right side of the footer
-            du.add_text(
-                page_w - page_right,
-                page_h - page_bottom,
-                f"keyTAB engraver v1.0",
-                family=footer_family,
-                size_pt=footer_size,
-                bold=footer_bold,
-                italic=footer_italic,
-                color=(.5, .5, .5, 1),
-                id=0,
-                tags=['copyright'],
-                anchor='se',
-            )
+            if not pageno:
+                # place a default keyTAB credit on the right side of the footer
+                from utils.CONSTANT import ENGRAVER_VERSION
+                du.add_text(
+                    page_w - page_right,
+                    page_h - page_bottom,
+                    f"keyTAB engraver v{ENGRAVER_VERSION}",
+                    family=footer_family,
+                    size_pt=footer_size,
+                    bold=footer_bold,
+                    italic=footer_italic,
+                    color=(.5, .5, .5, 1),
+                    id=0,
+                    tags=['copyright'],
+                    anchor='se',
+                )
         if not page:
             continue
         used_width = sum(float(l['total_width']) for l in page)
@@ -1726,7 +1728,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                             fill_color=(0, 0, 0, 1),
                             stroke_color=None,
                             id=0,
-                            tags=['left_dot'],
+                            tags=['continuation_dot'],
                         )
 
                 # Problem solved: draw a horizontal connector for same-time chords.
