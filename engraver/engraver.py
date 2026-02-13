@@ -793,8 +793,46 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     # Problem solved: render each page with header/footer and justified spacing.
     if not pages:
         pages = [[]]
+    target_page_index = 0
+    if not pdf_export and pages:
+        try:
+            target_page_index = int(pageno)
+        except Exception:
+            target_page_index = 0
+        target_page_index = max(0, min(len(pages) - 1, target_page_index))
+
     for page_index, page in enumerate(pages):
         du.new_page(page_w, page_h)
+        if not pdf_export:
+            edge_thickness = max(0.05, float(layout.get('paper_edge_guide_thickness_mm', 0.2) or 0.2) * scale)
+            edge_dash = [max(0.5, 1.2 * scale), max(0.5, 1.2 * scale)]
+            edge_color = (0.0, 0.0, 0.0, 0.35)
+            du.add_line(
+                0.0,
+                page_top,
+                page_w,
+                page_top,
+                color=edge_color,
+                width_mm=edge_thickness,
+                dash_pattern=edge_dash,
+                line_cap='butt',
+                id=0,
+                tags=['paper_edge_guide', 'paper_edge_guide_top'],
+            )
+            du.add_line(
+                0.0,
+                page_h - page_bottom,
+                page_w,
+                page_h - page_bottom,
+                color=edge_color,
+                width_mm=edge_thickness,
+                dash_pattern=edge_dash,
+                line_cap='butt',
+                id=0,
+                tags=['paper_edge_guide', 'paper_edge_guide_bottom'],
+            )
+        if not pdf_export and page_index != target_page_index:
+            continue
         footer_height = float(layout.get('footer_height_mm', 0.0) or 0.0)
         footer_height = max(0.0, footer_height)
         if page_index == 0:
@@ -802,12 +840,12 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             composer_text = _info_text('composer', 'composer')
             title_family, title_size, title_bold, title_italic, title_x_off, title_y_off = _info_font(
                 'font_title',
-                'Times New Roman',
+                'Courier',
                 12.0,
             )
             composer_family, composer_size, composer_bold, composer_italic, composer_x_off, composer_y_off = _info_font(
                 'font_composer',
-                'Times New Roman',
+                'Courier',
                 10.0,
             )
             du.add_text(
@@ -843,13 +881,13 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 footer_text = default_copyright
             footer_family, footer_size, footer_bold, footer_italic, footer_x_off, footer_y_off = _info_font(
                 'font_copyright',
-                'Times New Roman',
+                'Courier',
                 8.0,
             )
             du.add_text(
                 page_left + footer_x_off,
                 (page_h - page_bottom) + footer_y_off,
-                f"Page {page_index + 1} of {len(pages)} | {footer_text} | keyTAB sheet",
+                f"Page {page_index + 1} of {len(pages)} | {footer_text}",
                 family=footer_family,
                 size_pt=footer_size,
                 bold=footer_bold,
@@ -858,6 +896,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 id=0,
                 tags=['copyright'],
                 anchor='sw',
+            )
+            # place a default keyTAB credit on the right side of the footer
+            du.add_text(
+                page_w - page_right,
+                page_h - page_bottom,
+                f"keyTAB engraver v1.0",
+                family=footer_family,
+                size_pt=footer_size,
+                bold=footer_bold,
+                italic=footer_italic,
+                color=(.5, .5, .5, 1),
+                id=0,
+                tags=['copyright'],
+                anchor='se',
             )
         if not page:
             continue
@@ -1723,16 +1775,19 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
     # Ensure a valid current page index
     if du.page_count() > 0:
-        du.set_current_page(0)
+        if pdf_export:
+            du.set_current_page(0)
+        else:
+            du.set_current_page(target_page_index)
 
 
-def _engrave_worker(score: dict, request_id: int, out_queue) -> None:
+def _engrave_worker(score: dict, request_id: int, pageno: int, out_queue) -> None:
     """Worker entry point to build DrawUtil in a separate process.
 
     Problem solved: isolate heavy engraving work from the UI thread.
     """
     local_du = DrawUtil()
-    do_engrave(score, local_du)
+    do_engrave(score, local_du, pageno=pageno)
     out_queue.put((int(request_id), local_du))
 
 
@@ -1757,6 +1812,7 @@ class Engraver(QtCore.QObject):
         self._poll_timer.timeout.connect(self._poll_results)
         self._running: bool = False
         self._pending_score: dict | None = None
+        self._pending_pageno: int | None = None
         self._pending_request_id: int | None = None
         self._latest_request_id: int = 0
         self._min_interval_ms: int = 500
@@ -1767,19 +1823,26 @@ class Engraver(QtCore.QObject):
         self._delay_timer.setSingleShot(True)
         self._delay_timer.timeout.connect(self._maybe_start_pending)
 
-    def engrave(self, score: dict) -> None:
+    def engrave(self, score: dict, pageno: int | None = None) -> None:
         """Request an engraving; coalesce to the most recent request.
 
         Problem solved: avoid a backlog of obsolete renders during edits.
         """
+        if pageno is None:
+            try:
+                pageno = int(self._du.current_page_index())
+            except Exception:
+                pageno = 0
         self._latest_request_id += 1
         req_id = int(self._latest_request_id)
         # If currently running, just replace the pending request
         if self._running:
             self._pending_score = dict(score or {})
+            self._pending_pageno = int(pageno)
             self._pending_request_id = req_id
             return
         self._pending_score = dict(score or {})
+        self._pending_pageno = int(pageno)
         self._pending_request_id = req_id
         self._maybe_start_pending()
 
@@ -1793,23 +1856,27 @@ class Engraver(QtCore.QObject):
             return
         if self._pending_score is None:
             return
+        if self._pending_pageno is None:
+            return
         if self._pending_request_id is None:
             return
         elapsed_ms = int(self._elapsed.elapsed())
         since_last = elapsed_ms - int(self._last_start_ms)
         if since_last >= self._min_interval_ms:
             next_score = self._pending_score
+            next_pageno = int(self._pending_pageno)
             next_req_id = int(self._pending_request_id)
             self._pending_score = None
+            self._pending_pageno = None
             self._pending_request_id = None
-            self._start_task(next_score, next_req_id)
+            self._start_task(next_score, next_pageno, next_req_id)
             return
         delay_ms = max(1, int(self._min_interval_ms - since_last))
         if self._delay_timer.isActive():
             self._delay_timer.stop()
         self._delay_timer.start(delay_ms)
 
-    def _start_task(self, score: dict, request_id: int) -> None:
+    def _start_task(self, score: dict, pageno: int, request_id: int) -> None:
         """Start a new process to engrave the given score.
 
         Problem solved: terminate stale workers before launching a new one.
@@ -1821,7 +1888,7 @@ class Engraver(QtCore.QObject):
                 self._proc.terminate()
         self._proc = self._mp_ctx.Process(
             target=_engrave_worker,
-            args=(score, request_id, self._result_queue),
+            args=(score, request_id, pageno, self._result_queue),
             daemon=True,
         )
         self._proc.start()

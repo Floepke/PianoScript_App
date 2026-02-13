@@ -1498,6 +1498,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _set_page_index(self, index: int) -> None:
         try:
+            self.du.set_current_page(int(index))
+        except Exception:
+            pass
+        try:
             self.print_view.set_page(index, request_render=False)
         except Exception:
             pass
@@ -1509,7 +1513,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             self._page_counter = (self._page_counter + 1) % page_count
             self._set_page_index(self._page_counter)
-            self.engraver.engrave(self._current_score_dict())
+            self.engraver.engrave(self._current_score_dict(), pageno=self._page_counter)
         except Exception:
             pass
 
@@ -1520,13 +1524,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             self._page_counter = (self._page_counter - 1) % page_count
             self._set_page_index(self._page_counter)
-            self.engraver.engrave(self._current_score_dict())
+            self.engraver.engrave(self._current_score_dict(), pageno=self._page_counter)
         except Exception:
             pass
 
     def _engrave_now(self) -> None:
         try:
-            self.engraver.engrave(self._current_score_dict())
+            self.engraver.engrave(self._current_score_dict(), pageno=int(getattr(self, '_page_counter', 0)))
         except Exception:
             pass
 
