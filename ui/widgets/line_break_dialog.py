@@ -45,7 +45,8 @@ class LineBreakDialog(QtWidgets.QDialog):
                  reload_cb: Optional[Callable[[], list[LineBreak]]] = None,
                  margin_mm: Optional[list[float]] = None,
                  stave_range: Optional[list[int] | Literal['auto'] | bool] = None,
-                 page_break: bool = False) -> None:
+                 page_break: bool = False,
+                 measure_resolver: Optional[Callable[[float], int]] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Line Break")
         self.setModal(True)
@@ -64,11 +65,13 @@ class LineBreakDialog(QtWidgets.QDialog):
         self._apply_quick_cb = apply_quick_cb
         self._reload_cb = reload_cb
         self._original_state: dict[int, tuple[list[float], list[int] | Literal['auto'], bool]] = {}
+        self._measure_resolver = measure_resolver
 
         list_label = QtWidgets.QLabel("Line breaks:", self)
         self.break_table = QtWidgets.QTableWidget(self)
-        self.break_table.setColumnCount(4)
+        self.break_table.setColumnCount(5)
         self.break_table.setHorizontalHeaderLabels([
+            " Measure ",
             " Type ",
             " Left margin " ,
             " Right margin ",
@@ -82,7 +85,8 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.break_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.break_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.break_table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
-        self.break_table.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.break_table.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.break_table.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeMode.Stretch)
         lay.addWidget(list_label)
         lay.addWidget(self.break_table)
 
@@ -267,9 +271,16 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.break_table.blockSignals(False)
 
     def _set_break_row(self, row: int, lb: LineBreak) -> None:
-        type_item = QtWidgets.QTableWidgetItem("")
-        type_item.setData(QtCore.Qt.ItemDataRole.UserRole, lb)
-        self.break_table.setItem(row, 0, type_item)
+        measure_val = 0
+        if self._measure_resolver is not None:
+            try:
+                measure_val = int(self._measure_resolver(float(getattr(lb, 'time', 0.0) or 0.0)))
+            except Exception:
+                measure_val = 0
+        measure_item = QtWidgets.QTableWidgetItem(str(measure_val if measure_val > 0 else ""))
+        measure_item.setData(QtCore.Qt.ItemDataRole.UserRole, lb)
+        measure_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.break_table.setItem(row, 0, measure_item)
 
         defaults = LineBreak()
         margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
@@ -307,10 +318,10 @@ class LineBreakDialog(QtWidgets.QDialog):
         left_spin.valueChanged.connect(_left_changed)
         right_spin.valueChanged.connect(_right_changed)
 
-        self.break_table.setCellWidget(row, 0, type_btn)
-        self.break_table.setCellWidget(row, 1, left_spin)
-        self.break_table.setCellWidget(row, 2, right_spin)
-        self.break_table.setCellWidget(row, 3, range_widget)
+        self.break_table.setCellWidget(row, 1, type_btn)
+        self.break_table.setCellWidget(row, 2, left_spin)
+        self.break_table.setCellWidget(row, 3, right_spin)
+        self.break_table.setCellWidget(row, 4, range_widget)
 
     def _select_line_break(self, lb: Optional[LineBreak]) -> None:
         if lb is None:

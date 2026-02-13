@@ -261,6 +261,7 @@ class LineBreakTool(BaseTool):
             margin_mm=list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if lb is not None else None,
             stave_range=getattr(lb, 'stave_range', defaults.stave_range) if lb is not None else None,
             page_break=bool(getattr(lb, 'page_break', False)) if lb is not None else False,
+            measure_resolver=(lambda t: self._editor.get_measure_index_for_time(t)) if hasattr(self._editor, 'get_measure_index_for_time') else None,
         )
 
         def _apply_dialog_values() -> None:
