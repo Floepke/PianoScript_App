@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import Callable, Optional, Tuple, Literal
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from utils.CONSTANT import BE_KEYS, CF_KEYS
+
 from file_model.events.line_break import LineBreak
 
 
@@ -118,12 +120,15 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.btns.rejected.connect(self.reject)
         lay.addWidget(self.btns)
 
+        self.valuesChanged.connect(self._validate_form)
+
         # Initialize
         self._populate_break_list()
         if self._selected_line_break is None and self._line_breaks:
             self._selected_line_break = self._line_breaks[0]
         self._select_line_break(self._selected_line_break)
         self._capture_original_state()
+        self._validate_form()
 
         self.break_table.currentCellChanged.connect(lambda _r, _c, _pr, _pc: self._on_break_selected())
 
@@ -167,55 +172,88 @@ class LineBreakDialog(QtWidgets.QDialog):
     def _create_range_widget(self, lb: LineBreak) -> QtWidgets.QWidget:
         defaults = LineBreak()
         lb_range = getattr(lb, 'stave_range', defaults.stave_range)
-        is_auto = bool(lb_range == 'auto' or lb_range is True)
-        fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-        rng = list(lb_range or fallback) if not is_auto else [1, 88]
+        is_auto = bool(lb_range == 'auto' or lb_range is True or lb_range is None)
+        fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [1, 88])
+        if is_auto:
+            rng = [1, 88]
+        else:
+            base_range = lb_range if lb_range is not None else ([1, 88] if fallback == 'auto' else fallback)
+            rng = list(base_range)
+
+        def _note_name(key_num: int) -> str:
+            midi_note = int(key_num) + 20  # Piano key 1 corresponds to MIDI 21 (A0)
+            names = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b']
+            name = names[midi_note % 12]
+            octave = (midi_note // 12) - 1
+            return f"{name}{octave}"
+
+        def _closest(keys: list[int], target: int) -> int:
+            return min(keys, key=lambda k: abs(int(k) - int(target))) if keys else target
 
         wrapper = QtWidgets.QWidget(self)
         layout = QtWidgets.QHBoxLayout(wrapper)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
-        auto_label = QtWidgets.QLabel("(automatic range)", wrapper)
-        auto_label.setVisible(is_auto)
+        auto_cb = QtWidgets.QCheckBox(wrapper)
+        auto_cb.setChecked(is_auto)
+        auto_cb.setText("Automatic key range")
 
-        manual_cb = QtWidgets.QCheckBox("Manual", wrapper)
-        manual_cb.setChecked(not is_auto)
+        cf_keys = sorted(CF_KEYS)
+        be_keys = sorted(BE_KEYS)
 
-        low_spin = QtWidgets.QSpinBox(wrapper)
-        high_spin = QtWidgets.QSpinBox(wrapper)
-        low_spin.setRange(1, 88)
-        high_spin.setRange(1, 88)
-        low_spin.setValue(int(rng[0]))
-        high_spin.setValue(int(rng[1]))
-        low_spin.setVisible(not is_auto)
-        high_spin.setVisible(not is_auto)
+        def _build_combo(prefix: str, keys: list[int]) -> QtWidgets.QComboBox:
+            combo = QtWidgets.QComboBox(wrapper)
+            combo.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents)
+            for key in keys:
+                combo.addItem(f"{prefix} key {key} ({_note_name(key)})", key)
+            return combo
 
-        layout.addWidget(manual_cb)
-        layout.addWidget(auto_label)
-        layout.addWidget(low_spin)
-        layout.addWidget(high_spin)
+        from_combo = _build_combo("from", cf_keys)
+        to_combo = _build_combo("to", be_keys)
+
+        def _set_combo_value(combo: QtWidgets.QComboBox, value: int, keys: list[int]) -> None:
+            target = _closest(keys, value)
+            idx = combo.findData(target)
+            combo.setCurrentIndex(idx if idx >= 0 else 0)
+
+        low_val = int(rng[0]) if len(rng) > 0 else 1
+        high_val = int(rng[1]) if len(rng) > 1 else 88
+        _set_combo_value(from_combo, low_val, cf_keys)
+        _set_combo_value(to_combo, high_val, be_keys)
+
+        layout.addWidget(auto_cb)
+        layout.addWidget(from_combo)
+        layout.addWidget(to_combo)
         layout.addStretch(1)
 
+        def _refresh_combo_style() -> None:
+            disabled_style = "QComboBox { color: #7a7a7a; }"
+            from_combo.setStyleSheet("" if from_combo.isEnabled() else disabled_style)
+            to_combo.setStyleSheet("" if to_combo.isEnabled() else disabled_style)
+
         def _apply_range_state() -> None:
-            is_manual = bool(manual_cb.isChecked())
-            auto_label.setVisible(not is_manual)
-            low_spin.setVisible(is_manual)
-            high_spin.setVisible(is_manual)
-            if is_manual:
-                lb.stave_range = [int(low_spin.value()), int(high_spin.value())]
-            else:
+            is_auto_mode = bool(auto_cb.isChecked())
+            from_combo.setEnabled(not is_auto_mode)
+            to_combo.setEnabled(not is_auto_mode)
+            _refresh_combo_style()
+            if is_auto_mode:
                 lb.stave_range = 'auto'
+            else:
+                lb.stave_range = [int(from_combo.currentData()), int(to_combo.currentData())]
             self.valuesChanged.emit()
 
         def _range_changed(_v: int) -> None:
-            if manual_cb.isChecked():
-                lb.stave_range = [int(low_spin.value()), int(high_spin.value())]
+            if not auto_cb.isChecked():
+                lb.stave_range = [int(from_combo.currentData()), int(to_combo.currentData())]
                 self.valuesChanged.emit()
 
-        manual_cb.toggled.connect(lambda _v: _apply_range_state())
-        low_spin.valueChanged.connect(_range_changed)
-        high_spin.valueChanged.connect(_range_changed)
+        auto_cb.toggled.connect(lambda _v: _apply_range_state())
+        from_combo.currentIndexChanged.connect(_range_changed)
+        to_combo.currentIndexChanged.connect(_range_changed)
+
+        _apply_range_state()
+        _refresh_combo_style()
 
         return wrapper
 
@@ -309,6 +347,7 @@ class LineBreakDialog(QtWidgets.QDialog):
             self._selected_line_break = None
         self._select_line_break(self._selected_line_break)
         self._capture_original_state()
+        self._validate_form()
 
     def _on_apply_quick_clicked(self) -> None:
         if self._apply_quick_cb is None:
@@ -381,6 +420,31 @@ class LineBreakDialog(QtWidgets.QDialog):
             margin_mm, stave_range, page_break = self._values_from_line_break(lb)
             self._original_state[id(lb)] = (margin_mm, stave_range, page_break)
 
+    def _validate_form(self) -> bool:
+        msg = ""
+        defaults = LineBreak()
+        for lb in self._line_breaks:
+            lb_range = getattr(lb, 'stave_range', defaults.stave_range)
+            if lb_range == 'auto' or lb_range is True:
+                continue
+            try:
+                low, high = int(lb_range[0]), int(lb_range[1])
+            except Exception:
+                msg = "Key range must contain two numbers."
+                break
+            if not (1 <= low <= 88 and 1 <= high <= 88):
+                msg = "Key range must stay between key 1 and key 88."
+                break
+            if low >= high:
+                msg = "Key range must have 'from key' lower than 'to key'."
+                break
+
+        self.msg_label.setText(msg)
+        ok_btn = self.btns.button(QtWidgets.QDialogButtonBox.Ok)
+        if ok_btn is not None:
+            ok_btn.setEnabled(not bool(msg))
+        return not bool(msg)
+
     def _values_from_line_break(self, lb: LineBreak) -> Tuple[list[float], list[int] | Literal['auto'], bool]:
         defaults = LineBreak()
         margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
@@ -404,5 +468,7 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.valuesChanged.emit()
 
     def _on_accept_clicked(self) -> None:
+        if not self._validate_form():
+            return
         self.msg_label.setText("")
         self.accept()

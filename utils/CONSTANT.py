@@ -95,6 +95,7 @@ PIANO_KEY_AMOUNT: int = 88
 # key collections
 BLACK_KEYS: list[int] = key_class_filter('CDFGA')
 BE_KEYS: list[int] = key_class_filter('be')
+CF_KEYS: list[int] = key_class_filter('cf')
 
 # Editor colors
 ACCENT_COLOR_HEX: str = '#3399FF'
