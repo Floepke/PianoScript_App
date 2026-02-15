@@ -17,6 +17,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from glob import glob
 from pathlib import Path
 from urllib.request import urlretrieve
 
@@ -200,7 +201,7 @@ def write_appstream_metadata(appdir: Path, name: str) -> Path:
         f"  <summary>{APP_SUMMARY}</summary>\n"
         f"  <developer_name>{AUTHOR_NAME}</developer_name>\n"
         "  <metadata_license>CC0-1.0</metadata_license>\n"
-        "  <project_license>LicenseRef-Proprietary</project_license>\n"
+        "  <project_license>MIT</project_license>\n"
         "  <description>\n"
         "    <p>keyTAB is a professional MIDI engraver for music notation. "
         "It is based on Klavarskribo notation and revised by Philip Bergwerf to be "
@@ -253,6 +254,7 @@ def write_apprun(appdir: Path, name: str) -> Path:
     apprun.write_text(
         "#!/bin/sh\n"
         "HERE=\"$(dirname \"$(readlink -f \"$0\")\")\"\n"
+        f"export LD_LIBRARY_PATH=\"$HERE/usr/lib:$LD_LIBRARY_PATH\"\n"
         f"exec \"$HERE/usr/bin/{name}\" \"$@\"\n",
         encoding="utf-8",
     )
@@ -271,6 +273,70 @@ def remove_qt_plugins_for_portability(app_bundle: Path) -> None:
             qtiff.unlink()
         except Exception:
             pass
+
+
+def _copy_file_if_exists(src: Path, dest: Path) -> None:
+    if not src.exists():
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+
+
+def _copy_tree_if_exists(src: Path, dest: Path) -> None:
+    if not src.exists():
+        return
+    if dest.exists():
+        shutil.rmtree(dest, ignore_errors=True)
+    shutil.copytree(src, dest)
+
+
+def copy_bundled_assets(project_root: Path, lib_app_dir: Path, appdir: Path, exe_name: str) -> None:
+    # Licenses and notices (ship both alongside the binary and under /usr/share for compliance).
+    licenses_src = project_root / "licenses"
+    licenses_dst_bin = lib_app_dir / "licenses"
+    _copy_tree_if_exists(licenses_src, licenses_dst_bin)
+
+    _copy_file_if_exists(project_root / "LICENSE", lib_app_dir / "LICENSE")
+    _copy_file_if_exists(project_root / "THIRD_PARTY_NOTICES.md", lib_app_dir / "THIRD_PARTY_NOTICES.md")
+    _copy_file_if_exists(project_root / "docs" / "LICENSING_AND_PACKAGING.md", lib_app_dir / "docs" / "LICENSING_AND_PACKAGING.md")
+
+    share_root = appdir / "usr" / "share"
+    share_license_dir = share_root / "licenses" / exe_name
+    _copy_tree_if_exists(licenses_src, share_license_dir)
+    _copy_file_if_exists(project_root / "LICENSE", share_license_dir / "LICENSE")
+
+    doc_dir = share_root / "doc" / exe_name
+    _copy_file_if_exists(project_root / "THIRD_PARTY_NOTICES.md", doc_dir / "THIRD_PARTY_NOTICES.md")
+    _copy_file_if_exists(project_root / "docs" / "LICENSING_AND_PACKAGING.md", doc_dir / "LICENSING_AND_PACKAGING.md")
+
+
+def copy_shared_libs(appdir: Path, lib_names: list[str]) -> None:
+    lib_dst = appdir / "usr" / "lib"
+    lib_dst.mkdir(parents=True, exist_ok=True)
+    search_dirs = [
+        "/usr/lib",
+        "/usr/local/lib",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/local/lib/x86_64-linux-gnu",
+    ]
+    for name in lib_names:
+        found = None
+        for d in search_dirs:
+            for candidate in glob(str(Path(d) / f"{name}*.so*")):
+                p = Path(candidate)
+                if p.is_file():
+                    found = p
+                    break
+            if found:
+                break
+        if not found:
+            print(f"Warning: could not find {name} to bundle; ensure it is available at runtime.")
+            continue
+        try:
+            shutil.copy2(found, lib_dst / found.name)
+            print(f"Bundled shared library: {found}")
+        except Exception as exc:
+            print(f"Warning: failed to copy {found}: {exc}")
 
 
 def main() -> int:
@@ -337,6 +403,12 @@ def main() -> int:
     if launcher.exists():
         launcher.unlink()
     launcher.symlink_to(Path("../lib") / exe_name / exe_name)
+
+    # Bundle licenses and notices for compliance; user supplies their own soundfont.
+    copy_bundled_assets(project_root, lib_app_dir, appdir, exe_name)
+
+    # Bundle shared libs needed at runtime (libfluidsynth and common audio deps).
+    copy_shared_libs(appdir, ["libfluidsynth", "libasound", "libpulse", "libsndfile", "libglib-2.0"])
 
     icon_dir = appdir / "usr" / "share" / "icons" / "hicolor" / "256x256" / "apps"
     icon_dir.mkdir(parents=True, exist_ok=True)

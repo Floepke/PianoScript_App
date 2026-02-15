@@ -97,3 +97,5 @@ Note:
 - The middle toolbar is implemented as a custom `QSplitterHandle`, so the whole area (outside the buttons) acts as a single splitter handle.
 - The PrintView renders on a worker thread and blits the result safely in the GUI thread.
 - The File > Export PDF action writes a vector PDF using Cairo.
+- Soundfonts: user-provided `.sf2`/`.sf3` only. On first playback you’ll be prompted to select a file; the app remembers the choice. Or set `KEYTAB_SOUNDFONT` to an absolute path.
+- Licensing: the app is MIT-licensed (`LICENSE`). Third-party notices live in `THIRD_PARTY_NOTICES.md` with full texts in `licenses/`. Packaging guidance for .exe/.app/.AppImage is in `docs/LICENSING_AND_PACKAGING.md`.

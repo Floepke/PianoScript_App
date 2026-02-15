@@ -12,6 +12,7 @@ from ui.widgets.tool_selector import ToolSelectorDock
 from ui.widgets.snap_size_selector import SnapSizeDock
 from ui.widgets.draw_util import DrawUtil
 from ui.widgets.draw_view import DrawUtilView
+from ui.about_dialog import AboutDialog
 from settings_manager import open_preferences, get_preferences_manager
 from appdata_manager import get_appdata_manager
 from engraver.engraver import Engraver
@@ -25,12 +26,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("keyTAB - new project (unsaved)")
         self.resize(1200, 800)
         self.setAcceptDrops(True)
+        # Ensure player attribute always exists
+        self.player = None
 
         # File management
         self.file_manager = FileManager(self)
 
         # View options
-        self._center_playhead_enabled = True
+        try:
+            pm = get_preferences_manager()
+            self._center_playhead_enabled = bool(
+                pm.get("focus_on_playhead_during_playback", pm.get("center_view_on_playhead", True))
+            )
+        except Exception:
+            self._center_playhead_enabled = True
         
         # Install error-backup hook early so any unhandled exception triggers a backup
         self.file_manager.install_error_backup_hook()
@@ -282,7 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
         except Exception:
-            # Player initialization is optional at startup
+            # Player initialization is optional at startup; keep attribute defined
             self.player = None
         # Playhead overlay timer (60 Hz)
         try:
@@ -292,43 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._playhead_timer.timeout.connect(self._update_playhead_overlay)
         except Exception:
             self._playhead_timer = None
-        # Apply stored synth settings if any (per project)
-        try:
-            app_state = self._resolve_app_state_defaults()
-            if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") == "internal_synth":
-                if not hasattr(self, 'player') or self.player is None:
-                    from midi.player import Player
-                    self.player = Player()
-                lw = list(getattr(app_state, "synth_left_wavetable", []) or [])
-                rw = list(getattr(app_state, "synth_right_wavetable", []) or [])
-                # Apply preferred audio device first
-                dev = str(getattr(app_state, "audio_output_device", "") or "")
-                if dev and hasattr(self.player, 'set_audio_output_device'):
-                    try:
-                        self.player.set_audio_output_device(dev)
-                    except Exception:
-                        pass
-                if lw and rw:
-                    import numpy as _np
-                    self.player.set_wavetables(_np.asarray(lw, dtype=_np.float32), _np.asarray(rw, dtype=_np.float32))
-                self.player.set_adsr(float(getattr(app_state, "synth_attack", 0.005) or 0.005),
-                                     float(getattr(app_state, "synth_decay", 0.05) or 0.05),
-                                     float(getattr(app_state, "synth_sustain", 0.6) or 0.6),
-                                     float(getattr(app_state, "synth_release", 0.1) or 0.1))
-                try:
-                    # Apply persisted master gain
-                    if hasattr(self.player, 'set_gain'):
-                        self.player.set_gain(float(getattr(app_state, "synth_gain", 0.35) or 0.35))
-                    # Apply persisted humanize (detune cents)
-                    if hasattr(self.player, 'set_humanize_detune_cents'):
-                        self.player.set_humanize_detune_cents(float(getattr(app_state, "synth_humanize_cents", 3.0) or 3.0))
-                    # Apply persisted humanize interval (seconds)
-                    if hasattr(self.player, 'set_humanize_interval_s'):
-                        self.player.set_humanize_interval_s(float(getattr(app_state, "synth_humanize_interval_s", 1.0) or 1.0))
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        # Synth configuration no longer applies; FluidSynth handles playback directly
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if self._drop_paths_from_mime(event.mimeData()):
@@ -441,11 +414,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if sys.platform == "darwin":
             menubar.setNativeMenuBar(True)
 
-        # Create menus in normal left-to-right order (File, Edit, View, Playback)
+        # Create menus in normal left-to-right order (File, Edit, View, Playback, Help)
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
         view_menu = menubar.addMenu("&View")
         playback_menu = menubar.addMenu("&Playback")
+        help_menu = menubar.addMenu("&Help")
 
         # File actions
         new_act = QtGui.QAction("New", self)
@@ -485,70 +459,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
         file_menu.addAction(exit_act)
 
-        app_state = self._resolve_app_state_defaults()
-
-        # MIDI transport toggle (Start/Stop/Clock/SPP)
-        transport_act = QtGui.QAction("Send MIDI Transport (start/stop/clock/spp)", self, checkable=True)
-        try:
-            transport_act.setChecked(bool(app_state.send_midi_transport))
-        except Exception:
-            transport_act.setChecked(True)
-        transport_act.triggered.connect(lambda: self._set_send_midi_transport(transport_act.isChecked()))
-        self._transport_act = transport_act
-
-        # Playback mode toggles at top of menu
-        grp = QtGui.QActionGroup(self)
-        grp.setExclusive(True)
-        act_midi = QtGui.QAction("Playback Using External MIDI Port", self, checkable=True)
-        act_synth = QtGui.QAction("Playback Using Internal Synth", self, checkable=True)
-        grp.addAction(act_midi)
-        grp.addAction(act_synth)
-        playback_menu.addAction(act_midi)
-        playback_menu.addAction(act_synth)
+        # Playback menu (FluidSynth only)
+        test_tone_act = QtGui.QAction("Play Test Tone", self)
+        test_tone_act.triggered.connect(self._play_test_tone)
+        playback_menu.addAction(test_tone_act)
         playback_menu.addSeparator()
-        # Initialize from app state
-        try:
-            mode = str(getattr(app_state, "playback_type", "midi_port") or "midi_port")
-            if mode == "internal_synth":
-                act_synth.setChecked(True)
-            else:
-                act_midi.setChecked(True)
-        except Exception:
-            act_midi.setChecked(True)
-        # Handlers
-        act_midi.triggered.connect(lambda: self._set_playback_mode("midi_port"))
-        act_synth.triggered.connect(lambda: self._set_playback_mode("internal_synth"))
-        self._act_midi = act_midi
-        self._act_synth = act_synth
 
-        # MIDI Output port chooser (under Playback menu)
-        midi_port_act = QtGui.QAction("Set MIDI Output Port...", self)
-        midi_port_act.triggered.connect(self._choose_midi_port)
-        playback_menu.addAction(midi_port_act)
-        playback_menu.addAction(transport_act)
-
+        select_sf_act = QtGui.QAction("Select SoundFont…", self)
+        select_sf_act.triggered.connect(lambda: self._prompt_for_soundfont(force_dialog=True))
+        playback_menu.addAction(select_sf_act)
         playback_menu.addSeparator()
+
+        about_act = QtGui.QAction("About keyTAB", self)
+        about_act.triggered.connect(self._open_about_dialog)
+        help_menu.addAction(about_act)
 
         try:
             self._refresh_recent_files_menu()
         except Exception:
             pass
-
-        # Audio output device chooser for internal synth (under Playback menu)
-        audio_dev_act = QtGui.QAction("Set Audio Output Device...", self)
-        audio_dev_act.triggered.connect(self._choose_audio_device)
-        playback_menu.addAction(audio_dev_act)
-
-        playback_menu.addSeparator()
-
-        # System audio test tone (under Playback menu)
-        sys_tone_act = QtGui.QAction("Play System Audio Test Tone", self)
-        sys_tone_act.triggered.connect(self._play_system_test_tone)
-        playback_menu.addAction(sys_tone_act)
-
-        test_tone_act = QtGui.QAction("Play Synth Test Tone", self)
-        test_tone_act.triggered.connect(self._play_test_tone)
-        playback_menu.addAction(test_tone_act)
 
         file_menu.addSeparator()
         file_menu.addAction(exit_act)
@@ -598,19 +527,6 @@ class MainWindow(QtWidgets.QMainWindow):
         view_menu.addAction(QtGui.QAction("Zoom In", self))
         view_menu.addAction(QtGui.QAction("Zoom Out", self))
         view_menu.addSeparator()
-        center_playhead_act = QtGui.QAction("Center View on Playhead", self, checkable=True)
-        try:
-            enabled = bool(getattr(app_state, "center_playhead_enabled", True))
-            center_playhead_act.setChecked(enabled)
-            self._center_playhead_enabled = enabled
-        except Exception:
-            center_playhead_act.setChecked(True)
-            self._center_playhead_enabled = True
-        center_playhead_act.triggered.connect(
-            lambda checked=False: self._set_center_playhead_enabled(bool(checked))
-        )
-        view_menu.addAction(center_playhead_act)
-        self._center_playhead_act = center_playhead_act
 
         # Wire up triggers
         new_act.triggered.connect(self._file_new)
@@ -681,20 +597,6 @@ class MainWindow(QtWidgets.QMainWindow):
             app_state.snap_base = int(adm.get("snap_base", app_state.snap_base) or app_state.snap_base)
             app_state.snap_divide = int(adm.get("snap_divide", app_state.snap_divide) or app_state.snap_divide)
             app_state.selected_tool = str(adm.get("selected_tool", app_state.selected_tool) or app_state.selected_tool)
-            app_state.center_playhead_enabled = bool(adm.get("center_playhead_enabled", app_state.center_playhead_enabled))
-            app_state.playback_type = str(adm.get("playback_type", app_state.playback_type) or app_state.playback_type)
-            app_state.send_midi_transport = bool(adm.get("send_midi_transport", app_state.send_midi_transport))
-            app_state.midi_out_port = str(adm.get("midi_out_port", app_state.midi_out_port) or app_state.midi_out_port)
-            app_state.audio_output_device = str(adm.get("audio_output_device", app_state.audio_output_device) or app_state.audio_output_device)
-            app_state.synth_left_wavetable = list(adm.get("synth_left_wavetable", app_state.synth_left_wavetable) or [])
-            app_state.synth_right_wavetable = list(adm.get("synth_right_wavetable", app_state.synth_right_wavetable) or [])
-            app_state.synth_attack = float(adm.get("synth_attack", app_state.synth_attack) or app_state.synth_attack)
-            app_state.synth_decay = float(adm.get("synth_decay", app_state.synth_decay) or app_state.synth_decay)
-            app_state.synth_sustain = float(adm.get("synth_sustain", app_state.synth_sustain) or app_state.synth_sustain)
-            app_state.synth_release = float(adm.get("synth_release", app_state.synth_release) or app_state.synth_release)
-            app_state.synth_gain = float(adm.get("synth_gain", app_state.synth_gain) or app_state.synth_gain)
-            app_state.synth_humanize_cents = float(adm.get("synth_humanize_cents", app_state.synth_humanize_cents) or app_state.synth_humanize_cents)
-            app_state.synth_humanize_interval_s = float(adm.get("synth_humanize_interval_s", app_state.synth_humanize_interval_s) or app_state.synth_humanize_interval_s)
         except Exception:
             pass
         return app_state
@@ -718,40 +620,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.snap_dock.selector.set_snap(sb, sd, emit=True)
             except Exception:
                 pass
-            # Center playhead toggle
-            try:
-                self._center_playhead_enabled = bool(app_state.center_playhead_enabled)
-                if hasattr(self, '_center_playhead_act') and self._center_playhead_act is not None:
-                    self._center_playhead_act.blockSignals(True)
-                    self._center_playhead_act.setChecked(self._center_playhead_enabled)
-                    self._center_playhead_act.blockSignals(False)
-            except Exception:
-                pass
-            # Playback mode + transport toggles
-            try:
-                if hasattr(self, '_transport_act') and self._transport_act is not None:
-                    self._transport_act.blockSignals(True)
-                    self._transport_act.setChecked(bool(app_state.send_midi_transport))
-                    self._transport_act.blockSignals(False)
-            except Exception:
-                pass
-            try:
-                mode = str(app_state.playback_type or "midi_port")
-                if hasattr(self, '_act_midi') and self._act_midi is not None:
-                    self._act_midi.blockSignals(True)
-                    self._act_midi.setChecked(mode != "internal_synth")
-                    self._act_midi.blockSignals(False)
-                if hasattr(self, '_act_synth') and self._act_synth is not None:
-                    self._act_synth.blockSignals(True)
-                    self._act_synth.setChecked(mode == "internal_synth")
-                    self._act_synth.blockSignals(False)
-            except Exception:
-                pass
-            # Apply player settings
-            try:
-                self._apply_app_state_to_player(app_state)
-            except Exception:
-                pass
             # Scroll restore (used when metrics arrive)
             try:
                 self._pending_scroll_restore = int(app_state.editor_scroll_pos or 0)
@@ -759,59 +627,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 pass
         finally:
             self._is_restoring_app_state = False
-
-    def _apply_app_state_to_player(self, app_state: AppState) -> None:
-        try:
-            self._ensure_player()
-            # Playback mode
-            try:
-                if hasattr(self.player, 'set_playback_type'):
-                    self.player.set_playback_type(str(app_state.playback_type or "midi_port"))
-            except Exception:
-                pass
-            # Transport toggle
-            try:
-                if hasattr(self.player, 'set_send_midi_transport'):
-                    self.player.set_send_midi_transport(bool(app_state.send_midi_transport))
-            except Exception:
-                pass
-            # MIDI port preference
-            try:
-                if str(app_state.midi_out_port or ""):
-                    self.player.set_output_port(str(app_state.midi_out_port))
-            except Exception:
-                pass
-            # Audio device + synth parameters
-            try:
-                dev = str(app_state.audio_output_device or "")
-                if dev and hasattr(self.player, 'set_audio_output_device'):
-                    self.player.set_audio_output_device(dev)
-            except Exception:
-                pass
-            try:
-                lw = list(app_state.synth_left_wavetable or [])
-                rw = list(app_state.synth_right_wavetable or [])
-                if lw and rw:
-                    import numpy as _np
-                    self.player.set_wavetables(_np.asarray(lw, dtype=_np.float32), _np.asarray(rw, dtype=_np.float32))
-            except Exception:
-                pass
-            try:
-                if hasattr(self.player, 'set_adsr'):
-                    self.player.set_adsr(float(app_state.synth_attack or 0.005),
-                                         float(app_state.synth_decay or 0.05),
-                                         float(app_state.synth_sustain or 0.6),
-                                         float(app_state.synth_release or 0.1))
-                if hasattr(self.player, 'set_gain'):
-                    self.player.set_gain(float(app_state.synth_gain or 0.35))
-                if hasattr(self.player, 'set_humanize_detune_cents'):
-                    self.player.set_humanize_detune_cents(float(app_state.synth_humanize_cents or 3.0))
-                if hasattr(self.player, 'set_humanize_interval_s'):
-                    self.player.set_humanize_interval_s(float(app_state.synth_humanize_interval_s or 1.0))
-            except Exception:
-                pass
-        except Exception:
-            pass
 
     def _schedule_app_state_save(self) -> None:
         if self._is_restoring_app_state:
@@ -842,73 +657,87 @@ class MainWindow(QtWidgets.QMainWindow):
                 pass
 
     def _ensure_player(self) -> None:
+        # Always ensure attribute exists and bubble up failures so callers can report
+        if not hasattr(self, 'player'):
+            self.player = None
         try:
-            if not hasattr(self, 'player') or self.player is None:
+            if self.player is None:
                 from midi.player import Player
-                self.player = Player()
+                self.player = Player(soundfont_path=self._get_soundfont_path_from_appdata())
             if hasattr(self.player, 'set_persist_settings'):
                 self.player.set_persist_settings(False)
         except Exception:
-            pass
+            self.player = None
+            raise
 
-    def _choose_midi_port(self) -> None:
-        # Ensure player exists
+    def _get_soundfont_path_from_appdata(self) -> Optional[str]:
         try:
-            self._ensure_player()
-        except Exception as exc:
-            try:
-                QtWidgets.QMessageBox.critical(self, "MIDI Output", f"MIDI backend unavailable: {exc}")
-            except Exception:
-                print(f"MIDI backend unavailable: {exc}")
-            try:
-                self._status("MIDI backend unavailable", 3000)
-            except Exception:
-                pass
-            return
-        # If not in MIDI mode, switch automatically
-        try:
-            app_state = self._current_app_state()
-            if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") != "midi_port":
-                self._set_playback_mode("midi_port")
-                if hasattr(self, "_act_midi") and self._act_midi is not None:
-                    self._act_midi.setChecked(True)
+            adm = get_appdata_manager()
+            path = str(adm.get("user_soundfont_path", "") or "")
+            if path and Path(path).expanduser().is_file():
+                return str(Path(path).expanduser())
         except Exception:
             pass
-        # Query ports
+        return None
+
+    def _set_soundfont_path_to_appdata(self, path: str) -> None:
         try:
-            names = self.player.list_output_ports()
-        except Exception as exc:
-            names = []
-            try:
-                QtWidgets.QMessageBox.warning(self, "MIDI Output", f"Failed to query MIDI ports: {exc}")
-            except Exception:
-                print(f"Failed to query MIDI ports: {exc}")
-        if not names:
-            try:
-                QtWidgets.QMessageBox.warning(self, "MIDI Output", "No MIDI output ports found.")
-            except Exception:
-                print("No MIDI output ports found.")
-            try:
-                self._status("No MIDI output ports found", 3000)
-            except Exception:
-                pass
-            return
-        # Simple chooser dialog
-        item, ok = QtWidgets.QInputDialog.getItem(self, "Select MIDI Output", "Port:", names, 0, False)
-        if not ok:
-            return
+            adm = get_appdata_manager()
+            adm.set("user_soundfont_path", str(path))
+            adm.save()
+        except Exception:
+            pass
+
+    def _prompt_for_soundfont(self, force_dialog: bool = False) -> Optional[str]:
+        """Ensure a soundfont path exists; prompt user if missing or forced."""
+        existing = self._get_soundfont_path_from_appdata()
+        if existing and not force_dialog:
+            return existing
+        dlg = QtWidgets.QFileDialog(self)
+        dlg.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        dlg.setNameFilter("SoundFont (*.sf2 *.sf3)")
+        dlg.setViewMode(QtWidgets.QFileDialog.ViewMode.Detail)
         try:
-            self.player.set_output_port(str(item))
-            try:
-                app_state = self._current_app_state()
-                app_state.midi_out_port = str(item)
-            except Exception:
-                pass
+            here = Path(__file__).resolve().parent.parent / "assets" / "soundfonts"
+            if here.is_dir():
+                dlg.setDirectory(str(here))
+        except Exception:
+            pass
+        if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            sel = dlg.selectedFiles()[0]
+            if sel:
+                self._set_soundfont_path_to_appdata(sel)
+                try:
+                    if hasattr(self, 'player') and self.player is not None:
+                        self.player.set_soundfont(sel)
+                except Exception:
+                    pass
+                return sel
+        return existing if existing else None
+
+    def _ensure_player_with_soundfont(self) -> None:
+        try:
+            self._ensure_player()
+            return
         except Exception as exc:
-            try:
-                QtWidgets.QMessageBox.critical(self, "MIDI Output", f"Failed to open port: {exc}")
-            except Exception:
-                print(f"Failed to open port: {exc}")
+            # If missing soundfont, prompt the user and retry once
+            msg = str(exc).lower()
+            if "soundfont" in msg:
+                chosen = self._prompt_for_soundfont(force_dialog=True)
+                if chosen:
+                    from midi.player import Player
+                    self.player = Player(soundfont_path=chosen)
+                    try:
+                        if hasattr(self.player, 'set_persist_settings'):
+                            self.player.set_persist_settings(False)
+                    except Exception:
+                        pass
+                    return
+            raise
+
+    def _choose_midi_port(self) -> None:
+        # Legacy stub kept for menu compatibility; FluidSynth renders audio directly
+        self._status("MIDI port selection not needed (FluidSynth output)", 2500)
 
     def _update_clock(self) -> None:
         try:
@@ -995,6 +824,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def _open_preferences(self) -> None:
         # Ensure preferences file exists and open in system editor
         open_preferences(self)
+
+    def _open_about_dialog(self) -> None:
+        """Show licensing and attribution info."""
+        try:
+            dlg = AboutDialog(self)
+            dlg.exec()
+        except Exception:
+            pass
 
     def _file_new(self) -> None:
         # If there are unsaved changes, confirm save before starting a new project
@@ -1547,77 +1384,34 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _play_midi_with_prompt(self, start_units: Optional[float]) -> None:
-        """Play SCORE, prompting for MIDI port if unavailable, then retry once.
-
-        If start_units is provided, starts from the editor's time cursor; otherwise
-        plays the full score.
-        """
+    def _scroll_editor_to_start(self) -> None:
+        """Ensure the editor viewport is at the start before playback begins."""
         try:
-            self._ensure_player()
-            sc = self.file_manager.current()
-            # If internal synth mode, no port prompt
-            try:
-                app_state = self._current_app_state()
-                if str(getattr(app_state, "playback_type", "midi_port") or "midi_port") == "internal_synth":
-                    if start_units is None:
-                        self.player.play_score(sc)
-                    else:
-                        self.player.play_from_time_cursor(float(start_units or 0.0), sc)
-                    # Start playhead timer
-                    self._start_playhead_timer()
-                    # Show playback debug status
-                    self._show_play_debug_status()
-                    return
-            except Exception:
-                pass
-            # First attempt
-            try:
-                if start_units is None:
-                    self.player.play_score(sc)
-                else:
-                    self.player.play_from_time_cursor(float(start_units or 0.0), sc)
-                # Start playhead timer
-                self._start_playhead_timer()
-                self._show_play_debug_status()
-                return
-            except Exception:
-                # Likely missing or failed MIDI port; prompt user to select one
-                try:
-                    self._choose_midi_port()
-                except Exception:
-                    pass
-                # Retry once after selection
-                try:
-                    if start_units is None:
-                        self.player.play_score(sc)
-                    else:
-                        self.player.play_from_time_cursor(float(start_units or 0.0), sc)
-                    # Start playhead timer
-                    self._start_playhead_timer()
-                    self._show_play_debug_status()
-                    return
-                except Exception as exc2:
-                    # Fallback to internal synth automatically
-                    try:
-                        self._status("No usable MIDI port. Switching to Internal Synth.", 3000)
-                        self._set_playback_mode("internal_synth")
-                        if start_units is None:
-                            self.player.play_score(sc)
-                        else:
-                            self.player.play_from_time_cursor(float(start_units or 0.0), sc)
-                        # Start playhead timer
-                        self._start_playhead_timer()
-                        self._show_play_debug_status()
-                        return
-                    except Exception:
-                        # Notify user if still failing
-                        try:
-                            QtWidgets.QMessageBox.critical(self, "Playback", f"Playback failed: {exc2}")
-                        except Exception:
-                            print(f"Playback failed: {exc2}")
+            if hasattr(self, 'editor_vscroll') and self.editor_vscroll is not None:
+                self.editor_vscroll.setValue(0)
+            elif hasattr(self, 'editor') and self.editor is not None:
+                self.editor.set_scroll_logical_px(0)
         except Exception:
             pass
+
+    def _play_midi_with_prompt(self, start_units: Optional[float]) -> None:
+        """Play the SCORE from start or the editor time cursor using FluidSynth."""
+        try:
+            self._ensure_player_with_soundfont()
+            sc = self.file_manager.current()
+            if start_units is None:
+                self._scroll_editor_to_start()
+            if start_units is None:
+                self.player.play_score(sc)
+            else:
+                self.player.play_from_time_cursor(float(start_units or 0.0), sc)
+            self._start_playhead_timer()
+            self._show_play_debug_status()
+        except Exception as exc:
+            try:
+                QtWidgets.QMessageBox.critical(self, "Playback", f"Playback failed: {exc}")
+            except Exception:
+                print(f"Playback failed: {exc}")
 
     def _start_playhead_timer(self) -> None:
         try:
@@ -1633,16 +1427,11 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if hasattr(self, 'player') and self.player is not None and hasattr(self.player, 'get_debug_status'):
                 info = self.player.get_debug_status()
-                mode = info.get('playback_type', '')
                 bpm = info.get('bpm', 0)
                 ev = info.get('events', 0)
-                if mode == 'internal_synth':
-                    dev = info.get('device', '') or 'default'
-                    gain = info.get('gain', 0.0)
-                    self._status(f"Playing (Synth) • {ev} notes • {bpm:.0f} BPM • Device: {dev} • Gain: {gain:.2f}", 3000)
-                else:
-                    port = info.get('midi_port', '') or '(auto)'
-                    self._status(f"Playing (MIDI) • {ev} notes • {bpm:.0f} BPM • Port: {port}", 3000)
+                gain = info.get('gain', 0.0)
+                sf = info.get('soundfont', '') or 'FluidSynth'
+                self._status(f"Playing • {ev} notes • {bpm:.0f} BPM • Soundfont: {sf} • Gain: {gain:.2f}", 3000)
         except Exception:
             pass
 
@@ -1693,19 +1482,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _set_center_playhead_enabled(self, enabled: bool) -> None:
-        self._center_playhead_enabled = bool(enabled)
-        try:
-            app_state = self._current_app_state()
-            app_state.center_playhead_enabled = bool(enabled)
-        except Exception:
-            pass
-        if self._center_playhead_enabled:
-            try:
-                units = getattr(self.editor_controller, 'playhead_time', None)
-                self._center_playhead_scroll(units)
-            except Exception:
-                pass
 
     def _clear_playhead_overlay(self) -> None:
         try:
@@ -1722,233 +1498,31 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    # FX window removed
+    # FX/editor hooks removed; FluidSynth is the single backend
     def _open_fx_editor(self) -> None:
-        try:
-            # Show simple wavetable/ADSR editor and apply settings
-            from ui.widgets.wavetable_editor import WavetableEditor
-            dlg = WavetableEditor(self)
-            try:
-                dlg.setModal(False)
-                dlg.setWindowModality(QtCore.Qt.WindowModality.NonModal)
-            except Exception:
-                pass
-            def on_apply(left, right, a, d, s, r, g, h, hi):
-                try:
-                    self._ensure_player()
-                    self.player.set_wavetables(left, right)
-                    self.player.set_adsr(a, d, s, r)
-                    if hasattr(self.player, 'set_gain'):
-                        self.player.set_gain(float(g))
-                    if hasattr(self.player, 'set_humanize_detune_cents'):
-                        self.player.set_humanize_detune_cents(float(h))
-                    if hasattr(self.player, 'set_humanize_interval_s'):
-                        self.player.set_humanize_interval_s(float(hi))
-                    try:
-                        app_state = self._current_app_state()
-                        app_state.synth_left_wavetable = [float(x) for x in list(left)]
-                        app_state.synth_right_wavetable = [float(x) for x in list(right)]
-                        app_state.synth_attack = float(a)
-                        app_state.synth_decay = float(d)
-                        app_state.synth_sustain = float(s)
-                        app_state.synth_release = float(r)
-                        app_state.synth_gain = float(g)
-                        app_state.synth_humanize_cents = float(h)
-                        app_state.synth_humanize_interval_s = float(hi)
-                    except Exception:
-                        pass
-                    self._status("Synth updated", 1500)
-                except Exception:
-                    pass
-            dlg.wavetablesApplied.connect(on_apply)
-            # Keep dialog reference to avoid GC while modeless
-            try:
-                self._fx_dialog = dlg
-            except Exception:
-                pass
-            dlg.show()
-        except Exception:
-            pass
+        self._status("Synth FX editor removed (FluidSynth playback only)", 2000)
 
     def _set_playback_mode(self, mode: str) -> None:
-        try:
-            self._ensure_player()
-            try:
-                self.player.stop()
-            except Exception:
-                pass
-            try:
-                # Persist and update player
-                if hasattr(self.player, 'set_playback_type'):
-                    self.player.set_playback_type(str(mode))
-                try:
-                    app_state = self._current_app_state()
-                    app_state.playback_type = str(mode)
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            self._status(f"Playback mode: {'Internal Synth' if mode=='internal_synth' else 'External MIDI Port'}", 2500)
-        except Exception:
-            pass
+        # Legacy stub kept for signal compatibility
+        self._status("Playback uses FluidSynth (single mode)", 2000)
 
     def _set_send_midi_transport(self, enabled: bool) -> None:
-        try:
-            self._ensure_player()
-            if hasattr(self.player, 'set_send_midi_transport'):
-                self.player.set_send_midi_transport(bool(enabled))
-            try:
-                app_state = self._current_app_state()
-                app_state.send_midi_transport = bool(enabled)
-            except Exception:
-                pass
-            self._status(f"MIDI transport: {'On' if enabled else 'Off'}", 2000)
-        except Exception:
-            pass
+        # Legacy stub kept for signal compatibility
+        self._status("MIDI transport settings removed (FluidSynth backend)", 2000)
 
     def _play_test_tone(self) -> None:
         try:
-            # Ensure player and synth exist
-            self._ensure_player()
-            # Switch to synth temporarily if needed
-            try:
-                if hasattr(self.player, 'set_playback_type'):
-                    self.player.set_playback_type('internal_synth')
-            except Exception:
-                pass
-            # Use synth directly if available
-            try:
-                from synth.wavetable_synth import WavetableSynth
-            except Exception:
-                WavetableSynth = None  # type: ignore
-            if WavetableSynth is None:
-                self._status("Synth backend unavailable", 2500)
-                return
-            # Trigger A4 (MIDI 69) for ~1 second
-            if hasattr(self.player, '_synth') and self.player._synth is None:
-                try:
-                    self.player._synth = WavetableSynth()
-                except Exception:
-                    pass
-            if hasattr(self.player, '_synth') and self.player._synth is not None:
-                try:
-                    # Apply preferred audio device if set
-                    try:
-                        app_state = self._current_app_state()
-                        dev = str(getattr(app_state, "audio_output_device", "") or "")
-                        if dev and hasattr(self.player, 'set_audio_output_device'):
-                            self.player.set_audio_output_device(dev)
-                    except Exception:
-                        pass
-                    # Ensure any previous playback is stopped
-                    try:
-                        self.player._synth.all_notes_off()
-                    except Exception:
-                        pass
-                    self.player._synth.note_on(69, 110)
-                    QtCore.QTimer.singleShot(1000, lambda: self.player._synth.note_off(69))
-                    dev = getattr(self.player._synth, '_device_name', '') or 'default'
-                    self._status(f"Synth test tone → {dev}", 2000)
-                except Exception:
-                    pass
+            self._ensure_player_with_soundfont()
+            self.player.audition_note(pitch=49, velocity=100, duration_sec=1.0)
+            self._status("Test tone (FluidSynth)", 1500)
         except Exception:
-            pass
+            self._status("Test tone unavailable", 2000)
 
     def _choose_audio_device(self) -> None:
-        try:
-            import sounddevice as sd
-        except Exception:
-            QtWidgets.QMessageBox.critical(self, "Audio", "sounddevice not available")
-            return
-        try:
-            devices = sd.query_devices()
-            outputs = [d for d in devices if int(d.get('max_output_channels', 0)) > 0]
-            if not outputs:
-                QtWidgets.QMessageBox.warning(self, "Audio", "No audio output devices found.")
-                return
-            names = [str(d.get('name', '')) for d in outputs]
-            pref = str(getattr(self._current_app_state(), "audio_output_device", "") or "")
-            default_index = names.index(pref) if pref in names else 0
-            dlg = QtWidgets.QInputDialog(self)
-            dlg.setWindowTitle("Select Audio Output")
-            dlg.setLabelText("Device:")
-            dlg.setComboBoxItems(names)
-            dlg.setComboBoxEditable(False)
-            try:
-                combo = dlg.comboBox()
-                if combo is not None:
-                    combo.setCurrentIndex(default_index)
-                    dlg.setTextValue(combo.currentText())
-                else:
-                    dlg.setTextValue(names[default_index])
-            except Exception:
-                try:
-                    dlg.setTextValue(names[default_index])
-                except Exception:
-                    pass
-            if not dlg.exec():
-                return
-            name = str(dlg.textValue())
-            try:
-                app_state = self._current_app_state()
-                app_state.audio_output_device = name
-            except Exception:
-                pass
-            # Apply to synth if present
-            try:
-                self._ensure_player()
-                if hasattr(self.player, 'set_audio_output_device'):
-                    self.player.set_audio_output_device(name)
-            except Exception:
-                pass
-            self._status(f"Audio device set: {name}", 2500)
-        except Exception as exc:
-            try:
-                QtWidgets.QMessageBox.critical(self, "Audio", f"Failed to list devices: {exc}")
-            except Exception:
-                pass
+        self._status("Audio device selection not required (FluidSynth auto-selects)", 2000)
 
     def _play_system_test_tone(self) -> None:
-        try:
-            import numpy as _np
-            import sounddevice as sd
-            import threading as _th
-            sr = 48000
-            dur = 1.5
-            t = _np.arange(int(sr * dur), dtype=_np.float32) / sr
-            wave = _np.sin(2 * _np.pi * 440.0 * t).astype(_np.float32)
-            stereo = _np.column_stack([wave, wave])
-            # Preferred device
-            name = str(getattr(self._current_app_state(), "audio_output_device", "") or "")
-            dev = name if name else 'default'
-            # Stop any previous playback
-            try:
-                sd.stop()
-            except Exception:
-                pass
-            # Play in a short background thread using OutputStream to avoid finished_callback errors
-            def _play_stream():
-                stream = None
-                try:
-                    stream = sd.OutputStream(samplerate=sr, channels=2, dtype='float32', device=name if name else None)
-                    stream.start()
-                    stream.write(stereo)
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        if stream is not None:
-                            stream.stop()
-                            stream.close()
-                    except Exception:
-                        pass
-            _th.Thread(target=_play_stream, daemon=True).start()
-            self._status(f"System test tone → {dev}", 2000)
-        except Exception as exc:
-            try:
-                QtWidgets.QMessageBox.critical(self, "Audio", f"Test tone failed: {exc}")
-            except Exception:
-                pass
+        self._play_test_tone()
 
     def _force_redraw(self, *_args) -> None:
         # Rebuild editor caches and hit-rects for immediate tool feedback

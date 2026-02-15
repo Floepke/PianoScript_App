@@ -232,28 +232,12 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("snap_divide", 1, "Last selected snap divide (tuplets factor) for editor snapping")
         adm.register("selected_tool", "note", "Last selected tool name in the tool selector")
         adm.register("editor_scroll_pos", 0, "Last editor scroll position (logical px)")
-        adm.register("center_playhead_enabled", True, "Center editor view on playhead during playback")
         adm.register(
             "show_install_question",
             True,
             "Ask once to install AppImage desktop integration on Linux",
         )
-        # MIDI output port preference
-        adm.register("midi_out_port", "", "Last selected external MIDI output port name")
-        # Playback backend selection
-        adm.register("playback_type", "midi_port", "Playback backend: 'midi_port' or 'internal_synth'")
-        # Internal synth settings (stored as lists of floats)
-        adm.register("synth_left_wavetable", [], "Left wavetable samples for internal synth (float list)")
-        adm.register("synth_right_wavetable", [], "Right wavetable samples for internal synth (float list)")
-        adm.register("synth_attack", 0.005, "Synth attack time (seconds)")
-        adm.register("synth_decay", 0.05, "Synth decay time (seconds)")
-        adm.register("synth_sustain", 0.6, "Synth sustain level (0..1)")
-        adm.register("synth_release", 0.1, "Synth release time (seconds)")
-        adm.register("synth_gain", 0.35, "Synth master gain (0..1.5)")
-        adm.register("synth_humanize_cents", 3.0, "Synth per-note detune range in cents (0..10)")
-        adm.register("synth_humanize_interval_s", 1.0, "Synth humanize detune target interval (seconds)")
-        # Audio output device name for internal synth (sounddevice)
-        adm.register("audio_output_device", "", "Preferred audio output device name for internal synth")
+        # Legacy synth/midi preferences removed: playback is now FluidSynth-only.
         # Session restore preferences
         adm.register("last_session_saved", False, "Whether the last session at exit was saved to a project file")
         adm.register("last_session_path", "", "Project file path associated with the last session if it was saved")
@@ -267,6 +251,7 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("user_styles_version", 1, "Schema version for user style storage")
         adm.register("edwin_font_installed", False, "True when Edwin font was installed to the user font directory")
         adm.register("edwin_install_prompt_dismissed", False, "User declined the Edwin font installation prompt")
+        adm.register("user_soundfont_path", "", "Absolute path to last selected user soundfont (.sf2/.sf3)")
         # Removed window_state persistence to avoid saving/restoring dock/toolbar layout
         adm.load()
         # Strip any legacy keys from stored values

@@ -290,6 +290,7 @@ def get_preferences_manager() -> PreferencesManager:
         pm.register("theme", "light", "UI theme: ('light' | 'dark')")
         pm.register("editor_fps_limit", 30, "Max mouse-move dispatch rate (FPS). Set 0 to disable throttling.")
         pm.register("audition_during_note_input", True, "Play a short note on input when placing notes.")
+        pm.register("focus_on_playhead_during_playback", True, "Focus the editor view on the playhead during playback.")
         # pm.register(
         #     "note_tool_mouse_gesture_hand_switching",
         #     True,

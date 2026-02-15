@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import html
+
 from PySide6 import QtCore, QtWidgets
 
 from settings_manager import get_preferences_manager
@@ -11,6 +13,12 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.setWindowTitle("Preferences")
         self.setModal(True)
         self.resize(550, 420)
+        # Light styling to make the dialog feel intentional and readable
+        self.setStyleSheet(
+            "#PrefsHeader { font-size: 18px; font-weight: 600; padding: 4px 2px; }"
+            "#PrefsSubtitle { color: #555; margin-bottom: 6px; }"
+            "#PrefsForm QLabel { color: #222; }"
+        )
 
         self._pm = get_preferences_manager()
         self._initial_values = dict(self._pm._values)
@@ -18,21 +26,37 @@ class PreferencesDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout(self)
 
+        # Header copy
+        header = QtWidgets.QWidget(self)
+        header_layout = QtWidgets.QVBoxLayout(header)
+        header_layout.setContentsMargins(4, 4, 4, 4)
+        title = QtWidgets.QLabel("Preferences", self)
+        title.setObjectName("PrefsHeader")
+        title.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
+        subtitle = QtWidgets.QLabel("Fine-tune how keyTAB looks, feels, and plays.", self)
+        subtitle.setObjectName("PrefsSubtitle")
+        subtitle.setWordWrap(True)
+        header_layout.addWidget(title)
+        header_layout.addWidget(subtitle)
+        layout.addWidget(header, stretch=0)
+
         scroll = QtWidgets.QScrollArea(self)
         scroll.setWidgetResizable(True)
         layout.addWidget(scroll, stretch=1)
 
         body = QtWidgets.QWidget()
+        body.setObjectName("PrefsForm")
         form = QtWidgets.QFormLayout(body)
         form.setFieldGrowthPolicy(QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(12)
+        form.setContentsMargins(12, 8, 12, 8)
         scroll.setWidget(body)
 
         for key, pref in self._pm.iter_schema():
             widget, kind = self._build_editor(key, pref)
-            label = QtWidgets.QLabel(key)
-            label.setToolTip(pref.description or "")
-            widget.setToolTip(pref.description or "")
+            label = self._build_label(key, pref.description or "")
             form.addRow(label, widget)
             self._fields[key] = (kind, widget)
 
@@ -43,6 +67,27 @@ class PreferencesDialog(QtWidgets.QDialog):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons, stretch=0)
+
+    def _build_label(self, key: str, description: str) -> QtWidgets.QLabel:
+        pretty = self._pretty_label(key)
+        safe_desc = html.escape(description)
+        label = QtWidgets.QLabel()
+        label.setWordWrap(True)
+        label.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+        desc_html = f"<div style='color:#666; font-size:11px; margin-top:2px;'>{safe_desc}</div>" if description else ""
+        label.setText(f"<div style='font-weight:600'>{html.escape(pretty)}</div>{desc_html}")
+        return label
+
+    def _pretty_label(self, key: str) -> str:
+        parts = key.split("_")
+        pretty_parts = []
+        for p in parts:
+            if len(p) <= 3:
+                pretty_parts.append(p.upper())
+            else:
+                pretty_parts.append(p.capitalize())
+        return " ".join(pretty_parts)
 
     def _build_editor(self, key: str, pref) -> tuple[QtWidgets.QWidget, str]:
         value = self._pm.get(key, pref.default)

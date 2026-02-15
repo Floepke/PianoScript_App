@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional, Tuple
+from dataclasses import fields
 import os
 import sys
 from datetime import datetime
@@ -122,7 +123,12 @@ class FileManager:
         try:
             app_state_data = data.get('app_state')
             if isinstance(app_state_data, dict):
-                score.app_state = AppState(**app_state_data)
+                try:
+                    allowed = {f.name for f in fields(AppState)}
+                    filtered = {k: v for k, v in app_state_data.items() if k in allowed}
+                    score.app_state = AppState(**filtered)
+                except Exception:
+                    score.app_state = AppState()
         except Exception:
             pass
         try:
