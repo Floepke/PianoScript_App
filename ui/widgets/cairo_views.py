@@ -299,6 +299,54 @@ class CairoEditorWidget(QtWidgets.QWidget):
         # Reset the overlay-only hint after a paint pass
         self._overlay_only_repaint = False
 
+    def apply_zoom_steps(self, steps: int) -> None:
+        """Adjust zoom multiplicatively and preserve time-cursor anchoring."""
+        if steps == 0 or self._editor is None:
+            return
+        sc = self._editor.current_score()
+        if sc is None:
+            return
+        ed = getattr(sc, 'editor', None)
+        if ed is None:
+            return
+        anchor_units = getattr(self._editor, 'time_cursor', None)
+        anchor_y_logical_px = None
+        if anchor_units is not None:
+            try:
+                abs_mm_before = self._editor.time_to_mm(float(anchor_units))
+                clip_y_mm = float(self._scroll_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm))
+                anchor_y_logical_px = (abs_mm_before - clip_y_mm) * (float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr)))
+            except Exception:
+                anchor_y_logical_px = None
+        current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
+        factor = (1.10 ** steps)
+        new_zoom = max(10.0, min(100.0, current * factor))
+        try:
+            ed.zoom_mm_per_quarter = float(new_zoom)
+        except Exception:
+            pass
+        if anchor_y_logical_px is not None:
+            try:
+                abs_mm_after = self._editor.time_to_mm(float(anchor_units))
+                new_clip_y_mm = abs_mm_after - (float(anchor_y_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm)))
+                new_scroll = int(round(new_clip_y_mm * float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr))))
+                new_scroll = max(0, new_scroll)
+                vp_h_px = int(max(1, self.size().height() * float(self._last_dpr)))
+                max_scroll = max(0, int(round((int(self._content_h_px) - vp_h_px) / max(1.0, float(self._last_dpr)))))
+                if new_scroll > max_scroll:
+                    new_scroll = max_scroll
+                if new_scroll != self._scroll_logical_px:
+                    self._scroll_logical_px = new_scroll
+                    self.scrollLogicalPxChanged.emit(new_scroll)
+            except Exception:
+                pass
+        try:
+            self.scrollWheelUsed.emit()
+        except Exception:
+            pass
+        # Repaint; metrics will be recomputed and emitted in paintEvent
+        self.update()
+
     def wheelEvent(self, ev: QtGui.QWheelEvent) -> None:
         # Ctrl+Wheel: adjust vertical zoom via SCORE.editor.zoom_mm_per_quarter
         angle = ev.angleDelta().y()
@@ -312,48 +360,9 @@ class CairoEditorWidget(QtWidgets.QWidget):
             ctrl_down = False
 
         if ctrl_down and self._editor is not None:
-            sc = self._editor.current_score()
-            if sc is not None:
-                ed = getattr(sc, 'editor', None)
-                if ed is not None:
-                    # Preserve the screen position of the editor time cursor during zoom
-                    anchor_units = getattr(self._editor, 'time_cursor', None)
-                    anchor_y_logical_px = None
-                    if anchor_units is not None:
-                        try:
-                            abs_mm_before = self._editor.time_to_mm(float(anchor_units))
-                            clip_y_mm = float(self._scroll_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm))
-                            anchor_y_logical_px = (abs_mm_before - clip_y_mm) * (float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr)))
-                        except Exception:
-                            anchor_y_logical_px = None
-                    # Zoom multiplicative steps: ~10% per wheel notch
-                    steps = int(round(angle / 120.0))
-                    current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
-                    factor = (1.10 ** steps)
-                    new_zoom = max(10.0, min(100.0, current * factor))
-                    try:
-                        ed.zoom_mm_per_quarter = float(new_zoom)
-                    except Exception:
-                        pass
-                    # Adjust scroll to keep the time cursor anchored
-                    if anchor_y_logical_px is not None:
-                        try:
-                            abs_mm_after = self._editor.time_to_mm(float(anchor_units))
-                            new_clip_y_mm = abs_mm_after - (float(anchor_y_logical_px) * float(self._last_dpr) / max(1e-6, float(self._last_px_per_mm)))
-                            new_scroll = int(round(new_clip_y_mm * float(self._last_px_per_mm) / max(1e-6, float(self._last_dpr))))
-                            new_scroll = max(0, new_scroll)
-                            vp_h_px = int(max(1, self.size().height() * float(self._last_dpr)))
-                            max_scroll = max(0, int(round((int(self._content_h_px) - vp_h_px) / max(1.0, float(self._last_dpr)))))
-                            if new_scroll > max_scroll:
-                                new_scroll = max_scroll
-                            if new_scroll != self._scroll_logical_px:
-                                self._scroll_logical_px = new_scroll
-                                self.scrollLogicalPxChanged.emit(new_scroll)
-                                self.scrollWheelUsed.emit()
-                        except Exception:
-                            pass
-                    # Repaint; metrics will be recomputed and emitted in paintEvent
-                    self.update()
+            steps = int(round(angle / 120.0))
+            if steps != 0:
+                self.apply_zoom_steps(steps)
             ev.accept()
             return
 

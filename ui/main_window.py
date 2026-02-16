@@ -539,8 +539,30 @@ class MainWindow(QtWidgets.QMainWindow):
         prefs_act.triggered.connect(self._open_preferences)
         edit_menu.addAction(prefs_act)
         # View actions
-        view_menu.addAction(QtGui.QAction("Zoom In", self))
-        view_menu.addAction(QtGui.QAction("Zoom Out", self))
+        zoom_in_act = QtGui.QAction("Zoom In", self)
+        try:
+            zoom_in_act.setShortcuts([
+                QtGui.QKeySequence("="),
+                QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.ZoomIn)
+            ])
+        except Exception:
+            try:
+                zoom_in_act.setShortcut(QtGui.QKeySequence("="))
+            except Exception:
+                pass
+        zoom_out_act = QtGui.QAction("Zoom Out", self)
+        try:
+            zoom_out_act.setShortcuts([
+                QtGui.QKeySequence("-"),
+                QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.ZoomOut)
+            ])
+        except Exception:
+            try:
+                zoom_out_act.setShortcut(QtGui.QKeySequence("-"))
+            except Exception:
+                pass
+        view_menu.addAction(zoom_in_act)
+        view_menu.addAction(zoom_out_act)
         view_menu.addSeparator()
 
         # Wire up triggers
@@ -554,6 +576,8 @@ class MainWindow(QtWidgets.QMainWindow):
         copy_act.triggered.connect(self._edit_copy)
         paste_act.triggered.connect(self._edit_paste)
         delete_act.triggered.connect(self._edit_delete)
+        zoom_in_act.triggered.connect(lambda: self._zoom_editor(1))
+        zoom_out_act.triggered.connect(lambda: self._zoom_editor(-1))
 
         # ---- Clock label manually positioned at menubar's right edge ----
         try:
@@ -1225,6 +1249,13 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             app_state = self._current_app_state()
             app_state.editor_scroll_pos = int(value)
+        except Exception:
+            pass
+
+    def _zoom_editor(self, steps: int) -> None:
+        try:
+            if hasattr(self, 'editor') and hasattr(self.editor, 'apply_zoom_steps'):
+                self.editor.apply_zoom_steps(int(steps))
         except Exception:
             pass
 
