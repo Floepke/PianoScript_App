@@ -44,6 +44,7 @@ class FileManager:
         except Exception:
             self._last_dir: Path = Path.home()
         self._dirty: bool = False
+        self._last_autosave_ts: datetime | None = None
         # Ensure the autosave directory exists on initialization
         os.makedirs(UTILS_SAVE_DIR, exist_ok=True)
 
@@ -383,6 +384,27 @@ class FileManager:
         except Exception:
             pass
 
+    def autosave_all(self, force: bool = False) -> None:
+        """Persist session snapshot and project file (if available) throttled by dirty flag."""
+        try:
+            self.autosave_current()
+        except Exception:
+            pass
+
+        if self._path is None:
+            # No project path yet; keep dirty so user is warned until they save explicitly
+            return
+
+        if not self._dirty and not force:
+            return
+
+        ok = self.save()
+        if ok:
+            self._dirty = False
+            self._last_autosave_ts = datetime.now()
+        else:
+            self._dirty = True
+
     def _push_recent_file(self, path: str) -> None:
         try:
             p = str(path or "").strip()
@@ -402,20 +424,8 @@ class FileManager:
             pass
 
     def on_model_changed(self) -> None:
-        """Handle model change: autosave to project and session based on settings."""
-        # Always write a session copy so we can restore work
-        self.autosave_current()
-        # Save to project file if we have a path; always keep session updated.
-        if self._path is not None:
-            ok = self.save()
-            if not ok:
-                # If saving failed, keep dirty flag so user is warned on exit
-                self._dirty = True
-            else:
-                self._dirty = False
-        else:
-            # No project path yet; keep dirty but session is saved
-            self._dirty = True
+        """Handle model change: mark dirty; autosave now happens on a timer/on close."""
+        self._dirty = True
 
     def install_error_backup_hook(self) -> None:
         """Install a global excepthook to save a timestamped backup on errors."""

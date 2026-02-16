@@ -44,6 +44,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # Install error-backup hook early so any unhandled exception triggers a backup
         self.file_manager.install_error_backup_hook()
 
+        # Periodic autosave (session + project) to reduce per-action latency
+        self._autosave_timer = QtCore.QTimer(self)
+        self._autosave_timer.setInterval(60_000)  # 1 minute
+        self._autosave_timer.timeout.connect(lambda: self.file_manager.autosave_all())
+        try:
+            self._autosave_timer.start()
+        except Exception:
+            pass
+
         self._create_menus()
 
         self.splitter = ToolbarSplitter(QtCore.Qt.Orientation.Horizontal)
@@ -394,9 +403,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super().keyPressEvent(ev)
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
-        # Always save the session snapshot and close without prompting.
+        # Always save session + project on exit without prompting.
         try:
-            self.file_manager.autosave_current()
+            self.file_manager.autosave_all(force=True)
         except Exception:
             pass
         # Persist splitter sizes for next run

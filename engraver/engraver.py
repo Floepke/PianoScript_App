@@ -789,7 +789,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     if cur_page:
         pages.append(cur_page)
 
-
     # Problem solved: render each page with header/footer and justified spacing.
     if not pages:
         pages = [[]]
