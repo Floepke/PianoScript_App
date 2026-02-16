@@ -244,6 +244,7 @@ class Player:
         self._last_event_count: int = 0
         self._off_epsilon_sec: float = 0.003  # ~3 ms safety gap before offs
         self._min_duration_units: float = 4.0
+        self._grace_duration_units: float = 32.0  # Default grace note length (32nd note)
         try:
             if self._backend is not None:
                 self._backend.program_select()
@@ -398,8 +399,7 @@ class Player:
             self._start_units = 0.0
         except Exception:
             pass
-        for n in score.events.note:
-            dur_units = float(getattr(n, 'duration', 0.0) or 0.0)
+        for n, dur_units in self._iter_playable_events(score):
             if dur_units < float(self._min_duration_units):
                 continue
             start_units = float(getattr(n, 'time', 0.0) or 0.0)
@@ -407,7 +407,7 @@ class Player:
             start_sec = self._seconds_between(0.0, start_units, segs)
             dur_sec = self._seconds_between(start_units, end_units, segs)
             vel = int(getattr(n, 'velocity', 64) or 64)
-            app_pitch = int(n.pitch)
+            app_pitch = int(getattr(n, 'pitch', 0))
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             events.append(('on', start_sec, midi_pitch, vel))
             off_t = max(0.0, start_sec + max(0.0, dur_sec) - float(self._off_epsilon_sec))
@@ -428,12 +428,12 @@ class Player:
         except Exception:
             pass
         events: List[Tuple[str, float, int, int]] = []
-        for n in score.events.note:
-            start = float(n.time)
-            end = float(n.time + n.duration)
-            if float(getattr(n, 'duration', 0.0) or 0.0) < float(self._min_duration_units):
+        for n, dur_units in self._iter_playable_events(score):
+            start = float(getattr(n, 'time', 0.0) or 0.0)
+            end = float(start + dur_units)
+            if dur_units < float(self._min_duration_units):
                 continue
-            app_pitch = int(n.pitch)
+            app_pitch = int(getattr(n, 'pitch', 0))
             midi_pitch = max(0, min(127, app_pitch + self._pitch_offset))
             vel = int(getattr(n, 'velocity', 64) or 64)
             if end <= su:
@@ -445,7 +445,7 @@ class Player:
                 events.append(('off', float(off_t), midi_pitch, 0))
             elif start >= su:
                 on_t = self._seconds_between(su, start, segs)
-                dur_t = self._seconds_between(start, float(n.time + n.duration), segs)
+                dur_t = self._seconds_between(start, end, segs)
                 events.append(('on', float(on_t), midi_pitch, vel))
                 off_t = float(on_t + max(0.0, dur_t) - float(self._off_epsilon_sec))
                 events.append(('off', max(0.0, off_t), midi_pitch, 0))
@@ -455,6 +455,33 @@ class Player:
         except Exception:
             pass
         return events
+
+    def _iter_playable_events(self, score):
+        """Yield (event, duration_units) for normal and grace notes."""
+        notes = getattr(getattr(score, 'events', None), 'note', []) or []
+        note_spans: List[Tuple[float, float, int]] = []
+        # Normal notes carry their own duration; skip malformed entries.
+        for n in notes:
+            dur_units = float(getattr(n, 'duration', 0.0) or 0.0)
+            start_units = float(getattr(n, 'time', 0.0) or 0.0)
+            pitch = int(getattr(n, 'pitch', 0))
+            note_spans.append((start_units, float(start_units + dur_units), pitch))
+            yield n, dur_units
+
+        # Grace notes have no stored duration; fall back to the default 32.0 units.
+        for g in getattr(getattr(score, 'events', None), 'grace_note', []) or []:
+            # Default grace duration is fixed at 32 units unless overlapped with a sustaining note.
+            dur_units = float(self._grace_duration_units)
+            start_units = float(getattr(g, 'time', 0.0) or 0.0)
+            # If a grace starts during a note, extend its end to that note's end to avoid cutting the note off.
+            overlap_end: Optional[float] = None
+            g_pitch = int(getattr(g, 'pitch', 0))
+            for s, e, p in note_spans:
+                if p == g_pitch and s <= start_units < e:
+                    overlap_end = e if overlap_end is None else max(overlap_end, e)
+            if overlap_end is not None:
+                dur_units = max(dur_units, float(overlap_end - start_units))
+            yield g, dur_units
 
     # ------------------------------------------------------------------
     # Tempo helpers

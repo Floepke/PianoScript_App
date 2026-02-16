@@ -22,7 +22,23 @@ class GraceNoteTool(BaseTool):
         t_raw = float(self._editor.y_to_time(y))
         t_snap = float(self._editor.snap_time(t_raw))
         pitch = int(self._editor.x_to_pitch(x))
+        # Audition on input if enabled (reuse note tool preference)
+        try:
+            from settings_manager import get_preferences_manager
+            pm = get_preferences_manager()
+            audition = bool(pm.get("audition_during_note_input", True))
+            if audition and hasattr(self._editor, 'player') and self._editor.player is not None:
+                try:
+                    self._editor.player.audition_note(pitch=pitch)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         score.new_grace_note(pitch=pitch, time=t_snap)
+        try:
+            self._editor.update_score_length()
+        except Exception:
+            pass
         try:
             self._editor._snapshot_if_changed(coalesce=True, label='grace_note_add')
         except Exception:
@@ -55,6 +71,10 @@ class GraceNoteTool(BaseTool):
             except ValueError:
                 tid = int(getattr(target, '_id', -2) or -2)
                 score.events.grace_note = [m for m in lst if int(getattr(m, '_id', -2) or -2) != tid]
+        try:
+            self._editor.update_score_length()
+        except Exception:
+            pass
         try:
             self._editor._snapshot_if_changed(coalesce=True, label='grace_note_delete')
         except Exception:

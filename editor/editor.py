@@ -795,13 +795,20 @@ class Editor(QtCore.QObject,
         """
         # get data
         score: SCORE | None = self.current_score()
-        
-        # Furthest musical time
+        if score is None or not getattr(score, 'base_grid', None):
+            return
+
+        # Furthest musical time (notes: end time; grace: start time only)
         furthest_end = 0.0
-        for n in score.events.note:
+        grace_times: list[float] = []
+        for n in getattr(score.events, 'note', []) or []:
             t = float(getattr(n, 'time', 0.0) or 0.0)
             dur = float(getattr(n, 'duration', 0.0) or 0.0)
             furthest_end = max(furthest_end, t + dur)
+        for g in getattr(score.events, 'grace_note', []) or []:
+            t = float(getattr(g, 'time', 0.0) or 0.0)
+            grace_times.append(t)
+            furthest_end = max(furthest_end, t)
         
         # Current score end (sum of segment lengths)
         base_grid_total_length = float(self._calc_base_grid_list_total_length())
@@ -813,6 +820,11 @@ class Editor(QtCore.QObject,
         den = last_bg.denominator
         measure_len = num * (4.0 / den) * float(QUARTER_NOTE_UNIT)
         current_end = base_grid_total_length
+
+        # If any grace starts on/after the current end barline, force one more measure.
+        grace_hits_barline = any(gt >= current_end - 1e-6 for gt in grace_times)
+        if grace_hits_barline:
+            furthest_end = max(furthest_end, current_end + measure_len)
 
         # extend last segment
         needed_length = furthest_end - current_end
