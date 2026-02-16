@@ -51,7 +51,7 @@ class DrawUtilView(QtWidgets.QWidget):
         self._prev_image: QtGui.QImage | None = None
         self._fade_progress: float = 1.0
         self._fade_elapsed_ms: int = 0
-        self._fade_duration_ms: int = 500
+        self._fade_duration_ms: int = 125
         self._fade_timer = QtCore.QTimer(self)
         self._fade_timer.setInterval(16)
         self._fade_timer.timeout.connect(self._on_fade_tick)

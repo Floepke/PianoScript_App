@@ -94,6 +94,7 @@ class FloatSliderEdit(QtWidgets.QWidget):
         self._edit.editingFinished.connect(self._on_edit_finished)
         self._dec_btn.clicked.connect(lambda: self._nudge(-1))
         self._inc_btn.clicked.connect(lambda: self._nudge(1))
+        self._slider.installEventFilter(self)
 
     def _apply_range(self) -> None:
         steps = max(1, int(round((self._max - self._min) / max(1e-6, self._step))))
@@ -141,6 +142,18 @@ class FloatSliderEdit(QtWidgets.QWidget):
         val = self._snap(self._clamp(val))
         self.set_value(val)
         self.valueChanged.emit(val)
+
+    def eventFilter(self, obj: QtCore.QObject, ev: QtCore.QEvent) -> bool:
+        if obj is self._slider and ev.type() == QtCore.QEvent.Type.Wheel:
+            delta = ev.angleDelta().y() or ev.angleDelta().x()
+            if delta:
+                steps = int(delta / 120)
+                if steps != 0:
+                    self.set_value(self.value() + steps * self._step)
+                    self.valueChanged.emit(self.value())
+                    ev.accept()
+                    return True
+        return super().eventFilter(obj, ev)
 
     def wheelEvent(self, ev: QtGui.QWheelEvent) -> None:
         delta = ev.angleDelta().y()
@@ -436,6 +449,8 @@ class StyleDialog(QtWidgets.QDialog):
             'pedal_lane_width_mm': 'Pedal',
             # Grace note
             'grace_note_visible': 'Grace note',
+            'grace_note_outline_width_mm': 'Grace note',
+            'grace_note_scale': 'Grace note',
             # Text
             'text_visible': 'Text',
             'text_font_family': 'Text',

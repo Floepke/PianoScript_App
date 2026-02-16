@@ -1,4 +1,6 @@
+from typing import Optional
 from editor.tool.base_tool import BaseTool
+from file_model.SCORE import SCORE
 
 
 class GraceNoteTool(BaseTool):
@@ -7,51 +9,65 @@ class GraceNoteTool(BaseTool):
     def toolbar_spec(self) -> list[dict]:
         return []
 
-    def on_left_press(self, x: float, y: float) -> None:
-        super().on_left_press(x, y)
-        print('GraceNoteTool: on_left_press()')
-    def on_left_unpress(self, x: float, y: float) -> None:
-        super().on_left_unpress(x, y)
-        print('GraceNoteTool: on_left_unpress()')
+    def _score(self) -> Optional[SCORE]:
+        try:
+            return self._editor.current_score()
+        except Exception:
+            return None
+
+    def _add_grace_note(self, x: float, y: float) -> None:
+        score = self._score()
+        if score is None:
+            return
+        t_raw = float(self._editor.y_to_time(y))
+        t_snap = float(self._editor.snap_time(t_raw))
+        pitch = int(self._editor.x_to_pitch(x))
+        score.new_grace_note(pitch=pitch, time=t_snap)
+        try:
+            self._editor._snapshot_if_changed(coalesce=True, label='grace_note_add')
+        except Exception:
+            pass
+        try:
+            self._editor.force_redraw_from_model()
+        except Exception:
+            self._editor.draw_frame()
+
+    def _delete_grace_note(self, x: float, y: float) -> None:
+        score = self._score()
+        if score is None:
+            return
+        target = None
+        hit_id = None
+        hit_test = getattr(self._editor, 'hit_test_note_id', None)
+        if callable(hit_test):
+            hit_id = hit_test(x, y)
+        if hit_id is not None:
+            for g in getattr(score.events, 'grace_note', []) or []:
+                if int(getattr(g, '_id', -1) or -1) == int(hit_id):
+                    target = g
+                    break
+        if target is None:
+            return
+        lst = getattr(score.events, 'grace_note', None)
+        if isinstance(lst, list):
+            try:
+                lst.remove(target)
+            except ValueError:
+                tid = int(getattr(target, '_id', -2) or -2)
+                score.events.grace_note = [m for m in lst if int(getattr(m, '_id', -2) or -2) != tid]
+        try:
+            self._editor._snapshot_if_changed(coalesce=True, label='grace_note_delete')
+        except Exception:
+            pass
+        try:
+            self._editor.force_redraw_from_model()
+        except Exception:
+            self._editor.draw_frame()
+
     def on_left_click(self, x: float, y: float) -> None:
         super().on_left_click(x, y)
-        print('GraceNoteTool: on_left_click()')
-    def on_left_double_click(self, x: float, y: float) -> None:
-        super().on_left_double_click(x, y)
-        print('GraceNoteTool: on_left_double_click()')
-    def on_left_drag_start(self, x: float, y: float) -> None:
-        super().on_left_drag_start(x, y)
-        print('GraceNoteTool: on_left_drag_start()')
-    def on_left_drag(self, x: float, y: float, dx: float, dy: float) -> None:
-        super().on_left_drag(x, y, dx, dy)
-        print('GraceNoteTool: on_left_drag()')
-    def on_left_drag_end(self, x: float, y: float) -> None:
-        super().on_left_drag_end(x, y)
-        print('GraceNoteTool: on_left_drag_end()')
-    def on_right_press(self, x: float, y: float) -> None:
-        super().on_right_press(x, y)
-        print('GraceNoteTool: on_right_press()')
-    def on_right_unpress(self, x: float, y: float) -> None:
-        super().on_right_unpress(x, y)
-        print('GraceNoteTool: on_right_unpress()')
+        self._add_grace_note(x, y)
+
     def on_right_click(self, x: float, y: float) -> None:
         super().on_right_click(x, y)
-        print('GraceNoteTool: on_right_click()')
-    def on_right_double_click(self, x: float, y: float) -> None:
-        super().on_right_double_click(x, y)
-        print('GraceNoteTool: on_right_double_click()')
-    def on_right_drag_start(self, x: float, y: float) -> None:
-        super().on_right_drag_start(x, y)
-        print('GraceNoteTool: on_right_drag_start()')
-    def on_right_drag(self, x: float, y: float, dx: float, dy: float) -> None:
-        super().on_right_drag(x, y, dx, dy)
-        print('GraceNoteTool: on_right_drag()')
-    def on_right_drag_end(self, x: float, y: float) -> None:
-        super().on_right_drag_end(x, y)
-        print('GraceNoteTool: on_right_drag_end()')
-    def on_mouse_move(self, x: float, y: float) -> None:
-        super().on_mouse_move(x, y)
-        # print('GraceNoteTool: on_mouse_move()')
-
-    def on_toolbar_button(self, name: str) -> None:
-        print(f"GraceNoteTool: on_toolbar_button(name='{name}')")
+        self._delete_grace_note(x, y)

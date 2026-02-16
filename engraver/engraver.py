@@ -28,6 +28,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     base_grid = list(score.get('base_grid', []) or [])
     line_breaks = list(events.get('line_break', []) or [])
     notes = list(events.get('note', []) or [])
+    grace_notes = list(events.get('grace_note', []) or [])
     count_lines = list(events.get('count_line', []) or [])
     beam_markers = list(events.get('beam', []) or [])
 
@@ -56,11 +57,11 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         n_end = n_t + n_d
         p = int(n.get('pitch', 0) or 0)
         hand_raw = str(n.get('hand', '<') or '<')
-        hand_key = '<' if hand_raw in ('l', '<') else '>'
+        hand_key = '<' if hand_raw in ('<', 'l') else '>'
         item = {
             'time': n_t,
-            'duration': n_d,
             'end': n_end,
+            'duration': n_d,
             'pitch': p,
             'hand': hand_key,
             'id': int(n.get('_id', 0) or 0),
@@ -69,10 +70,27 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         }
         norm_notes.append(item)
         notes_by_hand[hand_key].append(item)
+        starts_by_hand[hand_key].append(n_t)
 
-    for hand_key, items in notes_by_hand.items():
-        items.sort(key=lambda it: (float(it['time']), int(it['pitch']), int(it['id'])))
-        starts_by_hand[hand_key] = [float(it['time']) for it in items]
+    for hk in notes_by_hand:
+        notes_by_hand[hk] = sorted(notes_by_hand[hk], key=lambda m: float(m.get('time', 0.0) or 0.0))
+    for hk in starts_by_hand:
+        starts_by_hand[hk] = sorted(starts_by_hand[hk])
+
+    # Normalize grace notes (time + pitch only)
+    norm_grace: list[dict] = []
+    for idx, g in enumerate(grace_notes):
+        if not isinstance(g, dict):
+            continue
+        g_t = float(g.get('time', 0.0) or 0.0)
+        p = int(g.get('pitch', 0) or 0)
+        norm_grace.append({
+            'time': g_t,
+            'pitch': p,
+            'id': int(g.get('_id', 0) or 0),
+            'idx': int(idx),
+        })
+    norm_grace = sorted(norm_grace, key=lambda m: float(m.get('time', 0.0) or 0.0))
 
     # Problem solved: materialize layout values early to keep math predictable.
     page_w = float(layout.get('page_width_mm', 210.0) or 210.0)
@@ -1239,6 +1257,17 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     continue
                 line_notes.append(item)
 
+            # Grace notes: time-only, so check time window and key range.
+            line_grace: list[dict] = []
+            for item in norm_grace:
+                g_t = float(item.get('time', 0.0) or 0.0)
+                p = int(item.get('pitch', 0) or 0)
+                if op_time.lt(g_t, float(line['time_start'])) or op_time.ge(g_t, float(line['time_end'])):
+                    continue
+                if p < 1 or p > PIANO_KEY_AMOUNT:
+                    continue
+                line_grace.append(item)
+
             notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
             for item in line_notes:
                 hk = str(item.get('hand', '<') or '<')
@@ -1499,6 +1528,44 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             line_start = float(line.get('time_start', 0.0) or 0.0)
             line_end = float(line.get('time_end', 0.0) or 0.0)
             black_rule = str(layout.get('black_note_rule', 'below_stem') or 'below_stem')
+
+            # Grace notes: tiny heads anchored so time sits at the top.
+            if bool(layout.get('grace_note_visible', True)) and line_grace:
+                # grace_note_scale is a relative factor; semitone_mm already includes layout scale.
+                g_scale = float(layout.get('grace_note_scale', 0.75) or 0.75)
+                # grace_note_outline_width_mm is a mm value; apply global layout scale to stroke width.
+                g_outline = float(layout.get('grace_note_outline_width_mm', layout.get('grace_note_outline_width', 0.3)) or 0.3) * scale
+                for item in line_grace:
+                    g_t = float(item.get('time', 0.0) or 0.0)
+                    p = int(item.get('pitch', 0) or 0)
+                    x = _key_to_x(p)
+                    y_top = _time_to_y(g_t)
+                    w = semitone_mm * g_scale
+                    if p in BLACK_KEYS:
+                        du.add_oval(
+                            x - (w * 0.8),
+                            y_top,
+                            x + (w * 0.8),
+                            y_top + (w * 2.0),
+                            stroke_color=(0, 0, 0, 1),
+                            stroke_width_mm=max(0.2, g_outline * 0.6),
+                            fill_color=(0, 0, 0, 1),
+                            id=int(item.get('id', 0) or 0),
+                            tags=['grace_note'],
+                        )
+                    else:
+                        du.add_oval(
+                            x - w,
+                            y_top,
+                            x + w,
+                            y_top + (w * 2.0),
+                            stroke_color=(0, 0, 0, 1),
+                            stroke_width_mm=g_outline,
+                            fill_color=(1, 1, 1, 1),
+                            id=int(item.get('id', 0) or 0),
+                            tags=['grace_note'],
+                        )
+
             # Problem solved: render notes after grid, using precomputed positions.
             for item in line_notes:
                 n_t = float(item.get('time', 0.0) or 0.0)

@@ -1215,6 +1215,63 @@ class Editor(QtCore.QObject,
                         tags=["cursor"],
                     )
 
+            if (isinstance(self._tool, GraceNoteTool)) and (self.time_cursor is not None) and (self.pitch_cursor is not None):
+                x_mm = float(self.pitch_to_x(int(self.pitch_cursor)))
+                scale = float(getattr(self.current_score().layout, 'grace_note_scale', 0.75) or 0.75)
+                outline_w = float(
+                    getattr(self.current_score().layout, 'grace_note_outline_width_mm', getattr(self.current_score().layout, 'grace_note_outline_width', 0.3))
+                    or 0.3
+                )
+                w = float(self.semitone_dist or 0.5) * scale
+                top = y_mm
+                bottom = y_mm + (w * 2.0)
+                left = x_mm - w
+                right = x_mm + w
+                if self.pitch_cursor in BLACK_KEYS:
+                    du.add_oval(
+                        left,
+                        top,
+                        right,
+                        bottom,
+                        stroke_color=self.accent_color,
+                        stroke_width_mm=0.0,
+                        fill_color=self.accent_color,
+                        id=0,
+                        tags=['cursor'],
+                    )
+                else:
+                    du.add_oval(
+                        left,
+                        top,
+                        right,
+                        bottom,
+                        stroke_color=None,
+                        fill_color=self.accent_color,
+                        id=0,
+                        tags=['cursor'],
+                    )
+                    inset = max(0.0, outline_w)
+                    il = left + inset
+                    ir = right - inset
+                    it = top + inset
+                    ib = bottom - inset
+                    if ir <= il:
+                        midx = (left + right) * 0.5
+                        il = ir = midx
+                    if ib <= it:
+                        midy = (top + bottom) * 0.5
+                        it = ib = midy
+                    du.add_oval(
+                        il,
+                        it,
+                        ir,
+                        ib,
+                        stroke_color=None,
+                        fill_color=(1.0, 1.0, 1.0, 1.0),
+                        id=0,
+                        tags=['cursor'],
+                    )
+
         # --- Selection window overlay (always visible when active) ---
         if self._selection_active:
             # Compute absolute selection bounds in mm
