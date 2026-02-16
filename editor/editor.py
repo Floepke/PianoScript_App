@@ -933,6 +933,7 @@ class Editor(QtCore.QObject,
 
         # Grid helpers: absolute times (ticks) of drawn grid lines across the score following specific conditions
         grid_den_times: list[float] = []
+        barline_times: list[float] = []
         cur_t = 0.0
         for bg in getattr(score, 'base_grid', []) or []:
             # Total measure length in ticks
@@ -943,6 +944,7 @@ class Editor(QtCore.QObject,
             
             # For each measure in this segment
             for _ in range(int(bg.measure_amount)):
+                barline_times.append(float(cur_t))
                 # Append grid line times for configured grid positions
                 positions = getattr(bg, 'beat_grouping', None)
                 positions_list = list(positions if positions is not None else (getattr(bg, 'beat_grouping', []) or []))
@@ -970,6 +972,7 @@ class Editor(QtCore.QObject,
         
         # Append final end barline time for completeness
         grid_den_times.append(float(cur_t))
+        barline_times.append(float(cur_t))
 
         self._draw_cache = {
             'time_begin': time_begin,
@@ -983,6 +986,7 @@ class Editor(QtCore.QObject,
             'notes_by_hand': notes_by_hand,
             'beam_by_hand': beam_by_hand,
             'grid_den_times': grid_den_times,
+            'barline_times': barline_times,
         }
 
     # ---- External controls ----

@@ -135,32 +135,57 @@ class BeamDrawerMixin:
                 t = t1
             return windows
 
+        def process_beam_marker_override(default_windows: list[tuple[float, float]], markers: list) -> list[tuple[float, float]]:
+            """Replace default windows with marker windows where they overlap.
+
+            - Start from the time-signature windows.
+            - For each beam marker, remove any default window that overlaps its span and add the marker span.
+            - Markers with non-positive duration simply remove overlapping defaults without adding a span.
+            """
+            if not default_windows:
+                return []
+            if not markers:
+                return default_windows
+
+            windows = sorted(default_windows, key=lambda w: float(w[0]))
+            for mk in sorted(markers, key=lambda m: float(getattr(m, 'time', 0.0))):
+                mt = float(getattr(mk, 'time', 0.0) or 0.0)
+                dur = float(getattr(mk, 'duration', 0.0) or 0.0)
+                end = mt + max(0.0, dur)
+                filtered: list[tuple[float, float]] = []
+                for (w0, w1) in windows:
+                    # Keep only windows that do not overlap the marker span
+                    if op.ge(w0, end) or op.le(w1, mt):
+                        filtered.append((w0, w1))
+                if dur > 0.0:
+                    filtered.append((mt, end))
+                windows = sorted(filtered, key=lambda w: float(w[0]))
+            return windows
+
+        def marker_windows_exact(markers: list) -> list[tuple[float, float]]:
+            """Return the literal marker time windows (time → time+duration).
+
+            Zero-duration markers are shown as a tiny line (epsilon) so they are visible.
+            """
+            if not markers:
+                return []
+            eps = max(1e-3, float(op.threshold))
+            windows: list[tuple[float, float]] = []
+            for mk in sorted(markers, key=lambda m: float(getattr(m, 'time', 0.0))):
+                mt = float(getattr(mk, 'time', 0.0) or 0.0)
+                dur = float(getattr(mk, 'duration', 0.0) or 0.0)
+                end = mt + (dur if dur > 0 else eps)
+                windows.append((mt, end))
+            return windows
+
         def group_by_beam_markers(notes: list, times: list[float], markers: list) -> tuple[list[list], list[tuple[float, float]]]:
             # Compute windows independent of whether there are notes; groups may be empty.
             notes_sorted = sorted(notes, key=lambda n: float(n.time)) if notes else []
             starts = [float(n.time) for n in notes_sorted] if notes_sorted else []
             score_start = float(times[0]) if times else (starts[0] if starts else 0.0)
             score_end = float(times[-1]) if times else (starts[-1] if starts else 0.0)
-            windows: list[tuple[float, float]] = []
-            # markers sorted by time
-            markers_sorted = sorted(markers, key=lambda m: float(getattr(m, 'time', 0.0))) if markers else []
-            cur = score_start
-            for idx, mk in enumerate(markers_sorted):
-                mt = float(getattr(mk, 'time', cur))
-                dur = float(getattr(mk, 'duration', 0.0) or 0.0)
-                next_t = float(getattr(markers_sorted[idx + 1], 'time', score_end)) if (idx + 1) < len(markers_sorted) else score_end
-                # grid-following segment before marker
-                if op.gt(mt, cur):
-                    windows.extend(build_grid_windows(times, cur, mt))
-                # segment from marker to next marker/end: duration windows if dur>0, else grid windows
-                if dur > 0.0:
-                    windows.extend(build_duration_windows(mt, next_t, dur))
-                else:
-                    windows.extend(build_grid_windows(times, mt, next_t))
-                cur = next_t
-            # tail segment after last marker: follow grid
-            if op.lt(cur, score_end):
-                windows.extend(build_grid_windows(times, cur, score_end))
+            default_windows = build_grid_windows(times, score_start, score_end)
+            windows = process_beam_marker_override(default_windows, markers)
             groups = assign_groups(notes_sorted, starts, windows) if notes_sorted else []
             return groups, windows
 
@@ -175,18 +200,83 @@ class BeamDrawerMixin:
         for h, ms in beam_markers.items():
             markers_by_norm[norm_hand(str(h))].extend(ms)
 
-        # Build groups per hand, honoring markers when present
+        # Build groups per hand, honoring marker overrides when present
         for hand_norm, notes in notes_by_norm.items():
             markers = markers_by_norm.get(hand_norm) or []
             groups, windows = group_by_beam_markers(notes, grid_times, markers)
             groups_all[hand_norm] = groups
             windows_all[hand_norm] = windows
 
+        # Precompute literal marker windows for optional marker visualization
+        marker_windows_all: dict[str, list[tuple[float, float]]] = {}
+        for hand_norm, markers in markers_by_norm.items():
+            marker_windows_all[hand_norm] = marker_windows_exact(markers)
+
         # Cache on editor for downstream drawing steps
         self._beam_groups_by_hand = groups_all
 
         if not bool(layout.beam_visible):
             return
+
+        # If beam tool is active, visualize override windows as gutter lines per hand
+        tool_name = getattr(getattr(self, '_tool', None), 'TOOL_NAME', '')
+        if tool_name == 'beam':
+            margin = float(self.margin or 0.0)
+            stave_w = float(getattr(self, 'stave_width', 0.0) or 0.0)
+            gutter_w = 1.5
+            dx = float(self.semitone_dist or 0.5)
+            left_center = margin * 0.5
+            right_center = margin + stave_w + (margin * 0.5)
+            stroke_color = getattr(self, 'accent_color', self.notation_color)
+            outer_left = margin
+            outer_right = margin + stave_w - (self.semitone_dist * 2)
+            dash = (1.0, 1.0)
+            for hand_key, marker_windows in marker_windows_all.items():
+                if hand_key == 'r':
+                    x1 = right_center
+                    x2 = x1 + dx
+                    x_outer = outer_right
+                else:
+                    x1 = left_center
+                    x2 = x1 - dx
+                    x_outer = outer_left
+                for (w0, w1) in marker_windows:
+                    y0 = float(self.time_to_mm(w0))
+                    y1 = float(self.time_to_mm(w1))
+                    du.add_line(
+                        x1,
+                        y0,
+                        x2,
+                        y1,
+                        color=stroke_color,
+                        width_mm=max(0.15, gutter_w),
+                        id=0,
+                        tags=["beam_marker_window", f"beam_marker_{hand_key}"],
+                    )
+                    # Start guide: beam line to stave edge
+                    du.add_line(
+                        x1,
+                        y0,
+                        x_outer,
+                        y0,
+                        color=stroke_color,
+                        width_mm=0.5,
+                        dash_pattern=dash,
+                        id=0,
+                        tags=["beam_marker_guide_start", f"beam_marker_{hand_key}"],
+                    )
+                    # End guide: beam line to stave edge
+                    du.add_line(
+                        x2,
+                        y1,
+                        x_outer,
+                        y1,
+                        color=stroke_color,
+                        width_mm=0.5,
+                        dash_pattern=dash,
+                        id=0,
+                        tags=["beam_marker_guide_end", f"beam_marker_{hand_key}"],
+                    )
 
         # ---- Actual beam line drawing (right hand) ----
         # For each right-hand group, draw a slightly diagonal beam line

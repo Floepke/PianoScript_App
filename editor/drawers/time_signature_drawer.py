@@ -138,6 +138,7 @@ class TimeSignatureDrawerMixin:
 
         # Iterate BaseGrid segments and draw based on indicator_type
         show_klavars = tool_name == "time_signature"
+        show_classic = tool_name == "time_signature"
         for bg in list(getattr(score, 'base_grid', []) or []):
             numerator = int(getattr(bg, 'numerator', 4) or 4)
             denominator = int(getattr(bg, 'denominator', 4) or 4)
@@ -147,13 +148,14 @@ class TimeSignatureDrawerMixin:
 
             if enabled:
                 if indicator_type == 'classical':
-                    draw_classical(numerator, denominator, enabled, time_cursor)
+                    if show_classic:
+                        draw_classical(numerator, denominator, enabled, time_cursor)
                 elif indicator_type == 'klavarskribo':
                     if show_klavars:
                         draw_klavarskribo(numerator, denominator, enabled, time_cursor, grid_positions)
                 elif indicator_type == 'both':
-                    # Draw classical now; Klavarskribo only for the tool view.
-                    draw_classical(numerator, denominator, enabled, time_cursor)
+                    if show_classic:
+                        draw_classical(numerator, denominator, enabled, time_cursor)
                     if show_klavars:
                         draw_klavarskribo(numerator, denominator, enabled, time_cursor, grid_positions)
             # Advance time cursor by the segment length (mm) to next segment start

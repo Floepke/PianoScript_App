@@ -332,34 +332,37 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             t = t1
         return windows
 
-    def _group_by_beam_markers(notes: list[dict], markers: list[dict], start: float, end: float) -> tuple[list[list[dict]], list[tuple[float, float]]]:
-        """Split notes into beam groups using marker- and grid-based windows.
+    def _process_beam_marker_override(default_windows: list[tuple[float, float]], markers: list[dict]) -> list[tuple[float, float]]:
+        """Replace default windows with marker spans where they overlap.
 
-        Problem solved: combine explicit beam markers with grid windows so we
-        honor manual beam spans without losing default grouping elsewhere.
+        - Start from time-signature (grid) windows.
+        - For each marker, drop any default window that overlaps its span and add the marker span.
+        - Non-positive duration markers only remove overlapping defaults.
         """
-        notes_sorted = sorted(notes, key=lambda n: float(n.get('time', 0.0) or 0.0)) if notes else []
-        windows: list[tuple[float, float]] = []
-        markers_sorted = sorted(markers, key=lambda m: float(m.get('time', 0.0))) if markers else []
-        cur = float(start)
-        for idx, mk in enumerate(markers_sorted):
-            mt = float(mk.get('time', cur) or cur)
-            if op_time.lt(mt, float(start)):
-                continue
-            if op_time.ge(mt, float(end)):
-                break
+        if not default_windows:
+            return []
+        if not markers:
+            return default_windows
+        windows = sorted(default_windows, key=lambda w: float(w[0]))
+        for mk in sorted(markers, key=lambda m: float(m.get('time', 0.0))):
+            mt = float(mk.get('time', 0.0) or 0.0)
             dur = float(mk.get('duration', 0.0) or 0.0)
-            next_t = float(markers_sorted[idx + 1].get('time', end)) if (idx + 1) < len(markers_sorted) else float(end)
-            next_t = min(float(end), next_t)
-            if op_time.gt(mt, cur):
-                windows.extend(_build_grid_windows(cur, mt))
+            end = mt + max(0.0, dur)
+            filtered: list[tuple[float, float]] = []
+            for (w0, w1) in windows:
+                # Keep windows that do NOT overlap the marker span
+                if op_time.ge(w0, end) or op_time.le(w1, mt):
+                    filtered.append((w0, w1))
             if dur > 0.0:
-                windows.extend(_build_duration_windows(mt, next_t, dur))
-            else:
-                windows.extend(_build_grid_windows(mt, next_t))
-            cur = next_t
-        if op_time.lt(cur, float(end)):
-            windows.extend(_build_grid_windows(cur, float(end)))
+                filtered.append((mt, end))
+            windows = sorted(filtered, key=lambda w: float(w[0]))
+        return windows
+
+    def _group_by_beam_markers(notes: list[dict], markers: list[dict], start: float, end: float) -> tuple[list[list[dict]], list[tuple[float, float]]]:
+        """Split notes into beam groups using grid windows with marker overrides."""
+        notes_sorted = sorted(notes, key=lambda n: float(n.get('time', 0.0) or 0.0)) if notes else []
+        default_windows = _build_grid_windows(start, end)
+        windows = _process_beam_marker_override(default_windows, markers)
         groups = _assign_groups(notes_sorted, windows) if notes_sorted else []
         return groups, windows
 
