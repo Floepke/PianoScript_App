@@ -10,13 +10,32 @@ from typing import List, Optional, Tuple
 import mido
 
 
+def _is_fluidsynth_port(name: str) -> bool:
+    """Return True when the port name refers to a FluidSynth endpoint."""
+    lowered = str(name or "").lower()
+    needles = (
+        "fluidsynth",
+        "fluid synth",
+        "qsynth",
+        "synth input port (qsynth",
+    )
+    return any(n in lowered for n in needles)
+
+
 def list_midi_output_ports() -> List[str]:
     """Return available MIDI output names from mido/RtMidi."""
     try:
         names = list(mido.get_output_names() or [])
     except Exception:
         names = []
-    return [str(n) for n in names if str(n).strip()]
+    filtered: list[str] = []
+    for n in names:
+        if not str(n).strip():
+            continue
+        if _is_fluidsynth_port(n):
+            continue
+        filtered.append(str(n))
+    return filtered
 
 
 def _ensure_fluidsynth_lib() -> None:
@@ -197,6 +216,9 @@ class _MidiOutBackend(_Backend):
         open_errors: list[str] = []
 
         env_target = str(port_name or "").strip()
+        if env_target and _is_fluidsynth_port(env_target):
+            # Reject FluidSynth virtual ports to avoid crashes when switching playback modes.
+            env_target = ""
         if not env_target:
             env_target = str(os.environ.get("KEYTAB_MIDI_OUT", "") or "").strip()
 
@@ -258,7 +280,14 @@ class _MidiOutBackend(_Backend):
             names = list(mido.get_output_names() or [])
         except Exception:
             names = []
-        return [str(n) for n in names if str(n).strip()]
+        filtered: list[str] = []
+        for n in names:
+            if not str(n).strip():
+                continue
+            if _is_fluidsynth_port(n):
+                continue
+            filtered.append(str(n))
+        return filtered
 
     def _preferred_output_names(self, names: List[str]) -> List[str]:
         if not names:

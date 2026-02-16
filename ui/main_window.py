@@ -497,9 +497,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if sys.platform.startswith("linux"):
             playback_menu.addSeparator()
-            select_sf_act = QtGui.QAction("Select SoundFont…", self)
+            select_sf_act = QtGui.QAction("Select Custom SoundFont (.sf2/.sf3) for FluidSynth", self)
             select_sf_act.triggered.connect(lambda: self._prompt_for_soundfont(force_dialog=True))
             playback_menu.addAction(select_sf_act)
+
+            unset_sf_act = QtGui.QAction("Use Default FluidSynth SoundFont", self)
+            unset_sf_act.triggered.connect(self._unset_soundfont)
+            playback_menu.addAction(unset_sf_act)
 
         self._set_playback_mode(str(self._get_playback_mode_from_appdata() or 'system'), show_status=False)
 
@@ -844,13 +848,22 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         return None
 
-    def _set_soundfont_path_to_appdata(self, path: str) -> None:
+    def _set_soundfont_path_to_appdata(self, path: Optional[str]) -> None:
         try:
             adm = get_appdata_manager()
-            adm.set("user_soundfont_path", str(path))
+            adm.set("user_soundfont_path", str(path or ""))
             adm.save()
         except Exception:
             pass
+
+    def _unset_soundfont(self) -> None:
+        """Clear custom FluidSynth soundfont and revert to default detection."""
+        self._set_soundfont_path_to_appdata(None)
+        try:
+            self._dispose_player()
+        except Exception:
+            pass
+        self._status("Using default FluidSynth soundfont", 2500)
 
     def _prompt_for_soundfont(self, force_dialog: bool = False) -> Optional[str]:
         """Ensure a soundfont path exists; prompt user if missing or forced."""
@@ -876,6 +889,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.player.set_soundfont(sel)
                 except Exception:
                     pass
+                self._status("Custom FluidSynth soundfont selected", 2500)
                 return sel
         return existing if existing else None
 
