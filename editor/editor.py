@@ -158,6 +158,8 @@ class Editor(QtCore.QObject,
         self._view_y_mm_offset: float = 0.0
         # Viewport height (mm) of the visible clip
         self._viewport_h_mm: float = 0.0
+        # Extra time (ticks) to extend viewport cache at the bottom for beam continuity
+        self.viewport_bottom_bleed: float = QUARTER_NOTE_UNIT * 2
 
         # cursor
         self.time_cursor: Optional[float] = None
@@ -871,7 +873,8 @@ class Editor(QtCore.QObject,
         zpq = float(score.editor.zoom_mm_per_quarter)
         bleed_mm = max(2.0, zpq * 0.25)
         time_begin = float(self.mm_to_time(top_mm - bleed_mm))
-        time_end = float(self.mm_to_time(bottom_mm + bleed_mm))
+        bottom_bleed = max(0.0, float(getattr(self, 'viewport_bottom_bleed', 0.0) or 0.0))
+        time_end = float(self.mm_to_time(bottom_mm + bleed_mm)) + bottom_bleed
 
         # Comparator with threshold of 7 ticks
         op = Operator(7)
