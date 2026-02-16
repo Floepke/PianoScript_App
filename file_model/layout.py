@@ -55,7 +55,7 @@ class Layout:
 
     # Grace note appearance
     grace_note_visible: bool = True
-    grace_note_outline_width_mm: float = 0.75
+    grace_note_outline_width_mm: float = 1.5
     grace_note_scale: float = 0.75
 
     # Pedal appearance
@@ -70,7 +70,7 @@ class Layout:
     # Slur appearance
     slur_visible: bool = True
     slur_width_sides_mm: float = 0.1
-    slur_width_middle_mm: float = 0.3
+    slur_width_middle_mm: float = 1.5
 
     # Repeat markers
     repeat_start_visible: bool = True
@@ -146,24 +146,24 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'page_right_margin_mm': {'min': 0.0, 'max': 100.0, 'step': 0.05},
     'header_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.05},
     'footer_height_mm': {'min': 0.0, 'max': 100.0, 'step': 0.05},
-    'scale': {'min': 0.0, 'max': 1.0, 'step': 0.01},
-    'note_stem_length_semitone': {'min': 0.0, 'max': 20.0, 'step': 1.0},
-    'note_stem_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'note_stopsign_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'note_continuation_dot_size_mm': {'min': 0.0, 'max': 10.0, 'step': 0.05},
-    'beam_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'grace_note_outline_width_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'grace_note_scale': {'min': 0.1, 'max': 1.0, 'step': 0.05},
-    'pedal_lane_width_mm': {'min': 0.0, 'max': 20.0, 'step': 0.05},
+    'scale': {'min': 0.01, 'max': 1.0, 'step': 0.01},
+    'note_stem_length_semitone': {'min': 1.0, 'max': 20.0, 'step': 1.0},
+    'note_stem_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'note_stopsign_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'note_continuation_dot_size_mm': {'min': 0.05, 'max': 10.0, 'step': 0.05},
+    'beam_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'grace_note_outline_width_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'grace_note_scale': {'min': 0.05, 'max': 1.0, 'step': 0.05},
+    'pedal_lane_width_mm': {'min': 0.05, 'max': 20.0, 'step': 0.05},
     'text_font_size_pt': {'min': 4.0, 'max': 94.0, 'step': 1},
-    'slur_width_sides_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'slur_width_middle_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'countline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'grid_barline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'grid_gridline_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'time_signature_indicator_lane_width_mm': {'min': 0.0, 'max': 100.0, 'step': 0.05},
-    'time_signature_indicator_guide_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'time_signature_indicator_divide_guide_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'stave_two_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
-    'stave_three_line_thickness_mm': {'min': 0.0, 'max': 5.0, 'step': 0.05},
+    'slur_width_sides_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'slur_width_middle_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'countline_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'grid_barline_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'grid_gridline_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'time_signature_indicator_lane_width_mm': {'min': 0.05, 'max': 100.0, 'step': 0.05},
+    'time_signature_indicator_guide_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'time_signature_indicator_divide_guide_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'stave_two_line_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
+    'stave_three_line_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
 }

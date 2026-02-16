@@ -90,7 +90,8 @@ class GraceNoteDrawerMixin:
                     id=getattr(g, '_id', 0),
                     tags=["grace_note_white_outline"],
                 )
-                inset = max(0.0, outline_w)
+                # Halve the inset so the visible outline matches the configured width.
+                inset = outline_w * 0.25
                 inner_left = left + inset
                 inner_right = right - inset
                 inner_top = top + inset

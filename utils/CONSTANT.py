@@ -38,6 +38,9 @@ EDITOR_LAYERING = [
     'stem',
     'notehead_white',
     'notehead_black',
+    'grace_note_white_outline',
+    'grace_note_white_fill',
+
     'left_dot',
     'chord_connect',
 
@@ -83,6 +86,9 @@ ENGRAVER_LAYERING = [
     'beam',
     'notehead_white',
     'notehead_black',
+    'grace_note_black_outline',
+    'grace_note_white_fill',
+    'grace_note_black',
     'title',
     'composer',
     'copyright',

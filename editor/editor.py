@@ -1227,50 +1227,17 @@ class Editor(QtCore.QObject,
                 bottom = y_mm + (w * 2.0)
                 left = x_mm - w
                 right = x_mm + w
-                if self.pitch_cursor in BLACK_KEYS:
-                    du.add_oval(
-                        left,
-                        top,
-                        right,
-                        bottom,
-                        stroke_color=self.accent_color,
-                        stroke_width_mm=0.0,
-                        fill_color=self.accent_color,
-                        id=0,
-                        tags=['cursor'],
-                    )
-                else:
-                    du.add_oval(
-                        left,
-                        top,
-                        right,
-                        bottom,
-                        stroke_color=None,
-                        fill_color=self.accent_color,
-                        id=0,
-                        tags=['cursor'],
-                    )
-                    inset = max(0.0, outline_w)
-                    il = left + inset
-                    ir = right - inset
-                    it = top + inset
-                    ib = bottom - inset
-                    if ir <= il:
-                        midx = (left + right) * 0.5
-                        il = ir = midx
-                    if ib <= it:
-                        midy = (top + bottom) * 0.5
-                        it = ib = midy
-                    du.add_oval(
-                        il,
-                        it,
-                        ir,
-                        ib,
-                        stroke_color=None,
-                        fill_color=(1.0, 1.0, 1.0, 1.0),
-                        id=0,
-                        tags=['cursor'],
-                    )
+                du.add_oval(
+                    left,
+                    top,
+                    right,
+                    bottom,
+                    stroke_color=self.accent_color,
+                    stroke_width_mm=0.0,
+                    fill_color=self.accent_color,
+                    id=0,
+                    tags=['cursor'],
+                )
 
         # --- Selection window overlay (always visible when active) ---
         if self._selection_active:

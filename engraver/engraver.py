@@ -1542,28 +1542,52 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     y_top = _time_to_y(g_t)
                     w = semitone_mm * g_scale
                     if p in BLACK_KEYS:
-                        du.add_oval(
-                            x - (w * 0.8),
-                            y_top,
-                            x + (w * 0.8),
-                            y_top + (w * 2.0),
-                            stroke_color=(0, 0, 0, 1),
-                            stroke_width_mm=max(0.2, g_outline * 0.6),
-                            fill_color=(0, 0, 0, 1),
-                            id=int(item.get('id', 0) or 0),
-                            tags=['grace_note'],
-                        )
-                    else:
+                        # Black keys: single filled head.
                         du.add_oval(
                             x - w,
                             y_top,
                             x + w,
                             y_top + (w * 2.0),
-                            stroke_color=(0, 0, 0, 1),
-                            stroke_width_mm=g_outline,
+                            stroke_color=None,
+                            stroke_width_mm=0.0,
+                            fill_color=(0, 0, 0, 1),
+                            id=int(item.get('id', 0) or 0),
+                            tags=['grace_note_black'],
+                        )
+                    else:
+                        # White keys: outer dark fill, inner white fill inset by half the outline width.
+                        du.add_oval(
+                            x - w,
+                            y_top,
+                            x + w,
+                            y_top + (w * 2.0),
+                            stroke_color=None,
+                            stroke_width_mm=0.0,
+                            fill_color=(0, 0, 0, 1),
+                            id=int(item.get('id', 0) or 0),
+                            tags=['grace_note_black_outline'],
+                        )
+                        inset = max(0.0, g_outline * 0.5)
+                        il = x - w + inset
+                        ir = x + w - inset
+                        it = y_top + inset
+                        ib = y_top + (w * 2.0) - inset
+                        if ir <= il:
+                            midx = ( (x - w) + (x + w) ) * 0.5
+                            il = ir = midx
+                        if ib <= it:
+                            midy = (y_top + y_top + (w * 2.0)) * 0.5
+                            it = ib = midy
+                        du.add_oval(
+                            il,
+                            it,
+                            ir,
+                            ib,
+                            stroke_color=None,
+                            stroke_width_mm=0.0,
                             fill_color=(1, 1, 1, 1),
                             id=int(item.get('id', 0) or 0),
-                            tags=['grace_note'],
+                            tags=['grace_note_white_fill'],
                         )
 
             # Problem solved: render notes after grid, using precomputed positions.
