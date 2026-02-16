@@ -1,54 +1,94 @@
 from __future__ import annotations
 import os
+import sys
 import threading
 import time
+import ctypes
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import fluidsynth
+import mido
 
-# Guard against incorrect/empty fluidsynth installs (needs pyfluidsynth)
-if not hasattr(fluidsynth, "Synth"):
+
+def _ensure_fluidsynth_lib() -> None:
+    candidates = [
+        Path("/usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"),
+        Path("/usr/lib/libfluidsynth.so.3"),
+        Path("/lib/x86_64-linux-gnu/libfluidsynth.so.3"),
+        Path("/usr/local/lib/libfluidsynth.so.3"),
+        Path("/usr/lib/libfluidsynth.so"),
+        Path("/usr/local/lib/libfluidsynth.so"),
+    ]
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            ctypes.CDLL(str(path))
+            # Hint pyfluidsynth to use this exact file so ctypes.find_library is bypassed.
+            os.environ.setdefault("PYFLUIDSYNTH_LIB", str(path))
+            return
+        except Exception:
+            continue
     raise ImportError(
-        "fluidsynth.Synth not found. Install pyfluidsynth (pip install pyfluidsynth) and ensure libfluidsynth is available."
+        "FluidSynth native library not available. Install it with 'sudo apt-get install fluidsynth libfluidsynth3' (or equivalent) and ensure the library is present at /usr/lib*/libfluidsynth.so.3."
     )
+
+
+if sys.platform.startswith("linux"):
+    _ensure_fluidsynth_lib()
+    try:
+        import fluidsynth  # type: ignore
+    except Exception as exc:  # pragma: no cover - environment specific
+        raise ImportError(
+            "FluidSynth native library not available. Install it with 'sudo apt-get install fluidsynth libfluidsynth3' (or the equivalent for your distro) and ensure pyfluidsynth is installed."
+        ) from exc
 
 from utils.CONSTANT import QUARTER_NOTE_UNIT
 
 
-class Player:
-    """Playback of `SCORE` using a bundled FluidSynth instance."""
+class _Backend:
+    def program_select(self) -> None:  # pragma: no cover - runtime side effects
+        raise NotImplementedError
 
-    def __init__(self, soundfont_path: Optional[str] = None) -> None:
+    def set_gain(self, gain: float) -> None:  # pragma: no cover - runtime side effects
+        raise NotImplementedError
+
+    def note_on(self, midi_note: int, velocity: int) -> None:  # pragma: no cover - runtime side effects
+        raise NotImplementedError
+
+    def note_off(self, midi_note: int) -> None:  # pragma: no cover - runtime side effects
+        raise NotImplementedError
+
+    def all_notes_off(self) -> None:  # pragma: no cover - runtime side effects
+        raise NotImplementedError
+
+    def shutdown(self) -> None:  # pragma: no cover - runtime side effects
+        pass
+
+
+class _FluidsynthBackend(_Backend):
+    def __init__(self, soundfont_path: Optional[str]) -> None:
+        if not hasattr(sys.modules.get('fluidsynth'), "Synth"):
+            raise ImportError(
+                "FluidSynth not available. Install it with 'sudo apt-get install fluidsynth libfluidsynth3' and ensure pyfluidsynth is installed."
+            )
         self._fs: Optional[fluidsynth.Synth] = None
         self._sfid: Optional[int] = None
-        self._soundfont_path: Optional[str] = soundfont_path or self._autodetect_soundfont()
-        self._pitch_offset: int = 20  # App pitch 49 == MIDI 69 (A4); MIDI = app + 20
         self._channel: int = 0
         self._gain: float = 0.35
-        self._thread: Optional[threading.Thread] = None
-        self._running: bool = False
-        self._bpm: float = 120.0
-        self._t0: float = 0.0
-        self._start_units: float = 0.0
-        self._last_event_count: int = 0
-        self._off_epsilon_sec: float = 0.003  # ~3 ms safety gap before offs
-        self._min_duration_units: float = 4.0
+        self._soundfont_path = soundfont_path or self._autodetect_soundfont()
+        if self._soundfont_path is None:
+            raise RuntimeError(
+                "No soundfont found. Install a GM soundfont (e.g. FluidR3_GM.sf2) or set KEYTAB_SOUNDFONT."
+            )
         self._init_synth()
 
-    # ------------------------------------------------------------------
-    # FluidSynth setup
-    # ------------------------------------------------------------------
     def _autodetect_soundfont(self) -> Optional[str]:
-        """Return the first existing SF2 path from common system/user locations."""
         candidates: list[Path] = []
         env_sf = os.environ.get("KEYTAB_SOUNDFONT")
         if env_sf:
             candidates.append(Path(env_sf))
-        # System defaults
         candidates.append(Path("/usr/share/sounds/sf2/FluidR3_GM.sf2"))
-        candidates.append(Path("/Library/Audio/Sounds/Banks/FluidR3_GM.sf2"))
-        candidates.append(Path("/System/Library/Components/CoreAudio.component/Contents/SharedSupport/Resources/gs_instrument.sf2"))
         for p in candidates:
             if p.expanduser().is_file():
                 return str(p.expanduser())
@@ -61,7 +101,6 @@ class Player:
             except Exception:
                 pass
         self._fs = fluidsynth.Synth()
-        # Prefer PulseAudio for desktop environments; fall back to FluidSynth default
         started = False
         for drv in ("pulseaudio", None):
             try:
@@ -71,40 +110,164 @@ class Player:
             except Exception:
                 continue
         if not started:
-            # Last-resort fallback avoids raising during init
             try:
                 self._fs.start(driver=None)
             except Exception:
                 pass
-        if self._soundfont_path:
-            self._sfid = self._fs.sfload(self._soundfont_path)
-            self._fs.program_select(self._channel, self._sfid, 0, 0)
-        else:
-            raise RuntimeError(
-                "No soundfont found. Set KEYTAB_SOUNDFONT or load a .sf2/.sf3 from disk."
-            )
+        self._sfid = self._fs.sfload(self._soundfont_path)
+        self._fs.program_select(self._channel, self._sfid, 0, 0)
         try:
-            self.set_gain(self._gain)
+            self._fs.set_gain(self._gain)
+        except Exception:
+            pass
+
+    def program_select(self) -> None:
+        if self._fs is not None and self._sfid is not None:
+            try:
+                self._fs.program_select(self._channel, self._sfid, 0, 0)
+            except Exception:
+                pass
+
+    def set_gain(self, gain: float) -> None:
+        self._gain = max(0.0, float(gain))
+        if self._fs is not None:
+            try:
+                self._fs.set_gain(self._gain)
+            except Exception:
+                pass
+
+    def note_on(self, midi_note: int, velocity: int) -> None:
+        if self._fs is not None:
+            try:
+                self._fs.noteon(self._channel, midi_note, velocity)
+            except Exception:
+                pass
+
+    def note_off(self, midi_note: int) -> None:
+        if self._fs is not None:
+            try:
+                self._fs.noteoff(self._channel, midi_note)
+            except Exception:
+                pass
+
+    def all_notes_off(self) -> None:
+        if self._fs is not None:
+            try:
+                self._fs.all_notes_off(self._channel)
+            except Exception:
+                pass
+        try:
+            if self._fs is not None:
+                self._fs.system_reset()
+        except Exception:
+            pass
+
+    def shutdown(self) -> None:
+        self.all_notes_off()
+        if self._fs is not None:
+            try:
+                self._fs.delete()
+            except Exception:
+                pass
+        self._fs = None
+
+
+class _MidiOutBackend(_Backend):
+    """Use OS-provided wavetable synth via RtMidi (CoreMIDI/WinMM)."""
+
+    def __init__(self) -> None:
+        try:
+            self._port = mido.open_output()
+        except Exception as exc:  # pragma: no cover - environment dependent
+            raise RuntimeError(
+                "No MIDI output device available. Configure a default CoreMIDI/WinMM output to enable playback."
+            ) from exc
+
+    def program_select(self) -> None:
+        try:
+            self._port.send(mido.Message("program_change", program=0))
+        except Exception:
+            pass
+
+    def set_gain(self, gain: float) -> None:
+        # Not supported on OS synth; ignore.
+        pass
+
+    def note_on(self, midi_note: int, velocity: int) -> None:
+        try:
+            self._port.send(mido.Message("note_on", note=int(midi_note), velocity=int(velocity)))
+        except Exception:
+            pass
+
+    def note_off(self, midi_note: int) -> None:
+        try:
+            self._port.send(mido.Message("note_off", note=int(midi_note), velocity=0))
+        except Exception:
+            pass
+
+    def all_notes_off(self) -> None:
+        try:
+            for n in range(128):
+                self._port.send(mido.Message("note_off", note=n, velocity=0))
+        except Exception:
+            pass
+
+    def shutdown(self) -> None:
+        try:
+            self.all_notes_off()
+            self._port.close()
+        except Exception:
+            pass
+
+
+class Player:
+    """Playback of `SCORE` using FluidSynth on Linux; OS MIDI synth elsewhere."""
+
+    def __init__(self, soundfont_path: Optional[str] = None) -> None:
+        self._backend: Optional[_Backend] = None
+        self._backend_kind: str = "rtmidi"
+        if sys.platform.startswith("linux"):
+            self._backend = _FluidsynthBackend(soundfont_path)
+            self._backend_kind = "fluidsynth"
+        else:
+            self._backend = _MidiOutBackend()
+            self._backend_kind = "rtmidi"
+
+        self._pitch_offset: int = 20  # App pitch 49 == MIDI 69 (A4); MIDI = app + 20
+        self._channel: int = 0
+        self._gain: float = 0.35
+        self._thread: Optional[threading.Thread] = None
+        self._running: bool = False
+        self._bpm: float = 120.0
+        self._t0: float = 0.0
+        self._start_units: float = 0.0
+        self._last_event_count: int = 0
+        self._off_epsilon_sec: float = 0.003  # ~3 ms safety gap before offs
+        self._min_duration_units: float = 4.0
+        try:
+            if self._backend is not None:
+                self._backend.program_select()
         except Exception:
             pass
 
     def set_soundfont(self, path: str) -> None:
+        if self._backend_kind != "fluidsynth":
+            return
+        backend = self._backend
+        if not isinstance(backend, _FluidsynthBackend):
+            return
         p = Path(path).expanduser()
         if not p.is_file():
             raise FileNotFoundError(f"Soundfont not found: {p}")
-        self._soundfont_path = str(p)
-        if self._fs is None:
-            self._init_synth()
-            return
-        self._sfid = self._fs.sfload(self._soundfont_path)
-        self._fs.program_select(self._channel, self._sfid, 0, 0)
+        backend._soundfont_path = str(p)
+        backend._init_synth()
 
     def set_gain(self, gain: float) -> None:
         g = float(max(0.0, gain))
         self._gain = g
-        if self._fs is not None:
+        if self._backend is not None:
             try:
-                self._fs.set_gain(g)
+                self._backend.set_gain(g)
             except Exception:
                 pass
 
@@ -132,13 +295,13 @@ class Player:
         if self.is_playing():
             self._stop_for_restart()
         events = self._build_events_full(score)
-        self._run_events_with_fluidsynth(events)
+        self._run_events(events)
 
     def play_from_time_cursor(self, start_units: float, score) -> None:
         if self.is_playing():
             self._stop_for_restart()
         events = self._build_events_from_time(start_units, score)
-        self._run_events_with_fluidsynth(events)
+        self._run_events(events)
 
     def stop(self) -> None:
         self._running = False
@@ -156,20 +319,17 @@ class Player:
     def audition_note(self, pitch: int = 40, velocity: int = 80, duration_sec: float = 0.2) -> None:
         if self.is_playing():
             return
+        if self._backend is None:
+            raise RuntimeError("Audio backend not initialized.")
         midi_pitch = max(0, min(127, int(pitch) + int(self._pitch_offset)))
         vel = int(max(1, min(127, velocity)))
         dur = float(max(0.02, duration_sec))
 
         def _run():
-            if self._fs is None:
-                try:
-                    self._init_synth()
-                except Exception:
-                    return
             try:
-                self._fs.noteon(self._channel, midi_pitch, vel)
+                self._backend.note_on(midi_pitch, vel)
                 time.sleep(dur)
-                self._fs.noteoff(self._channel, midi_pitch)
+                self._backend.note_off(midi_pitch)
             except Exception:
                 pass
 
@@ -182,9 +342,9 @@ class Player:
     # ------------------------------------------------------------------
     # Event scheduling
     # ------------------------------------------------------------------
-    def _run_events_with_fluidsynth(self, events: List[Tuple[str, float, int, int]]) -> None:
-        if self._fs is None:
-            self._init_synth()
+    def _run_events(self, events: List[Tuple[str, float, int, int]]) -> None:
+        if self._backend is None:
+            raise RuntimeError("Audio backend not initialized.")
         self._running = True
 
         def _runner() -> None:
@@ -204,9 +364,9 @@ class Player:
                     break
                 try:
                     if kind == 'on':
-                        self._fs.noteon(self._channel, int(midi_note), int(vel))
+                        self._backend.note_on(int(midi_note), int(vel))
                     else:
-                        self._fs.noteoff(self._channel, int(midi_note))
+                        self._backend.note_off(int(midi_note))
                 except Exception:
                     pass
             self._running = False
@@ -220,14 +380,10 @@ class Player:
         self._thread = th
 
     def _all_notes_off(self) -> None:
-        if self._fs is None:
+        if self._backend is None:
             return
         try:
-            self._fs.all_notes_off(self._channel)
-        except Exception:
-            pass
-        try:
-            self._fs.system_reset()
+            self._backend.all_notes_off()
         except Exception:
             pass
 
@@ -405,11 +561,13 @@ class Player:
             return None
 
     def get_debug_status(self) -> dict:
-        status = {
-            'playback_type': 'fluidsynth',
+        sf = None
+        if isinstance(self._backend, _FluidsynthBackend):
+            sf = getattr(self._backend, "_soundfont_path", None)
+        return {
+            'playback_type': self._backend_kind,
             'bpm': float(self._bpm),
             'events': int(self._last_event_count),
-            'soundfont': str(self._soundfont_path or ''),
+            'soundfont': str(sf or ''),
             'gain': float(self._gain),
         }
-        return status

@@ -254,7 +254,8 @@ def write_apprun(appdir: Path, name: str) -> Path:
     apprun.write_text(
         "#!/bin/sh\n"
         "HERE=\"$(dirname \"$(readlink -f \"$0\")\")\"\n"
-        f"export LD_LIBRARY_PATH=\"$HERE/usr/lib:$LD_LIBRARY_PATH\"\n"
+        # Expose both the shared lib dir and PyInstaller _internal for ctypes find_library
+        f"export LD_LIBRARY_PATH=\"$HERE/usr/lib:$HERE/usr/lib/{name}/_internal:$LD_LIBRARY_PATH\"\n"
         f"exec \"$HERE/usr/bin/{name}\" \"$@\"\n",
         encoding="utf-8",
     )
@@ -290,6 +291,34 @@ def _copy_tree_if_exists(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest)
 
 
+def copy_qt_licenses(appdir: Path, exe_name: str) -> None:
+    try:
+        import PySide6  # type: ignore
+    except Exception:
+        return
+
+    qt_root = Path(getattr(PySide6, "__file__", "")).resolve().parent
+    search_roots = [qt_root, qt_root / "Qt", qt_root / "Qt" / "LICENSES"]
+    dest_root = appdir / "usr" / "share" / "licenses" / exe_name / "qt"
+    copied_any = False
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for path in root.glob("**/LICENSE*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root)
+            dest = dest_root / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(path, dest)
+                copied_any = True
+            except Exception:
+                pass
+    if copied_any:
+        print(f"Bundled Qt/PySide6 license files into {dest_root}")
+
+
 def copy_bundled_assets(project_root: Path, lib_app_dir: Path, appdir: Path, exe_name: str) -> None:
     # Licenses and notices (ship both alongside the binary and under /usr/share for compliance).
     licenses_src = project_root / "licenses"
@@ -310,14 +339,19 @@ def copy_bundled_assets(project_root: Path, lib_app_dir: Path, appdir: Path, exe
     _copy_file_if_exists(project_root / "docs" / "LICENSING_AND_PACKAGING.md", doc_dir / "LICENSING_AND_PACKAGING.md")
 
 
-def copy_shared_libs(appdir: Path, lib_names: list[str]) -> None:
+def copy_shared_libs(appdir: Path, lib_names: list[str], extra_targets: list[Path] | None = None) -> None:
     lib_dst = appdir / "usr" / "lib"
     lib_dst.mkdir(parents=True, exist_ok=True)
+    extra_targets = extra_targets or []
+    for target in extra_targets:
+        target.mkdir(parents=True, exist_ok=True)
     search_dirs = [
         "/usr/lib",
         "/usr/local/lib",
         "/usr/lib/x86_64-linux-gnu",
         "/usr/local/lib/x86_64-linux-gnu",
+        "/lib",
+        "/lib/x86_64-linux-gnu",
     ]
     for name in lib_names:
         found = None
@@ -333,7 +367,29 @@ def copy_shared_libs(appdir: Path, lib_names: list[str]) -> None:
             print(f"Warning: could not find {name} to bundle; ensure it is available at runtime.")
             continue
         try:
-            shutil.copy2(found, lib_dst / found.name)
+            # Copy the exact soname and add a plain .so symlink so ctypes.find_library finds it.
+            copied_paths = []
+            dest_main = lib_dst / found.name
+            shutil.copy2(found, dest_main)
+            copied_paths.append(dest_main)
+            for target in extra_targets:
+                dest_extra = target / found.name
+                shutil.copy2(found, dest_extra)
+                copied_paths.append(dest_extra)
+
+            for dest in copied_paths:
+                # Only add a compatibility symlink when the filename has a version (e.g. libfoo.so.3).
+                if ".so." not in dest.name:
+                    continue
+                plain_so = dest.parent / (dest.name.split(".so.", 1)[0] + ".so")
+                if plain_so.name == dest.name:
+                    continue
+                try:
+                    if plain_so.exists() or plain_so.is_symlink():
+                        plain_so.unlink()
+                    plain_so.symlink_to(dest.name)
+                except Exception:
+                    pass
             print(f"Bundled shared library: {found}")
         except Exception as exc:
             print(f"Warning: failed to copy {found}: {exc}")
@@ -406,9 +462,14 @@ def main() -> int:
 
     # Bundle licenses and notices for compliance; user supplies their own soundfont.
     copy_bundled_assets(project_root, lib_app_dir, appdir, exe_name)
+    copy_qt_licenses(appdir, exe_name)
 
-    # Bundle shared libs needed at runtime (libfluidsynth and common audio deps).
-    copy_shared_libs(appdir, ["libfluidsynth", "libasound", "libpulse", "libsndfile", "libglib-2.0"])
+    # Bundle a small set of audio deps often missing on minimal systems; skip FluidSynth (ask user to install).
+    copy_shared_libs(
+        appdir,
+        ["libasound", "libpulse", "libsndfile", "libglib-2.0"],
+        extra_targets=[],
+    )
 
     icon_dir = appdir / "usr" / "share" / "icons" / "hicolor" / "256x256" / "apps"
     icon_dir.mkdir(parents=True, exist_ok=True)

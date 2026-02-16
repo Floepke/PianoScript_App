@@ -56,6 +56,35 @@ SKIPPED_SCAN_DIRS = {
 }
 
 
+def copy_qt_licenses(app_path: Path) -> None:
+    """Bundle Qt/PySide6 license files into the .app for compliance."""
+    try:
+        import PySide6  # type: ignore
+    except Exception:
+        return
+
+    qt_root = Path(getattr(PySide6, "__file__", "")).resolve().parent
+    search_roots = [qt_root, qt_root / "Qt", qt_root / "Qt" / "LICENSES"]
+    dest_root = app_path / "Contents" / "Resources" / "licenses" / "qt"
+    copied_any = False
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for path in root.glob("**/LICENSE*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root)
+            dest = dest_root / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(path, dest)
+                copied_any = True
+            except Exception:
+                pass
+    if copied_any:
+        print(f"Bundled Qt/PySide6 license files into {dest_root}")
+
+
 def _iter_python_files(root: Path) -> Iterator[Path]:
     for path in root.rglob("*.py"):
         if any(part in SKIPPED_SCAN_DIRS for part in path.parts):
@@ -408,6 +437,7 @@ def main() -> None:
             args.icon,
             exclude_modules=unused_modules,
         )
+        copy_qt_licenses(result_path)
         doc_icon_file = ensure_document_icon(result_path, work_dir, args.icon)
         update_info_plist(result_path, args.name, doc_icon_file)
         print(f"App bundle created at: {result_path}")
