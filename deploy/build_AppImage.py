@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""Build an AppImage using PyInstaller + linuxdeploy.
+"""Build a Linux AppImage for keyTAB using PyInstaller + linuxdeploy.
 
+When run directly, the script does the following in order:
+1) Parse CLI arguments (output directory, executable name, entry script, icon, extra PyInstaller args).
+    - Default output directory is ~/Desktop when no args are provided.
+2) Verify Linux x86_64 environment and ensure required system packages are present.
+3) Install Python dependencies from requirements.txt and ensure PyInstaller is available.
+4) Create a dedicated build workspace at <output>/keyTAB_build/ and invoke PyInstaller with
+    its dist/work/spec paths inside that workspace.
+5) Stage an AppDir: copy the PyInstaller bundle into usr/lib/<name>, create usr/bin launcher symlink,
+   and strip portable-unfriendly Qt plugins.
+6) Bundle project licenses/notices, Qt licenses, and selected audio-related shared libraries.
+7) Embed a 512x512 PNG icon, write desktop entry, MIME package, AppStream metadata, and AppRun launcher.
+8) Download/prepare linuxdeploy.AppImage, set env (including APPIMAGE_EXTRACT_AND_RUN=1), and build the AppImage.
+9) Rename/make-executable the produced AppImage, move it to <output>, and remove the build workspace.
+    If the build fails, leave <output>/keyTAB_build/ intact for inspection.
 Usage:
-    python tools/build.py --output /path/to/out
-
-The output directory is used for all build artifacts. After building,
-only the final AppImage is kept.
+    python3 deploy/build_AppImage.py --output /path/to/out
 """
 
 from __future__ import annotations
@@ -405,6 +416,11 @@ def main() -> int:
     out_dir = Path(args.output).expanduser().resolve()
     ensure_clean_output_dir(out_dir)
 
+    build_root = out_dir / "keyTAB_build"
+    if build_root.exists():
+        shutil.rmtree(build_root, ignore_errors=True)
+    build_root.mkdir(parents=True, exist_ok=True)
+
     if platform.system().lower() != "linux":
         raise SystemExit("AppImage builds are supported on Linux only.")
     if platform.machine().lower() not in ("x86_64", "amd64"):
@@ -415,11 +431,11 @@ def main() -> int:
     ensure_pip_requirements(project_root)
     ensure_pip_dependency("PyInstaller")
 
-    work_dir = out_dir / "_build"
-    spec_dir = out_dir / "_spec"
-    dist_dir = out_dir / "_dist"
-    appdir = out_dir / "_appdir"
-    tools_dir = out_dir / "_tools"
+    work_dir = build_root / "_build"
+    spec_dir = build_root / "_spec"
+    dist_dir = build_root / "_dist"
+    appdir = build_root / "_appdir"
+    tools_dir = build_root / "_tools"
 
     cmd = [
         sys.executable,
@@ -438,6 +454,7 @@ def main() -> int:
     print("Running:", " ".join(cmd))
     result = subprocess.run(cmd, cwd=str(project_root))
     if result.returncode != 0:
+        print(f"Build failed; leaving artifacts in {build_root} for inspection.")
         return result.returncode
 
     exe_name = args.name
@@ -505,11 +522,12 @@ def main() -> int:
         "--output",
         "appimage",
     ]
-    result = subprocess.run(appimage_cmd, cwd=str(out_dir), env=env)
+    result = subprocess.run(appimage_cmd, cwd=str(build_root), env=env)
     if result.returncode != 0:
+        print(f"AppImage packaging failed; leaving artifacts in {build_root} for inspection.")
         return result.returncode
 
-    produced = sorted(out_dir.glob("*.AppImage"), key=lambda p: p.stat().st_mtime, reverse=True)
+    produced = sorted(build_root.glob("*.AppImage"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not produced:
         raise SystemExit("AppImage build finished but no AppImage was produced.")
     final_appimage = out_dir / f"{exe_name}.AppImage"
@@ -532,6 +550,7 @@ def main() -> int:
         pass
 
     cleanup_build_artifacts(work_dir, spec_dir, dist_dir, appdir, tools_dir)
+    shutil.rmtree(build_root, ignore_errors=True)
     print(f"Build complete: {final_appimage}")
     return 0
 

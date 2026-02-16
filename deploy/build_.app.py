@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
-"""Build a signed macOS .app bundle for keyTAB using PyInstaller.
+"""Build a macOS .app bundle (plus DMG) for keyTAB using PyInstaller.
 
-The script runs PyInstaller inside a dedicated output directory, ensures a .app
-bundle is produced (not a CLI binary), embeds the project icon, and cleans up all
-intermediate artifacts so only the resulting .app remains.
+When executed directly, the script performs these steps in order:
+1) Parse CLI arguments for entry point, app name, output directory, and icon path.
+    - Default output directory is ~/Desktop when no args are provided.
+2) Create a dedicated build workspace at <output>/keyTAB_build/.
+3) Scan the project for imported PySide6 modules and exclude unused ones from the build.
+4) Convert the provided icon to ICNS (via sips/iconutil) if needed.
+5) Run PyInstaller in that workspace to produce a windowed .app bundle.
+6) Copy Qt/PySide6 license files into the bundle for compliance.
+7) Ensure a document icon exists in Resources and update Info.plist with bundle IDs,
+    category, author, and UTI/file-association declarations for .piano and MIDI files.
+8) Optionally build a drag-and-drop DMG containing the .app and an Applications symlink,
+    applying a volume icon when possible.
+9) Move the resulting .app (and DMG if built) to <output> and remove the build workspace.
+    If the build fails, leave <output>/keyTAB_build/ intact for inspection.
 """
 
 from __future__ import annotations
@@ -417,7 +428,12 @@ def build_installer_dmg(app_path: Path, work_dir: Path, icon_hint: Path | None =
 
 def main() -> None:
     args = parse_args()
-    work_dir = args.output_dir.resolve()
+    output_dir = args.output_dir.resolve()
+    build_dir = output_dir / "keyTAB_build"
+
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
 
     unused_modules = determine_unused_qt_modules(PROJECT_ROOT)
     if unused_modules:
@@ -429,30 +445,48 @@ def main() -> None:
 
     result_path: Path | None = None
     dmg_path: Path | None = None
+    success = False
     try:
         result_path = run_pyinstaller(
             args.entry,
             args.name,
-            work_dir,
+            build_dir,
             args.icon,
             exclude_modules=unused_modules,
         )
         copy_qt_licenses(result_path)
-        doc_icon_file = ensure_document_icon(result_path, work_dir, args.icon)
+        doc_icon_file = ensure_document_icon(result_path, build_dir, args.icon)
         update_info_plist(result_path, args.name, doc_icon_file)
         print(f"App bundle created at: {result_path}")
         try:
-            dmg_path = build_installer_dmg(result_path, work_dir, args.icon)
+            dmg_path = build_installer_dmg(result_path, build_dir, args.icon)
             print(f"Installer DMG created at: {dmg_path}")
         except Exception as exc:
             print(f"Warning: Failed to produce DMG: {exc}", file=sys.stderr)
-    finally:
-        clean_pyinstaller_artifacts(work_dir, args.name)
-        print(f"Cleaned PyInstaller artifacts in {work_dir}.")
 
-    if result_path is None or not result_path.exists():
+        final_app_path = output_dir / f"{args.name}.app"
+        if final_app_path.exists():
+            shutil.rmtree(final_app_path, ignore_errors=True)
+        shutil.move(str(result_path), final_app_path)
+        print(f"Copied .app to: {final_app_path}")
+
+        if dmg_path and dmg_path.exists():
+            final_dmg_path = output_dir / dmg_path.name
+            if final_dmg_path.exists():
+                final_dmg_path.unlink()
+            shutil.move(str(dmg_path), final_dmg_path)
+            print(f"Copied DMG to: {final_dmg_path}")
+        success = True
+    finally:
+        if success:
+            shutil.rmtree(build_dir, ignore_errors=True)
+            print(f"Cleaned build directory {build_dir}.")
+        else:
+            print(f"Build failed or incomplete; leaving artifacts in {build_dir} for inspection.")
+
+    if result_path is None or not (output_dir / f"{args.name}.app").exists():
         raise SystemExit("Build failed: .app bundle missing after cleanup.")
-    if dmg_path is None or not dmg_path.exists():
+    if dmg_path is None:
         print("Installer DMG unavailable; .app bundle still produced.", file=sys.stderr)
 
 
