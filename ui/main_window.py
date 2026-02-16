@@ -414,9 +414,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if sys.platform == "darwin":
             menubar.setNativeMenuBar(True)
 
-        # Create menus in normal left-to-right order (File, Edit, View, Playback, Help)
+        # Create menus in normal left-to-right order (File, Edit, Document, View, Playback, Help)
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
+        document_menu = menubar.addMenu("&Document")
         view_menu = menubar.addMenu("&View")
         playback_menu = menubar.addMenu("&Playback")
         help_menu = menubar.addMenu("&Help")
@@ -444,12 +445,17 @@ class MainWindow(QtWidgets.QMainWindow):
         style_act = QtGui.QAction("Style...", self)
         style_act.setShortcut(QtGui.QKeySequence("S"))
         style_act.triggered.connect(self._open_style_dialog)
-        file_menu.addAction(style_act)
         titles_act = QtGui.QAction("Titles...", self)
         titles_act.setShortcut(QtGui.QKeySequence("T"))
         titles_act.triggered.connect(self._open_titles_dialog)
-        file_menu.addAction(titles_act)
-        file_menu.addSeparator()
+        line_break_act = QtGui.QAction("Line Breaks...", self)
+        line_break_act.setShortcut(QtGui.QKeySequence("L"))
+        line_break_act.triggered.connect(self._open_line_break_dialog)
+
+        document_menu.addAction(style_act)
+        document_menu.addAction(titles_act)
+        document_menu.addAction(line_break_act)
+        document_menu.addSeparator()
 
         export_pdf_act = QtGui.QAction("Export PDF...", self)
         export_pdf_act.setShortcut(QtGui.QKeySequence("Ctrl+E"))
@@ -1055,6 +1061,62 @@ class MainWindow(QtWidgets.QMainWindow):
                 except Exception:
                     pass
                 self._refresh_views_from_score()
+        except Exception:
+            pass
+
+    def _open_line_break_dialog(self) -> None:
+        try:
+            from ui.widgets.line_break_dialog import LineBreakDialog
+            from file_model.events.line_break import LineBreak
+            score = self.file_manager.current()
+            if score is None:
+                return
+            defaults = LineBreak()
+            line_breaks = list(getattr(score.events, 'line_break', []) or [])
+            dlg = LineBreakDialog(
+                parent=self,
+                line_breaks=line_breaks,
+                selected_line_break=None,
+                apply_quick_cb=None,
+                reload_cb=lambda: list(getattr(score.events, 'line_break', []) or []),
+                margin_mm=None,
+                stave_range=None,
+                page_break=False,
+                measure_resolver=(lambda t: self.editor_controller.get_measure_index_for_time(t)) if hasattr(self.editor_controller, 'get_measure_index_for_time') else None,
+            )
+
+            def _apply_dialog_values() -> None:
+                try:
+                    self._refresh_views_from_score()
+                except Exception:
+                    pass
+
+            def _finalize_dialog(result: int) -> None:
+                try:
+                    if result == QtWidgets.QDialog.Accepted:
+                        try:
+                            self.editor_controller._snapshot_if_changed(coalesce=False, label='line_break_edit')
+                        except Exception:
+                            pass
+                        self._refresh_views_from_score()
+                    else:
+                        try:
+                            dlg.restore_original_state()
+                        except Exception:
+                            pass
+                        self._refresh_views_from_score()
+                finally:
+                    try:
+                        self.file_manager.on_model_changed()
+                    except Exception:
+                        pass
+
+            try:
+                dlg.valuesChanged.connect(_apply_dialog_values)
+            except Exception:
+                pass
+            dlg.finished.connect(_finalize_dialog)
+            dlg.show()
         except Exception:
             pass
 
