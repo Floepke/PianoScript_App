@@ -28,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
         # Ensure player attribute always exists
         self.player = None
+        self._player_config: tuple[str, str] | None = None
 
         # File management
         self.file_manager = FileManager(self)
@@ -467,16 +468,40 @@ class MainWindow(QtWidgets.QMainWindow):
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
 
-        # Playback menu (FluidSynth only)
+        # Playback menu
+        self._playback_menu = playback_menu
+        self._playback_mode_group = QtGui.QActionGroup(self)
+        self._playback_mode_group.setExclusive(True)
+
+        self._playback_mode_system_action = QtGui.QAction(self._playback_system_label(), self)
+        self._playback_mode_system_action.setCheckable(True)
+        self._playback_mode_system_action.triggered.connect(lambda checked: self._set_playback_mode('system') if checked else None)
+        playback_menu.addAction(self._playback_mode_system_action)
+        self._playback_mode_group.addAction(self._playback_mode_system_action)
+
+        self._playback_mode_external_action = QtGui.QAction("Playback using External MIDI port", self)
+        self._playback_mode_external_action.setCheckable(True)
+        self._playback_mode_external_action.triggered.connect(lambda checked: self._set_playback_mode('external') if checked else None)
+        playback_menu.addAction(self._playback_mode_external_action)
+        self._playback_mode_group.addAction(self._playback_mode_external_action)
+
+        playback_menu.addSeparator()
+        self._midi_port_menu = playback_menu.addMenu("MIDI port")
+        self._midi_port_menu.aboutToShow.connect(self._rebuild_midi_port_menu)
+        self._rebuild_midi_port_menu()
+        playback_menu.addSeparator()
+
         test_tone_act = QtGui.QAction("Play Test Tone", self)
         test_tone_act.triggered.connect(self._play_test_tone)
         playback_menu.addAction(test_tone_act)
-        playback_menu.addSeparator()
 
-        select_sf_act = QtGui.QAction("Select SoundFont…", self)
-        select_sf_act.triggered.connect(lambda: self._prompt_for_soundfont(force_dialog=True))
-        playback_menu.addAction(select_sf_act)
-        playback_menu.addSeparator()
+        if sys.platform.startswith("linux"):
+            playback_menu.addSeparator()
+            select_sf_act = QtGui.QAction("Select SoundFont…", self)
+            select_sf_act.triggered.connect(lambda: self._prompt_for_soundfont(force_dialog=True))
+            playback_menu.addAction(select_sf_act)
+
+        self._set_playback_mode(str(self._get_playback_mode_from_appdata() or 'system'), show_status=False)
 
         about_act = QtGui.QAction("About keyTAB", self)
         about_act.triggered.connect(self._open_about_dialog)
@@ -688,18 +713,125 @@ class MainWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
 
+    def _playback_system_label(self) -> str:
+        if sys.platform.startswith('linux'):
+            return "Playback using FluidSynth"
+        if sys.platform == 'darwin':
+            return "Playback using CoreMIDI"
+        if sys.platform.startswith('win'):
+            return "Playback using WinMM"
+        return "Playback using System Synth"
+
+    def _get_playback_mode_from_appdata(self) -> str:
+        try:
+            adm = get_appdata_manager()
+            mode = str(adm.get("playback_mode", "system") or "system").strip().lower()
+            if mode in ("system", "external"):
+                return mode
+        except Exception:
+            pass
+        return "system"
+
+    def _set_playback_mode_to_appdata(self, mode: str) -> None:
+        try:
+            adm = get_appdata_manager()
+            adm.set("playback_mode", str(mode))
+            adm.save()
+        except Exception:
+            pass
+
+    def _get_midi_out_port_from_appdata(self) -> str:
+        try:
+            adm = get_appdata_manager()
+            return str(adm.get("midi_out_port", "") or "")
+        except Exception:
+            return ""
+
+    def _set_midi_out_port_to_appdata(self, port_name: str) -> None:
+        try:
+            adm = get_appdata_manager()
+            adm.set("midi_out_port", str(port_name or ""))
+            adm.save()
+        except Exception:
+            pass
+
+    def _rebuild_midi_port_menu(self) -> None:
+        try:
+            menu = getattr(self, '_midi_port_menu', None)
+            if menu is None:
+                return
+            menu.clear()
+            from midi.player import Player
+            ports = list(Player.list_midi_output_ports() or [])
+            selected = self._get_midi_out_port_from_appdata()
+            self._midi_port_group = QtGui.QActionGroup(self)
+            self._midi_port_group.setExclusive(True)
+            if not ports:
+                none_act = QtGui.QAction("(No MIDI output ports found)", self)
+                none_act.setEnabled(False)
+                menu.addAction(none_act)
+                return
+            for port_name in ports:
+                act = QtGui.QAction(str(port_name), self)
+                act.setCheckable(True)
+                act.setChecked(bool(selected) and str(selected) == str(port_name))
+                act.triggered.connect(
+                    lambda checked, p=str(port_name): self._select_external_midi_port(p) if checked else None
+                )
+                self._midi_port_group.addAction(act)
+                menu.addAction(act)
+        except Exception:
+            pass
+
+    def _send_playback_panic(self) -> None:
+        try:
+            if hasattr(self, 'player') and self.player is not None:
+                if hasattr(self.player, 'panic'):
+                    self.player.panic()
+                else:
+                    self.player.stop()
+        except Exception:
+            pass
+
+    def _dispose_player(self) -> None:
+        try:
+            if hasattr(self, 'player') and self.player is not None:
+                if hasattr(self.player, 'shutdown'):
+                    self.player.shutdown()
+                else:
+                    self.player.stop()
+        except Exception:
+            pass
+        self.player = None
+        self._player_config = None
+
+    def _select_external_midi_port(self, port_name: str) -> None:
+        self._send_playback_panic()
+        self._dispose_player()
+        self._set_midi_out_port_to_appdata(str(port_name))
+        self._status(f"External MIDI port: {port_name}", 2500)
+
     def _ensure_player(self) -> None:
         # Always ensure attribute exists and bubble up failures so callers can report
         if not hasattr(self, 'player'):
             self.player = None
+        playback_mode = self._get_playback_mode_from_appdata()
+        midi_out_port = self._get_midi_out_port_from_appdata()
+        cfg = (str(playback_mode), str(midi_out_port))
         try:
-            if self.player is None:
+            if self.player is None or self._player_config != cfg:
                 from midi.player import Player
-                self.player = Player(soundfont_path=self._get_soundfont_path_from_appdata())
+                self.player = Player(
+                    soundfont_path=self._get_soundfont_path_from_appdata(),
+                    playback_mode=playback_mode,
+                    midi_out_port=(midi_out_port or None),
+                )
+                self._player_config = cfg
             if hasattr(self.player, 'set_persist_settings'):
                 self.player.set_persist_settings(False)
         except Exception:
             self.player = None
+            self._player_config = None
             raise
 
     def _get_soundfont_path_from_appdata(self) -> Optional[str]:
@@ -748,6 +880,10 @@ class MainWindow(QtWidgets.QMainWindow):
         return existing if existing else None
 
     def _ensure_player_with_soundfont(self) -> None:
+        mode = self._get_playback_mode_from_appdata()
+        if not (sys.platform.startswith('linux') and mode == 'system'):
+            self._ensure_player()
+            return
         try:
             self._ensure_player()
             return
@@ -758,7 +894,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 chosen = self._prompt_for_soundfont(force_dialog=True)
                 if chosen:
                     from midi.player import Player
-                    self.player = Player(soundfont_path=chosen)
+                    self.player = Player(
+                        soundfont_path=chosen,
+                        playback_mode='system',
+                        midi_out_port=None,
+                    )
+                    self._player_config = ('system', self._get_midi_out_port_from_appdata())
                     try:
                         if hasattr(self.player, 'set_persist_settings'):
                             self.player.set_persist_settings(False)
@@ -768,8 +909,8 @@ class MainWindow(QtWidgets.QMainWindow):
             raise
 
     def _choose_midi_port(self) -> None:
-        # Legacy stub kept for menu compatibility; FluidSynth renders audio directly
-        self._status("MIDI port selection not needed (FluidSynth output)", 2500)
+        self._rebuild_midi_port_menu()
+        self._status("Select external MIDI output from Playback > MIDI port", 2500)
 
     def _update_clock(self) -> None:
         try:
@@ -1490,7 +1631,7 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
     def _play_midi_with_prompt(self, start_units: Optional[float]) -> None:
-        """Play the SCORE from start or the editor time cursor using FluidSynth."""
+        """Play the SCORE from start or the editor time cursor using active backend."""
         try:
             self._ensure_player_with_soundfont()
             sc = self.file_manager.current()
@@ -1525,8 +1666,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 bpm = info.get('bpm', 0)
                 ev = info.get('events', 0)
                 gain = info.get('gain', 0.0)
-                sf = info.get('soundfont', '') or 'FluidSynth'
-                self._status(f"Playing • {ev} notes • {bpm:.0f} BPM • Soundfont: {sf} • Gain: {gain:.2f}", 3000)
+                playback_type = str(info.get('playback_type', '') or '')
+                if playback_type == 'fluidsynth':
+                    sf = info.get('soundfont', '') or 'FluidSynth'
+                    backend_info = f"Soundfont: {sf}"
+                elif playback_type == 'coreaudio-dls':
+                    backend_info = "Output: Apple DLS Synth"
+                else:
+                    out_name = info.get('output', '') or 'System MIDI'
+                    backend_info = f"Output: {out_name}"
+                self._status(f"Playing • {ev} notes • {bpm:.0f} BPM • {backend_info} • Gain: {gain:.2f}", 3000)
         except Exception:
             pass
 
@@ -1595,26 +1744,46 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # FX/editor hooks removed; FluidSynth is the single backend
     def _open_fx_editor(self) -> None:
-        self._status("Synth FX editor removed (FluidSynth playback only)", 2000)
+        self._status("Synth FX editor removed", 2000)
 
-    def _set_playback_mode(self, mode: str) -> None:
-        # Legacy stub kept for signal compatibility
-        self._status("Playback uses FluidSynth (single mode)", 2000)
+    def _set_playback_mode(self, mode: str, show_status: bool = True) -> None:
+        mode_norm = str(mode or 'system').strip().lower()
+        if mode_norm not in ('system', 'external'):
+            mode_norm = 'system'
+        self._send_playback_panic()
+        self._dispose_player()
+        self._set_playback_mode_to_appdata(mode_norm)
+        try:
+            if hasattr(self, '_playback_mode_system_action'):
+                self._playback_mode_system_action.setChecked(mode_norm == 'system')
+            if hasattr(self, '_playback_mode_external_action'):
+                self._playback_mode_external_action.setChecked(mode_norm == 'external')
+            if hasattr(self, '_midi_port_menu'):
+                self._midi_port_menu.setEnabled(mode_norm == 'external')
+        except Exception:
+            pass
+        if mode_norm == 'external':
+            self._rebuild_midi_port_menu()
+        if show_status:
+            if mode_norm == 'external':
+                self._status("Playback mode: External MIDI port", 2500)
+            else:
+                self._status(f"Playback mode: {self._playback_system_label().replace('Playback using ', '')}", 2500)
 
     def _set_send_midi_transport(self, enabled: bool) -> None:
         # Legacy stub kept for signal compatibility
-        self._status("MIDI transport settings removed (FluidSynth backend)", 2000)
+        self._status("MIDI transport settings removed", 2000)
 
     def _play_test_tone(self) -> None:
         try:
             self._ensure_player_with_soundfont()
             self.player.audition_note(pitch=49, velocity=100, duration_sec=1.0)
-            self._status("Test tone (FluidSynth)", 1500)
+            self._status("Test tone", 1500)
         except Exception:
             self._status("Test tone unavailable", 2000)
 
     def _choose_audio_device(self) -> None:
-        self._status("Audio device selection not required (FluidSynth auto-selects)", 2000)
+        self._status("Audio output is selected by the active playback backend", 2000)
 
     def _play_system_test_tone(self) -> None:
         self._play_test_tone()

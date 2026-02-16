@@ -237,7 +237,9 @@ def get_appdata_manager() -> AppDataManager:
             True,
             "Ask once to install AppImage desktop integration on Linux",
         )
-        # Legacy synth/midi preferences removed: playback is now FluidSynth-only.
+        # Playback preferences
+        adm.register("playback_mode", "system", "Playback mode: 'system' or 'external'")
+        adm.register("midi_out_port", "", "Last selected external MIDI output port name")
         # Session restore preferences
         adm.register("last_session_saved", False, "Whether the last session at exit was saved to a project file")
         adm.register("last_session_path", "", "Project file path associated with the last session if it was saved")

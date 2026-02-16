@@ -10,6 +10,15 @@ from typing import List, Optional, Tuple
 import mido
 
 
+def list_midi_output_ports() -> List[str]:
+    """Return available MIDI output names from mido/RtMidi."""
+    try:
+        names = list(mido.get_output_names() or [])
+    except Exception:
+        names = []
+    return [str(n) for n in names if str(n).strip()]
+
+
 def _ensure_fluidsynth_lib() -> None:
     candidates = [
         Path("/usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"),
@@ -175,13 +184,130 @@ class _FluidsynthBackend(_Backend):
 class _MidiOutBackend(_Backend):
     """Use OS-provided wavetable synth via RtMidi (CoreMIDI/WinMM)."""
 
-    def __init__(self) -> None:
-        try:
-            self._port = mido.open_output()
-        except Exception as exc:  # pragma: no cover - environment dependent
+    def __init__(
+        self,
+        port_name: Optional[str] = None,
+        *,
+        require_named_port: bool = False,
+        prefer_system_synth: bool = False,
+    ) -> None:
+        self._port = None
+        self._port_name: str = ""
+        names = self._list_output_names()
+        open_errors: list[str] = []
+
+        env_target = str(port_name or "").strip()
+        if not env_target:
+            env_target = str(os.environ.get("KEYTAB_MIDI_OUT", "") or "").strip()
+
+        if env_target:
+            exact = [candidate for candidate in names if candidate == env_target]
+            ci = [candidate for candidate in names if candidate.lower() == env_target.lower()]
+            for candidate in (exact + ci):
+                if candidate in exact and candidate in ci and exact.index(candidate) != ci.index(candidate):
+                    continue
+                try:
+                    self._port = mido.open_output(candidate)
+                    self._port_name = str(candidate)
+                    break
+                except Exception as exc:
+                    open_errors.append(f"{candidate}: {exc}")
+            if self._port is None and require_named_port:
+                raise RuntimeError(
+                    f"Requested MIDI output port not found or unavailable: {env_target}"
+                )
+
+        preferred_names = self._preferred_output_names(names)
+        search_names: list[str] = list(preferred_names)
+
+        for candidate in search_names:
+            if self._port is not None:
+                break
+            try:
+                self._port = mido.open_output(candidate)
+                self._port_name = str(candidate)
+                break
+            except Exception as exc:
+                open_errors.append(f"{candidate}: {exc}")
+
+        if self._port is None:
+            fallback_names = self._non_virtual_output_names(names)
+            for candidate in fallback_names:
+                if prefer_system_synth and preferred_names and candidate not in preferred_names:
+                    continue
+                try:
+                    self._port = mido.open_output(candidate)
+                    self._port_name = str(candidate)
+                    break
+                except Exception as exc:
+                    open_errors.append(f"{candidate}: {exc}")
+
+        if self._port is None:
+            detail = ""
+            if open_errors:
+                detail = "\nTried outputs:\n- " + "\n- ".join(open_errors[:8])
+            elif names:
+                detail = "\nAvailable outputs:\n- " + "\n- ".join(str(n) for n in names[:8])
             raise RuntimeError(
-                "No MIDI output device available. Configure a default CoreMIDI/WinMM output to enable playback."
-            ) from exc
+                "No usable MIDI output synth found. On macOS, open Audio MIDI Setup and enable an output synth endpoint (e.g. Apple DLS Synth)."
+                + detail
+            )
+
+    def _list_output_names(self) -> List[str]:
+        try:
+            names = list(mido.get_output_names() or [])
+        except Exception:
+            names = []
+        return [str(n) for n in names if str(n).strip()]
+
+    def _preferred_output_names(self, names: List[str]) -> List[str]:
+        if not names:
+            return []
+        lower_map = {str(n): str(n).lower() for n in names}
+        priorities: list[str]
+        if sys.platform == "darwin":
+            priorities = [
+                "apple dls synth",
+                "dls synth",
+                "synth",
+                "software instrument",
+            ]
+        elif sys.platform.startswith("win"):
+            priorities = [
+                "microsoft gs wavetable synth",
+                "gs wavetable",
+                "synth",
+            ]
+        else:
+            priorities = ["synth"]
+
+        preferred: list[str] = []
+        for needle in priorities:
+            for original, lowered in lower_map.items():
+                if needle in lowered and original not in preferred:
+                    preferred.append(original)
+        return preferred
+
+    def _non_virtual_output_names(self, names: List[str]) -> List[str]:
+        excluded_keywords = [
+            "iac",
+            "through",
+            "network",
+            "session",
+            "loop",
+            "bridge",
+            "bus",
+        ]
+        filtered: list[str] = []
+        for n in names:
+            lowered = str(n).lower()
+            if any(k in lowered for k in excluded_keywords):
+                continue
+            filtered.append(str(n))
+        return filtered
+
+    def output_name(self) -> str:
+        return str(self._port_name)
 
     def program_select(self) -> None:
         try:
@@ -220,18 +346,222 @@ class _MidiOutBackend(_Backend):
             pass
 
 
-class Player:
-    """Playback of `SCORE` using FluidSynth on Linux; OS MIDI synth elsewhere."""
+class _MacDLSSynthBackend(_Backend):
+    """Use macOS built-in Apple DLS synth via AudioToolbox/AUGraph."""
 
-    def __init__(self, soundfont_path: Optional[str] = None) -> None:
+    def __init__(self) -> None:
+        if sys.platform != "darwin":
+            raise RuntimeError("_MacDLSSynthBackend is only available on macOS.")
+
+        self._graph = ctypes.c_void_p()
+        self._synth_unit = ctypes.c_void_p()
+        self._output_unit = ctypes.c_void_p()
+        self._channel: int = 0
+        self._name: str = "Apple DLS Synth"
+
+        self._audio_toolbox = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox"
+        )
+
+        class _AudioComponentDescription(ctypes.Structure):
+            _fields_ = [
+                ("componentType", ctypes.c_uint32),
+                ("componentSubType", ctypes.c_uint32),
+                ("componentManufacturer", ctypes.c_uint32),
+                ("componentFlags", ctypes.c_uint32),
+                ("componentFlagsMask", ctypes.c_uint32),
+            ]
+
+        self._acd_cls = _AudioComponentDescription
+        self._init_graph()
+
+    def output_name(self) -> str:
+        return str(self._name)
+
+    def _fourcc(self, txt: str) -> int:
+        b = txt.encode("ascii")
+        if len(b) != 4:
+            raise ValueError(f"Invalid fourcc: {txt}")
+        return int.from_bytes(b, byteorder="big", signed=False)
+
+    def _check(self, status: int, where: str) -> None:
+        if int(status) != 0:
+            raise RuntimeError(f"{where} failed with OSStatus {int(status)}")
+
+    def _init_graph(self) -> None:
+        at = self._audio_toolbox
+        acd = self._acd_cls
+
+        kAudioUnitType_MusicDevice = self._fourcc("aumu")
+        kAudioUnitSubType_DLSSynth = self._fourcc("dls ")
+        kAudioUnitType_Output = self._fourcc("auou")
+        kAudioUnitSubType_DefaultOutput = self._fourcc("def ")
+        kAudioUnitManufacturer_Apple = self._fourcc("appl")
+
+        graph = ctypes.c_void_p()
+        self._check(at.NewAUGraph(ctypes.byref(graph)), "NewAUGraph")
+
+        synth_desc = acd(
+            componentType=kAudioUnitType_MusicDevice,
+            componentSubType=kAudioUnitSubType_DLSSynth,
+            componentManufacturer=kAudioUnitManufacturer_Apple,
+            componentFlags=0,
+            componentFlagsMask=0,
+        )
+        out_desc = acd(
+            componentType=kAudioUnitType_Output,
+            componentSubType=kAudioUnitSubType_DefaultOutput,
+            componentManufacturer=kAudioUnitManufacturer_Apple,
+            componentFlags=0,
+            componentFlagsMask=0,
+        )
+
+        synth_node = ctypes.c_int32(0)
+        out_node = ctypes.c_int32(0)
+        self._check(at.AUGraphAddNode(graph, ctypes.byref(synth_desc), ctypes.byref(synth_node)), "AUGraphAddNode(synth)")
+        self._check(at.AUGraphAddNode(graph, ctypes.byref(out_desc), ctypes.byref(out_node)), "AUGraphAddNode(output)")
+        self._check(at.AUGraphOpen(graph), "AUGraphOpen")
+
+        synth_unit = ctypes.c_void_p()
+        out_unit = ctypes.c_void_p()
+        self._check(at.AUGraphNodeInfo(graph, synth_node, None, ctypes.byref(synth_unit)), "AUGraphNodeInfo(synth)")
+        self._check(at.AUGraphNodeInfo(graph, out_node, None, ctypes.byref(out_unit)), "AUGraphNodeInfo(output)")
+
+        self._check(at.AUGraphConnectNodeInput(graph, synth_node, 0, out_node, 0), "AUGraphConnectNodeInput")
+        self._check(at.AUGraphInitialize(graph), "AUGraphInitialize")
+        self._check(at.AUGraphStart(graph), "AUGraphStart")
+
+        self._graph = graph
+        self._synth_unit = synth_unit
+        self._output_unit = out_unit
+
+    def _midi(self, status: int, data1: int, data2: int) -> None:
+        try:
+            self._audio_toolbox.MusicDeviceMIDIEvent(
+                self._synth_unit,
+                ctypes.c_uint32(status),
+                ctypes.c_uint32(max(0, min(127, int(data1)))),
+                ctypes.c_uint32(max(0, min(127, int(data2)))),
+                ctypes.c_uint32(0),
+            )
+        except Exception:
+            pass
+
+    def program_select(self) -> None:
+        self._midi(0xC0 | self._channel, 0, 0)
+
+    def set_gain(self, gain: float) -> None:
+        pass
+
+    def note_on(self, midi_note: int, velocity: int) -> None:
+        self._midi(0x90 | self._channel, int(midi_note), int(velocity))
+
+    def note_off(self, midi_note: int) -> None:
+        self._midi(0x80 | self._channel, int(midi_note), 0)
+
+    def all_notes_off(self) -> None:
+        self._midi(0xB0 | self._channel, 123, 0)
+
+    def shutdown(self) -> None:
+        try:
+            self.all_notes_off()
+        except Exception:
+            pass
+        try:
+            if bool(self._graph):
+                self._audio_toolbox.AUGraphStop(self._graph)
+        except Exception:
+            pass
+        try:
+            if bool(self._graph):
+                self._audio_toolbox.DisposeAUGraph(self._graph)
+        except Exception:
+            pass
+        self._graph = ctypes.c_void_p()
+        self._synth_unit = ctypes.c_void_p()
+        self._output_unit = ctypes.c_void_p()
+
+
+class _WinMMSynthBackend(_Backend):
+    """Use Windows built-in Microsoft GS Wavetable synth via WinMM output."""
+
+    def __init__(self) -> None:
+        self._impl = _MidiOutBackend(prefer_system_synth=True)
+        self._name = "Microsoft GS Wavetable Synth"
+
+    def output_name(self) -> str:
+        try:
+            return str(self._impl.output_name())
+        except Exception:
+            return str(self._name)
+
+    def program_select(self) -> None:
+        self._impl.program_select()
+
+    def set_gain(self, gain: float) -> None:
+        self._impl.set_gain(gain)
+
+    def note_on(self, midi_note: int, velocity: int) -> None:
+        self._impl.note_on(midi_note, velocity)
+
+    def note_off(self, midi_note: int) -> None:
+        self._impl.note_off(midi_note)
+
+    def all_notes_off(self) -> None:
+        self._impl.all_notes_off()
+
+    def shutdown(self) -> None:
+        self._impl.shutdown()
+
+
+class Player:
+    """Playback of `SCORE` using system synth or external MIDI output."""
+
+    def __init__(
+        self,
+        soundfont_path: Optional[str] = None,
+        playback_mode: str = "system",
+        midi_out_port: Optional[str] = None,
+    ) -> None:
         self._backend: Optional[_Backend] = None
         self._backend_kind: str = "rtmidi"
-        if sys.platform.startswith("linux"):
+        self._output_name: str = ""
+
+        mode = str(playback_mode or "system").strip().lower()
+        if mode not in ("system", "external"):
+            mode = "system"
+
+        if mode == "external":
+            self._backend = _MidiOutBackend(
+                port_name=midi_out_port,
+                require_named_port=bool(str(midi_out_port or "").strip()),
+            )
+            self._backend_kind = "external-midi"
+            try:
+                self._output_name = str(self._backend.output_name())
+            except Exception:
+                self._output_name = ""
+        elif sys.platform.startswith("linux"):
             self._backend = _FluidsynthBackend(soundfont_path)
             self._backend_kind = "fluidsynth"
+        elif sys.platform == "darwin":
+            self._backend = _MacDLSSynthBackend()
+            self._backend_kind = "coreaudio-dls"
+            self._output_name = "Apple DLS Synth"
+        elif sys.platform.startswith("win"):
+            self._backend = _WinMMSynthBackend()
+            self._backend_kind = "winmm"
+            try:
+                self._output_name = str(self._backend.output_name())
+            except Exception:
+                self._output_name = "Microsoft GS Wavetable Synth"
         else:
             self._backend = _MidiOutBackend()
             self._backend_kind = "rtmidi"
+            try:
+                self._output_name = str(self._backend.output_name())
+            except Exception:
+                self._output_name = ""
 
         self._pitch_offset: int = 20  # App pitch 49 == MIDI 69 (A4); MIDI = app + 20
         self._channel: int = 0
@@ -316,6 +646,21 @@ class Player:
             self._all_notes_off()
         except Exception:
             pass
+
+    def panic(self) -> None:
+        self.stop()
+
+    def shutdown(self) -> None:
+        try:
+            self.stop()
+        except Exception:
+            pass
+        try:
+            if self._backend is not None:
+                self._backend.shutdown()
+        except Exception:
+            pass
+        self._backend = None
 
     def audition_note(self, pitch: int = 40, velocity: int = 80, duration_sec: float = 0.2) -> None:
         if self.is_playing():
@@ -596,5 +941,10 @@ class Player:
             'bpm': float(self._bpm),
             'events': int(self._last_event_count),
             'soundfont': str(sf or ''),
+            'output': str(self._output_name),
             'gain': float(self._gain),
         }
+
+    @staticmethod
+    def list_midi_output_ports() -> List[str]:
+        return list_midi_output_ports()

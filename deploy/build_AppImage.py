@@ -26,7 +26,7 @@ LINUXDEPLOY_URL = (
     "linuxdeploy-x86_64.AppImage"
 )
 
-MIME_TYPE_PIANO = "application/x-pianoscript"
+MIME_TYPE_KEYTAB = "application/x-keytab"
 MIME_TYPES_MIDI = "audio/midi;audio/x-midi"
 APPSTREAM_ID = "org.philipbergwerf.keytab"
 AUTHOR_NAME = "Philip Bergwerf"
@@ -182,7 +182,7 @@ def write_desktop_file(appdir: Path, name: str) -> Path:
         f"Icon={name}\n"
         "Type=Application\n"
         "Categories=AudioVideo;Audio;Music;\n"
-        f"MimeType={MIME_TYPE_PIANO};{MIME_TYPES_MIDI};\n"
+        f"MimeType={MIME_TYPE_KEYTAB};{MIME_TYPES_MIDI};\n"
         "Terminal=false\n",
         encoding="utf-8",
     )
@@ -223,7 +223,7 @@ def write_mime_package(appdir: Path, name: str) -> Path:
     mime_path.write_text(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n"
-        f"  <mime-type type=\"{MIME_TYPE_PIANO}\">\n"
+        f"  <mime-type type=\"{MIME_TYPE_KEYTAB}\">\n"
         "    <comment>keyTAB score</comment>\n"
         "    <glob pattern=\"*.piano\"/>\n"
         "  </mime-type>\n"

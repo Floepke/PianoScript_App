@@ -15,7 +15,7 @@ from fonts import install_default_ui_font
 from utils.file_associations import extract_document_paths
 
 APP_NAME = "keyTAB"
-MIME_TYPE_PIANO = "application/x-pianoscript"
+MIME_TYPE_KEYTAB = "application/x-keytab"
 MIME_TYPES_MIDI = ["audio/midi", "audio/x-midi"]
 
 
@@ -65,7 +65,7 @@ def _write_desktop_entry(appimage_path: Path, icon_path: Path | None) -> None:
         f"Icon={icon_value}\n"
         "Type=Application\n"
         "Categories=AudioVideo;Audio;Music;\n"
-        f"MimeType={MIME_TYPE_PIANO};audio/midi;audio/x-midi;\n"
+        f"MimeType={MIME_TYPE_KEYTAB};audio/midi;audio/x-midi;\n"
         "Terminal=false\n",
         encoding="utf-8",
     )
@@ -78,7 +78,7 @@ def _write_mime_package() -> None:
     mime_path.write_text(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">\n"
-        f"  <mime-type type=\"{MIME_TYPE_PIANO}\">\n"
+        f"  <mime-type type=\"{MIME_TYPE_KEYTAB}\">\n"
         "    <comment>keyTAB score</comment>\n"
         "    <glob pattern=\"*.piano\"/>\n"
         "  </mime-type>\n"

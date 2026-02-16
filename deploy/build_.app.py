@@ -324,7 +324,7 @@ def update_info_plist(app_path: Path, name: str, doc_icon_file: str | None = Non
             "UTTypeConformsTo": ["public.data"],
             "UTTypeTagSpecification": {
                 "public.filename-extension": ["piano"],
-                "public.mime-type": ["application/x-pianoscript"],
+                "public.mime-type": ["application/x-keytab"],
             },
         }
     ]
