@@ -392,14 +392,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
         except Exception:
             pass
-        # Hitting Escape should trigger app close (session already autosaved)
-        try:
-            if ev.key() == QtCore.Qt.Key_Escape:
-                self.close()
-                ev.accept()
-                return
-        except Exception:
-            pass
         super().keyPressEvent(ev)
 
     def closeEvent(self, ev: QtGui.QCloseEvent) -> None:
@@ -426,8 +418,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create menus in normal left-to-right order (File, Edit, Document, View, Playback, Help)
         file_menu = menubar.addMenu("&File")
         edit_menu = menubar.addMenu("&Edit")
-        document_menu = menubar.addMenu("&Document")
         view_menu = menubar.addMenu("&View")
+        document_menu = menubar.addMenu("&Document")
         playback_menu = menubar.addMenu("&Playback")
         help_menu = menubar.addMenu("&Help")
 
@@ -437,6 +429,10 @@ class MainWindow(QtWidgets.QMainWindow):
         save_act = QtGui.QAction("Save", self)
         save_as_act = QtGui.QAction("Save As...", self)
         exit_act = QtGui.QAction("Exit", self)
+        try:
+            exit_act.setShortcut(QtGui.QKeySequence("Escape"))
+        except Exception:
+            pass
         exit_act.triggered.connect(self.close)
 
         new_act.setShortcut(QtGui.QKeySequence.StandardKey.New)
@@ -470,9 +466,6 @@ class MainWindow(QtWidgets.QMainWindow):
         export_pdf_act.setShortcut(QtGui.QKeySequence("Ctrl+E"))
         export_pdf_act.triggered.connect(self._export_pdf)
         file_menu.addAction(export_pdf_act)
-        file_menu.addSeparator()
-
-        file_menu.addAction(exit_act)
 
         # Playback menu (FluidSynth only)
         test_tone_act = QtGui.QAction("Play Test Tone", self)

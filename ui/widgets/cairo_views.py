@@ -320,7 +320,7 @@ class CairoEditorWidget(QtWidgets.QWidget):
                 anchor_y_logical_px = None
         current = float(getattr(ed, 'zoom_mm_per_quarter', 5.0) or 5.0)
         factor = (1.10 ** steps)
-        new_zoom = max(10.0, min(100.0, current * factor))
+        new_zoom = max(10.0, min(200.0, current * factor))
         try:
             ed.zoom_mm_per_quarter = float(new_zoom)
         except Exception:
