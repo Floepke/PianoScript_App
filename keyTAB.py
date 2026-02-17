@@ -17,6 +17,10 @@ from utils.file_associations import extract_document_paths
 APP_NAME = "keyTAB"
 MIME_TYPE_KEYTAB = "application/x-keytab"
 MIME_TYPES_MIDI = ["audio/midi", "audio/x-midi"]
+MIME_TYPES_MUSICXML = [
+    "application/vnd.recordare.musicxml+xml",
+    "application/vnd.recordare.musicxml",
+]
 
 
 class KeyTabApplication(QtWidgets.QApplication):
@@ -65,7 +69,9 @@ def _write_desktop_entry(appimage_path: Path, icon_path: Path | None) -> None:
         f"Icon={icon_value}\n"
         "Type=Application\n"
         "Categories=AudioVideo;Audio;Music;\n"
-        f"MimeType={MIME_TYPE_KEYTAB};audio/midi;audio/x-midi;\n"
+        f"MimeType={MIME_TYPE_KEYTAB};"
+        f"{';'.join(MIME_TYPES_MIDI)};"
+        f"{';'.join(MIME_TYPES_MUSICXML)};\n"
         "Terminal=false\n",
         encoding="utf-8",
     )
@@ -81,6 +87,14 @@ def _write_mime_package() -> None:
         f"  <mime-type type=\"{MIME_TYPE_KEYTAB}\">\n"
         "    <comment>keyTAB score</comment>\n"
         "    <glob pattern=\"*.piano\"/>\n"
+        "  </mime-type>\n"
+        "  <mime-type type=\"application/vnd.recordare.musicxml+xml\">\n"
+        "    <comment>MusicXML score</comment>\n"
+        "    <glob pattern=\"*.musicxml\"/>\n"
+        "  </mime-type>\n"
+        "  <mime-type type=\"application/vnd.recordare.musicxml\">\n"
+        "    <comment>Compressed MusicXML score</comment>\n"
+        "    <glob pattern=\"*.mxl\"/>\n"
         "  </mime-type>\n"
         "</mime-info>\n",
         encoding="utf-8",
@@ -153,7 +167,7 @@ def prompt_install_if_needed() -> None:
         "<b>Install keyTAB for desktop integration?</b><br><br>"
         "This will:<ul>"
         "<li>Add keyTAB to your application menu</li>"
-        "<li>Associate .piano and .mid files with keyTAB</li>"
+        "<li>Associate .piano, .mid/.midi, and .musicxml/.mxl files with keyTAB</li>"
         "<li>Copy this AppImage to a stable location in your home folder</li>"
         "</ul>"
         "You can remove the integration later by deleting the desktop entry in "

@@ -39,6 +39,7 @@ LINUXDEPLOY_URL = (
 
 MIME_TYPE_KEYTAB = "application/x-keytab"
 MIME_TYPES_MIDI = "audio/midi;audio/x-midi"
+MIME_TYPES_MUSICXML = "application/vnd.recordare.musicxml+xml;application/vnd.recordare.musicxml"
 APPSTREAM_ID = "org.philipbergwerf.keytab"
 AUTHOR_NAME = "Philip Bergwerf"
 APP_SUMMARY = (
@@ -193,7 +194,7 @@ def write_desktop_file(appdir: Path, name: str) -> Path:
         f"Icon={name}\n"
         "Type=Application\n"
         "Categories=AudioVideo;Audio;Music;\n"
-        f"MimeType={MIME_TYPE_KEYTAB};{MIME_TYPES_MIDI};\n"
+        f"MimeType={MIME_TYPE_KEYTAB};{MIME_TYPES_MIDI};{MIME_TYPES_MUSICXML};\n"
         "Terminal=false\n",
         encoding="utf-8",
     )
@@ -237,6 +238,14 @@ def write_mime_package(appdir: Path, name: str) -> Path:
         f"  <mime-type type=\"{MIME_TYPE_KEYTAB}\">\n"
         "    <comment>keyTAB score</comment>\n"
         "    <glob pattern=\"*.piano\"/>\n"
+        "  </mime-type>\n"
+        "  <mime-type type=\"application/vnd.recordare.musicxml+xml\">\n"
+        "    <comment>MusicXML score</comment>\n"
+        "    <glob pattern=\"*.musicxml\"/>\n"
+        "  </mime-type>\n"
+        "  <mime-type type=\"application/vnd.recordare.musicxml\">\n"
+        "    <comment>Compressed MusicXML score</comment>\n"
+        "    <glob pattern=\"*.mxl\"/>\n"
         "  </mime-type>\n"
         "</mime-info>\n",
         encoding="utf-8",

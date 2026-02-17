@@ -27,8 +27,14 @@ class FileManager:
     - Provides new(), open(), save(), and save_as() methods
     """
 
-    # Open dialog: show both .piano and .mid/.midi by default
-    OPEN_FILE_FILTER = "Supported Files (*.piano *.mid *.midi);;keyTAB Score (*.piano);;MIDI File (*.mid *.midi);;All Files (*)"
+    # Open dialog: show .piano, MIDI, and MusicXML by default
+    OPEN_FILE_FILTER = (
+        "Supported Files (*.piano *.mid *.midi *.musicxml *.mxl *.xml);;"
+        "keyTAB Score (*.piano);;"
+        "MIDI File (*.mid *.midi);;"
+        "MusicXML File (*.musicxml *.mxl *.xml);;"
+        "All Files (*)"
+    )
     # Save dialog: prefer only .piano
     SAVE_FILE_FILTER = "keyTAB Score (*.piano);;All Files (*)"
 
@@ -195,6 +201,35 @@ class FileManager:
                 except Exception:
                     pass
                 return self._current
+            elif suffix in (".musicxml", ".mxl", ".xml"):
+                # Load MusicXML via utils.musicxml2piano parser; keep project path unset
+                try:
+                    from utils.musicxml2piano import parse_musicxml
+                    self._current, _stats = parse_musicxml(Path(fname))
+                except Exception as exc:
+                    raise RuntimeError(f"Failed to load MusicXML: {exc}")
+                self._path = None
+                self._last_dir = Path(fname).parent
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_file_dialog_dir", str(self._last_dir))
+                    adm.save()
+                except Exception:
+                    pass
+                # Imported from external format; mark dirty until explicitly saved
+                self._dirty = True
+                try:
+                    self.autosave_current()
+                except Exception:
+                    pass
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(fname))
+                    adm.save()
+                    self._push_recent_file(str(fname))
+                except Exception:
+                    pass
+                return self._current
             else:
                 # Native keyTAB file
                 self._current = SCORE().load(fname)
@@ -234,6 +269,24 @@ class FileManager:
             if suffix in (".mid", ".midi"):
                 from midi.midi_loader import midi_load
                 self._current = midi_load(path)
+                self._path = None
+                self._last_dir = Path(path).parent
+                self._dirty = True
+                try:
+                    self.autosave_current()
+                except Exception:
+                    pass
+                try:
+                    adm = get_appdata_manager()
+                    adm.set("last_opened_file", str(path))
+                    adm.save()
+                    self._push_recent_file(str(path))
+                except Exception:
+                    pass
+                return self._current
+            elif suffix in (".musicxml", ".mxl", ".xml"):
+                from utils.musicxml2piano import parse_musicxml
+                self._current, _stats = parse_musicxml(Path(path))
                 self._path = None
                 self._last_dir = Path(path).parent
                 self._dirty = True
