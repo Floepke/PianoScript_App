@@ -11,6 +11,14 @@ import mido
 import traceback
 
 
+def _mido_io_backend():
+    """Prefer explicit RtMidi backend; fall back to mido default backend."""
+    try:
+        return mido.Backend("mido.backends.rtmidi")
+    except Exception:
+        return mido
+
+
 def _is_fluidsynth_port(name: str) -> bool:
     """Return True when the port name refers to a FluidSynth endpoint."""
     lowered = str(name or "").lower()
@@ -26,7 +34,8 @@ def _is_fluidsynth_port(name: str) -> bool:
 def list_midi_output_ports() -> List[str]:
     """Return available MIDI output names from mido/RtMidi."""
     try:
-        names = list(mido.get_output_names() or [])
+        backend = _mido_io_backend()
+        names = list(backend.get_output_names() or [])
     except Exception:
         names = []
         traceback.print_exc()
@@ -222,6 +231,7 @@ class _MidiOutBackend(_Backend):
         require_named_port: bool = False,
         prefer_system_synth: bool = False,
     ) -> None:
+        self._backend = _mido_io_backend()
         self._port = None
         self._port_name: str = ""
         names = self._list_output_names()
@@ -241,7 +251,7 @@ class _MidiOutBackend(_Backend):
                 if candidate in exact and candidate in ci and exact.index(candidate) != ci.index(candidate):
                     continue
                 try:
-                    self._port = mido.open_output(candidate)
+                    self._port = self._backend.open_output(candidate)
                     self._port_name = str(candidate)
                     break
                 except Exception as exc:
@@ -258,7 +268,7 @@ class _MidiOutBackend(_Backend):
             if self._port is not None:
                 break
             try:
-                self._port = mido.open_output(candidate)
+                self._port = self._backend.open_output(candidate)
                 self._port_name = str(candidate)
                 break
             except Exception as exc:
@@ -270,7 +280,7 @@ class _MidiOutBackend(_Backend):
                 if prefer_system_synth and preferred_names and candidate not in preferred_names:
                     continue
                 try:
-                    self._port = mido.open_output(candidate)
+                    self._port = self._backend.open_output(candidate)
                     self._port_name = str(candidate)
                     break
                 except Exception as exc:
@@ -297,7 +307,7 @@ class _MidiOutBackend(_Backend):
 
     def _list_output_names(self) -> List[str]:
         try:
-            names = list(mido.get_output_names() or [])
+            names = list(self._backend.get_output_names() or [])
         except Exception:
             names = []
         filtered: list[str] = []

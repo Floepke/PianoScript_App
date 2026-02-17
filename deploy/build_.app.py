@@ -280,6 +280,15 @@ def run_pyinstaller(
         str(icon_to_use),
     ]
 
+    # Ensure MIDI backend (python-rtmidi) is bundled even when imported dynamically.
+    cmd.extend([
+        "--hidden-import=rtmidi",
+        "--hidden-import=rtmidi._rtmidi",
+        "--collect-all=rtmidi",
+        "--hidden-import=mido.backends.rtmidi",
+        "--collect-all=mido",
+    ])
+
     for module in exclude_modules:
         cmd.extend(["--exclude-module", module])
 
