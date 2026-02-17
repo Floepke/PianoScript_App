@@ -265,8 +265,15 @@ def write_apprun(appdir: Path, name: str) -> Path:
     apprun.write_text(
         "#!/bin/sh\n"
         "HERE=\"$(dirname \"$(readlink -f \"$0\")\")\"\n"
-        # Expose both the shared lib dir and PyInstaller _internal for ctypes find_library
-        f"export LD_LIBRARY_PATH=\"$HERE/usr/lib:$HERE/usr/lib/{name}/_internal:$LD_LIBRARY_PATH\"\n"
+        # Expose shared libs, PyInstaller _internal, and ALSA plugins/config
+        f"export LD_LIBRARY_PATH=\"$HERE/usr/lib:$HERE/usr/lib/alsa-lib:$HERE/usr/lib/{name}/_internal:$LD_LIBRARY_PATH\"\n"
+        f"export ALSA_CONFIG_PATH=\"$HERE/usr/share/alsa/alsa.conf\"\n"
+        f"export ALSA_CONFIG_DIR=\"$HERE/usr/share/alsa\"\n"
+        f"export ALSA_PLUGIN_DIR=\"$HERE/usr/lib/alsa-lib\"\n"
+        # Ensure bundled Python modules (including rtmidi) are discoverable
+        f"export PYTHONPATH=\"$HERE/usr/lib/{name}/_internal:$PYTHONPATH\"\n"
+        # Force mido to use bundled RtMidi backend
+        "export MIDO_BACKEND=mido.backends.rtmidi\n"
         f"exec \"$HERE/usr/bin/{name}\" \"$@\"\n",
         encoding="utf-8",
     )
@@ -348,6 +355,20 @@ def copy_bundled_assets(project_root: Path, lib_app_dir: Path, appdir: Path, exe
     doc_dir = share_root / "doc" / exe_name
     _copy_file_if_exists(project_root / "THIRD_PARTY_NOTICES.md", doc_dir / "THIRD_PARTY_NOTICES.md")
     _copy_file_if_exists(project_root / "docs" / "LICENSING_AND_PACKAGING.md", doc_dir / "LICENSING_AND_PACKAGING.md")
+
+    # Bundle ALSA config/plugins to keep RtMidi device discovery working in AppImage
+    try:
+        alsa_conf_src = Path("/usr/share/alsa")
+        alsa_conf_dst = appdir / "usr" / "share" / "alsa"
+        _copy_tree_if_exists(alsa_conf_src, alsa_conf_dst)
+    except Exception:
+        pass
+    try:
+        alsa_plugins_src = Path("/usr/lib/x86_64-linux-gnu/alsa-lib")
+        alsa_plugins_dst = appdir / "usr" / "lib" / "alsa-lib"
+        _copy_tree_if_exists(alsa_plugins_src, alsa_plugins_dst)
+    except Exception:
+        pass
 
 
 def copy_shared_libs(appdir: Path, lib_names: list[str], extra_targets: list[Path] | None = None) -> None:
@@ -448,6 +469,14 @@ def main() -> int:
         f"--specpath={str(spec_dir)}",
         str(entry_script),
     ]
+    # Ensure MIDI backend (python-rtmidi) is bundled even if imported dynamically
+    cmd.extend([
+        "--hidden-import=rtmidi",
+        "--hidden-import=rtmidi._rtmidi",
+        "--collect-all=rtmidi",
+        "--hidden-import=mido.backends.rtmidi",
+        "--collect-all=mido",
+    ])
     if args.extra_args.strip():
         cmd.extend(shlex.split(args.extra_args))
 
@@ -484,7 +513,7 @@ def main() -> int:
     # Bundle a small set of audio deps often missing on minimal systems; skip FluidSynth (ask user to install).
     copy_shared_libs(
         appdir,
-        ["libasound", "libpulse", "libsndfile", "libglib-2.0"],
+        ["libpulse", "libsndfile", "libglib-2.0"],
         extra_targets=[],
     )
 

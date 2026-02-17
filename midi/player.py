@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import mido
+import traceback
 
 
 def _is_fluidsynth_port(name: str) -> bool:
@@ -28,6 +29,7 @@ def list_midi_output_ports() -> List[str]:
         names = list(mido.get_output_names() or [])
     except Exception:
         names = []
+        traceback.print_exc()
     filtered: list[str] = []
     for n in names:
         if not str(n).strip():
@@ -35,6 +37,16 @@ def list_midi_output_ports() -> List[str]:
         if _is_fluidsynth_port(n):
             continue
         filtered.append(str(n))
+    if not filtered:
+        try:
+            sys.stderr.write(
+                "[midi] No MIDI outputs discovered. backend=%s rtmidi=%s\n" % (
+                    getattr(mido, "backend", ""),
+                    getattr(sys.modules.get("rtmidi"), "__version__", "unknown"),
+                )
+            )
+        except Exception:
+            pass
     return filtered
 
 
@@ -270,6 +282,14 @@ class _MidiOutBackend(_Backend):
                 detail = "\nTried outputs:\n- " + "\n- ".join(open_errors[:8])
             elif names:
                 detail = "\nAvailable outputs:\n- " + "\n- ".join(str(n) for n in names[:8])
+            else:
+                detail = "\nNo MIDI outputs reported by RtMidi." \
+                    + f" backend={getattr(mido, 'backend', '')} rtmidi={getattr(sys.modules.get('rtmidi'), '__version__', 'unknown')}" \
+                    + f" PATH={os.environ.get('PATH','')}" \
+                    + f" LD_LIBRARY_PATH={os.environ.get('LD_LIBRARY_PATH','')}" \
+                    + f" ALSA_CONFIG_PATH={os.environ.get('ALSA_CONFIG_PATH','')}" \
+                    + f" ALSA_PLUGIN_DIR={os.environ.get('ALSA_PLUGIN_DIR','')}" \
+                    + f" PYTHONPATH={os.environ.get('PYTHONPATH','')}"
             raise RuntimeError(
                 "No usable MIDI output synth found. On macOS, open Audio MIDI Setup and enable an output synth endpoint (e.g. Apple DLS Synth)."
                 + detail
