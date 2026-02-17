@@ -206,9 +206,9 @@ def main(argv: list[str] | None = None):
     # Initialize appdata to ensure ~/.keyTAB/appdata.py exists
     get_appdata_manager()
 
-    # Ensure user-visible style storage exists
+    # Ensure style storage exists in hidden app folder
     try:
-        user_root = Path.home() / "keyTAB"
+        user_root = Path.home() / ".keyTAB"
         user_root.mkdir(parents=True, exist_ok=True)
         (user_root / "pstyle").mkdir(parents=True, exist_ok=True)
     except Exception:

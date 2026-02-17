@@ -636,7 +636,7 @@ class StyleDialog(QtWidgets.QDialog):
             return 0
 
     def _pstyle_dir(self) -> Path:
-        root = Path.home() / "keyTAB" / "pstyle"
+        root = Path.home() / ".keyTAB" / "pstyle"
         root.mkdir(parents=True, exist_ok=True)
         return root
 
