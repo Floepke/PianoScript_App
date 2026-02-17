@@ -39,8 +39,13 @@ class RenderTask(QtCore.QRunnable):
         self._du.render_to_cairo(ctx, self._page_index, self._px_per_mm, layering=ENGRAVER_LAYERING)
         # Detach the image from the temporary buffer so Python memory can be reclaimed
         final = finalize_image_surface(image, device_pixel_ratio=self._dpr)
-        # Emit back to the UI thread
-        self._emitter.rendered.emit(final, self._page_index)
+        # Emit back to the UI thread, but skip if the emitter is gone (e.g., view closed)
+        try:
+            if self._emitter is not None:
+                self._emitter.rendered.emit(final, self._page_index)
+        except RuntimeError:
+            # Emitter already deleted; ignore
+            pass
 
 
 class DrawUtilView(QtWidgets.QWidget):

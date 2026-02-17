@@ -101,7 +101,7 @@ class SlurDrawerMixin:
                         hx + handle_w * 0.5,
                         hy + handle_h * 0.5,
                         stroke_color=stroke_col,
-                        stroke_width_mm=0.4,
+                        stroke_width_mm=0.5,
                         fill_color=fill_col,
                         id=int(getattr(sl, '_id', 0) or 0),
                         tags=["slur-handle"],

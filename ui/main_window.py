@@ -1248,29 +1248,22 @@ class MainWindow(QtWidgets.QMainWindow):
     def _open_line_break_dialog(self) -> None:
         try:
             from ui.widgets.line_break_dialog import LineBreakDialog
-            from file_model.events.line_break import LineBreak
             score = self.file_manager.current()
             if score is None:
                 return
-            defaults = LineBreak()
-            line_breaks = list(getattr(score.events, 'line_break', []) or [])
-            dlg = LineBreakDialog(
-                parent=self,
-                line_breaks=line_breaks,
-                selected_line_break=None,
-                apply_quick_cb=None,
-                reload_cb=lambda: list(getattr(score.events, 'line_break', []) or []),
-                margin_mm=None,
-                stave_range=None,
-                page_break=False,
-                measure_resolver=(lambda t: self.editor_controller.get_measure_index_for_time(t)) if hasattr(self.editor_controller, 'get_measure_index_for_time') else None,
-            )
-
-            def _apply_dialog_values() -> None:
+            def _on_change() -> None:
                 try:
                     self._refresh_views_from_score()
                 except Exception:
                     pass
+
+            dlg = LineBreakDialog(
+                parent=self,
+                score=score,
+                selected_line_break=None,
+                measure_resolver=(lambda t: self.editor_controller.get_measure_index_for_time(t)) if hasattr(self.editor_controller, 'get_measure_index_for_time') else None,
+                on_change=_on_change,
+            )
 
             def _finalize_dialog(result: int) -> None:
                 try:
@@ -1279,23 +1272,15 @@ class MainWindow(QtWidgets.QMainWindow):
                             self.editor_controller._snapshot_if_changed(coalesce=False, label='line_break_edit')
                         except Exception:
                             pass
-                        self._refresh_views_from_score()
+                        _on_change()
                     else:
-                        try:
-                            dlg.restore_original_state()
-                        except Exception:
-                            pass
-                        self._refresh_views_from_score()
+                        _on_change()
                 finally:
                     try:
                         self.file_manager.on_model_changed()
                     except Exception:
                         pass
 
-            try:
-                dlg.valuesChanged.connect(_apply_dialog_values)
-            except Exception:
-                pass
             dlg.finished.connect(_finalize_dialog)
             dlg.show()
         except Exception:

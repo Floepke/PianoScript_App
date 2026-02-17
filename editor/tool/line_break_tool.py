@@ -72,43 +72,6 @@ class LineBreakTool(BaseTool):
                 starts.append(float(cursor))
         return starts
 
-    def _apply_quick_line_breaks(self, groups: list[int]) -> bool:
-        if self._editor is None:
-            return False
-        score = self._editor.current_score()
-        if score is None:
-            return False
-        if not score.apply_quick_line_breaks(groups):
-            return False
-        self._sort_line_breaks()
-        try:
-            self._editor._snapshot_if_changed(coalesce=False, label='line_break_quick_set')
-        except Exception:
-            pass
-        if hasattr(self._editor, 'force_redraw_from_model'):
-            self._editor.force_redraw_from_model()
-        else:
-            self._editor.draw_frame()
-        return True
-
-    def _open_quick_line_breaks_dialog(self, on_applied=None) -> None:
-        if self._editor is None:
-            return
-        from ui.widgets.quick_line_break_dialog import QuickLineBreaksDialog
-        parent_w = QtWidgets.QApplication.activeWindow() if hasattr(QtWidgets, 'QApplication') else None
-        dlg = QuickLineBreaksDialog(parent=parent_w)
-
-        def _finalize_dialog(result: int) -> None:
-            if result != QtWidgets.QDialog.Accepted:
-                return
-            groups = dlg.get_values()
-            self._apply_quick_line_breaks(groups)
-            if callable(on_applied):
-                on_applied()
-
-        dlg.finished.connect(_finalize_dialog)
-        dlg.show()
-
     def _hit_test_line_break(self, x_px: float, y_px: float) -> Optional[LineBreak]:
         if self._editor is None:
             return None
@@ -249,20 +212,7 @@ class LineBreakTool(BaseTool):
         self._dialog_open = True
         from ui.widgets.line_break_dialog import LineBreakDialog
         parent_w = QtWidgets.QApplication.activeWindow() if hasattr(QtWidgets, 'QApplication') else None
-        defaults = LineBreak()
         score = self._editor.current_score()
-        line_breaks = list(getattr(score.events, 'line_break', []) or []) if score is not None else []
-        dlg = LineBreakDialog(
-            parent=parent_w,
-            line_breaks=line_breaks,
-            selected_line_break=lb,
-            apply_quick_cb=self._open_quick_line_breaks_dialog,
-            reload_cb=lambda: list(getattr(score.events, 'line_break', []) or []) if score is not None else [],
-            margin_mm=list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if lb is not None else None,
-            stave_range=getattr(lb, 'stave_range', defaults.stave_range) if lb is not None else None,
-            page_break=bool(getattr(lb, 'page_break', False)) if lb is not None else False,
-            measure_resolver=(lambda t: self._editor.get_measure_index_for_time(t)) if hasattr(self._editor, 'get_measure_index_for_time') else None,
-        )
 
         def _apply_dialog_values() -> None:
             if hasattr(self._editor, 'force_redraw_from_model'):
@@ -274,28 +224,21 @@ class LineBreakTool(BaseTool):
             except Exception:
                 pass
 
+        dlg = LineBreakDialog(
+            parent=parent_w,
+            score=score,
+            selected_line_break=lb,
+            measure_resolver=(lambda t: self._editor.get_measure_index_for_time(t)) if hasattr(self._editor, 'get_measure_index_for_time') else None,
+            on_change=_apply_dialog_values,
+        )
+
         def _finalize_dialog(result: int) -> None:
             try:
                 if result == QtWidgets.QDialog.Accepted:
                     self._editor._snapshot_if_changed(coalesce=False, label='line_break_edit')
-                    if hasattr(self._editor, 'force_redraw_from_model'):
-                        self._editor.force_redraw_from_model()
-                    else:
-                        self._editor.draw_frame()
-                else:
-                    dlg.restore_original_state()
-                    if hasattr(self._editor, 'force_redraw_from_model'):
-                        self._editor.force_redraw_from_model()
-                    else:
-                        self._editor.draw_frame()
-                    try:
-                        self._editor.score_changed.emit()
-                    except Exception:
-                        pass
             finally:
                 self._dialog_open = False
 
-        dlg.valuesChanged.connect(_apply_dialog_values)
         dlg.finished.connect(_finalize_dialog)
         dlg.show()
 

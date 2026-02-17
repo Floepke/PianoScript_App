@@ -35,7 +35,7 @@ class TimeSignatureDrawerMixin:
         klav_font = getattr(layout, 'time_signature_indicator_klavarskribo_font', None)
         classic_family = _resolve_font_family(classic_font)
         klav_family = _resolve_font_family(klav_font)
-        classic_size = 20.0
+        classic_size = 25.0
         klav_size = 15.0
         guide_width_mm = float(getattr(layout, 'time_signature_indicator_guide_thickness_mm', 0.5) or 0.5)
         divider_width_mm = float(getattr(layout, 'time_signature_indicator_divide_guide_thickness_mm', 1.0) or 1.0)

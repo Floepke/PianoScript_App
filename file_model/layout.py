@@ -52,8 +52,6 @@ class Layout:
     # Beam appearance
     beam_visible: bool = True
     beam_thickness_mm: float = 2.5
-    beam_marker_left_offset_mm: float = 2.0
-    beam_marker_right_offset_mm: float = 2.0
 
     # Grace note appearance
     grace_note_visible: bool = True
@@ -77,6 +75,9 @@ class Layout:
     # Repeat markers
     repeat_start_visible: bool = True
     repeat_end_visible: bool = True
+    
+    # Measure grouping (prefill for line break tool; not applied automatically)
+    measure_grouping: str = ""
 
     # Count line
     countline_visible: bool = True
@@ -154,8 +155,6 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'note_stopsign_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
     'note_continuation_dot_size_mm': {'min': 0.05, 'max': 10.0, 'step': 0.05},
     'beam_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
-    'beam_marker_left_offset_mm': {'min': 0.0, 'max': 200.0, 'step': 0.1},
-    'beam_marker_right_offset_mm': {'min': 0.0, 'max': 200.0, 'step': 0.1},
     'grace_note_outline_width_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
     'grace_note_scale': {'min': 0.05, 'max': 1.0, 'step': 0.05},
     'pedal_lane_width_mm': {'min': 0.05, 'max': 20.0, 'step': 0.05},

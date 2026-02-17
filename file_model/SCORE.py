@@ -3,7 +3,7 @@
 # my json structure design for *.piano files.
 from __future__ import annotations
 from dataclasses import dataclass, field, fields, MISSING
-from typing import List, get_args, get_origin, get_type_hints
+from typing import List, get_args, get_origin, get_type_hints, Literal
 import json
 from datetime import datetime
 
@@ -38,7 +38,6 @@ class EditorSettings:
 @dataclass
 class MetaData:
 	description: str = 'This is a .piano score file created with keyTAB.'
-	app_author: str = 'Philip Bergwerf'
 	version: int = 1
 	extension: str = '.piano'
 	format: str = 'json'
@@ -592,6 +591,9 @@ class SCORE:
 
 		- Uses existing line break margin/stave_range as a template when available.
 		- Always inserts a line break at time 0, then repeats the provided group sizes.
+		- Carries forward page/line type, margins, and ranges from existing line breaks
+		  in order; if there are fewer existing breaks than needed, the last known
+		  values are reused.
 		"""
 		try:
 			group_list = [int(g) for g in groups if int(g) > 0]
@@ -619,32 +621,40 @@ class SCORE:
 		if len(starts) < 2:
 			return False
 
-		# Preserve styling from the first existing line break if present
+		# Preserve styling from existing line breaks in order; reuse last when exhausted
 		try:
-			existing = list(getattr(self.events, 'line_break', []) or [])
+			existing = sorted(list(getattr(self.events, 'line_break', []) or []), key=lambda lb: float(getattr(lb, 'time', 0.0) or 0.0))
 		except Exception:
 			existing = []
-		template = existing[0] if existing else None
 		defaults = LineBreak()
-		margin_mm = list(getattr(template, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if template else list(defaults.margin_mm)
-		templ_range = getattr(template, 'stave_range', defaults.stave_range) if template else defaults.stave_range
-		if templ_range == 'auto' or templ_range is True:
-			stave_range = 'auto'
-		else:
-			fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-			stave_range = list(templ_range or fallback)
+
+		def _template_for(idx: int) -> tuple[list[float], list[int] | Literal['auto'] | bool, bool]:
+			tmpl = existing[idx] if idx < len(existing) else (existing[-1] if existing else None)
+			margin_mm = list(getattr(tmpl, 'margin_mm', defaults.margin_mm) or defaults.margin_mm) if tmpl else list(defaults.margin_mm)
+			tmpl_range = getattr(tmpl, 'stave_range', defaults.stave_range) if tmpl else defaults.stave_range
+			if tmpl_range == 'auto' or tmpl_range is True:
+				stave_range: list[int] | Literal['auto'] | bool = 'auto'
+			else:
+				fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
+				stave_range = list(tmpl_range or fallback)
+			page_break = bool(getattr(tmpl, 'page_break', False)) if tmpl else False
+			return (margin_mm, stave_range, page_break)
 
 		# Clear and rebuild line breaks following the requested grouping
 		self.events.line_break = []
 		total_measures = len(starts) - 1
 		index = 0
 		group_idx = 0
+		tmpl_idx = 0
 		last_group = int(group_list[-1])
 		while index < total_measures:
+			margin_mm, stave_range, page_break = _template_for(tmpl_idx)
 			if index == 0:
-				self.new_line_break(time=0.0, margin_mm=margin_mm, stave_range=stave_range, page_break=False)
+				self.new_line_break(time=0.0, margin_mm=margin_mm, stave_range=stave_range, page_break=page_break)
 			else:
-				self.new_line_break(time=float(starts[index]), margin_mm=margin_mm, stave_range=stave_range, page_break=False)
+				self.new_line_break(time=float(starts[index]), margin_mm=margin_mm, stave_range=stave_range, page_break=page_break)
+			if tmpl_idx < len(existing) - 1:
+				tmpl_idx += 1
 			if group_idx < len(group_list):
 				group_len = int(group_list[group_idx])
 				group_idx += 1

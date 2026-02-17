@@ -495,8 +495,13 @@ class StyleDialog(QtWidgets.QDialog):
         except Exception:
             type_hints = {}
         self._type_hints = type_hints
+        _hide_fields = {
+            "measure_grouping",
+        }
         for f in fields(Layout):
             name = f.name
+            if name in _hide_fields:
+                continue
             label = name.replace('_', ' ').capitalize() + ":"
             value = getattr(self._layout, name)
             field_type = type_hints.get(name, f.type)

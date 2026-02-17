@@ -68,7 +68,7 @@ class GridDrawerMixin:
             meas_family = str(meas_font.resolve_family())
         else:
             meas_family = getattr(meas_font, 'family', 'Courier New') if meas_font is not None else 'Courier New'
-        meas_size = float(getattr(meas_font, 'size_pt', 16.0) or 16.0)
+        meas_size = 20.0
         
         for bg in base_grid:
             numerator = bg.numerator

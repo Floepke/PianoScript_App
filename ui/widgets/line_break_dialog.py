@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Callable, Optional, Tuple, Literal
+import copy
+from typing import Callable, Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from utils.CONSTANT import BE_KEYS, CF_KEYS
@@ -39,16 +40,12 @@ class LineBreakDialog(QtWidgets.QDialog):
     valuesChanged = QtCore.Signal()
     def __init__(self,
                  parent=None,
-                 line_breaks: Optional[list[LineBreak]] = None,
+                 score=None,
                  selected_line_break: Optional[LineBreak] = None,
-                 apply_quick_cb: Optional[Callable[..., None]] = None,
-                 reload_cb: Optional[Callable[[], list[LineBreak]]] = None,
-                 margin_mm: Optional[list[float]] = None,
-                 stave_range: Optional[list[int] | Literal['auto'] | bool] = None,
-                 page_break: bool = False,
-                 measure_resolver: Optional[Callable[[float], int]] = None) -> None:
+                 measure_resolver: Optional[Callable[[float], int]] = None,
+                 on_change: Optional[Callable[[], None]] = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Line Break")
+        self.setWindowTitle("Line/Page Break")
         self.setModal(True)
         self.setWindowModality(QtCore.Qt.NonModal)
         try:
@@ -60,18 +57,21 @@ class LineBreakDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(8)
 
-        self._line_breaks: list[LineBreak] = list(line_breaks or [])
-        self._selected_line_break: Optional[LineBreak] = selected_line_break
-        self._apply_quick_cb = apply_quick_cb
-        self._reload_cb = reload_cb
-        self._original_state: dict[int, tuple[list[float], list[int] | Literal['auto'], bool]] = {}
+        self._score = score
+        self._line_breaks: list[LineBreak] = list(getattr(score.events, 'line_break', []) or []) if score is not None else []
+        self._selected_line_break: Optional[LineBreak] = selected_line_break if selected_line_break in self._line_breaks else (self._line_breaks[0] if self._line_breaks else None)
         self._measure_resolver = measure_resolver
+        self._on_change_cb = on_change
+        self._layout = getattr(score, 'layout', None) if score is not None else None
+        self._measure_grouping_text = str(getattr(self._layout, 'measure_grouping', "") or "") if self._layout is not None else ""
+        self._original_breaks: list[LineBreak] = copy.deepcopy(self._line_breaks)
+        self._original_grouping: str = str(self._measure_grouping_text)
 
-        list_label = QtWidgets.QLabel("Line breaks:", self)
+        list_label = QtWidgets.QLabel("Line/Page breaks:", self)
         self.break_table = QtWidgets.QTableWidget(self)
         self.break_table.setColumnCount(5)
         self.break_table.setHorizontalHeaderLabels([
-            " Measure ",
+            " Start Measure ",
             " Type ",
             " Left margin " ,
             " Right margin ",
@@ -93,10 +93,15 @@ class LineBreakDialog(QtWidgets.QDialog):
         quick_row = QtWidgets.QHBoxLayout()
         quick_row.setContentsMargins(0, 0, 0, 0)
         quick_row.setSpacing(6)
-        self.apply_quick_btn = QtWidgets.QPushButton("Line Break Grouping Tool", self)
-        self.apply_quick_btn.clicked.connect(self._on_apply_quick_clicked)
-        quick_row.addWidget(self.apply_quick_btn)
-        quick_row.addStretch(1)
+        self.measure_grouping_label = QtWidgets.QLabel("Measure Grouping:", self)
+        self.measure_grouping_edit = QtWidgets.QLineEdit(self)
+        self.measure_grouping_edit.setPlaceholderText("e.g. 4 6 4")
+        self.measure_grouping_edit.setText(self._measure_grouping_text)
+        self.apply_grouping_btn = QtWidgets.QPushButton("Apply Measure Grouping", self)
+        self.apply_grouping_btn.clicked.connect(self._on_apply_grouping_clicked)
+        quick_row.addWidget(self.measure_grouping_label)
+        quick_row.addWidget(self.measure_grouping_edit, 1)
+        quick_row.addWidget(self.apply_grouping_btn)
         lay.addLayout(quick_row)
 
         bulk_row = QtWidgets.QHBoxLayout()
@@ -119,19 +124,23 @@ class LineBreakDialog(QtWidgets.QDialog):
         lay.addWidget(self.msg_label)
 
         # Buttons
-        self.btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, parent=self)
+        self.btns = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Help,
+            parent=self,
+        )
         self.btns.accepted.connect(self._on_accept_clicked)
         self.btns.rejected.connect(self.reject)
+        self.btns.helpRequested.connect(self._on_help_clicked)
         lay.addWidget(self.btns)
 
         self.valuesChanged.connect(self._validate_form)
+        self.valuesChanged.connect(self._on_values_changed)
 
         # Initialize
         self._populate_break_list()
         if self._selected_line_break is None and self._line_breaks:
             self._selected_line_break = self._line_breaks[0]
         self._select_line_break(self._selected_line_break)
-        self._capture_original_state()
         self._validate_form()
 
         self.break_table.currentCellChanged.connect(lambda _r, _c, _pr, _pc: self._on_break_selected())
@@ -349,35 +358,72 @@ class LineBreakDialog(QtWidgets.QDialog):
         self._selected_line_break = lb
 
     def _reload_line_breaks(self) -> None:
-        if self._reload_cb is not None:
-            self._line_breaks = list(self._reload_cb() or [])
+        if self._score is not None:
+            try:
+                self._line_breaks = list(getattr(self._score.events, 'line_break', []) or [])
+            except Exception:
+                self._line_breaks = []
         self._populate_break_list()
         if self._line_breaks:
             self._selected_line_break = self._line_breaks[0]
         else:
             self._selected_line_break = None
         self._select_line_break(self._selected_line_break)
-        self._capture_original_state()
         self._validate_form()
+        self.valuesChanged.emit()
 
-    def _on_apply_quick_clicked(self) -> None:
-        if self._apply_quick_cb is None:
-            return
-
-        def _refresh() -> None:
-            self._reload_line_breaks()
-
+    def _parse_grouping(self, text: str) -> Optional[list[int]]:
+        parts = [p for p in (text or "").strip().split() if p.strip()]
+        if not parts:
+            return None
         try:
-            self._apply_quick_cb(_refresh)
-        except TypeError:
-            self._apply_quick_cb()
-            _refresh()
+            values = [int(p) for p in parts]
+        except Exception:
+            return None
+        if any(v <= 0 for v in values):
+            return None
+        return values
+
+    def _on_apply_grouping_clicked(self) -> None:
+        if self._score is None:
+            return
+        txt = self.measure_grouping_edit.text().strip()
+        groups = self._parse_grouping(txt)
+        if groups is None:
+            self.msg_label.setText("Enter one or more positive integers separated by spaces.")
+            return
+        self.msg_label.setText("")
+        if self._layout is not None:
+            try:
+                self._layout.measure_grouping = str(txt)
+            except Exception:
+                pass
+        ok = False
+        try:
+            ok = bool(self._score.apply_quick_line_breaks(groups))
+        except Exception:
+            ok = False
+        if ok:
+            self._reload_line_breaks()
+        else:
+            self.msg_label.setText("Could not apply measure grouping.")
+
+    def _on_help_clicked(self) -> None:
+        msg = (
+            "Measure Grouping lets you generate line breaks by measures.\n"
+            "Enter positive integers separated by spaces (e.g. '4 6 4'). Each number\n"
+            "is the count of measures on a line; after the list is exhausted, the last\n"
+            "number repeats. Existing margins, ranges, and page/line types are reused\n"
+            "in order. Click 'Apply Measure Grouping' to generate breaks; OK saves\n"
+            "other edits, Cancel reverts to the original state."
+        )
+        QtWidgets.QMessageBox.information(self, "Line Break Help", msg)
 
     def _edit_all_margins(self, side: str) -> None:
         if side not in ("left", "right"):
             return
         title = "Edit All Left Margins" if side == "left" else "Edit All Right Margins"
-        label = "Left margin (mm):" if side == "left" else "Right margin (mm):"
+        label = "All left margins (mm):" if side == "left" else "All right margins (mm):"
         val = self._prompt_margin_value(title, label, 5.0)
         if val is None:
             return
@@ -425,12 +471,6 @@ class LineBreakDialog(QtWidgets.QDialog):
             return None
         return float(spin.value())
 
-    def _capture_original_state(self) -> None:
-        self._original_state = {}
-        for lb in self._line_breaks:
-            margin_mm, stave_range, page_break = self._values_from_line_break(lb)
-            self._original_state[id(lb)] = (margin_mm, stave_range, page_break)
-
     def _validate_form(self) -> bool:
         msg = ""
         defaults = LineBreak()
@@ -456,27 +496,54 @@ class LineBreakDialog(QtWidgets.QDialog):
             ok_btn.setEnabled(not bool(msg))
         return not bool(msg)
 
-    def _values_from_line_break(self, lb: LineBreak) -> Tuple[list[float], list[int] | Literal['auto'], bool]:
-        defaults = LineBreak()
-        margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
-        lb_range = getattr(lb, 'stave_range', defaults.stave_range)
-        if lb_range == 'auto' or lb_range is True:
-            dialog_range: list[int] | Literal['auto'] = 'auto'
-        else:
-            fallback = 'auto' if defaults.stave_range == 'auto' else list(defaults.stave_range or [0, 0])
-            dialog_range = list(lb_range or fallback)
-        return margin_mm, dialog_range, bool(getattr(lb, 'page_break', False))
+    def _on_values_changed(self) -> None:
+        if callable(self._on_change_cb):
+            try:
+                self._on_change_cb()
+            except Exception:
+                pass
 
     def restore_original_state(self) -> None:
-        for lb in self._line_breaks:
-            key = id(lb)
-            if key not in self._original_state:
-                continue
-            margin_mm, stave_range, page_break = self._original_state[key]
-            lb.margin_mm = list(margin_mm)
-            lb.stave_range = 'auto' if stave_range == 'auto' else list(stave_range)
-            lb.page_break = bool(page_break)
+        if self._score is None:
+            return
+        try:
+            self._score.events.line_break = copy.deepcopy(self._original_breaks)
+        except Exception:
+            try:
+                self._score.events.line_break = [copy.deepcopy(lb) for lb in (self._original_breaks or [])]
+            except Exception:
+                self._score.events.line_break = []
+        self._line_breaks = list(getattr(self._score.events, 'line_break', []) or [])
+        if self._layout is not None:
+            try:
+                self._layout.measure_grouping = str(self._original_grouping)
+            except Exception:
+                pass
+        self._populate_break_list()
+        if self._line_breaks:
+            self._selected_line_break = self._line_breaks[0]
+        else:
+            self._selected_line_break = None
+        self._select_line_break(self._selected_line_break)
+        self._validate_form()
         self.valuesChanged.emit()
+
+    def _persist_measure_grouping(self) -> None:
+        if self._layout is None:
+            return
+        try:
+            self._layout.measure_grouping = str(self.measure_grouping_edit.text().strip())
+        except Exception:
+            pass
+
+    def done(self, result: int) -> None:
+        if result == QtWidgets.QDialog.Accepted:
+            self._persist_measure_grouping()
+            self._validate_form()
+            self.valuesChanged.emit()
+        else:
+            self.restore_original_state()
+        super().done(result)
 
     def _on_accept_clicked(self) -> None:
         if not self._validate_form():
