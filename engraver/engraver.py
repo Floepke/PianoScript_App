@@ -1750,7 +1750,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 # Problem solved: left-hand dot uses inverse fill on black keys.
                 if (not continues_from_prev_line) and bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
                     w2 = w * 2.0
-                    dot_d = w2 * 0.35
+                    dot_d = w2 * 0.40
                     cy = note_y + (w2 / 2.0)
                     fill = (1, 1, 1, 1) if p in BLACK_KEYS else (0, 0, 0, 1)
                     du.add_oval(

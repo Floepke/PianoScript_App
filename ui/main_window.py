@@ -219,7 +219,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-        QtCore.QTimer.singleShot(150, self._maybe_prompt_edwin_install)
         # Persist snap changes and update editor
         self.snap_dock.selector.snapChanged.connect(self._on_snap_changed)
         # Restore tool and snap size from project app state (fallback to appdata defaults)
@@ -251,6 +250,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Fit state tracking
         self.is_fit = False
         self.is_startup = True
+        # Defer Edwin font prompt until explicitly scheduled by the app (after AppImage install prompt)
+        self._edwin_prompt_armed = False
 
         # Restore splitter sizes from last session if available; else fall back to fit
         adm = get_appdata_manager()
@@ -808,12 +809,21 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
         self.player = None
         self._player_config = None
+        try:
+            if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+                self.editor_controller.set_player(None)
+        except Exception:
+            pass
 
     def _select_external_midi_port(self, port_name: str) -> None:
         self._send_playback_panic()
         self._dispose_player()
         self._set_midi_out_port_to_appdata(str(port_name))
         self._status(f"External MIDI port: {port_name}", 2500)
+        try:
+            self._ensure_player()
+        except Exception:
+            pass
 
     def _ensure_player(self) -> None:
         # Always ensure attribute exists and bubble up failures so callers can report
@@ -833,9 +843,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._player_config = cfg
             if hasattr(self.player, 'set_persist_settings'):
                 self.player.set_persist_settings(False)
+            try:
+                if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+                    self.editor_controller.set_player(self.player)
+            except Exception:
+                pass
         except Exception:
             self.player = None
             self._player_config = None
+            try:
+                if hasattr(self, 'editor_controller') and self.editor_controller is not None:
+                    self.editor_controller.set_player(None)
+            except Exception:
+                pass
             raise
 
     def _get_soundfont_path_from_appdata(self) -> Optional[str]:
@@ -957,11 +977,26 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptSave)
         dlg.setNameFilter("PDF Files (*.pdf)")
         dlg.setDefaultSuffix("pdf")
+        # Prefill filename with score title when available
+        try:
+            score_title = ""
+            try:
+                info = getattr(self.file_manager.current(), 'info', None)
+                score_title = str(getattr(info, 'title', "") or "") if info is not None else ""
+            except Exception:
+                score_title = ""
+            safe_title = "".join(ch for ch in score_title if ch not in r'\\/:*?"<>|').strip()
+            suggested_name = f"{safe_title or 'Untitled'}.pdf"
+        except Exception:
+            suggested_name = "Untitled.pdf"
         try:
             adm = get_appdata_manager()
             last_dir = str(adm.get("last_export_pdf_dir", "") or "")
             if last_dir:
                 dlg.setDirectory(last_dir)
+                dlg.selectFile(os.path.join(last_dir, suggested_name))
+            else:
+                dlg.selectFile(suggested_name)
         except Exception:
             pass
         if dlg.exec() == QtWidgets.QDialog.DialogCode.Accepted:
@@ -1768,6 +1803,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._status("Playback mode: External MIDI port", 2500)
             else:
                 self._status(f"Playback mode: {self._playback_system_label().replace('Playback using ', '')}", 2500)
+        try:
+            # Recreate backend immediately so audition/test tone keep working after a mode switch.
+            self._ensure_player_with_soundfont()
+        except Exception:
+            pass
 
     def _set_send_midi_transport(self, enabled: bool) -> None:
         # Legacy stub kept for signal compatibility
@@ -1848,6 +1888,13 @@ class MainWindow(QtWidgets.QMainWindow):
             app_state.selected_tool = str(name)
         except Exception:
             pass
+
+    def schedule_edwin_prompt(self, delay_ms: int = 150) -> None:
+        """Schedule the Edwin font install prompt once, after any other startup dialogs."""
+        if self._edwin_prompt_armed:
+            return
+        self._edwin_prompt_armed = True
+        QtCore.QTimer.singleShot(max(0, int(delay_ms)), self._maybe_prompt_edwin_install)
 
     def _maybe_prompt_edwin_install(self) -> None:
         font_name = "Edwin"

@@ -206,6 +206,14 @@ def main(argv: list[str] | None = None):
     # Initialize appdata to ensure ~/.keyTAB/appdata.py exists
     get_appdata_manager()
 
+    # Ensure user-visible style storage exists
+    try:
+        user_root = Path.home() / "keyTAB"
+        user_root.mkdir(parents=True, exist_ok=True)
+        (user_root / "pstyle").mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
     # Platform-specific DPI handling:
     # - On Linux, use Qt env vars to scale UI.
     # - On macOS, explicitly clear Qt scaling and plugin env to avoid Cocoa issues.
@@ -260,6 +268,13 @@ def main(argv: list[str] | None = None):
         QtCore.QTimer.singleShot(0, lambda: win.open_documents_from_paths(initial_documents, confirm_dirty=False))
 
     prompt_install_if_needed()
+    try:
+        win.schedule_edwin_prompt(250)
+    except Exception:
+        try:
+            QtCore.QTimer.singleShot(250, win._maybe_prompt_edwin_install)
+        except Exception:
+            pass
     
     # Ensure clean shutdown of background threads on app exit
     app.aboutToQuit.connect(win.prepare_close)

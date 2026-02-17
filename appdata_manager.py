@@ -248,9 +248,6 @@ def get_appdata_manager() -> AppDataManager:
         adm.register("window_maximized", True, "Start maximized; updated on exit")
         adm.register("window_geometry", "", "Base64-encoded Qt window geometry for normal state")
         adm.register("score_template", {}, "Default score template for new scores (dict of score fields except events)")
-        adm.register("user_styles", [], "List of user styles: [{name: str, layout: dict}]")
-        adm.register("selected_style_name", "keyTAB", "Currently selected style name in the Style dialog")
-        adm.register("user_styles_version", 1, "Schema version for user style storage")
         adm.register("edwin_font_installed", False, "True when Edwin font was installed to the user font directory")
         adm.register("edwin_install_prompt_dismissed", False, "User declined the Edwin font installation prompt")
         adm.register("user_soundfont_path", "", "Absolute path to last selected user soundfont (.sf2/.sf3)")
@@ -265,6 +262,11 @@ def get_appdata_manager() -> AppDataManager:
             removed = adm._values.pop("layout_template", None)
             if removed is not None:
                 adm.save()
+        except Exception:
+            pass
+        try:
+            for legacy_key in ("user_styles", "selected_style_name", "user_styles_version"):
+                adm._values.pop(legacy_key, None)
         except Exception:
             pass
         _appdata_manager = adm

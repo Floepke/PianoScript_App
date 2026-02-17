@@ -1,11 +1,12 @@
 from __future__ import annotations
+import json
+from pathlib import Path
 from dataclasses import asdict, fields
 from typing import Any, get_args, get_origin, get_type_hints, Literal, TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from file_model.layout import LAYOUT_FLOAT_CONFIG, LayoutFont
-from appdata_manager import get_appdata_manager
 from file_model.layout import Layout
 from file_model.SCORE import SCORE
 
@@ -367,8 +368,8 @@ class StyleDialog(QtWidgets.QDialog):
         self._tab_scrolls: list[QtWidgets.QScrollArea] = []
         self._tab_contents: list[QtWidgets.QWidget] = []
         self._tabs: QtWidgets.QTabWidget | None = None
-        self._applying_style: bool = False
         self._all_fonts_combo: QtWidgets.QFontComboBox | None = None
+        self._field_tabs: dict[str, str] = {}
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -498,6 +499,8 @@ class StyleDialog(QtWidgets.QDialog):
         _hide_fields = {
             "measure_grouping",
         }
+        self._field_tabs = field_tabs
+
         for f in fields(Layout):
             name = f.name
             if name in _hide_fields:
@@ -516,20 +519,18 @@ class StyleDialog(QtWidgets.QDialog):
 
         self._add_all_fonts_control(tab_forms.get('Fonts'))
 
-        action_row = QtWidgets.QHBoxLayout()
-        self._action_row = action_row
-        action_row.setContentsMargins(0, 0, 0, 0)
-        action_row.setSpacing(8)
-        self.style_combo = QtWidgets.QComboBox(self)
-        action_row.addWidget(self.style_combo, 1)
-        self.new_style_btn = QtWidgets.QPushButton("New Style", self)
+        # Style file actions
+        actions_row = QtWidgets.QHBoxLayout()
+        actions_row.setContentsMargins(0, 0, 0, 0)
+        actions_row.setSpacing(8)
         self.save_style_btn = QtWidgets.QPushButton("Save Style", self)
-        self.clear_styles_btn = QtWidgets.QPushButton("Clear Styles", self)
-        action_row.addWidget(self.new_style_btn, 0)
-        action_row.addWidget(self.save_style_btn, 0)
-        action_row.addWidget(self.clear_styles_btn, 0)
-        action_row.addStretch(1)
-        lay.addLayout(action_row)
+        self.load_style_btn = QtWidgets.QPushButton("Load…", self)
+        self.load_tab_style_btn = QtWidgets.QPushButton("Load into current tab", self)
+        actions_row.addWidget(self.save_style_btn, 0)
+        actions_row.addWidget(self.load_style_btn, 0)
+        actions_row.addWidget(self.load_tab_style_btn, 0)
+        actions_row.addStretch(1)
+        lay.addLayout(actions_row)
 
         self.msg_label = QtWidgets.QLabel("", self)
         pal = self.msg_label.palette()
@@ -545,53 +546,15 @@ class StyleDialog(QtWidgets.QDialog):
         self.btns.rejected.connect(self.reject)
         lay.addWidget(self.btns)
 
-        self.new_style_btn.clicked.connect(self._new_style)
-        self.save_style_btn.clicked.connect(self._save_style)
-        self.clear_styles_btn.clicked.connect(self._clear_custom_styles)
-        try:
-            self.style_combo.currentTextChanged.connect(self._on_style_selected)
-        except Exception:
-            pass
-        try:
-            self.values_changed.connect(self._on_values_changed)
-        except Exception:
-            pass
-        QtCore.QTimer.singleShot(0, self._init_styles_ui)
+        self.save_style_btn.clicked.connect(self._save_style_to_disk)
+        self.load_style_btn.clicked.connect(lambda _=None: self._show_load_menu(scope="all"))
+        self.load_tab_style_btn.clicked.connect(lambda _=None: self._show_load_menu(scope="tab"))
+        self.load_style_btn.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.load_style_btn.customContextMenuRequested.connect(lambda pos: self._show_load_menu(scope="all", global_pos=self.load_style_btn.mapToGlobal(pos)))
+        self.load_tab_style_btn.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.load_tab_style_btn.customContextMenuRequested.connect(lambda pos: self._show_load_menu(scope="tab", global_pos=self.load_tab_style_btn.mapToGlobal(pos)))
+
         QtCore.QTimer.singleShot(0, self._fit_to_contents)
-
-    # ---- Style name helpers ----
-    def _normalize_style_name(self, name: str) -> str:
-        nm = str(name or "").strip()
-        # Collapse internal whitespace
-        nm = " ".join(nm.split())
-        return nm
-
-    def _validate_style_name(self, name: str) -> tuple[bool, str]:
-        nm = self._normalize_style_name(name)
-        if not nm:
-            return False, "Style name cannot be empty."
-        if nm == "keyTAB":
-            return False, "'keyTAB' is reserved for the factory style."
-        # Basic character policy: letters, digits, spaces, - _ .
-        allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_.")
-        if any(ch not in allowed for ch in nm):
-            return False, "Style name contains invalid characters."
-        if len(nm) > 48:
-            return False, "Style name is too long (max 48)."
-        return True, nm
-
-    def _confirm_overwrite(self, name: str) -> bool:
-        try:
-            resp = QtWidgets.QMessageBox.question(
-                self,
-                "Overwrite Style",
-                f"A style named '{name}' already exists. Overwrite it?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No,
-            )
-            return resp == QtWidgets.QMessageBox.Yes
-        except Exception:
-            return True
 
     def _fit_to_contents(self) -> None:
         tabs = self._tabs
@@ -616,8 +579,8 @@ class StyleDialog(QtWidgets.QDialog):
 
         tab_bar_h = int(tabs.tabBar().sizeHint().height())
         tab_bar_w = int(tabs.tabBar().sizeHint().width())
-        action_h = int(self._action_row.sizeHint().height()) if hasattr(self, '_action_row') else 0
-        action_w = int(self._action_row.sizeHint().width()) if hasattr(self, '_action_row') else 0
+        action_h = int(getattr(self, 'save_style_btn', QtWidgets.QPushButton()).sizeHint().height())
+        action_w = int(getattr(self, 'save_style_btn', QtWidgets.QPushButton()).sizeHint().width()) * 3
         msg_h = int(self.msg_label.sizeHint().height())
         msg_w = int(self.msg_label.sizeHint().width())
         btns_h = int(self.btns.sizeHint().height())
@@ -671,6 +634,88 @@ class StyleDialog(QtWidgets.QDialog):
             return int(tabs.currentIndex())
         except Exception:
             return 0
+
+    def _pstyle_dir(self) -> Path:
+        root = Path.home() / "keyTAB" / "pstyle"
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    def _list_pstyle_paths(self) -> list[Path]:
+        root = self._pstyle_dir()
+        try:
+            return sorted([p for p in root.glob("*.pstyle") if p.is_file()])
+        except Exception:
+            return []
+
+    def _serialize_layout(self, layout_obj: Layout) -> dict:
+        try:
+            return asdict(layout_obj)
+        except Exception:
+            return layout_obj.__dict__
+
+    def _layout_from_dict(self, data: dict) -> Layout:
+        if not isinstance(data, dict):
+            raise ValueError("Invalid style payload")
+        # Coerce known LayoutFont fields back to dataclasses to keep typing consistent
+        fixed: dict[str, Any] = {}
+        defaults = Layout()
+        for f in fields(Layout):
+            name = f.name
+            val = data.get(name, getattr(defaults, name))
+            hint = self._type_hints.get(name, f.type)
+            if hint is LayoutFont and isinstance(val, dict):
+                try:
+                    val = LayoutFont(**val)
+                except Exception:
+                    val = getattr(defaults, name)
+            fixed[name] = val
+        return Layout(**fixed)
+
+    def _load_layout_from_file(self, stem: str | None) -> Layout:
+        if stem is None or stem == "keyTAB Default":
+            return Layout()
+        path = self._pstyle_dir() / f"{stem}.pstyle"
+        if not path.is_file():
+            raise FileNotFoundError(f"Style not found: {path}")
+        with path.open("r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return self._layout_from_dict(data)
+
+    def _current_tab_name(self) -> str:
+        tabs = self._tabs
+        if tabs is None:
+            return ""
+        try:
+            return str(tabs.tabText(int(tabs.currentIndex())) or "")
+        except Exception:
+            return ""
+
+    def _apply_layout_object(self, layout_obj: Layout) -> None:
+        self._layout = layout_obj
+        self._apply_layout_to_editors(layout_obj)
+
+    def _apply_layout_to_tab(self, layout_obj: Layout, tab_name: str) -> None:
+        if not tab_name:
+            return
+        # Update only editors mapped to the given tab
+        for f in fields(Layout):
+            name = f.name
+            if self._field_tabs.get(name, "Page") != tab_name:
+                continue
+            editor = self._editors.get(name)
+            if editor is None:
+                continue
+            field_type = self._type_hints.get(name, f.type)
+            value = getattr(layout_obj, name, getattr(self._layout, name, None))
+            self._set_editor_value(editor, field_type, value)
+            try:
+                setattr(self._layout, name, value)
+            except Exception:
+                pass
+        try:
+            self.values_changed.emit()
+        except Exception:
+            pass
 
     def _make_editor(self, field_type: Any, value: Any, field_name: str) -> QtWidgets.QWidget | None:
         origin = get_origin(field_type)
@@ -829,6 +874,89 @@ class StyleDialog(QtWidgets.QDialog):
         elif isinstance(editor, QtWidgets.QLineEdit):
             editor.setText(str(value) if value is not None else "")
 
+    def _save_style_to_disk(self) -> None:
+        try:
+            name, ok = QtWidgets.QInputDialog.getText(self, "Save Style", "Style name (no extension):")
+        except Exception:
+            return
+        if not ok:
+            return
+        stem = str(name or "").strip()
+        if not stem:
+            self.msg_label.setText("Style name cannot be empty.")
+            return
+        # Basic character whitelist
+        allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_.")
+        if any(ch not in allowed for ch in stem):
+            self.msg_label.setText("Name contains invalid characters.")
+            return
+        stem = " ".join(stem.split())
+        if stem.lower().endswith(".pstyle"):
+            stem = stem[:-7]
+        path = self._pstyle_dir() / f"{stem}.pstyle"
+        try:
+            payload = self._serialize_layout(self.get_values())
+            with path.open("w", encoding="utf-8") as fh:
+                json.dump(payload, fh, indent=2, ensure_ascii=False)
+            self.msg_label.setText(f"Saved style to {path.name}.")
+        except Exception:
+            self.msg_label.setText("Failed to save style.")
+
+    def _show_load_menu(self, scope: str = "all", global_pos: QtCore.QPoint | None = None) -> None:
+        menu = QtWidgets.QMenu(self)
+        default_action = menu.addAction("keyTAB Default")
+        menu.addSeparator()
+        for p in self._list_pstyle_paths():
+            menu.addAction(p.stem)
+        menu.addSeparator()
+        prompt_action = menu.addAction("Browse…")
+
+        def _handle(action: QtGui.QAction) -> None:
+            if action is None:
+                return
+            text = action.text()
+            if text == "Browse…":
+                self._browse_and_load(scope)
+                return
+            self._load_and_apply(text, scope)
+
+        menu.triggered.connect(_handle)
+        pos = global_pos or QtGui.QCursor.pos()
+        menu.exec(pos)
+
+    def _browse_and_load(self, scope: str) -> None:
+        dlg = QtWidgets.QFileDialog(self, "Load Style", str(self._pstyle_dir()))
+        dlg.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        dlg.setNameFilter("Style Files (*.pstyle)")
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            return
+        files = dlg.selectedFiles()
+        if not files:
+            return
+        path = Path(files[0])
+        stem = path.stem
+        try:
+            lay = self._layout_from_dict(json.loads(path.read_text(encoding="utf-8")))
+            self._apply_loaded_layout(lay, scope)
+            self.msg_label.setText(f"Loaded style '{stem}'.")
+        except Exception:
+            self.msg_label.setText("Failed to load style.")
+
+    def _load_and_apply(self, name: str, scope: str) -> None:
+        try:
+            lay = self._load_layout_from_file(name)
+            self._apply_loaded_layout(lay, scope)
+            self.msg_label.setText(f"Loaded style '{name}'.")
+        except Exception:
+            self.msg_label.setText("Failed to load style.")
+
+    def _apply_loaded_layout(self, layout_obj: Layout, scope: str) -> None:
+        if scope == "tab":
+            tab_name = self._current_tab_name()
+            self._apply_layout_to_tab(layout_obj, tab_name)
+        else:
+            self._apply_layout_object(layout_obj)
+
     def _apply_layout_to_editors(self, layout_obj: Layout) -> None:
         for f in fields(Layout):
             name = f.name
@@ -846,286 +974,6 @@ class StyleDialog(QtWidgets.QDialog):
             finally:
                 self._all_fonts_combo.blockSignals(False)
         self.values_changed.emit()
-
-    def _build_style_template(self) -> dict:
-        base: dict = {}
-        try:
-            if self._score is not None:
-                base = dict(self._score.get_dict() or {})
-        except Exception:
-            base = {}
-        base.pop('events', None)
-        try:
-            bg_list = base.get('base_grid')
-            if isinstance(bg_list, list):
-                for bg in bg_list:
-                    if isinstance(bg, dict):
-                        bg['measure_amount'] = 1
-        except Exception:
-            pass
-        try:
-            base['layout'] = asdict(self.get_values())
-        except Exception:
-            base['layout'] = self.get_values().__dict__
-        return base
-
-    def _save_custom_style(self) -> None:
-        try:
-            name, ok = QtWidgets.QInputDialog.getText(self, "Save Custom Style", "Style name:")
-            if not ok:
-                return
-            valid, nm_or_msg = self._validate_style_name(str(name))
-            if not valid:
-                self.msg_label.setText(nm_or_msg)
-                return
-            name = nm_or_msg
-            layout_dict = asdict(self.get_values())
-            adm = get_appdata_manager()
-            styles = adm.get("user_styles", []) or []
-            if not isinstance(styles, list):
-                styles = []
-            # Replace if exists, else append
-            found = False
-            for s in styles:
-                if isinstance(s, dict) and str(s.get("name", "")) == name:
-                    # Confirm overwrite
-                    if not self._confirm_overwrite(name):
-                        self.msg_label.setText("Save cancelled.")
-                        return
-                    s["layout"] = layout_dict
-                    found = True
-                    break
-            if not found:
-                styles.append({"name": name, "layout": layout_dict})
-            adm.set("user_styles", styles)
-            adm.set("selected_style_name", name)
-            adm.save()
-            # Update combo and select
-            self._populate_styles_combo(styles)
-            try:
-                self.style_combo.setCurrentText(name)
-            except Exception:
-                pass
-            # Apply immediately
-            self._apply_style_by_name(name)
-            self.msg_label.setText(f"Saved and applied style '{name}'.")
-        except Exception:
-            self.msg_label.setText("Failed to save style.")
-
-    def _new_style(self) -> None:
-        # Create a new named style from current dialog values and select it
-        self._save_custom_style()
-
-    def _save_style(self) -> None:
-        # Save current values into the selected style; if 'keyTAB', ask for new name
-        try:
-            current = str(self.style_combo.currentText() or '').strip()
-            if not current or current in ('keyTAB', 'Custom Style'):
-                # Treat save on factory selection as "New Style"
-                self._save_custom_style()
-                return
-            layout_dict = asdict(self.get_values())
-            adm = get_appdata_manager()
-            styles = adm.get("user_styles", []) or []
-            if not isinstance(styles, list):
-                styles = []
-            updated = False
-            for s in styles:
-                if isinstance(s, dict) and str(s.get('name','')) == current:
-                    s['layout'] = layout_dict
-                    updated = True
-                    break
-            if not updated:
-                # If the selected name vanished, create it
-                styles.append({"name": current, "layout": layout_dict})
-            adm.set("user_styles", styles)
-            adm.set("selected_style_name", current)
-            adm.save()
-            self._populate_styles_combo(styles)
-            try:
-                self.style_combo.setCurrentText(current)
-            except Exception:
-                pass
-            self._apply_style_by_name(current)
-            self.msg_label.setText(f"Saved style '{current}'.")
-        except Exception:
-            self.msg_label.setText("Failed to save style.")
-
-    def _init_styles_ui(self) -> None:
-        try:
-            adm = get_appdata_manager()
-            styles = adm.get("user_styles", []) or []
-            if not isinstance(styles, list):
-                styles = []
-            self._populate_styles_combo(styles)
-            # Do not auto-apply any preset at startup; reflect current file model
-            try:
-                self.style_combo.setCurrentText('Custom Style')
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    def _populate_styles_combo(self, styles: list) -> None:
-        try:
-            self.style_combo.blockSignals(True)
-            self.style_combo.clear()
-            # Always include custom marker and factory default
-            self.style_combo.addItem('Custom Style')
-            self.style_combo.addItem('keyTAB')
-            # Append user styles by name
-            names = []
-            for s in styles:
-                if isinstance(s, dict):
-                    nm = str(s.get('name', '')).strip()
-                    if nm:
-                        names.append(nm)
-            # Deduplicate preserving order
-            seen = set()
-            for nm in names:
-                if nm in seen:
-                    continue
-                seen.add(nm)
-                self.style_combo.addItem(nm)
-        finally:
-            self.style_combo.blockSignals(False)
-
-    def _style_dict_by_name(self, name: str) -> dict | None:
-        try:
-            adm = get_appdata_manager()
-            styles = adm.get("user_styles", []) or []
-            if not isinstance(styles, list):
-                return None
-            for s in styles:
-                if isinstance(s, dict) and str(s.get('name', '')) == name:
-                    return s
-            return None
-        except Exception:
-            return None
-
-    def _apply_style_by_name(self, name: str) -> None:
-        if str(name) == 'keyTAB' or not name:
-            try:
-                self._applying_style = True
-                self._apply_layout_to_editors(Layout())
-                self._applying_style = False
-                self.msg_label.setText("Applied factory style.")
-            except Exception:
-                self.msg_label.setText("Failed to apply factory style.")
-            try:
-                adm = get_appdata_manager()
-                adm.set("selected_style_name", "keyTAB")
-                adm.save()
-            except Exception:
-                pass
-            return
-        s = self._style_dict_by_name(str(name))
-        if not isinstance(s, dict):
-            self.msg_label.setText("Style not found.")
-            return
-        lay = s.get('layout')
-        if not isinstance(lay, dict):
-            self.msg_label.setText("Invalid style layout.")
-            return
-        try:
-            self._applying_style = True
-            self._apply_layout_to_editors(Layout(**lay))
-            self._applying_style = False
-            try:
-                self.values_changed.emit()
-            except Exception:
-                pass
-            self.msg_label.setText(f"Applied style '{name}'.")
-            try:
-                adm = get_appdata_manager()
-                adm.set("selected_style_name", str(name))
-                adm.save()
-            except Exception:
-                pass
-        except Exception:
-            self.msg_label.setText("Failed to apply style.")
-
-    def _on_style_selected(self, name: str) -> None:
-        nm = str(name or '')
-        if nm == 'Custom Style':
-            # Do not apply; reflect that edits are custom/unsaved
-            try:
-                adm = get_appdata_manager()
-                adm.set("selected_style_name", "custom")
-                adm.save()
-            except Exception:
-                pass
-            return
-        self._apply_style_by_name(nm)
-
-    def _on_values_changed(self) -> None:
-        # If user edits while a preset is selected, switch to Custom Style marker
-        if self._applying_style:
-            return
-        try:
-            current = str(self.style_combo.currentText() or '')
-            if current != 'Custom Style':
-                self.style_combo.blockSignals(True)
-                self.style_combo.setCurrentText('Custom Style')
-                self.style_combo.blockSignals(False)
-                try:
-                    adm = get_appdata_manager()
-                    adm.set("selected_style_name", "custom")
-                    adm.save()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    def _clear_custom_styles(self) -> None:
-        try:
-            resp = QtWidgets.QMessageBox.question(
-                self,
-                "Clear Custom Styles",
-                "Are you sure you want to remove all custom styles?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No,
-            )
-            if resp != QtWidgets.QMessageBox.Yes:
-                return
-            adm = get_appdata_manager()
-            adm.set("user_styles", [])
-            adm.set("selected_style_name", "keyTAB")
-            adm.save()
-            self._populate_styles_combo([])
-            try:
-                self.style_combo.setCurrentText('keyTAB')
-            except Exception:
-                pass
-            self._apply_style_by_name('keyTAB')
-            self.msg_label.setText("Cleared styles.")
-        except Exception:
-            self.msg_label.setText("Failed to clear styles.")
-
-    def _delete_selected_style(self) -> None:
-        try:
-            name = str(self.style_combo.currentText() or '').strip()
-            if not name or name == 'keyTAB':
-                # Ignore deletion for factory style
-                self.msg_label.setText("Cannot delete factory style.")
-                return
-            adm = get_appdata_manager()
-            styles = adm.get("user_styles", []) or []
-            if not isinstance(styles, list):
-                styles = []
-            styles = [s for s in styles if not (isinstance(s, dict) and str(s.get('name','')) == name)]
-            adm.set("user_styles", styles)
-            adm.set("selected_style_name", "keyTAB")
-            adm.save()
-            self._populate_styles_combo(styles)
-            try:
-                self.style_combo.setCurrentText('keyTAB')
-            except Exception:
-                pass
-            self._apply_style_by_name('keyTAB')
-            self.msg_label.setText(f"Deleted style '{name}'.")
-        except Exception:
-            self.msg_label.setText("Failed to delete style.")
 
     def _on_accept_clicked(self) -> None:
         try:
