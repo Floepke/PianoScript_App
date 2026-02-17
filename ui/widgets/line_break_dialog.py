@@ -3,7 +3,7 @@ import copy
 from typing import Callable, Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from utils.CONSTANT import BE_KEYS, CF_KEYS
+from utils.CONSTANT import BE_KEYS, CF_KEYS, QUARTER_NOTE_UNIT
 
 from file_model.events.line_break import LineBreak
 
@@ -66,6 +66,8 @@ class LineBreakDialog(QtWidgets.QDialog):
         self._measure_grouping_text = str(getattr(self._layout, 'measure_grouping', "") or "") if self._layout is not None else ""
         self._original_breaks: list[LineBreak] = copy.deepcopy(self._line_breaks)
         self._original_grouping: str = str(self._measure_grouping_text)
+        self._measure_starts_mm: list[float] = self._build_measure_starts()
+        self._suppress_measure_change: bool = False
 
         list_label = QtWidgets.QLabel("Line/Page breaks:", self)
         self.break_table = QtWidgets.QTableWidget(self)
@@ -270,9 +272,53 @@ class LineBreakDialog(QtWidgets.QDialog):
 
         return wrapper
 
+    def _build_measure_starts(self) -> list[float]:
+        starts: list[float] = [0.0]
+        score = self._score
+        if score is None:
+            return starts
+        cursor = 0.0
+        try:
+            for bg in list(getattr(score, 'base_grid', []) or []):
+                try:
+                    numer = int(getattr(bg, 'numerator', 4) or 4)
+                    denom = int(getattr(bg, 'denominator', 4) or 4)
+                    measures = int(getattr(bg, 'measure_amount', 1) or 1)
+                except Exception:
+                    continue
+                if measures <= 0:
+                    continue
+                measure_len = float(numer) * (4.0 / float(max(1, denom))) * float(QUARTER_NOTE_UNIT)
+                for _ in range(measures):
+                    cursor += measure_len
+                    starts.append(float(cursor))
+        except Exception:
+            pass
+        return starts if starts else [0.0]
+
+    def _measure_index_for_time(self, t: float) -> int:
+        starts = self._measure_starts_mm
+        if not starts:
+            return 0
+        for idx, start in enumerate(starts):
+            if start > t:
+                return max(0, idx - 1)
+        return max(0, len(starts) - 1)
+
+    def _measure_time_for_index(self, idx: int) -> float:
+        starts = self._measure_starts_mm
+        if not starts:
+            return 0.0
+        idx = max(0, min(int(idx), len(starts) - 1))
+        return float(starts[idx])
+
     def _populate_break_list(self) -> None:
         self.break_table.blockSignals(True)
         self.break_table.setRowCount(0)
+        try:
+            self._line_breaks.sort(key=lambda b: float(getattr(b, 'time', 0.0) or 0.0))
+        except Exception:
+            pass
         for lb in self._line_breaks:
             row = self.break_table.rowCount()
             self.break_table.insertRow(row)
@@ -280,21 +326,39 @@ class LineBreakDialog(QtWidgets.QDialog):
         self.break_table.blockSignals(False)
 
     def _set_break_row(self, row: int, lb: LineBreak) -> None:
-        measure_val = 0
-        if self._measure_resolver is not None:
-            try:
-                measure_val = int(self._measure_resolver(float(getattr(lb, 'time', 0.0) or 0.0)))
-            except Exception:
-                measure_val = 0
-        measure_item = QtWidgets.QTableWidgetItem(str(measure_val if measure_val > 0 else ""))
+        measure_val = self._measure_index_for_time(float(getattr(lb, 'time', 0.0) or 0.0))
+        measure_item = QtWidgets.QTableWidgetItem(str(int(measure_val) + 1))
         measure_item.setData(QtCore.Qt.ItemDataRole.UserRole, lb)
-        measure_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.break_table.setItem(row, 0, measure_item)
 
         defaults = LineBreak()
         margin_mm = list(getattr(lb, 'margin_mm', defaults.margin_mm) or defaults.margin_mm)
         left_margin = float(margin_mm[0] if len(margin_mm) > 0 else defaults.margin_mm[0])
         right_margin = float(margin_mm[1] if len(margin_mm) > 1 else defaults.margin_mm[1])
+
+        # Measure spin: allow nudging between neighboring breaks by whole measures
+        measure_spin = QtWidgets.QSpinBox(self)
+        measure_spin.setMinimumWidth(70)
+        measure_spin.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        def _neighbor_measure_bounds() -> tuple[int, int]:
+            prev_lb = self._line_breaks[row - 1] if row - 1 >= 0 else None
+            next_lb = self._line_breaks[row + 1] if row + 1 < len(self._line_breaks) else None
+            prev_idx = self._measure_index_for_time(float(getattr(prev_lb, 'time', 0.0) or 0.0)) if prev_lb else 0
+            next_idx = self._measure_index_for_time(float(getattr(next_lb, 'time', 0.0) or 0.0)) if next_lb else max(0, len(self._measure_starts_mm) - 1)
+            min_idx = prev_idx + 1 if prev_lb is not None else 0
+            max_idx = next_idx - 1 if next_lb is not None else max(0, len(self._measure_starts_mm) - 1)
+            return (min_idx, max_idx)
+
+        min_idx, max_idx = _neighbor_measure_bounds()
+        display_min = int(min_idx) + 1
+        display_max = int(max_idx) + 1
+        measure_spin.setRange(display_min, display_max)
+        measure_spin.setSingleStep(1)
+        clamped_val = max(display_min, min(display_max, int(measure_val) + 1))
+        measure_spin.setValue(int(clamped_val))
+        if min_idx >= max_idx or row == 0:
+            measure_spin.setEnabled(False)
 
         type_btn = self._create_type_badge(bool(getattr(lb, 'page_break', False)))
         left_spin = self._create_margin_spin(left_margin)
@@ -323,10 +387,29 @@ class LineBreakDialog(QtWidgets.QDialog):
             lb.margin_mm = list(cur)
             self.valuesChanged.emit()
 
+        def _on_measure_changed(val: int) -> None:
+            if self._suppress_measure_change:
+                return
+            self._suppress_measure_change = True
+            try:
+                new_time = self._measure_time_for_index(int(val) - 1)
+                lb.time = float(new_time)
+                try:
+                    self._line_breaks.sort(key=lambda b: float(getattr(b, 'time', 0.0) or 0.0))
+                except Exception:
+                    pass
+                self._populate_break_list()
+                self._select_line_break(lb)
+                self.valuesChanged.emit()
+            finally:
+                self._suppress_measure_change = False
+
+        measure_spin.valueChanged.connect(_on_measure_changed)
         type_btn.clicked.connect(_toggle_type)
         left_spin.valueChanged.connect(_left_changed)
         right_spin.valueChanged.connect(_right_changed)
 
+        self.break_table.setCellWidget(row, 0, measure_spin)
         self.break_table.setCellWidget(row, 1, type_btn)
         self.break_table.setCellWidget(row, 2, left_spin)
         self.break_table.setCellWidget(row, 3, right_spin)
@@ -363,6 +446,7 @@ class LineBreakDialog(QtWidgets.QDialog):
                 self._line_breaks = list(getattr(self._score.events, 'line_break', []) or [])
             except Exception:
                 self._line_breaks = []
+        self._measure_starts_mm = self._build_measure_starts()
         self._populate_break_list()
         if self._line_breaks:
             self._selected_line_break = self._line_breaks[0]
@@ -519,6 +603,7 @@ class LineBreakDialog(QtWidgets.QDialog):
                 self._layout.measure_grouping = str(self._original_grouping)
             except Exception:
                 pass
+        self._measure_starts_mm = self._build_measure_starts()
         self._populate_break_list()
         if self._line_breaks:
             self._selected_line_break = self._line_breaks[0]
