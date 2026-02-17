@@ -31,6 +31,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     grace_notes = list(events.get('grace_note', []) or [])
     count_lines = list(events.get('count_line', []) or [])
     beam_markers = list(events.get('beam', []) or [])
+    slurs = list(events.get('slur', []) or [])
 
     # Problem solved: beam markers are organized per hand for fast grouping later.
     beam_by_hand: dict[str, list[dict]] = {'l': [], 'r': []}
@@ -91,6 +92,25 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             'idx': int(idx),
         })
     norm_grace = sorted(norm_grace, key=lambda m: float(m.get('time', 0.0) or 0.0))
+
+    norm_slurs: list[dict] = []
+    for idx, s in enumerate(slurs):
+        if not isinstance(s, dict):
+            continue
+        norm_slurs.append({
+            'x1_rpitch': int(s.get('x1_rpitch', 0) or 0),
+            'y1_time': float(s.get('y1_time', 0.0) or 0.0),
+            'x2_rpitch': int(s.get('x2_rpitch', 0) or 0),
+            'y2_time': float(s.get('y2_time', 0.0) or 0.0),
+            'x3_rpitch': int(s.get('x3_rpitch', 0) or 0),
+            'y3_time': float(s.get('y3_time', 0.0) or 0.0),
+            'x4_rpitch': int(s.get('x4_rpitch', 0) or 0),
+            'y4_time': float(s.get('y4_time', 0.0) or 0.0),
+            'id': int(s.get('_id', 0) or 0),
+            'idx': int(idx),
+        })
+    if norm_slurs:
+        norm_slurs = sorted(norm_slurs, key=lambda m: float(m.get('y1_time', 0.0) or 0.0))
 
     # Problem solved: materialize layout values early to keep math predictable.
     page_w = float(layout.get('page_width_mm', 210.0) or 210.0)
@@ -1271,6 +1291,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     continue
                 line_grace.append(item)
 
+            line_slurs: list[dict] = []
+            if norm_slurs:
+                line_start = float(line.get('time_start', 0.0) or 0.0)
+                line_end = float(line.get('time_end', 0.0) or 0.0)
+                for sl in norm_slurs:
+                    anchor_t = float(sl.get('y1_time', 0.0) or 0.0)
+                    if op_time.lt(anchor_t, float(line_start)) or op_time.ge(anchor_t, float(line_end)):
+                        continue
+                    line_slurs.append(sl)
+
             notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
             for item in line_notes:
                 hk = str(item.get('hand', '<') or '<')
@@ -1864,6 +1894,81 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         id=0,
                         tags=['stop_sign'],
                     )
+
+            if line_slurs:
+                side_w = float(layout.get('slur_width_sides_mm', 0.1) or 0.1) * scale
+                mid_w = float(layout.get('slur_width_middle_mm', 1.5) or 1.5) * scale
+                n_seg = 50
+
+                def tri_interp(t: float) -> float:
+                    return max(0.0, 1.0 - abs(2.0 * t - 1.0))
+
+                def width_at(t: float) -> float:
+                    return side_w + (mid_w - side_w) * tri_interp(t)
+
+                def clamp_x(val: float) -> float:
+                    if page_w <= 0.0:
+                        return float(val)
+                    return max(0.0, min(float(val), float(page_w)))
+
+                base_x_c4 = _key_to_x(40)
+
+                def rpitch_to_x(rp: float) -> float:
+                    return clamp_x(base_x_c4 + float(rp) * semitone_mm)
+
+                for sl in line_slurs:
+                    x1 = rpitch_to_x(float(sl.get('x1_rpitch', 0) or 0))
+                    x2 = rpitch_to_x(float(sl.get('x2_rpitch', 0) or 0))
+                    x3 = rpitch_to_x(float(sl.get('x3_rpitch', 0) or 0))
+                    x4 = rpitch_to_x(float(sl.get('x4_rpitch', 0) or 0))
+                    t1 = float(sl.get('y1_time', 0.0) or 0.0)
+                    t2 = float(sl.get('y2_time', 0.0) or 0.0)
+                    t3 = float(sl.get('y3_time', 0.0) or 0.0)
+                    t4 = float(sl.get('y4_time', 0.0) or 0.0)
+                    y1_sl = _time_to_y(t1)
+                    y2_sl = _time_to_y(t2)
+                    y3_sl = _time_to_y(t3)
+                    y4_sl = _time_to_y(t4)
+
+                    pts: list[tuple[float, float]] = []
+                    for i in range(n_seg):
+                        if n_seg <= 1:
+                            t = 0.0
+                        else:
+                            t = i / float(n_seg - 1)
+                        omt = 1.0 - t
+                        bx = (
+                            omt * omt * omt * x1
+                            + 3 * omt * omt * t * x2
+                            + 3 * omt * t * t * x3
+                            + t * t * t * x4
+                        )
+                        by = (
+                            omt * omt * omt * y1_sl
+                            + 3 * omt * omt * t * y2_sl
+                            + 3 * omt * t * t * y3_sl
+                            + t * t * t * y4_sl
+                        )
+                        pts.append((bx, by))
+
+                    for i in range(len(pts) - 1):
+                        if n_seg <= 1:
+                            t_mid = 0.0
+                        else:
+                            t_mid = (i + 0.5) / float(n_seg - 1)
+                        w_slur = width_at(t_mid)
+                        x_a, y_a = pts[i]
+                        x_b, y_b = pts[i + 1]
+                        du.add_line(
+                            x_a,
+                            y_a,
+                            x_b,
+                            y_b,
+                            color=(0, 0, 0, 1),
+                            width_mm=w_slur,
+                            id=int(sl.get('id', 0) or 0),
+                            tags=['slur'],
+                        )
 
             x_cursor = x_cursor + float(line['total_width']) + gap
 

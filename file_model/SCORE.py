@@ -110,10 +110,10 @@ class SCORE:
 	def new_slur(self, **kwargs) -> Slur:
 		# Default slur: straight line at c4 (0 semitone offset) over a short time window
 		base = {
-			'x1_semitones_c4': 0, 'y1_time': 0.0,
-			'x2_semitones_c4': 0, 'y2_time': 25.0,
-			'x3_semitones_c4': 0, 'y3_time': 75.0,
-			'x4_semitones_c4': 0, 'y4_time': 100.0,
+			'x1_rpitch': 0, 'y1_time': 0.0,
+			'x2_rpitch': 0, 'y2_time': 25.0,
+			'x3_rpitch': 0, 'y3_time': 75.0,
+			'x4_rpitch': 0, 'y4_time': 100.0,
 		}
 		base.update(kwargs)
 		obj = Slur(**base, _id=self._gen_id())

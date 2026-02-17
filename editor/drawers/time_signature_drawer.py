@@ -49,7 +49,7 @@ class TimeSignatureDrawerMixin:
         # Helper: draw classical numerator/denominator at segment boundary
         def draw_classical(numerator: int, denominator: int, enabled: bool, y_mm: float) -> None:
             color = self.notation_color
-            x = stave_left_position - 17.5
+            x = stave_left_position - 7.5
             # Numerator
             du.add_text(
                 x,
@@ -71,7 +71,7 @@ class TimeSignatureDrawerMixin:
                 color=color,
                 width_mm=divider_width_mm,
                 id=0,
-                tags=["time_signature_line"],
+                tags=["time_signature"],
                 dash_pattern=None,
             )
             # Denominator
@@ -138,7 +138,7 @@ class TimeSignatureDrawerMixin:
 
         # Iterate BaseGrid segments and draw based on indicator_type
         show_klavars = tool_name == "time_signature"
-        show_classic = tool_name == "time_signature"
+        show_classic = True # tool_name == "time_signature"
         for bg in list(getattr(score, 'base_grid', []) or []):
             numerator = int(getattr(bg, 'numerator', 4) or 4)
             denominator = int(getattr(bg, 'denominator', 4) or 4)

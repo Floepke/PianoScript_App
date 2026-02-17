@@ -71,8 +71,8 @@ class Layout:
 
     # Slur appearance
     slur_visible: bool = True
-    slur_width_sides_mm: float = 0.1
-    slur_width_middle_mm: float = 1.5
+    slur_width_sides_mm: float = 0.5
+    slur_width_middle_mm: float = 2.5
 
     # Repeat markers
     repeat_start_visible: bool = True

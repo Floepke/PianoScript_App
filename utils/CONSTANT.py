@@ -66,7 +66,9 @@ EDITOR_LAYERING = [
     'keyboard_overlay_keys',   # Piano keyboard overlay keys
     'cursor',
     'playhead',
-    'line_break_guide'
+    'line_break_guide',
+    'beam_marker',
+    'time_signature',
 ]
 
 ENGRAVER_LAYERING = [
@@ -93,6 +95,7 @@ ENGRAVER_LAYERING = [
     'composer',
     'copyright',
     'engrave_test',
+    'slur',
 ]
 
 # Keyboard constants

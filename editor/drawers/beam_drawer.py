@@ -251,7 +251,7 @@ class BeamDrawerMixin:
                         color=stroke_color,
                         width_mm=max(0.15, gutter_w),
                         id=0,
-                        tags=["beam_marker_window", f"beam_marker_{hand_key}"],
+                        tags=["beam_marker", f"beam_marker_{hand_key}"],
                     )
                     # Start guide: beam line to stave edge
                     du.add_line(
@@ -263,7 +263,7 @@ class BeamDrawerMixin:
                         width_mm=0.5,
                         dash_pattern=dash,
                         id=0,
-                        tags=["beam_marker_guide_start", f"beam_marker_{hand_key}"],
+                        tags=["beam_marker", f"beam_marker_{hand_key}"],
                     )
                     # End guide: beam line to stave edge
                     du.add_line(
@@ -275,7 +275,7 @@ class BeamDrawerMixin:
                         width_mm=0.5,
                         dash_pattern=dash,
                         id=0,
-                        tags=["beam_marker_guide_end", f"beam_marker_{hand_key}"],
+                        tags=["beam_marker", f"beam_marker_{hand_key}"],
                     )
 
         # ---- Actual beam line drawing (right hand) ----
