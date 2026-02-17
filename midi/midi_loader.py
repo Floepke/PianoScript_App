@@ -53,15 +53,19 @@ def midi_load(path: str) -> SCORE:
 
     score = SCORE().new()
 
-    # Tempo: record first tempo change as Text (e.g., "120/4")
-    try:
-        times, tempi = pm.get_tempo_changes()
-        if isinstance(tempi, (list, tuple)) and len(tempi) > 0:
-            bpm = int(round(float(tempi[0])))
-            score.new_text(text=f"{bpm}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
-    except Exception:
-        # If tempo extraction fails, skip
-        pass
+    # Tempo: map all tempo changes to tempo markers (fixed duration = one quarter unit)
+    times_arr, tempi_arr = pm.get_tempo_changes()
+    times = [float(t) for t in list(times_arr) if times_arr is not None] if times_arr is not None else []
+    tempi = [float(tp) for tp in list(tempi_arr) if tempi_arr is not None] if tempi_arr is not None else []
+    if len(tempi) > 0:
+        bpm_first = int(round(float(tempi[0])))
+        score.new_text(text=f"{bpm_first}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
+        for t_sec, bpm_val in zip(times, tempi):
+            start_units = _seconds_to_units(pm, float(t_sec))
+            score.new_tempo(time=float(start_units), duration=float(QUARTER_NOTE_UNIT), tempo=int(round(float(bpm_val))))
+    else:
+        bpm_guess = int(round(float(pm.estimate_tempo() or 120.0)))
+        score.new_tempo(time=0.0, duration=float(QUARTER_NOTE_UNIT), tempo=bpm_guess)
 
     # Map notes from all non-drum instruments (convert MIDI pitch to app pitch)
     for inst in pm.instruments:
@@ -83,10 +87,7 @@ def midi_load(path: str) -> SCORE:
                 score.new_note(pitch=int(app_pitch), time=float(start_units), duration=float(duration_units), velocity=int(vel), hand=hand)
 
     # Build base_grid from time signature changes
-    try:
-        ts_changes = list(getattr(pm, 'time_signature_changes', []) or [])
-    except Exception:
-        ts_changes = []
+    ts_changes = list(getattr(pm, 'time_signature_changes', []) or [])
 
     def _grid_positions_for(numer: int, denom: int) -> List[int]:
         # Return per-beat grouping sequence (one digit per beat)
@@ -112,13 +113,10 @@ def midi_load(path: str) -> SCORE:
     end_units_total = _seconds_to_units(pm, float(getattr(pm, 'get_end_time', lambda: 0.0)()))
     segments: List[Tuple[float, int, int]] = []  # (start_units, numer, denom)
     for ts in ts_changes:
-        try:
-            start_u = _seconds_to_units(pm, float(getattr(ts, 'time', 0.0) or 0.0))
-            numer = int(getattr(ts, 'numerator', 4) or 4)
-            denom = int(getattr(ts, 'denominator', 4) or 4)
-            segments.append((start_u, numer, denom))
-        except Exception:
-            continue
+        start_u = _seconds_to_units(pm, float(getattr(ts, 'time', 0.0) or 0.0))
+        numer = int(getattr(ts, 'numerator', 4) or 4)
+        denom = int(getattr(ts, 'denominator', 4) or 4)
+        segments.append((start_u, numer, denom))
     # If no time signatures present, infer a single segment from defaults
     if not segments:
         segments = [(0.0, 4, 4)]
@@ -141,10 +139,7 @@ def midi_load(path: str) -> SCORE:
     score.base_grid = base_grid_list
 
     # Distribute initial line breaks in groups of six measures across the import
-    try:
-        score.apply_quick_line_breaks([6])
-    except Exception:
-        pass
+    score.apply_quick_line_breaks([6])
 
     return score
 
@@ -166,12 +161,9 @@ def _midi_load_with_mido(path: str) -> SCORE:
             if msg.type == 'set_tempo':
                 tempo_events.append((abs_ticks, int(msg.tempo)))
             elif msg.type == 'time_signature':
-                try:
-                    numer = int(getattr(msg, 'numerator', 4) or 4)
-                    denom = int(getattr(msg, 'denominator', 4) or 4)
-                    ts_events.append((abs_ticks, numer, denom))
-                except Exception:
-                    pass
+                numer = int(getattr(msg, 'numerator', 4) or 4)
+                denom = int(getattr(msg, 'denominator', 4) or 4)
+                ts_events.append((abs_ticks, numer, denom))
     tempo_events.sort(key=lambda x: x[0])
     ts_events.sort(key=lambda x: x[0])
 
@@ -194,15 +186,15 @@ def _midi_load_with_mido(path: str) -> SCORE:
         seconds += ticks_to_seconds(abs_ticks_query - prev_ticks, cur_tempo)
         return seconds
 
+    def ticks_to_units(abs_ticks: int) -> float:
+        return (float(abs_ticks) / float(tpq)) * float(QUARTER_NOTE_UNIT)
+
     # Iterate messages to build absolute seconds timeline per track and pair notes
     score = SCORE().new()
 
     # First tempo for Text
     bpm0 = 60.0 / ((tempo_events[0][1] if tempo_events else default_tempo) / 1_000_000.0)
-    try:
-        score.new_text(text=f"{int(round(bpm0))}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
-    except Exception:
-        pass
+    score.new_text(text=f"{int(round(bpm0))}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
 
     # Helper: get current tempo at given absolute ticks
     def tempo_at_ticks(abs_ticks: int) -> int:
@@ -213,6 +205,16 @@ def _midi_load_with_mido(path: str) -> SCORE:
             else:
                 break
         return cur
+
+    # Tempo markers: one per tempo change, fixed duration = one quarter unit
+    if tempo_events:
+        for tick_pos, tempo_us in tempo_events:
+            bpm = int(round(60_000_000.0 / float(tempo_us)))
+            t_units = ticks_to_units(tick_pos)
+            score.new_tempo(time=float(t_units), duration=float(QUARTER_NOTE_UNIT), tempo=bpm)
+    else:
+        bpm_default = int(round(60.0 / (default_tempo / 1_000_000.0)))
+        score.new_tempo(time=0.0, duration=float(QUARTER_NOTE_UNIT), tempo=bpm_default)
 
     total_end_seconds = 0.0
     # For each track, track note stacks by (channel, pitch)
@@ -291,12 +293,9 @@ def _midi_load_with_mido(path: str) -> SCORE:
     end_units_total = (total_end_seconds / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
     segments: List[Tuple[float, int, int]] = []
     for abs_t, numer, denom in ts_events:
-        try:
-            t_sec = ticks_to_seconds_at(abs_t)
-            t_units = (t_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
-            segments.append((t_units, int(numer), int(denom)))
-        except Exception:
-            continue
+        t_sec = ticks_to_seconds_at(abs_t)
+        t_units = (t_sec / (60.0 / bpm0)) * QUARTER_NOTE_UNIT
+        segments.append((t_units, int(numer), int(denom)))
     if not segments:
         segments = [(0.0, 4, 4)]
     segments.sort(key=lambda x: x[0])

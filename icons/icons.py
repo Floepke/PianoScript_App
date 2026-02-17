@@ -105,6 +105,7 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
     if QtGui is None:
         return None
     b64 = ICONS.get(name)
+    original_name = name
     if not b64:
         return QtGui.QIcon()
     try:
@@ -139,7 +140,8 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
         from settings_manager import get_preferences_manager as _get_pm  # type: ignore
         pm = _get_pm()
         theme = str(pm.get("theme", "light") or "light").lower()
-        if (theme == "dark"):
+        # Skip tinting for brand assets like the app logo
+        if (theme == "dark") and original_name != "keyTAB":
             try:
                 # Create a white image and apply the original alpha via composition
                 tint_rgb = (250, 200, 210)

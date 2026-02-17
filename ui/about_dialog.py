@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from PySide6 import QtCore, QtGui, QtWidgets
+from icons.icons import get_qicon
 
 
 class AboutDialog(QtWidgets.QDialog):
@@ -11,22 +12,58 @@ class AboutDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("About keyTAB")
         self.setModal(True)
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(768)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(10)
 
+        header_container = QtWidgets.QWidget(self)
+        header_layout = QtWidgets.QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
+
         header = QtWidgets.QLabel(
             """
-            <h2 style="margin-bottom: 4px;">keyTAB</h2>
-            <div>An alternative music notation editor.</div>
+                <h2 style="margin-bottom: 10px;">keyTAB</h2>
+                <div style="margin-bottom: 10px;font-size: 10px;">
+                    keyTAB is a long-running passion project. With modern tooling I can focus on the hard part: shaping a clearer way to read and engrave music.
+                </div>
+
+                <div style="margin-bottom: 10px;font-size: 10px;">
+                    Built on Klavarskribo notation, keyTAB turns MIDI into readable plots. Music flows top-to-bottom on a vertical timeline over a customizable, time-signature-aware grid.
+                </div>
+
+                <div style="margin-bottom: 10px;font-size: 10px;">
+                    Stave lines map directly to the black piano keys: black noteheads sit on black key lines, white noteheads land between lines. Pitch reads like the piano keyboard—no key signatures, sharps/flats, clef changes, or other detours.
+                </div>
+
+                <div style="margin-bottom: 10px;font-size: 10px;">
+                    I hope keyTAB helps musicians, composers, and curious listeners visualize and refine this MIDI style notation with clarity. Feedback is always welcome.
+                </div>
+
+                <div style="margin-bottom: 10px;font-size: 10px;">Have fun exploring your MIDI with keyTAB!</div>
+                <div style="margin-bottom: 0; font-size: 12px;">Philip Bergwerf</div>
             """
         )
         header.setTextFormat(QtCore.Qt.TextFormat.RichText)
         header.setWordWrap(True)
         header.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(header)
+
+        logo_lbl = QtWidgets.QLabel(self)
+        try:
+            icon = get_qicon('keyTAB', size=(256, 256))
+            if icon is not None:
+                pm = icon.pixmap(256, 256)
+                if not pm.isNull():
+                    logo_lbl.setPixmap(pm)
+        except Exception:
+            pass
+        logo_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop)
+
+        header_layout.addWidget(header, 1)
+        header_layout.addWidget(logo_lbl, 0, QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(header_container)
 
         body = QtWidgets.QLabel(self._credits_html())
         body.setTextFormat(QtCore.Qt.TextFormat.RichText)
@@ -37,46 +74,20 @@ class AboutDialog(QtWidgets.QDialog):
         btns = QtWidgets.QDialogButtonBox(self)
         btns.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Close)
 
-        open_notices_btn = QtWidgets.QPushButton("Open third-party notices")
-        open_notices_btn.clicked.connect(self._open_third_party_notices)
-        btns.addButton(open_notices_btn, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
-
-        open_licenses_btn = QtWidgets.QPushButton("Open licenses folder")
-        open_licenses_btn.clicked.connect(self._open_license_folder)
-        btns.addButton(open_licenses_btn, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
-
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
 
     def _credits_html(self) -> str:
         return (
             """
-            <p><b>Project license:</b> MIT License.</p>
-            <p><b>Credits and third-party components:</b></p>
-            <ul style="margin-top: 4px;">
+            <p><b style="font-size: 10px;">Project license:</b> MIT License.</p>
+            <p><b style="font-size: 10px;">Credits and third-party components:</b></p>
+            <ul style="margin-top: 4px;font-size: 10px;">
                 <li>User-provided SoundFont (.sf2/.sf3).</li>
                 <li>FluidSynth — LGPL-2.1-or-later.</li>
                 <li>PySide6 / Qt — LGPL-3.0.</li>
                 <li>pretty_midi, mido, python-rtmidi, numpy — permissive licenses.</li>
             </ul>
-            <p>See the bundled license texts and THIRD_PARTY_NOTICES for details.</p>
+            <p style="margin-top: 0px;font-size: 10px;"> </p>
             """
         )
-
-    def _open_third_party_notices(self) -> None:
-        path = self._root_path() / "THIRD_PARTY_NOTICES.md"
-        self._open_path(path)
-
-    def _open_license_folder(self) -> None:
-        path = self._root_path() / "licenses"
-        self._open_path(path)
-
-    def _root_path(self) -> Path:
-        return Path(__file__).resolve().parent.parent
-
-    def _open_path(self, path: Path) -> None:
-        try:
-            if path.exists():
-                QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(path)))
-        except Exception:
-            pass
