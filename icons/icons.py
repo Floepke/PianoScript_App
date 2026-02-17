@@ -92,6 +92,11 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
     - If `size` is provided, scales the pixmap to that size.
     - Returns a fallback empty QIcon if PySide6 is unavailable or icon missing.
     """
+    mirror_x = False
+    if isinstance(name, str) and name.startswith('mirror:'):
+        mirror_x = True
+        name = name.split(':', 1)[1]
+
     try:
         from .icons_byte64 import ICONS  # type: ignore
     except Exception:
@@ -121,6 +126,12 @@ def get_qicon(name: str, size: Optional[Tuple[int, int]] = None):
             h_px = max(1, int(round(h_css * dpr)))
             # Use FastTransformation to avoid blur in small UI icons
             img = img.scaled(w_px, h_px, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation)
+
+        if mirror_x:
+            try:
+                img = img.mirrored(True, False)
+            except Exception:
+                pass
 
         # Optional dark-mode tint: render icon as white using its alpha
         theme = None
