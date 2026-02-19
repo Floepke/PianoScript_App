@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple
-import os
+import os, math
 import cairo
 from PySide6 import QtGui
 from utils.CONSTANT import EDITOR_LAYERING
@@ -751,15 +751,41 @@ class DrawUtil:
         slant = cairo.FONT_SLANT_ITALIC if t.italic else cairo.FONT_SLANT_NORMAL
         weight = cairo.FONT_WEIGHT_BOLD if t.bold else cairo.FONT_WEIGHT_NORMAL
         ctx.save()
-        # Baseline positioning: anchor is pre-applied in add_text()
-        ctx.translate(t.x_mm, t.y_mm)
-        if getattr(t, 'angle_deg', 0.0):
-            import math
-            ctx.rotate(float(t.angle_deg) * math.pi / 180.0)
+        angle = float(getattr(t, 'angle_deg', 0.0) or 0.0)
+        xb_mm, yb_mm, w_mm, h_mm = self._get_text_extents_mm(t.text, t.family, t.size_pt, t.italic, t.bold)
+        anchor = getattr(t, 'anchor', None)
+        # Compute rotation pivot based on anchor
+        ax = t.x_mm + xb_mm + w_mm * 0.5
+        ay = t.y_mm + yb_mm + h_mm * 0.5
+        if anchor == 'n':
+            ay = t.y_mm + yb_mm
+        elif anchor == 's':
+            ay = t.y_mm + yb_mm + h_mm
+        elif anchor == 'w':
+            ax = t.x_mm + xb_mm
+        elif anchor == 'e':
+            ax = t.x_mm + xb_mm + w_mm
+        elif anchor == 'nw':
+            ax = t.x_mm + xb_mm
+            ay = t.y_mm + yb_mm
+        elif anchor == 'ne':
+            ax = t.x_mm + xb_mm + w_mm
+            ay = t.y_mm + yb_mm
+        elif anchor == 'sw':
+            ax = t.x_mm + xb_mm
+            ay = t.y_mm + yb_mm + h_mm
+        elif anchor == 'se':
+            ax = t.x_mm + xb_mm + w_mm
+            ay = t.y_mm + yb_mm + h_mm
+
+        # Rotate around pivot, then draw at stored position
+        ctx.translate(ax, ay)
+        if angle:
+            ctx.rotate(angle * math.pi / 180.0)
+        ctx.translate(-ax, -ay)
         ctx.select_font_face(t.family, slant, weight)
-        # We are in mm user units; convert pt size to mm
         ctx.set_font_size(t.size_pt / PT_PER_MM)
-        ctx.move_to(0.0, 0.0)
+        ctx.move_to(t.x_mm, t.y_mm)
         ctx.text_path(t.text)
         ctx.set_source_rgba(*t.color)
         ctx.fill()

@@ -110,6 +110,12 @@ class Layout:
         italic=True,
     ))
 
+    font_text: LayoutFont = field(default_factory=lambda: LayoutFont(
+        family="Edwin",
+        size_pt=25.0,
+        bold=True,
+    ))
+
     # Info fonts
     font_title: LayoutFont = field(default_factory=lambda: LayoutFont(
         family="Edwin",

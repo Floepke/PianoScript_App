@@ -78,7 +78,7 @@ class Editor(QtCore.QObject,
     Handles click vs drag classification using a 3px threshold.
     """
 
-    DRAG_THRESHOLD: int = 4
+    DRAG_THRESHOLD: int = 2
 
     score_changed = QtCore.Signal()
 
@@ -186,6 +186,8 @@ class Editor(QtCore.QObject,
         self._reuse_draw_cache_once: bool = False
         # Per-frame note hit rectangles in absolute mm coordinates
         self._note_hit_rects: list[dict] = []
+        # Per-frame text hit rectangles in absolute mm coordinates
+        self._text_hit_rects: list[dict] = []
 
         # Selection window state (time-based, tool-agnostic)
         self._selection_active: bool = False
@@ -218,6 +220,7 @@ class Editor(QtCore.QObject,
         """
         # Reset hit rectangles for this frame; drawers will register rectangles
         self._note_hit_rects = []
+        self._text_hit_rects = []
         
         # Build shared render cache for this draw pass (fresh each frame)
         self._build_render_cache()
@@ -359,6 +362,66 @@ class Editor(QtCore.QObject,
             })
         except Exception:
             pass
+
+    # ---- Hit rectangles (text) ----
+    def register_text_hit_rect(self, text_id: int, x_left_mm: float, y_top_mm: float, x_right_mm: float, y_bottom_mm: float, kind: str = 'body') -> None:
+        """Register a clickable rectangle for a text element (body or handle).
+
+        kind: 'body' or 'handle' to allow prioritizing handle hits.
+        """
+        try:
+            cx = (float(x_left_mm) + float(x_right_mm)) * 0.5
+            cy = (float(y_top_mm) + float(y_bottom_mm)) * 0.5
+            self._text_hit_rects.append({
+                '_id': int(text_id),
+                'x1': float(x_left_mm),
+                'y1': float(y_top_mm),
+                'x2': float(x_right_mm),
+                'y2': float(y_bottom_mm),
+                'cx': cx,
+                'cy': cy,
+                'kind': str(kind or 'body'),
+            })
+        except Exception:
+            pass
+
+    def _hit_test_text_internal(self, x_mm: float, y_mm: float):
+        candidates = []
+        for r in (self._text_hit_rects or []):
+            if float(r['x1']) <= x_mm <= float(r['x2']) and float(r['y1']) <= y_mm <= float(r['y2']):
+                area = max(0.0, (float(r['x2']) - float(r['x1'])) * (float(r['y2']) - float(r['y1'])))
+                kind = str(r.get('kind', 'body'))
+                priority = 0 if kind == 'handle' else 1
+                candidates.append((priority, area, int(r['_id']), kind, r))
+        if not candidates:
+            return (None, None, None)
+        candidates.sort(key=lambda t: (t[0], t[1]))
+        _p, _a, tid, kind, rect = candidates[0]
+        return (tid, kind == 'handle', rect)
+
+    def hit_test_text(self, x_px: float, y_px: float):
+        """Return (text_id, is_handle, rect) containing the point.
+
+        Expects logical px coordinates; converts to absolute mm before testing.
+        Returns (None, None, None) if no hit.
+        """
+        try:
+            w_px_per_mm = float(getattr(self, '_widget_px_per_mm', 1.0) or 1.0)
+            if w_px_per_mm <= 0:
+                return (None, None, None)
+            x_mm = float(x_px) / w_px_per_mm
+            y_mm_local = float(y_px) / w_px_per_mm
+            y_mm = y_mm_local + float(getattr(self, '_view_y_mm_offset', 0.0) or 0.0)
+            return self._hit_test_text_internal(x_mm, y_mm)
+        except Exception:
+            return (None, None, None)
+
+    def hit_test_text_mm(self, x_mm: float, y_mm: float):
+        """Return (text_id, is_handle, rect) for absolute mm coordinates."""
+        try:
+            return self._hit_test_text_internal(float(x_mm), float(y_mm))
+        except Exception:
+            return (None, None, None)
 
     def hit_test_note_id(self, x_px: float, y_px: float) -> int | None:
         """Return the note id whose registered rectangle contains the mouse point.

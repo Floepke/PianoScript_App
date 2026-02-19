@@ -510,8 +510,7 @@ class StyleDialog(QtWidgets.QDialog):
             'grace_note_scale': 'Grace note',
             # Text
             'text_visible': 'Text',
-            'text_font_family': 'Text',
-            'text_font_size_pt': 'Text',
+            'font_text': 'Text',
             # Slur
             'slur_visible': 'Slur',
             'slur_width_sides_mm': 'Slur',
@@ -554,6 +553,8 @@ class StyleDialog(QtWidgets.QDialog):
         self._type_hints = type_hints
         _hide_fields = {
             "measure_grouping",
+            "text_font_family",
+            "text_font_size_pt",
         }
         self._field_tabs = field_tabs
 
@@ -725,6 +726,14 @@ class StyleDialog(QtWidgets.QDialog):
                 except Exception:
                     val = getattr(defaults, name)
             fixed[name] = val
+        # Backwards compatibility: migrate legacy text_font_family/size into font_text if missing
+        if "font_text" not in data and ("text_font_family" in data or "text_font_size_pt" in data):
+            try:
+                fam = str(data.get("text_font_family", getattr(defaults, "text_font_family", "")))
+                size = float(data.get("text_font_size_pt", getattr(defaults, "text_font_size_pt", 12.0)))
+                fixed["font_text"] = LayoutFont(family=fam, size_pt=size)
+            except Exception:
+                pass
         return Layout(**fixed)
 
     def _load_layout_from_file(self, stem: str | None) -> Layout:

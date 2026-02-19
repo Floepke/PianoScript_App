@@ -11,6 +11,7 @@ from file_model.events.note import Note
 from file_model.events.grace_note import GraceNote
 from file_model.events.pedal import Pedal
 from file_model.events.text import Text
+from copy import deepcopy
 from file_model.events.slur import Slur
 from file_model.events.beam import Beam
 from file_model.events.start_repeat import StartRepeat
@@ -111,7 +112,17 @@ class SCORE:
 		return obj
 
 	def new_text(self, **kwargs) -> Text:
-		base = {'text': '120/4', 'time': 0.0, 'side': '<', 'mm_from_side': 5.0, 'rotated': True}
+		# Text anchor is center; store x as semitone offset and rotation in degrees.
+		# Default font clones the score's layout font_text to avoid shared mutation.
+		default_font = deepcopy(getattr(self.layout, 'font_text', LayoutFont()))
+		base = {
+			'text': 'Text',
+			'time': 0.0,
+			'x_rpitch': 0,
+			'rotation': 0.0,
+			'font': default_font,
+			'use_custom_font': False,
+		}
 		base.update(kwargs)
 		obj = Text(**base, _id=self._gen_id())
 		self.events.text.append(obj)
