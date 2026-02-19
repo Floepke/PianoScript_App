@@ -69,6 +69,7 @@ class TextTool(BaseTool):
             return None
         try:
             txt = str(getattr(ev, 'text', ''))
+            display_txt = txt if txt.strip() else "(no text set)"
             score = self._score()
             use_custom = bool(getattr(ev, 'use_custom_font', False))
             font = getattr(ev, 'font', None)
@@ -82,7 +83,7 @@ class TextTool(BaseTool):
             x_mm = float(self.relative_x_to_x_mm(int(getattr(ev, 'x_rpitch', 0) or 0)))
             y_mm = float(self._editor.time_to_mm(float(getattr(ev, 'time', 0.0) or 0.0)))
             du = self.draw_util()
-            _xb, _yb, w_mm, h_mm = du._get_text_extents_mm(txt, family, size_pt, italic, bold)
+            _xb, _yb, w_mm, h_mm = du._get_text_extents_mm(display_txt, family, size_pt, italic, bold)
             hw = w_mm * 0.5
             hh = h_mm * 0.5
             ang = math.radians(angle)

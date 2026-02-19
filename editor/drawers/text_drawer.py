@@ -69,6 +69,7 @@ class TextDrawerMixin:
             rp = int(getattr(ev, 'x_rpitch', 0) or 0)
             angle = float(getattr(ev, 'rotation', 0.0) or 0.0)
             txt = str(getattr(ev, 'text', ''))
+            display_txt = txt if txt.strip() else "(no text set)"
             font = getattr(ev, 'font', None)
             use_custom = bool(getattr(ev, 'use_custom_font', False))
             if not use_custom or font is None:
@@ -88,7 +89,7 @@ class TextDrawerMixin:
                 x_mm = 0.0
 
             try:
-                w_mm, h_mm, offset_down, rot_corners = self._text_bbox(du, txt, family, size_pt, italic, bold, angle)
+                w_mm, h_mm, offset_down, rot_corners = self._text_bbox(du, display_txt, family, size_pt, italic, bold, angle)
             except Exception:
                 continue
 
@@ -113,7 +114,7 @@ class TextDrawerMixin:
             du.add_text(
                 x_mm,
                 cy,
-                txt,
+                display_txt,
                 family=family,
                 size_pt=size_pt,
                 italic=italic,
