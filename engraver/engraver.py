@@ -1,10 +1,10 @@
 from PySide6 import QtCore
 from datetime import datetime
-import bisect
+import bisect, math
 import multiprocessing as mp
 import queue
 from ui.widgets.draw_util import DrawUtil
-from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT, PIANO_KEY_AMOUNT, SHORTEST_DURATION, hex_to_rgba, BLACK_KEYS
+from utils.CONSTANT import BE_KEYS, QUARTER_NOTE_UNIT, PIANO_KEY_AMOUNT, SHORTEST_DURATION, hex_to_rgba, BLACK_KEYS, ENGRAVER_FRACTIONAL_SCALE_CORRECTION
 from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
@@ -34,6 +34,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     count_lines = list(events.get('count_line', []) or [])
     beam_markers = list(events.get('beam', []) or [])
     slurs = list(events.get('slur', []) or [])
+    texts = list(events.get('text', []) or [])
 
     # Problem solved: beam markers are organized per hand for fast grouping later.
     beam_by_hand: dict[str, list[dict]] = {'l': [], 'r': []}
@@ -113,6 +114,23 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
         })
     if norm_slurs:
         norm_slurs = sorted(norm_slurs, key=lambda m: float(m.get('y1_time', 0.0) or 0.0))
+
+    norm_texts: list[dict] = []
+    for idx, t in enumerate(texts):
+        if not isinstance(t, dict):
+            continue
+        norm_texts.append({
+            'time': float(t.get('time', 0.0) or 0.0),
+            'x_rpitch': float(t.get('x_rpitch', 0) or 0),
+            'rotation': float(t.get('rotation', 0.0) or 0.0),
+            'text': str(t.get('text', '') or ''),
+            'font': t.get('font', None),
+            'use_custom_font': bool(t.get('use_custom_font', False)),
+            'id': int(t.get('_id', 0) or 0),
+            'idx': int(idx),
+        })
+    if norm_texts:
+        norm_texts = sorted(norm_texts, key=lambda m: float(m.get('time', 0.0) or 0.0))
 
     # Problem solved: materialize layout values early to keep math predictable.
     page_w = float(layout.get('page_width_mm', 210.0) or 210.0)
@@ -1015,6 +1033,28 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 rel = max(0.0, min(1.0, rel))
                 return y1 + (y2 - y1) * rel
 
+            def _text_bbox(text_val: str, family: str, size_pt: float, italic: bool, bold: bool, angle_deg: float) -> tuple[float, float, float, list[tuple[float, float]]]:
+                xb, yb, w_mm, h_mm = du._get_text_extents_mm(text_val, family, size_pt, italic, bold)
+                padding_mm = 0.5
+                w_mm += padding_mm * 2.0
+                h_mm += padding_mm * 2.0
+                hw = w_mm * 0.5
+                hh = h_mm * 0.5
+                corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
+                ang = math.radians(angle_deg)
+                sin_a = math.sin(ang)
+                cos_a = math.cos(ang)
+                rot_corners: list[tuple[float, float]] = []
+                min_y = float('inf')
+                for (dx, dy) in corners:
+                    rx = dx * cos_a - dy * sin_a
+                    ry = dx * sin_a + dy * cos_a
+                    rot_corners.append((rx, ry))
+                    if ry < min_y:
+                        min_y = ry
+                offset_down = max(0.0, -min_y)
+                return w_mm, h_mm, offset_down, rot_corners
+
             tick_per_mm = (float(line['time_end'] - line['time_start'])) / max(1e-6, (y2 - y1))
             mm_per_quarter = float(QUARTER_NOTE_UNIT) / max(1e-6, tick_per_mm)
 
@@ -1324,6 +1364,16 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     if op_time.lt(anchor_t, float(line_start)) or op_time.ge(anchor_t, float(line_end)):
                         continue
                     line_slurs.append(sl)
+
+            line_texts: list[dict] = []
+            if norm_texts:
+                line_start = float(line.get('time_start', 0.0) or 0.0)
+                line_end = float(line.get('time_end', 0.0) or 0.0)
+                for tx in norm_texts:
+                    t_time = float(tx.get('time', 0.0) or 0.0)
+                    if op_time.lt(t_time, float(line_start)) or op_time.ge(t_time, float(line_end)):
+                        continue
+                    line_texts.append(tx)
 
             notes_by_hand_line: dict[str, list[dict]] = {'l': [], 'r': []}
             for item in line_notes:
@@ -1919,6 +1969,68 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                         tags=['stop_sign'],
                     )
 
+            def clamp_x(val: float) -> float:
+                if page_w <= 0.0:
+                    return float(val)
+                return max(0.0, min(float(val), float(page_w)))
+
+            base_x_c4 = _key_to_x(40)
+
+            def rpitch_to_x(rp: float) -> float:
+                return clamp_x(base_x_c4 + float(rp) * semitone_mm)
+
+            if line_texts:
+                default_font = layout.get('font_text', {}) or {}
+
+                def _resolve_font(tx: dict) -> tuple[str, float, bool, bool]:
+                    use_custom = bool(tx.get('use_custom_font', False))
+                    fnt = tx.get('font', None) if use_custom else None
+                    if not isinstance(fnt, dict):
+                        fnt = default_font if isinstance(default_font, dict) else {}
+                    family = str(fnt.get('family', default_font.get('family', 'Edwin')))
+                    size_pt = float(fnt.get('size_pt', default_font.get('size_pt', 12.0)) or 12.0)
+                    italic = bool(fnt.get('italic', default_font.get('italic', False)))
+                    bold = bool(fnt.get('bold', default_font.get('bold', False)))
+                    return family, size_pt, italic, bold
+
+                for tx in line_texts:
+                    t_time = float(tx.get('time', 0.0) or 0.0)
+                    x_rp = float(tx.get('x_rpitch', 0) or 0)
+                    angle = float(tx.get('rotation', 0.0) or 0.0)
+                    txt_raw = str(tx.get('text', '') or '')
+                    display_txt = txt_raw if txt_raw.strip() else "(no text set)"
+                    family, size_pt_raw, italic, bold = _resolve_font(tx)
+                    size_pt = float(size_pt_raw) * ENGRAVER_FRACTIONAL_SCALE_CORRECTION
+                    y_mm = _time_to_y(t_time)
+                    x_mm = rpitch_to_x(x_rp)
+                    try:
+                        w_mm, h_mm, offset_down, rot_corners = _text_bbox(display_txt, family, size_pt, italic, bold, angle)
+                    except Exception:
+                        continue
+                    cy = y_mm + offset_down
+                    poly = [(x_mm + dx, cy + dy) for (dx, dy) in rot_corners]
+                    du.add_polygon(
+                        poly,
+                        stroke_color=None,
+                        fill_color=(1.0, 1.0, 1.0, 1.0),
+                        id=int(tx.get('id', 0) or 0),
+                        tags=['text'],
+                    )
+                    du.add_text(
+                        x_mm,
+                        cy,
+                        display_txt,
+                        family=family,
+                        size_pt=size_pt,
+                        italic=italic,
+                        bold=bold,
+                        color=(0.0, 0.0, 0.0, 1.0),
+                        anchor='center',
+                        angle_deg=angle,
+                        id=int(tx.get('id', 0) or 0),
+                        tags=['text'],
+                    )
+
             if line_slurs:
                 side_w = float(layout.get('slur_width_sides_mm', 0.1) or 0.1) * scale
                 mid_w = float(layout.get('slur_width_middle_mm', 1.5) or 1.5) * scale
@@ -1929,16 +2041,6 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
                 def width_at(t: float) -> float:
                     return side_w + (mid_w - side_w) * tri_interp(t)
-
-                def clamp_x(val: float) -> float:
-                    if page_w <= 0.0:
-                        return float(val)
-                    return max(0.0, min(float(val), float(page_w)))
-
-                base_x_c4 = _key_to_x(40)
-
-                def rpitch_to_x(rp: float) -> float:
-                    return clamp_x(base_x_c4 + float(rp) * semitone_mm)
 
                 for sl in line_slurs:
                     x1 = rpitch_to_x(float(sl.get('x1_rpitch', 0) or 0))

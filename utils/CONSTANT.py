@@ -125,3 +125,5 @@ SHORTEST_DURATION: float = 8.0  # shortest note duration in time units (128th) (
 GRACENOTE_THRESHOLD: float = SHORTEST_DURATION
 
 ENGRAVER_VERSION: str = '1.0'
+
+ENGRAVER_FRACTIONAL_SCALE_CORRECTION: float = 0.5267

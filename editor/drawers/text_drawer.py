@@ -18,7 +18,7 @@ class TextDrawerMixin:
         """
         # Text extents in mm (unrotated)
         xb, yb, w_mm, h_mm = du._get_text_extents_mm(text, family, size_pt, italic, bold)
-        padding_mm = 0.5
+        padding_mm = 1
         w_mm += padding_mm * 2.0
         h_mm += padding_mm * 2.0
         # Corner offsets before rotation (center anchor)
@@ -150,7 +150,7 @@ class TextDrawerMixin:
                     hy2,
                     stroke_color=self.accent_color,
                     stroke_width_mm=0.4,
-                    fill_color=(1.0, 0.6, 0.2, 0.8),
+                    fill_color=self.accent_color,
                     id=int(getattr(ev, '_id', 0) or 0),
                     tags=["text", "text_handle"],
                 )
