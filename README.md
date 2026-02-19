@@ -1,101 +1,47 @@
-# keyTAB (Cairo + PySide6) — Starter
+# keyTAB — Klavarskribo Score Engraver
 
-A minimal starter for an alternative music notation app using PySide6 with Cairo for rendering:
-- Editor: Cairo-drawn in the GUI thread
-- Toolbar: Vertical toolbar embedded into the splitter handle (entire area draggable)
-- PrintView: Cairo rendering in a background thread
-- PDF export via Cairo (vector)
+Welcome to **keyTAB**, a passion project for creating, editing, and engraving Klavarskribo scores. keyTAB blends a piano-roll style editor with print-ready engraving so you can compose, arrange, and share music in the vertical, keyboard-centric notation.
 
-## Setup (Linux)
+## Highlights
+- Klavarskribo-first workflow: vertical staves, per-hand coloring, dot indicators, and snap-to-grid editing tailored for keyboard music.
+- Fast engraving: Cairo-based renderer with headers/footers, page counts, and automatic line breaks; analysis snapshot tracks notes, measures, lines, and pages.
+- Powerful selection shortcuts: global arrows transpose and time-shift selections; brackets set hand/color; platform-aware undo/redo.
+- MIDI import: load .mid/.midi, set title from filename, and auto-apply quick line breaks (6 measures per line) to paginate instantly.
+- Smart layout tools: quick line break dialog, measure grouping, beam/slur/dynamic/text tools, and configurable snap size.
+- Session safety: autosave, undo/redo, recent files, and embedded fonts/icons for consistent output.
 
-```bash
-# From project root
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+## Core Features
+- Editing tools for notes, grace notes, beams, slurs, pedal, dynamics, cresc/decresc, text, tempo, repeats, and line breaks.
+- Selection operations: transpose by semitone, shift in time by snap units, assign hand/color (`<` left, `>` right), cut/copy/paste, delete, select-all.
+- Layout & style: adjustable zoom (mm per quarter), page margins, stave ranges, color presets, and per-hand coloring that flows into engraving.
+- Engraving: multi-page rendering with headers/footers, document info, creation timestamp, and page numbering suitable for print/PDF.
+- Info & analysis: title/author/copyright plus live analysis of notes, measures, lines, pages, and grace notes.
 
-## Run
+## Typical Workflow
+1. Create or import: start a new score or load MIDI via File → Load.
+2. Shape layout: set snap size, apply quick line breaks (e.g., 6 per line), tweak style.
+3. Edit music: add notes/beams/slurs/text/tempo; use shortcuts to transpose or time-shift selections.
+4. Review & engrave: view pages, verify headers/footers and line breaks; check analysis counts.
+5. Export: save `.piano` files or print/PDF from the engraved view.
 
-```bash
-cd /home/flop/PianoScript_App_Cairo
-source .venv/bin/activate
-python keyTAB.py
-```
+## Selection Shortcuts
+- `[` / `]`: set hand/color to left/right.
+- `←` / `→`: transpose selection ±1 semitone.
+- `↑` / `↓`: shift selection in time by one snap unit.
+- `Backspace` / `Delete`: remove selection.
+- `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`: undo/redo.
 
-## Debugging Viewport & Scroll
+## MIDI Import Behavior
+- Parses tempo, time signatures, and note data; maps pitches to app keys.
+- Sets score title from filename.
+- Auto-applies quick line breaks in 6-measure groups so pages are ready to inspect immediately.
 
-- Set environment variables before launching to enable diagnostics:
-	- `PIANOSCRIPT_DEBUG_VIEWPORT=1`: draws a red border around the visible viewport to verify clipping edges remain fixed while content scrolls.
-	- `PIANOSCRIPT_DEBUG_SCROLL=1`: logs scroll diagnostics: logical scroll px, device pixel ratio, `px_per_mm`, and computed `clip_y_mm`/`clip_h_mm`.
+## Install & Run (Python)
+- Python 3.x with PySide6, Cairo, pretty_midi/mido (see `requirements.txt`).
+- Create a venv, `pip install -r requirements.txt`, then run the app entry point (e.g., `python keyTAB.py`).
 
-Example:
+## Project Status
+Active and evolving. Expect iterative improvements and occasional breaking changes while features solidify.
 
-```bash
-PIANOSCRIPT_DEBUG_VIEWPORT=1 PIANOSCRIPT_DEBUG_SCROLL=1 python3 keyTAB.py
-```
-
-Notes:
-- Scrollbar steps auto-scale with zoom so wheel movement feels consistent at different zoom levels.
-- On HiDPI displays, the widget uses device pixel ratio (`dpr`) properly by converting logical scrollbar values to device pixels for the clip calculation.
-
-## Settings
-
-- Location: `~/.pianoscript_settings.py` (Python file with a `settings` dict)
-- Format:
-
-```
-# keyTAB settings
-settings = {
-		# Global UI scale factor (0.5 .. 3.0). Applied via QT_SCALE_FACTOR.
-		'ui_scale': 0.75,
-
-		# Recent files (most recent first)
-		'recent_files': [
-				'/path/to/file.piano',
-				'/path/to/another.piano',
-		],
-}
-```
-
-- Notes:
-	- Comments use `#` and are ignored by the parser.
-	- Values are standard Python literals (bool, int, float, str, list, dict).
-	- Edit → Preferences opens the file in:
-		- Windows: Notepad
-		- macOS: TextEdit
-		- Linux: system default via `xdg-open`
-
-## Structure
-
-- `/keyTAB.py` — app entrypoint
-- `/editor/` — app UI modules (e.g., `main_window.py`)
-- `/widgets/` — reusable UI widgets and Cairo views (`draw_util.py`, `draw_view.py`, `cairo_views.py`, `toolbar_splitter.py`)
-- `/file_model/` — document/data model (placeholder)
-
-## Model Schema (early-stage)
-
-- `SCORE` contains:
-	- `meta_data`, `header`, `events`, `layout`, `editor`, and `base_grid`.
-- `BaseGrid`:
-	- `numerator`: time signature numerator (e.g., 4 in 4/4)
-	- `denominator`: time signature denominator (e.g., 4 in 4/4)
-	- `grid_positions`: list of beat indices to draw/enable within a measure.
-		Beat 1 corresponds to the barline; higher numbers control visible beats.
-	- `measure_amount`: number of measures using this grid.
-
-Behavior:
-- Denominator defines the smallest possible time step in the grid context.
-	A denominator of 1 enforces drawing the barline (beat 1) per measure.
-	Higher denominators subdivide the measure; `grid_positions` selects which beats are drawn.
-
-Note:
-- Legacy keys and automatic repairs are not applied in early stage; JSON should match the current schema.
-
-## Notes
-- The middle toolbar is implemented as a custom `QSplitterHandle`, so the whole area (outside the buttons) acts as a single splitter handle.
-- The PrintView renders on a worker thread and blits the result safely in the GUI thread.
-- The File > Export PDF action writes a vector PDF using Cairo.
-- Soundfonts: user-provided `.sf2`/`.sf3` only. On first playback you’ll be prompted to select a file; the app remembers the choice. Or set `KEYTAB_SOUNDFONT` to an absolute path.
-- Licensing: the app is MIT-licensed (`LICENSE`). Third-party notices live in `THIRD_PARTY_NOTICES.md` with full texts in `licenses/`. Packaging guidance for .exe/.app/.AppImage is in `docs/LICENSING_AND_PACKAGING.md`.
+## Contributing
+Feedback and PRs are welcome. If you try keyTAB, please report crashes, layout glitches, or engraving edge cases—real scores help drive fixes.
