@@ -52,6 +52,10 @@ def midi_load(path: str) -> SCORE:
         return _midi_load_with_mido(str(p))
 
     score = SCORE().new()
+    try:
+        score.info.title = str(p.stem or score.info.title)
+    except Exception:
+        pass
 
     # Tempo: map all tempo changes to tempo markers (fixed duration = one quarter unit)
     times_arr, tempi_arr = pm.get_tempo_changes()
@@ -191,6 +195,10 @@ def _midi_load_with_mido(path: str) -> SCORE:
 
     # Iterate messages to build absolute seconds timeline per track and pair notes
     score = SCORE().new()
+    try:
+        score.info.title = str(Path(path).stem or score.info.title)
+    except Exception:
+        pass
 
     # First tempo for Text
     bpm0 = 60.0 / ((tempo_events[0][1] if tempo_events else default_tempo) / 1_000_000.0)

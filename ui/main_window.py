@@ -6,6 +6,7 @@ from utils.file_associations import is_supported_document
 from datetime import datetime
 from file_model.appstate import AppState
 from file_model.file_manager import FileManager
+from file_model.analysis import Analysis
 from ui.widgets.toolbar_splitter import ToolbarSplitter
 from ui.widgets.cairo_views import CairoEditorWidget
 from ui.widgets.tool_selector import ToolSelectorDock
@@ -78,9 +79,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Engraver instance (single)
         self.engraver = Engraver(self.du, self)
-        
-        # When engraving completes, re-render the print view
-        self.engraver.engraved.connect(self.print_view.request_render)
+
+        # When engraving completes, refresh analysis then re-render the print view
+        self.engraver.engraved.connect(self._on_engraver_finished)
         
         # Startup restore: prefer opening the last saved project; else restore unsaved session; else new
         try:
@@ -382,14 +383,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
         except Exception:
             pass
-        # 'T' opens Titles dialog when focus is not on a text input
+        # 'I' opens Info dialog when focus is not on a text input
         try:
-            if ev.key() == QtCore.Qt.Key_T and ev.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
+            if ev.key() == QtCore.Qt.Key_I and ev.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
                 fw = QtWidgets.QApplication.focusWidget()
                 if isinstance(fw, (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit)):
                     pass
                 else:
-                    self._open_titles_dialog()
+                    self._open_info_dialog()
                     ev.accept()
                     return
         except Exception:
@@ -452,15 +453,15 @@ class MainWindow(QtWidgets.QMainWindow):
         style_act = QtGui.QAction("Style...", self)
         style_act.setShortcut(QtGui.QKeySequence("S"))
         style_act.triggered.connect(self._open_style_dialog)
-        titles_act = QtGui.QAction("Titles...", self)
-        titles_act.setShortcut(QtGui.QKeySequence("T"))
-        titles_act.triggered.connect(self._open_titles_dialog)
+        info_act = QtGui.QAction("Info...", self)
+        info_act.setShortcut(QtGui.QKeySequence("I"))
+        info_act.triggered.connect(self._open_info_dialog)
         line_break_act = QtGui.QAction("Line Breaks...", self)
         line_break_act.setShortcut(QtGui.QKeySequence("L"))
         line_break_act.triggered.connect(self._open_line_break_dialog)
 
         document_menu.addAction(style_act)
-        document_menu.addAction(titles_act)
+        document_menu.addAction(info_act)
         document_menu.addAction(line_break_act)
         document_menu.addSeparator()
 
@@ -1265,7 +1266,7 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
-    def _open_titles_dialog(self) -> None:
+    def _open_info_dialog(self) -> None:
         try:
             from ui.widgets.info_dialog import InfoDialog
             sc = self.file_manager.current()
@@ -1602,6 +1603,51 @@ class MainWindow(QtWidgets.QMainWindow):
             return self.file_manager.current().get_dict()
         except Exception:
             return {}
+
+    def _on_engraver_finished(self) -> None:
+        try:
+            self._update_analysis_from_engraver()
+        except Exception:
+            pass
+        try:
+            self.print_view.request_render()
+        except Exception:
+            pass
+
+    def _update_analysis_from_engraver(self) -> None:
+        analysis_obj = getattr(self.engraver, "analysis", None)
+        if analysis_obj is None:
+            return
+        score = None
+        try:
+            score = self.file_manager.current()
+        except Exception:
+            score = None
+        if score is None:
+            return
+
+        def _value(obj, key: str):
+            try:
+                return getattr(obj, key)
+            except Exception:
+                pass
+            try:
+                return obj.get(key)  # type: ignore[arg-type]
+            except Exception:
+                return None
+
+        lines_count = _value(analysis_obj, "lines")
+        pages_count = _value(analysis_obj, "pages")
+        try:
+            analysis_snapshot = Analysis.compute(score, lines_count=lines_count, pages_count=pages_count)
+        except Exception:
+            analysis_snapshot = None
+        if analysis_snapshot is None:
+            return
+        try:
+            score.analysis = analysis_snapshot
+        except Exception:
+            pass
 
     def _set_page_index(self, index: int) -> None:
         try:

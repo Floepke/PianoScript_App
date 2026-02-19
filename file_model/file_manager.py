@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from file_model.SCORE import SCORE, EditorSettings, MetaData
 from file_model.info import Info
+from file_model.analysis import Analysis
 from file_model.base_grid import BaseGrid
 from file_model.appstate import AppState
 from file_model.layout import Layout
@@ -328,6 +329,7 @@ class FileManager:
         if self._path is None:
             return self.save_as()
         try:
+            self._refresh_analysis()
             self._current.save(str(self._path))
             self._dirty = False
             try:
@@ -354,6 +356,7 @@ class FileManager:
             return False
         target = self._ensure_piano_suffix(Path(fname))
         try:
+            self._refresh_analysis()
             self._current.save(str(target))
             self._path = target
             self._last_dir = target.parent
@@ -433,6 +436,7 @@ class FileManager:
         """Save the current SCORE to the session file in appdata (JSON)."""
         target = Path(UTILS_SAVE_DIR) / "session.piano"
         try:
+            self._refresh_analysis()
             self._current.save(str(target))
         except Exception:
             pass
@@ -473,6 +477,28 @@ class FileManager:
             recent = recent[:100]
             adm.set("recent_files", recent)
             adm.save()
+        except Exception:
+            pass
+
+    def _refresh_analysis(self) -> None:
+        """Recompute analysis so it persists in saved files.
+
+        Retains existing engraved page counts when available.
+        """
+        try:
+            sc = self._current
+        except Exception:
+            return
+        if sc is None:
+            return
+        existing = getattr(sc, "analysis", None)
+        lines_hint = None  # always derive lines from events to stay fresh
+        try:
+            pages_hint = getattr(existing, "pages", None)
+        except Exception:
+            pages_hint = None
+        try:
+            sc.analysis = Analysis.compute(sc, lines_count=lines_hint, pages_count=pages_hint)
         except Exception:
             pass
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-MidiNoteColor = Literal['<', '>'] | str
+NoteColor = Literal['<', '>'] | str
 
 @dataclass
 class Note:
@@ -36,5 +36,5 @@ class Note:
                       'triangle_black_down',
                       'cross_up',
                       'cross_down'] = 'default'
-    midinote_color: MidiNoteColor = hand
+    color: NoteColor = ''
     _id: int = 0

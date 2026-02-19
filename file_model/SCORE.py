@@ -20,6 +20,7 @@ from file_model.events.line_break import LineBreak
 from file_model.events.tempo import Tempo
 from file_model.layout import Layout, LayoutFont
 from file_model.info import Info
+from file_model.analysis import Analysis
 from utils.CONSTANT import GRACENOTE_THRESHOLD, QUARTER_NOTE_UNIT
 from file_model.base_grid import BaseGrid
 from file_model.appstate import AppState
@@ -64,6 +65,7 @@ class Events:
 class SCORE:
 	meta_data: MetaData = field(default_factory=MetaData)
 	info: Info = field(default_factory=Info)
+	analysis: Analysis = field(default_factory=Analysis)
 	base_grid: List[BaseGrid] = field(default_factory=list)
 	events: Events = field(default_factory=Events)
 	layout: Layout = field(default_factory=Layout)
@@ -81,6 +83,15 @@ class SCORE:
 	def new_note(self, **kwargs) -> Note:
 		base = {'pitch': 40, 'time': 0.0, 'duration': 100.0, 'hand': '<'}
 		base.update(kwargs)
+		h = str(base.get('hand', '<') or '<').strip()
+		if h.lower() == 'l':
+			h = '<'
+		elif h.lower() == 'r':
+			h = '>'
+		elif h not in ('<', '>'):
+			h = '<'
+		base['hand'] = h
+		base['color'] = h
 		obj = Note(**base, _id=self._gen_id())
 		self.events.note.append(obj)
 		return obj
@@ -189,7 +200,7 @@ class SCORE:
 		# Update modification timestamp before writing
 		self.meta_data.modification_timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
 		with open(path, 'w', encoding='utf-8') as f:
-			json.dump(self.get_dict(), f, indent=4, ensure_ascii=False)
+			json.dump(self.get_dict(), f, indent=None, ensure_ascii=False, separators=(',', ':'))
 
 	def load(self, path: str) -> "SCORE":
 		with open(path, 'r', encoding='utf-8') as f:
@@ -216,6 +227,17 @@ class SCORE:
 			incoming = incoming or {}
 			if not isinstance(incoming, dict):
 				incoming = {}
+			if dc_type is Note:
+				incoming = dict(incoming)
+				h = str(incoming.get('hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					h = '<'
+				elif h.lower() == 'r':
+					h = '>'
+				elif h not in ('<', '>'):
+					h = '<'
+				incoming['hand'] = h
+				incoming['color'] = h
 			defaults = _defaults_for(dc_type)
 			try:
 				type_hints = get_type_hints(dc_type, globals(), locals())
@@ -251,6 +273,8 @@ class SCORE:
 		self.meta_data = MetaData(**_merge_with_defaults(MetaData, md, 'meta_data'))
 		info_data = data.get('info', {})
 		self.info = Info(**_merge_with_defaults(Info, info_data, 'info'))
+		analysis_data = data.get('analysis', {}) or {}
+		self.analysis = Analysis(**_merge_with_defaults(Analysis, analysis_data, 'analysis'))
 		# Base grid: at least one
 		bg_list = data.get('base_grid', [])
 		if isinstance(bg_list, list) and bg_list:
@@ -323,6 +347,7 @@ class SCORE:
 					setattr(n, 'hand', '>')
 				elif h not in ('<', '>'):
 					setattr(n, 'hand', '<')
+				setattr(n, 'color', str(getattr(n, 'hand', '<') or '<'))
 				# Convert to grace note if shorter than threshold
 				try:
 					du = float(getattr(n, 'duration', 0.0) or 0.0)
@@ -398,6 +423,17 @@ class SCORE:
 			incoming = incoming or {}
 			if not isinstance(incoming, dict):
 				incoming = {}
+			if dc_type is Note:
+				incoming = dict(incoming)
+				h = str(incoming.get('hand', '<') or '<').strip()
+				if h.lower() == 'l':
+					h = '<'
+				elif h.lower() == 'r':
+					h = '>'
+				elif h not in ('<', '>'):
+					h = '<'
+				incoming['hand'] = h
+				incoming['color'] = h
 			defaults = _defaults_for(dc_type)
 			try:
 				type_hints = get_type_hints(dc_type, globals(), locals())
@@ -434,6 +470,8 @@ class SCORE:
 		self.meta_data = MetaData(**_merge_with_defaults(MetaData, md, 'meta_data'))
 		info_data = (data or {}).get('info', {})
 		self.info = Info(**_merge_with_defaults(Info, info_data, 'info'))
+		analysis_data = (data or {}).get('analysis', {}) or {}
+		self.analysis = Analysis(**_merge_with_defaults(Analysis, analysis_data, 'analysis'))
 
 		# Base grid
 		bg_list = (data or {}).get('base_grid', [])
@@ -505,6 +543,7 @@ class SCORE:
 					setattr(n, 'hand', '>')
 				elif h not in ('<', '>'):
 					setattr(n, 'hand', '<')
+				setattr(n, 'color', str(getattr(n, 'hand', '<') or '<'))
 				# Convert to grace note if shorter than threshold
 				try:
 					du = float(getattr(n, 'duration', 0.0) or 0.0)
@@ -542,6 +581,7 @@ class SCORE:
 		# Set creation timestamp in format dd-mm-YYYY_HH:MM:SS
 		self.meta_data.creation_timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
 		self.info = Info()
+		self.analysis = Analysis()
 		try:
 			year = datetime.now().year
 			self.info.copyright = f"keyTAB all copyrights reserved {year}"

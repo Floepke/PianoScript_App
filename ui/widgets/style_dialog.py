@@ -177,35 +177,91 @@ class FloatSliderEdit(QtWidgets.QWidget):
 class ColorPickerEdit(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(str)
 
+    PRESET_COLORS = (
+        '#777', '#888', '#999', '#aaa', '#bbb', '#ccc', '#ddd', '#eee',
+        '#d88ba0', '#d78490', '#d98f83', '#d49a78', '#cfaa72', '#c6b86d',
+        '#b6c46f', '#9ec173', '#86bf82', '#77bc96', '#6db8aa', '#6eaec1',
+        '#769fca', '#818fd1', '#907fd0', '#a079cc', '#b274c6', '#c070bf',
+        '#ca74b0', '#cf7f9f',
+    )
+
+    class _SwatchDelegate(QtWidgets.QStyledItemDelegate):
+        def paint(self, painter: QtGui.QPainter, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> None:
+            color_code = str(index.data(QtCore.Qt.ItemDataRole.UserRole) or '').strip()
+            color = QtGui.QColor(color_code)
+            rect = option.rect.adjusted(4, 3, -4, -3)
+            painter.save()
+            if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
+                painter.fillRect(option.rect, option.palette.highlight())
+            fill = color if color.isValid() else QtGui.QColor('#000000')
+            border = QtGui.QColor('#666666')
+            painter.setPen(QtGui.QPen(border, 1.0))
+            painter.setBrush(QtGui.QBrush(fill))
+            painter.drawRect(rect)
+            painter.restore()
+
+        def sizeHint(self, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex) -> QtCore.QSize:
+            return QtCore.QSize(max(120, option.rect.width()), 26)
+
     def __init__(self, value: str, parent=None) -> None:
         super().__init__(parent)
-        self._edit = QtWidgets.QLineEdit(self)
+        self._combo = QtWidgets.QComboBox(self)
+        self._combo.setEditable(False)
+        self._populate_presets()
+        self._combo.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
+        self._combo.setItemDelegate(self._SwatchDelegate(self._combo))
+        view = self._combo.view()
+        if view is not None:
+            view.setStyleSheet("QListView::item { min-height: 24px; padding: 2px 4px; }")
+        self._hex_edit = QtWidgets.QLineEdit(self)
+        self._hex_edit.setMinimumWidth(92)
+        self._hex_edit.setMaximumWidth(110)
+        self._hex_edit.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self._hex_edit.setValidator(
+            QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"#?[0-9a-fA-F]{0,8}"), self)
+        )
         self._button = QtWidgets.QPushButton("Pick", self)
         self._button.setFixedWidth(48)
-        self._edit.setMinimumWidth(90)
-        self._edit.setValidator(
-            QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"#?[0-9a-fA-F]+"), self)
-        )
+        self._combo.setMinimumWidth(170)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
-        layout.addWidget(self._edit, 1)
+        layout.addWidget(self._combo, 1)
+        layout.addWidget(self._hex_edit, 0)
         layout.addWidget(self._button, 0)
         self.set_value(str(value))
         self._button.clicked.connect(self._open_dialog)
-        self._edit.editingFinished.connect(self._on_edit_finished)
+        self._combo.activated.connect(self._on_combo_activated)
+        self._hex_edit.editingFinished.connect(self._on_edit_finished)
+
+    def _populate_presets(self) -> None:
+        self._combo.clear()
+        for idx, code in enumerate(self.PRESET_COLORS):
+            self._combo.addItem('')
+            self._combo.setItemData(idx, code, QtCore.Qt.ItemDataRole.UserRole)
 
     def set_value(self, value: str) -> None:
         txt = str(value or '').strip()
         if txt and not txt.startswith('#'):
             txt = f"#{txt}"
-        self._edit.setText(txt)
+        self._hex_edit.setText(txt)
+        idx = self._combo.findData(txt, QtCore.Qt.ItemDataRole.UserRole)
+        self._combo.blockSignals(True)
+        self._combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self._combo.blockSignals(False)
 
     def value(self) -> str:
-        txt = self._edit.text().strip()
+        txt = self._hex_edit.text().strip()
         if txt and not txt.startswith('#'):
             txt = f"#{txt}"
         return txt
+
+    def _on_combo_activated(self, index: int) -> None:
+        txt = str(self._combo.itemData(index, QtCore.Qt.ItemDataRole.UserRole) or '').strip()
+        if not txt:
+            txt = self.value()
+        self.set_value(txt)
+        self.valueChanged.emit(txt)
 
     def _open_dialog(self) -> None:
         col = QtGui.QColor(self.value())

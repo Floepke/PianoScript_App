@@ -1477,8 +1477,11 @@ class Editor(QtCore.QObject,
         updated = False
         for n in notes:
             try:
-                if str(getattr(n, 'hand', '')) != h:
+                note_hand = str(getattr(n, 'hand', '') or '')
+                note_color = str(getattr(n, 'color', '') or '')
+                if note_hand != h or note_color != h:
                     setattr(n, 'hand', h)
+                    setattr(n, 'color', h)
                     updated = True
             except Exception:
                 continue

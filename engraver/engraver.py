@@ -9,6 +9,7 @@ from utils.tiny_tool import key_class_filter
 from utils.operator import Operator
 from file_model.SCORE import SCORE
 from file_model.info import Info
+from file_model.analysis import Analysis
 
 _MP_CONTEXT = mp.get_context("spawn")
 
@@ -20,6 +21,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     rendering calls, then records only DrawUtil primitives.
     """
     score: SCORE = score or {}
+    meta_data = (score.get('meta_data', {}) or {})
     layout = (score.get('layout', {}) or {})
     info = (score.get('info', {}) or {})
     default_info = Info()
@@ -833,6 +835,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
     # Problem solved: render each page with header/footer and justified spacing.
     if not pages:
         pages = [[]]
+
+    analysis_snapshot = Analysis.compute(score, lines_count=len(lines), pages_count=len(pages))
+    setattr(du, 'analysis', analysis_snapshot)
     target_page_index = 0
     if not pdf_export and pages:
         try:
@@ -915,6 +920,9 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 anchor='ne',
             )
         if footer_height > 0.0:
+            document_title = _info_text('title', 'title').strip()
+            if not document_title:
+                document_title = 'title'
             default_copyright = getattr(default_info, 'copyright', f"© all rights reserved {datetime.now().year}")
             footer_text = _info_text('copyright', default_copyright).strip()
             if not footer_text:
@@ -927,7 +935,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             du.add_text(
                 page_left + footer_x_off,
                 (page_h - page_bottom) + footer_y_off,
-                f"Page {page_index + 1} of {len(pages)} | {footer_text}",
+                f"Page {page_index + 1} of {len(pages)} | {document_title} | {footer_text}",
                 family=footer_family,
                 size_pt=footer_size,
                 bold=footer_bold,
@@ -939,13 +947,29 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             )
             if not pageno:
                 # place a default keyTAB credit on the right side of the footer
-                from utils.CONSTANT import ENGRAVER_VERSION
+                creation_timestamp = str(meta_data.get('creation_timestamp', '') or '').strip()
+                if not creation_timestamp:
+                    creation_timestamp = 'unknown'
+                credit_size = max(1.0, float(footer_size) * 0.5)
+                du.add_text(
+                    page_w - page_right,
+                    page_h - page_bottom - (credit_size * 0.45),
+                    f"keyTAB piano engraving",
+                    family=footer_family,
+                    size_pt=credit_size,
+                    bold=footer_bold,
+                    italic=footer_italic,
+                    color=(.6, .6, .6, 1),
+                    id=0,
+                    tags=['copyright'],
+                    anchor='se',
+                )
                 du.add_text(
                     page_w - page_right,
                     page_h - page_bottom,
-                    f"keyTAB engraver v{ENGRAVER_VERSION}",
+                    f"created: {creation_timestamp}",
                     family=footer_family,
-                    size_pt=footer_size,
+                    size_pt=credit_size,
                     bold=footer_bold,
                     italic=footer_italic,
                     color=(.5, .5, .5, 1),
@@ -1640,7 +1664,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 if p in BLACK_KEYS and _black_note_above_stem(item, black_rule, line_notes, op_time):
                     note_y = y_start - (w * 2.0)
                 # Problem solved: draw the note body with per-hand colors or overrides.
-                raw_color = n.get('midinote_color', None)
+                raw_color = n.get('color', None)
                 if raw_color in (None, ''):
                     raw_color = n.get('hand', '<')
                 midicol = _normalize_hex_color(raw_color)
@@ -1750,7 +1774,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 # Problem solved: left-hand dot uses inverse fill on black keys.
                 if (not continues_from_prev_line) and bool(layout.get('note_leftdot_visible', True)) and hand_key in ('l', '<'):
                     w2 = w * 2.0
-                    dot_d = w2 * 0.40
+                    dot_d = w2 * 0.3
                     cy = note_y + (w2 / 2.0)
                     fill = (1, 1, 1, 1) if p in BLACK_KEYS else (0, 0, 0, 1)
                     du.add_oval(
@@ -2022,6 +2046,7 @@ class Engraver(QtCore.QObject):
         self._delay_timer = QtCore.QTimer(self)
         self._delay_timer.setSingleShot(True)
         self._delay_timer.timeout.connect(self._maybe_start_pending)
+        self.analysis: Analysis | None = None
 
     def engrave(self, score: dict, pageno: int | None = None) -> None:
         """Request an engraving; coalesce to the most recent request.
@@ -2145,4 +2170,9 @@ class Engraver(QtCore.QObject):
         if int(request_id) == int(self._latest_request_id):
             self._du._pages = list(result_du._pages)
             self._du._current_index = int(result_du._current_index)
+            self.analysis = getattr(result_du, 'analysis', None)
+            try:
+                self._du.analysis = self.analysis
+            except Exception:
+                pass
             self.engraved.emit()
