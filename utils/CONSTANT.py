@@ -53,8 +53,6 @@ EDITOR_LAYERING = [
 
     # other notation elements
     'measure_number',
-    'slur',
-    'text',
     'tempo',
     'count_line_handle',
     'count_line',
@@ -69,6 +67,10 @@ EDITOR_LAYERING = [
     'line_break_guide',
     'beam_marker',
     'time_signature',
+    'text',
+    'text_handle',
+    'slur',
+    'slur_handle',
 ]
 
 ENGRAVER_LAYERING = [
@@ -95,6 +97,7 @@ ENGRAVER_LAYERING = [
     'composer',
     'copyright',
     'engrave_test',
+    'text',
     'slur',
 ]
 

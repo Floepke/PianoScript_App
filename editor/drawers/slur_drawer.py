@@ -94,7 +94,7 @@ class SlurDrawerMixin:
                 for idx, (hx, hy) in enumerate(handles, start=1):
                     is_anchor = idx in (1, 4)
                     stroke_col = (.5, 0.0, 0.0, 1.0) if is_anchor else self.accent_color
-                    fill_col = (1.0, 0.0, 0.0, 0.4) if is_anchor else self.selection_color
+                    fill_col = (.5, 0.0, 0.0, 1.0) if is_anchor else self.accent_color
                     du.add_rectangle(
                         hx - handle_w * 0.5,
                         hy - handle_h * 0.5,

@@ -123,6 +123,8 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
             'time': float(t.get('time', 0.0) or 0.0),
             'x_rpitch': float(t.get('x_rpitch', 0) or 0),
             'rotation': float(t.get('rotation', 0.0) or 0.0),
+            'x_offset_mm': float(t.get('x_offset_mm', 0.0) or 0.0),
+            'y_offset_mm': float(t.get('y_offset_mm', 0.0) or 0.0),
             'text': str(t.get('text', '') or ''),
             'font': t.get('font', None),
             'use_custom_font': bool(t.get('use_custom_font', False)),
@@ -1033,18 +1035,41 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                 rel = max(0.0, min(1.0, rel))
                 return y1 + (y2 - y1) * rel
 
-            def _text_bbox(text_val: str, family: str, size_pt: float, italic: bool, bold: bool, angle_deg: float) -> tuple[float, float, float, list[tuple[float, float]]]:
+            def _text_bbox(text_val: str, family: str, size_pt: float, italic: bool, bold: bool, angle_deg: float, padding_mm: float, corner_radius_mm: float) -> tuple[float, float, float, list[tuple[float, float]], list[tuple[float, float]]]:
                 xb, yb, w_mm, h_mm = du._get_text_extents_mm(text_val, family, size_pt, italic, bold)
-                padding_mm = 0.5
-                w_mm += padding_mm * 2.0
-                h_mm += padding_mm * 2.0
+                pad = max(0.0, float(padding_mm))
+                w_mm += pad * 2.0
+                h_mm += pad * 2.0
                 hw = w_mm * 0.5
                 hh = h_mm * 0.5
+                r = min(max(0.0, float(corner_radius_mm)), hw, hh)
+
+                def _rounded_rect_points(hw_val: float, hh_val: float, radius: float) -> list[tuple[float, float]]:
+                    if radius <= 1e-6:
+                        return [(-hw_val, -hh_val), (hw_val, -hh_val), (hw_val, hh_val), (-hw_val, hh_val)]
+                    pts: list[tuple[float, float]] = []
+                    corner_defs = [
+                        (-hw_val + radius, -hh_val + radius, 180.0, 270.0),
+                        (hw_val - radius, -hh_val + radius, 270.0, 360.0),
+                        (hw_val - radius, hh_val - radius, 0.0, 90.0),
+                        (-hw_val + radius, hh_val - radius, 90.0, 180.0),
+                    ]
+                    step = 15.0
+                    for cx, cy, start_deg, end_deg in corner_defs:
+                        deg = start_deg
+                        while deg < end_deg + 0.01:
+                            rad_ang = math.radians(deg)
+                            pts.append((cx + radius * math.cos(rad_ang), cy + radius * math.sin(rad_ang)))
+                            deg += step
+                    return pts
+
+                base_poly = _rounded_rect_points(hw, hh, r)
                 corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
                 ang = math.radians(angle_deg)
                 sin_a = math.sin(ang)
                 cos_a = math.cos(ang)
                 rot_corners: list[tuple[float, float]] = []
+                rot_poly: list[tuple[float, float]] = []
                 min_y = float('inf')
                 for (dx, dy) in corners:
                     rx = dx * cos_a - dy * sin_a
@@ -1052,8 +1077,14 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     rot_corners.append((rx, ry))
                     if ry < min_y:
                         min_y = ry
+                for (dx, dy) in base_poly:
+                    rx = dx * cos_a - dy * sin_a
+                    ry = dx * sin_a + dy * cos_a
+                    rot_poly.append((rx, ry))
+                    if ry < min_y:
+                        min_y = ry
                 offset_down = max(0.0, -min_y)
-                return w_mm, h_mm, offset_down, rot_corners
+                return w_mm, h_mm, offset_down, rot_corners, rot_poly
 
             tick_per_mm = (float(line['time_end'] - line['time_start'])) / max(1e-6, (y2 - y1))
             mm_per_quarter = float(QUARTER_NOTE_UNIT) / max(1e-6, tick_per_mm)
@@ -1981,6 +2012,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             if line_texts:
                 default_font = layout.get('font_text', {}) or {}
+                pad_mm = float(layout.get('text_background_padding_mm', 0.0) or 0.0)
 
                 def _resolve_font(tx: dict) -> tuple[str, float, bool, bool]:
                     use_custom = bool(tx.get('use_custom_font', False))
@@ -1997,18 +2029,20 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     t_time = float(tx.get('time', 0.0) or 0.0)
                     x_rp = float(tx.get('x_rpitch', 0) or 0)
                     angle = float(tx.get('rotation', 0.0) or 0.0)
+                    x_off = float(tx.get('x_offset_mm', 0.0) or 0.0)
+                    y_off = float(tx.get('y_offset_mm', 0.0) or 0.0)
                     txt_raw = str(tx.get('text', '') or '')
                     display_txt = txt_raw if txt_raw.strip() else "(no text set)"
                     family, size_pt_raw, italic, bold = _resolve_font(tx)
                     size_pt = float(size_pt_raw) * ENGRAVER_FRACTIONAL_SCALE_CORRECTION
-                    y_mm = _time_to_y(t_time)
-                    x_mm = rpitch_to_x(x_rp)
+                    y_mm = _time_to_y(t_time) + y_off
+                    x_mm = rpitch_to_x(x_rp) + x_off
                     try:
-                        w_mm, h_mm, offset_down, rot_corners = _text_bbox(display_txt, family, size_pt, italic, bold, angle)
+                        w_mm, h_mm, offset_down, rot_corners, rot_poly = _text_bbox(display_txt, family, size_pt, italic, bold, angle, pad_mm, pad_mm)
                     except Exception:
                         continue
                     cy = y_mm + offset_down
-                    poly = [(x_mm + dx, cy + dy) for (dx, dy) in rot_corners]
+                    poly = [(x_mm + dx, cy + dy) for (dx, dy) in rot_poly]
                     du.add_polygon(
                         poly,
                         stroke_color=None,

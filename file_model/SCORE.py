@@ -120,6 +120,8 @@ class SCORE:
 			'time': 0.0,
 			'x_rpitch': 0,
 			'rotation': 0.0,
+			'x_offset_mm': 0.0,
+			'y_offset_mm': 0.0,
 			'font': default_font,
 			'use_custom_font': False,
 		}

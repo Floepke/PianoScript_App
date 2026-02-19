@@ -452,6 +452,7 @@ class StyleDialog(QtWidgets.QDialog):
             "Text",
             "Countline",
             "Pedal",
+            "Visibility",
         ]
 
         def _make_tab(title: str) -> QtWidgets.QFormLayout:
@@ -488,43 +489,31 @@ class StyleDialog(QtWidgets.QDialog):
             'scale': 'Page',
             # Note
             'black_note_rule': 'Note',
-            'note_head_visible': 'Note',
-            'note_stem_visible': 'Note',
             'note_stem_length_semitone': 'Note',
             'note_stem_thickness_mm': 'Note',
             'note_stopsign_thickness_mm': 'Note',
             'note_continuation_dot_size_mm': 'Note',
-            'note_leftdot_visible': 'Note',
-            'note_midinote_visible': 'Note',
             'note_midinote_left_color': 'Note',
             'note_midinote_right_color': 'Note',
             # Beam
-            'beam_visible': 'Beam',
             'beam_thickness_mm': 'Beam',
             # Pedal
-            'pedal_lane_enabled': 'Pedal',
             'pedal_lane_width_mm': 'Pedal',
             # Grace note
-            'grace_note_visible': 'Grace note',
             'grace_note_outline_width_mm': 'Grace note',
             'grace_note_scale': 'Grace note',
             # Text
-            'text_visible': 'Text',
-            'font_text': 'Text',
+            'text_background_padding_mm': 'Text',
             # Slur
-            'slur_visible': 'Slur',
             'slur_width_sides_mm': 'Slur',
             'slur_width_middle_mm': 'Slur',
             # Countline
-            'countline_visible': 'Countline',
             'countline_dash_pattern': 'Countline',
             'countline_thickness_mm': 'Countline',
             # Grid
             'grid_barline_thickness_mm': 'Grid',
             'grid_gridline_thickness_mm': 'Grid',
             'grid_gridline_dash_pattern_mm': 'Grid',
-            'repeat_start_visible': 'Grid',
-            'repeat_end_visible': 'Grid',
             # Time signature
             'time_signature_indicator_type': 'Time signature',
             'time_signature_indicator_lane_width_mm': 'Time signature',
@@ -535,6 +524,7 @@ class StyleDialog(QtWidgets.QDialog):
             'stave_three_line_thickness_mm': 'Stave',
             'stave_clef_line_dash_pattern_mm': 'Stave',
             # Fonts
+            'font_text': 'Fonts',
             'font_title': 'Fonts',
             'font_composer': 'Fonts',
             'font_copyright': 'Fonts',
@@ -543,6 +533,19 @@ class StyleDialog(QtWidgets.QDialog):
             'time_signature_indicator_classic_font': 'Fonts',
             'time_signature_indicator_klavarskribo_font': 'Fonts',
             'measure_numbering_font': 'Fonts',
+            # Visibility
+            'note_head_visible': 'Visibility',
+            'note_stem_visible': 'Visibility',
+            'note_leftdot_visible': 'Visibility',
+            'note_midinote_visible': 'Visibility',
+            'beam_visible': 'Visibility',
+            'grace_note_visible': 'Visibility',
+            'pedal_lane_enabled': 'Visibility',
+            'text_visible': 'Visibility',
+            'slur_visible': 'Visibility',
+            'countline_visible': 'Visibility',
+            'repeat_start_visible': 'Visibility',
+            'repeat_end_visible': 'Visibility',
         }
 
         type_hints = {}
@@ -553,8 +556,6 @@ class StyleDialog(QtWidgets.QDialog):
         self._type_hints = type_hints
         _hide_fields = {
             "measure_grouping",
-            "text_font_family",
-            "text_font_size_pt",
         }
         self._field_tabs = field_tabs
 
@@ -729,8 +730,8 @@ class StyleDialog(QtWidgets.QDialog):
         # Backwards compatibility: migrate legacy text_font_family/size into font_text if missing
         if "font_text" not in data and ("text_font_family" in data or "text_font_size_pt" in data):
             try:
-                fam = str(data.get("text_font_family", getattr(defaults, "text_font_family", "")))
-                size = float(data.get("text_font_size_pt", getattr(defaults, "text_font_size_pt", 12.0)))
+                fam = str(data.get("text_font_family", "Edwin"))
+                size = float(data.get("text_font_size_pt", 12.0))
                 fixed["font_text"] = LayoutFont(family=fam, size_pt=size)
             except Exception:
                 pass
@@ -899,6 +900,10 @@ class StyleDialog(QtWidgets.QDialog):
                 editor.blockSignals(True)
                 editor.set_family(family)
                 editor.blockSignals(False)
+                try:
+                    editor.valueChanged.emit()
+                except Exception:
+                    pass
         self.values_changed.emit()
 
     def _set_editor_value(self, editor: QtWidgets.QWidget, field_type: Any, value: Any) -> None:

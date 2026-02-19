@@ -14,6 +14,8 @@ class Text:
     time: float = 0.0 # y coordinate uses time units (e.g., quarter note = 256.0)
     x_rpitch: float = 0 # x coordinate uses the relative distance from c4 position in semitone distances
     rotation: float = 0.0 # 0..360 degrees, clockwise
+    x_offset_mm: float = 0.0
+    y_offset_mm: float = 0.0
     
     # font settings
     font: LayoutFont = field(default_factory=lambda: LayoutFont(

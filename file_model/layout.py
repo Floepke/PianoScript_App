@@ -64,8 +64,7 @@ class Layout:
 
     # Text appearance
     text_visible: bool = True
-    text_font_family: str = 'Edwin'
-    text_font_size_pt: float = 12.0
+    text_background_padding_mm: float = 1.5
 
     # Slur appearance
     slur_visible: bool = True
@@ -91,6 +90,7 @@ class Layout:
 
     # Time signature indicator type (global)
     time_signature_indicator_type: Literal['classical', 'klavarskribo', 'both'] = 'both'
+    
     # Time signature indicator lane (left of stave)
     time_signature_indicator_lane_width_mm: float = 10.0
     time_signature_indicator_guide_thickness_mm: float = 0.5
@@ -164,7 +164,7 @@ LAYOUT_FLOAT_CONFIG: dict[str, dict[str, float]] = {
     'grace_note_outline_width_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
     'grace_note_scale': {'min': 0.05, 'max': 1.0, 'step': 0.05},
     'pedal_lane_width_mm': {'min': 0.05, 'max': 20.0, 'step': 0.05},
-    'text_font_size_pt': {'min': 4.0, 'max': 94.0, 'step': 1},
+    'text_background_padding_mm': {'min': 0.0, 'max': 20.0, 'step': 0.1},
     'slur_width_sides_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
     'slur_width_middle_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},
     'countline_thickness_mm': {'min': 0.05, 'max': 5.0, 'step': 0.05},

@@ -3,9 +3,9 @@ import math
 from copy import deepcopy
 from typing import Optional, Tuple
 
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore
 
-from ui.widgets.style_dialog import FontPicker
+from ui.widgets.style_dialog import FontPicker, FloatSliderEdit
 
 from editor.tool.base_tool import BaseTool
 from file_model.SCORE import SCORE
@@ -20,9 +20,11 @@ class TextTool(BaseTool):
         self._active_text = None
         self._active_mode: Optional[str] = None  # 'move' or 'rotate'
         self._created_on_press: bool = False
+        self._pending_new_text = None
         self._hit_threshold_mm: float = 6.0
         self._cached_center: Optional[Tuple[float, float]] = None
         self._rotation_steps: int = 16  # snap rotation to N steps per full turn
+        self._preview_timer: QtCore.QTimer | None = None
 
     def on_activate(self) -> None:
         super().on_activate()
@@ -32,6 +34,34 @@ class TextTool(BaseTool):
 
     def toolbar_spec(self) -> list[dict]:
         return []
+
+    def _ensure_preview_timer(self) -> QtCore.QTimer:
+        if self._preview_timer is None:
+            self._preview_timer = QtCore.QTimer()
+            self._preview_timer.setSingleShot(True)
+            self._preview_timer.setInterval(150)
+            self._preview_timer.timeout.connect(self._emit_preview)
+        return self._preview_timer
+
+    def _emit_preview(self) -> None:
+        if self._editor is None:
+            return
+        try:
+            self._editor.force_redraw_from_model()
+        except Exception:
+            pass
+        try:
+            self._editor.score_changed.emit()
+        except Exception:
+            pass
+
+    def _schedule_preview(self) -> None:
+        try:
+            timer = self._ensure_preview_timer()
+            timer.stop()
+            timer.start()
+        except Exception:
+            pass
 
     # ---- Helpers ----
     def _score(self) -> Optional[SCORE]:
@@ -71,46 +101,68 @@ class TextTool(BaseTool):
             txt = str(getattr(ev, 'text', ''))
             display_txt = txt if txt.strip() else "(no text set)"
             score = self._score()
+            layout = getattr(score, 'layout', None) if score is not None else None
             use_custom = bool(getattr(ev, 'use_custom_font', False))
-            font = getattr(ev, 'font', None)
+            font = self._coerce_font(getattr(ev, 'font', None), getattr(layout, 'font_text', None))
             if (not use_custom) or font is None:
-                font = getattr(score.layout, 'font_text', None)
+                font = self._coerce_font(getattr(layout, 'font_text', None), getattr(layout, 'font_text', None))
             family = font.resolve_family() if font and hasattr(font, 'resolve_family') else getattr(font, 'family', 'Courier New')
             size_pt = float(getattr(font, 'size_pt', 12.0) or 12.0)
             italic = bool(getattr(font, 'italic', False))
             bold = bool(getattr(font, 'bold', False))
+            pad_mm = float(getattr(layout, 'text_background_padding_mm', 0.0) or 0.0)
+            x_off = float(getattr(ev, 'x_offset_mm', 0.0) or 0.0)
+            y_off = float(getattr(ev, 'y_offset_mm', 0.0) or 0.0)
             angle = float(getattr(ev, 'rotation', 0.0) or 0.0)
-            x_mm = float(self.relative_x_to_x_mm(int(getattr(ev, 'x_rpitch', 0) or 0)))
-            y_mm = float(self._editor.time_to_mm(float(getattr(ev, 'time', 0.0) or 0.0)))
+            x_mm = float(self.relative_x_to_x_mm(int(getattr(ev, 'x_rpitch', 0) or 0))) + x_off
+            y_mm = float(self._editor.time_to_mm(float(getattr(ev, 'time', 0.0) or 0.0))) + y_off
             du = self.draw_util()
             _xb, _yb, w_mm, h_mm = du._get_text_extents_mm(display_txt, family, size_pt, italic, bold)
+            w_mm += pad_mm * 2.0
+            h_mm += pad_mm * 2.0
             hw = w_mm * 0.5
             hh = h_mm * 0.5
+            r = min(max(0.0, pad_mm), hw, hh)
             ang = math.radians(angle)
             sin_a = math.sin(ang)
             cos_a = math.cos(ang)
-            corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
-            rot = []
+
+            def _rounded_rect_points(hw_val: float, hh_val: float, radius: float) -> list[tuple[float, float]]:
+                if radius <= 1e-6:
+                    return [(-hw_val, -hh_val), (hw_val, -hh_val), (hw_val, hh_val), (-hw_val, hh_val)]
+                pts: list[tuple[float, float]] = []
+                corner_defs = [
+                    (-hw_val + radius, -hh_val + radius, 180.0, 270.0),
+                    (hw_val - radius, -hh_val + radius, 270.0, 360.0),
+                    (hw_val - radius, hh_val - radius, 0.0, 90.0),
+                    (-hw_val + radius, hh_val - radius, 90.0, 180.0),
+                ]
+                step = 15.0
+                for cx, cy, start_deg, end_deg in corner_defs:
+                    deg = start_deg
+                    while deg < end_deg + 0.01:
+                        rad_ang = math.radians(deg)
+                        pts.append((cx + radius * math.cos(rad_ang), cy + radius * math.sin(rad_ang)))
+                        deg += step
+                return pts
+
+            base_poly = _rounded_rect_points(hw, hh, r)
+            rot: list[tuple[float, float]] = []
             min_y = float('inf')
-            min_x = float('inf')
-            max_x = float('-inf')
-            max_y = float('-inf')
-            for dx, dy in corners:
+            for dx, dy in base_poly:
                 rx = dx * cos_a - dy * sin_a
                 ry = dx * sin_a + dy * cos_a
                 rot.append((rx, ry))
                 if ry < min_y:
                     min_y = ry
-                if ry > max_y:
-                    max_y = ry
-                if rx < min_x:
-                    min_x = rx
-                if rx > max_x:
-                    max_x = rx
             offset_down = max(0.0, -min_y)
             cy = y_mm + offset_down
             poly = [(x_mm + dx, cy + dy) for (dx, dy) in rot]
-            bbox = (x_mm + min_x, x_mm + max_x, cy + min_y, cy + max_y)
+            min_x = min(p[0] for p in poly)
+            max_x = max(p[0] for p in poly)
+            min_y_abs = min(p[1] for p in poly)
+            max_y_abs = max(p[1] for p in poly)
+            bbox = (min_x, max_x, min_y_abs, max_y_abs)
             gap = max(1.5, (self._editor.semitone_dist or 2.5) * 0.3)
             rad = hw + gap
             hx = x_mm + rad * cos_a
@@ -254,15 +306,30 @@ class TextTool(BaseTool):
         return None
 
     # ---- Dialog ----
+    def _coerce_font(self, value, default_font: LayoutFont | None) -> LayoutFont:
+        if isinstance(value, LayoutFont):
+            return deepcopy(value)
+        if isinstance(value, dict):
+            return LayoutFont(
+                family=value.get('family', getattr(default_font, 'family', 'Courier New')),
+                size_pt=float(value.get('size_pt', getattr(default_font, 'size_pt', 12.0) or 12.0)),
+                bold=bool(value.get('bold', getattr(default_font, 'bold', False))),
+                italic=bool(value.get('italic', getattr(default_font, 'italic', False))),
+                x_offset=float(value.get('x_offset', getattr(default_font, 'x_offset', 0.0) or 0.0)),
+                y_offset=float(value.get('y_offset', getattr(default_font, 'y_offset', 0.0) or 0.0)),
+            )
+        return deepcopy(default_font or LayoutFont())
+
     def _open_text_dialog(self, ev) -> None:
         if self._editor is None or ev is None:
             return
         score = self._score()
         default_font = getattr(score.layout, 'font_text', None) if score is not None else None
-        cur_font = getattr(ev, 'font', None) or default_font or LayoutFont()
+        cur_font_raw = getattr(ev, 'font', None)
+        cur_font = self._coerce_font(cur_font_raw, default_font)
         # If using default, show default in picker; if custom, use event font
         if not bool(getattr(ev, 'use_custom_font', False)):
-            cur_font = deepcopy(default_font or LayoutFont())
+            cur_font = deepcopy(self._coerce_font(default_font, default_font))
 
         dlg = QtWidgets.QDialog(QtWidgets.QApplication.activeWindow())
         dlg.setWindowTitle("Edit Text")
@@ -271,6 +338,11 @@ class TextTool(BaseTool):
         txt_edit = QtWidgets.QLineEdit(dlg)
         txt_edit.setText(str(getattr(ev, 'text', '')))
         layout.addRow("Text", txt_edit)
+
+        x_off_edit = FloatSliderEdit(float(getattr(ev, 'x_offset_mm', 0.0) or 0.0), -25.0, 25.0, 0.1, dlg)
+        y_off_edit = FloatSliderEdit(float(getattr(ev, 'y_offset_mm', 0.0) or 0.0), -25.0, 25.0, 0.1, dlg)
+        layout.addRow("X offset (mm)", x_off_edit)
+        layout.addRow("Y offset (mm)", y_off_edit)
 
         use_custom_chk = QtWidgets.QCheckBox("Use custom font", dlg)
         use_custom_chk.setChecked(bool(getattr(ev, 'use_custom_font', False)))
@@ -292,7 +364,15 @@ class TextTool(BaseTool):
         btns.accepted.connect(dlg.accept)
         btns.rejected.connect(dlg.reject)
 
-        def _apply():
+        original_state = {
+            'text': getattr(ev, 'text', ''),
+            'use_custom_font': bool(getattr(ev, 'use_custom_font', False)),
+            'font': deepcopy(getattr(ev, 'font', None)),
+            'x_offset_mm': float(getattr(ev, 'x_offset_mm', 0.0) or 0.0),
+            'y_offset_mm': float(getattr(ev, 'y_offset_mm', 0.0) or 0.0),
+        }
+
+        def _apply_live(commit_snapshot: bool = False) -> None:
             if bool(use_custom_chk.isChecked()):
                 ev.use_custom_font = True
                 ev.font = deepcopy(font_picker.value())
@@ -300,19 +380,41 @@ class TextTool(BaseTool):
                 ev.use_custom_font = False
                 ev.font = deepcopy(default_font or LayoutFont())
             ev.text = txt_edit.text()
+            ev.x_offset_mm = float(x_off_edit.value())
+            ev.y_offset_mm = float(y_off_edit.value())
+            if commit_snapshot:
+                try:
+                    self._editor._snapshot_if_changed(coalesce=False, label='text_edit')
+                except Exception:
+                    pass
+            self._schedule_preview()
+
+        def _apply():
+            _apply_live(commit_snapshot=True)
+
+        def _revert_state() -> None:
             try:
-                self._editor._snapshot_if_changed(coalesce=False, label='text_edit')
+                ev.text = original_state['text']
+                ev.use_custom_font = original_state['use_custom_font']
+                ev.font = deepcopy(original_state['font'])
+                ev.x_offset_mm = float(original_state['x_offset_mm'])
+                ev.y_offset_mm = float(original_state['y_offset_mm'])
             except Exception:
                 pass
-            if hasattr(self._editor, 'force_redraw_from_model'):
-                self._editor.force_redraw_from_model()
-            else:
-                self._editor.draw_frame()
+            self._schedule_preview()
+
+        txt_edit.textChanged.connect(lambda _t: _apply_live(False))
+        x_off_edit.valueChanged.connect(lambda _v: _apply_live(False))
+        y_off_edit.valueChanged.connect(lambda _v: _apply_live(False))
+        use_custom_chk.toggled.connect(lambda _v: _apply_live(False))
+        font_picker.valueChanged.connect(lambda: _apply_live(False))
 
         dlg.accepted.connect(_apply)
         dlg.raise_()
         dlg.activateWindow()
         dlg.show()
+
+        dlg.rejected.connect(_revert_state)
 
     # ---- Events ----
     def on_left_press(self, x: float, y: float) -> None:
@@ -344,6 +446,7 @@ class TextTool(BaseTool):
             self._active_text = tx
             self._active_mode = 'move'
             self._created_on_press = True
+            self._pending_new_text = tx
             self._cached_center = None
             try:
                 self._editor._snapshot_if_changed(coalesce=True, label='text_create')
@@ -410,9 +513,9 @@ class TextTool(BaseTool):
         super().on_left_unpress(x, y)
         if self._editor is None:
             return
-        if self._created_on_press and self._active_text is not None:
-            self._open_text_dialog(self._active_text)
-            self._created_on_press = False
+        # Do not open dialog here; defer to click handler to avoid double-open
+        if not self._created_on_press:
+            self._pending_new_text = None
         self._active_text = None
         self._active_mode = None
         self._cached_center = None
@@ -420,6 +523,11 @@ class TextTool(BaseTool):
     def on_left_click(self, x: float, y: float) -> None:
         super().on_left_click(x, y)
         if self._editor is None:
+            return
+        if self._pending_new_text is not None:
+            self._open_text_dialog(self._pending_new_text)
+            self._pending_new_text = None
+            self._created_on_press = False
             return
         x_mm, y_mm = self._cursor_mm(x, y)
         hit, mode, _ = self._hit_test(x_mm, y_mm)
