@@ -74,6 +74,13 @@ class DrawUtilView(QtWidgets.QWidget):
         self._score: dict | None = None
         self._page_prev_cb = None
         self._page_next_cb = None
+        # Resize throttling: scale existing image during drag, re-render after settle
+        self._resizing: bool = False
+        self._resize_timer = QtCore.QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(180)
+        self._resize_timer.timeout.connect(self._on_resize_settle)
+        self._suppress_fade_once: bool = False
         # Apply a dedicated background color for DrawUtil views
         try:
             color = Style.get_named_qcolor('draw_util')
@@ -121,6 +128,10 @@ class DrawUtilView(QtWidgets.QWidget):
         task = RenderTask(self._du, w_px, h_px, px_per_mm, dpr, self._page_index, self._emitter, self._score, False)
         self._pool.start(task)
 
+    def _on_resize_settle(self) -> None:
+        self._resizing = False
+        self.request_render()
+
     @QtCore.Slot()
     def request_engrave_and_render(self):
         """Deprecated: engraving is managed by Engraver. Kept for compatibility."""
@@ -128,7 +139,14 @@ class DrawUtilView(QtWidgets.QWidget):
 
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
-        self.request_render()
+        if self._image is None:
+            self.request_render()
+            return
+        # Scale the current image while dragging; re-render once the resize settles
+        self._resizing = True
+        self._suppress_fade_once = True
+        self._resize_timer.start()
+        self.update()
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
@@ -140,15 +158,23 @@ class DrawUtilView(QtWidgets.QWidget):
             def _draw_image(img: QtGui.QImage, opacity: float) -> None:
                 painter.save()
                 painter.setOpacity(opacity)
-                x = 0
-                img_h = int(img.height() / img.devicePixelRatio())
-                if img_h <= self.height():
-                    y = (self.height() - img_h) // 2
+                img_w = img.width() / img.devicePixelRatio()
+                img_h = img.height() / img.devicePixelRatio()
+                # During resize, scale current image to widget width to avoid re-engraving per frame
+                if self._resizing and img_w > 0:
+                    scale = float(self.width()) / float(img_w)
                 else:
-                    max_scroll = max(0, img_h - self.height())
+                    scale = 1.0
+                tgt_w = int(round(img_w * scale))
+                tgt_h = int(round(img_h * scale))
+                x = 0
+                if tgt_h <= self.height():
+                    y = (self.height() - tgt_h) // 2
+                else:
+                    max_scroll = max(0, tgt_h - self.height())
                     self._scroll_px = max(0.0, min(float(max_scroll), float(self._scroll_px)))
                     y = -int(round(self._scroll_px))
-                painter.drawImage(QtCore.QPoint(x, y), img)
+                painter.drawImage(QtCore.QRect(x, y, tgt_w, tgt_h), img)
                 painter.restore()
 
             if self._prev_image is not None and self._fade_progress < 1.0:
@@ -228,7 +254,13 @@ class DrawUtilView(QtWidgets.QWidget):
     def _on_rendered(self, image: QtGui.QImage, page_index: int):
         if page_index != self._page_index:
             return
-        if self._image is not None:
+        if self._suppress_fade_once:
+            self._prev_image = None
+            self._fade_progress = 1.0
+            self._fade_elapsed_ms = 0
+            self._fade_timer.stop()
+            self._suppress_fade_once = False
+        elif self._image is not None:
             self._prev_image = self._image
             self._fade_progress = 0.0
             self._fade_elapsed_ms = 0
