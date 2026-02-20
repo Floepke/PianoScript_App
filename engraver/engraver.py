@@ -2012,7 +2012,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
 
             if line_texts:
                 default_font = layout.get('font_text', {}) or {}
-                pad_mm = float(layout.get('text_background_padding_mm', 0.0) or 0.0)
+                pad_mm = float(layout.get('text_background_padding_mm', 0.0) or 0.0) * scale
 
                 def _resolve_font(tx: dict) -> tuple[str, float, bool, bool]:
                     use_custom = bool(tx.get('use_custom_font', False))
@@ -2034,7 +2034,7 @@ def do_engrave(score: SCORE, du: DrawUtil, pageno: int = 0, pdf_export: bool = F
                     txt_raw = str(tx.get('text', '') or '')
                     display_txt = txt_raw if txt_raw.strip() else "(no text set)"
                     family, size_pt_raw, italic, bold = _resolve_font(tx)
-                    size_pt = float(size_pt_raw) * ENGRAVER_FRACTIONAL_SCALE_CORRECTION
+                    size_pt = float(size_pt_raw) * ENGRAVER_FRACTIONAL_SCALE_CORRECTION * (scale / 0.3333333333333333)
                     y_mm = _time_to_y(t_time) + y_off
                     x_mm = rpitch_to_x(x_rp) + x_off
                     try:
