@@ -63,7 +63,7 @@ def midi_load(path: str) -> SCORE:
     tempi = [float(tp) for tp in list(tempi_arr) if tempi_arr is not None] if tempi_arr is not None else []
     if len(tempi) > 0:
         bpm_first = int(round(float(tempi[0])))
-        score.new_text(text=f"{bpm_first}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
+        score.new_text(text=f"{bpm_first}/4", time=0.0, x_rpitch=0, rotation=0.0)
         for t_sec, bpm_val in zip(times, tempi):
             start_units = _seconds_to_units(pm, float(t_sec))
             score.new_tempo(time=float(start_units), duration=float(QUARTER_NOTE_UNIT), tempo=int(round(float(bpm_val))))
@@ -202,7 +202,7 @@ def _midi_load_with_mido(path: str) -> SCORE:
 
     # First tempo for Text
     bpm0 = 60.0 / ((tempo_events[0][1] if tempo_events else default_tempo) / 1_000_000.0)
-    score.new_text(text=f"{int(round(bpm0))}/4", time=0.0, side='<', mm_from_side=5.0, rotated=True)
+    score.new_text(text=f"{int(round(bpm0))}/4", time=0.0, x_rpitch=0, rotation=0.0)
 
     # Helper: get current tempo at given absolute ticks
     def tempo_at_ticks(abs_ticks: int) -> int:

@@ -475,9 +475,8 @@ def parse_musicxml(path: Path) -> tuple[SCORE, dict[str, int]]:
         score.new_text(
             text=f"{int(round(first.bpm))}/4",
             time=float(first.time_units),
-            side="<",
-            mm_from_side=5.0,
-            rotated=True,
+            x_rpitch=0,
+            rotation=0.0,
         )
 
     if signature_by_measure:
